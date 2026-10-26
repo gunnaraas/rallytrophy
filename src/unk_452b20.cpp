@@ -1556,8 +1556,8 @@ struct J_Effect {
     void SetParent(void* parent);      // 0x4b2b30
 };
 
-// The directory copy of the rain loader: both destruction sites are expanded inline there, so they are written
-// out (Free) and the destructor itself is empty.
+// Directory copy for the rain loader. Force the normal cleanup inline while retaining
+// a real destructor for exception unwinding (matches the folded string dtor at 0x430720).
 class J_Path2 {
 public:
     J_Path2(const std::string& dir) : alloc(*(const std::allocator<char>*)&dir)
@@ -1565,9 +1565,9 @@ public:
         Tidy(false);
         AssignString(dir, 0, std::string::npos);
     }
-    ~J_Path2() {}
+    ~J_Path2() { Free(); }
     unsigned char& Refcnt(const char* u) { return ((unsigned char*)u)[-1]; }
-    void Free()                        // std::string::_Tidy(true), expanded inline
+    __forceinline void Free()          // std::string::_Tidy(true), expanded inline
     {
         if (ptr == 0) {
         } else if (Refcnt(ptr) == 0 || Refcnt(ptr) == 255) {
@@ -1589,7 +1589,8 @@ public:
         }
         unsigned int n;
         if (0 < m && Grow(n = len + m, false)) {
-            memcpy(ptr + len, s, m);
+            char* dest = ptr + len;
+            memcpy(dest, s, m);
             Eos(n);
         }
     }
@@ -1601,9 +1602,9 @@ public:
 };
 
 // original: FUN_004560a0 (thiscall, loads rain_drop.bmf: the windscreen rain and the body rain)
-// NONMATCHING: RALLYTROPHY 0x4560a0
-// 769 vs 769 bytes, 11 differing bytes: only register choices differ (the inline append copy uses ecx/edx for
-// ptr/len where the original has edx/eax shuffled, and dir.c_str() goes through eax instead of ecx).
+// FUNCTION: RALLYTROPHY 0x4560a0
+// Evidence: ev_046b6a95d3842d3fb060ae2ee4e5601ea23699ece8452983e9576767a3153def.
+// A named append destination preserves the target pointer/count register allocation.
 void CarObject::FUN_004560a0(const std::string& dir)
 {
     J_RainView* v = (J_RainView*)this;
@@ -1613,7 +1614,6 @@ void CarObject::FUN_004560a0(const std::string& dir)
     J_Path2 path(dir);
     path.AddInline("rain_drop.bmf");
     if (!FUN_004a6050(path.c_str())) {
-        path.Free();
         return;
     }
     {
@@ -1639,7 +1639,6 @@ void CarObject::FUN_004560a0(const std::string& dir)
             delete file.objects[i];
         }
     }
-    path.Free();
 }
 
 // Module end: guard-bit initialiser of the STL header statics and its atexit registration (init-table entry).
