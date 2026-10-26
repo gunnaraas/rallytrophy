@@ -89,7 +89,7 @@ Do not commit an ISO, executable, DLL, asset archive, or extracted game data.
 These files are excluded by `.gitignore`; each contributor supplies their own
 reference copy. Rally Trophy and its original code and assets belong to their
 respective rights holders. The reconstructed source and tooling in this
-repository are licensed under the GNU GPL v3 ([`LICENSE.md`](LICENSE.md)); that
+repository are licensed under the GNU GPL v3 ([`LICENSE`](LICENSE)); that
 license does not cover the original game, its code, or its assets.
 
 ## Contributing

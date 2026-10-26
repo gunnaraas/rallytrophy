@@ -35,4 +35,4 @@ Please read the project [README](README.md),
 Do not add game executables, DLLs, disc images, extracted assets, or unreviewed
 binary-analysis dumps to a change. The matcher requires a locally supplied
 official executable, which is ignored by Git. See the root README for setup and
-the license. Contributions are accepted under the GNU GPL v3 (`LICENSE.md`).
+the license. Contributions are accepted under the GNU GPL v3 (`LICENSE`).

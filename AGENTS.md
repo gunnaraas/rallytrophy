@@ -8,7 +8,7 @@ conventions) and `docs/architecture/overview.md` first. The active queue is
 range in the local, untracked `analysis/COORDINATION.md` before editing.
 
 The Rust behavior port lives separately in `../Rally-Trophy-Rust`; do not
-edit it from here. Source and tooling are GPL-3.0 (`LICENSE.md`).
+edit it from here. Source and tooling are GPL-3.0 (`LICENSE`).
 
 ## Hard rules
 
