@@ -36,8 +36,9 @@ matching maps, compiler notes, and the active work queue are under
   [exhaust smoke](analysis/exhaust-smoke-emission.md).
 - [Menu drawing](analysis/menu-row-drawing.md),
   [menu toggles](analysis/menu-toggle.md),
-  [menu volume](analysis/menu-volume.md), and
-  [player-name plate drawing](analysis/player-name-plate.md).
+  [menu volume](analysis/menu-volume.md),
+  [player-name plate drawing](analysis/player-name-plate.md), and
+  [service-menu pages](analysis/service-menu-pages.md).
 - [Networking session](analysis/networking-session.md),
   [configuration validation](analysis/config-validation.md),
   [language parsing](analysis/language-parser.md), and

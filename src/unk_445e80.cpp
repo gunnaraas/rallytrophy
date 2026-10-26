@@ -1334,44 +1334,44 @@ void ServiceMenu::DrawRepair()
     }
 }
 
-// NONMATCHING: RALLYTROPHY 0x44acf0
-// 370 vs 366 bytes: structure, EH states and constants match; the original keeps -1 in edi (colour slot store, push,
-// final EH state) with a 4-byte larger frame, mine stores the immediate (same open issue as RaceMode 0x48e4c0).
-// original: FUN_0044acf0 (page 3, "Save" tab: the loadSprite.tga quad)
+// FUNCTION: RALLYTROPHY 0x44acf0
+// Evidence: ev_6fc0b140bd6335fa62960afcee5a4cf1fbfee81964a056e964e6bfc884dfecfb.
+// Color lifetime and UV store order preserve the target instruction schedule.
 void ServiceMenu::DrawSavePage()
 {
     HudPoint pos[4];
     HudPoint uv[4];
+    Color white;
     uv[0].x = uv[3].x = 0.0f;
-    uv[0].y = uv[1].y = 0.0f;
     uv[1].x = uv[2].x = 1.0f;
+    uv[0].y = uv[1].y = 0.0f;
     uv[2].y = uv[3].y = 1.0f;
     pos[0].x = pos[3].x = DAT_0056aea8 * 684.0f;
     pos[1].x = pos[2].x = DAT_0056aea8 * 943.0f;
     pos[0].y = pos[1].y = DAT_0056aeac * 266.0f;
     pos[2].y = pos[3].y = DAT_0056aeac * 522.0f;
-    Color white(0xffffffff);
+    white.value = -1;
     DAT_0056b0ac->vf35(&loadSprite);
     ((RaceDeviceSlots*)DAT_0056b0ac)->DrawQuad((Vec2*)pos, (Vec2*)uv, white, 1.0f, 1.0f);
 }
 
-// NONMATCHING: RALLYTROPHY 0x44ae60
-// 370 vs 366 bytes: structure, EH states and constants match; the original keeps -1 in edi (colour slot store, push,
-// final EH state) with a 4-byte larger frame, mine stores the immediate (same open issue as RaceMode 0x48e4c0).
-// original: FUN_0044ae60 (page 4, "Continue" tab: the startrace.tga quad)
+// FUNCTION: RALLYTROPHY 0x44ae60
+// Evidence: ev_a8f6e0372fbee2ac1dccb990627abad0c70a0937029c31261834cc13f03597b4.
+// Color lifetime and UV store order preserve the target instruction schedule.
 void ServiceMenu::DrawContinuePage()
 {
     HudPoint pos[4];
     HudPoint uv[4];
+    Color white;
     uv[0].x = uv[3].x = 0.0f;
-    uv[0].y = uv[1].y = 0.0f;
     uv[1].x = uv[2].x = 1.0f;
+    uv[0].y = uv[1].y = 0.0f;
     uv[2].y = uv[3].y = 1.0f;
     pos[0].x = pos[3].x = DAT_0056aea8 * 684.0f;
     pos[1].x = pos[2].x = DAT_0056aea8 * 943.0f;
     pos[0].y = pos[1].y = DAT_0056aeac * 266.0f;
     pos[2].y = pos[3].y = DAT_0056aeac * 522.0f;
-    Color white(0xffffffff);
+    white.value = -1;
     DAT_0056b0ac->vf35(&startRace);
     ((RaceDeviceSlots*)DAT_0056b0ac)->DrawQuad((Vec2*)pos, (Vec2*)uv, white, 1.0f, 1.0f);
 }
