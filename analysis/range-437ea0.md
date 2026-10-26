@@ -66,11 +66,11 @@ Sizes are from `analysis/functions.csv`. EH handler values are the push-immediat
 | 0x438ca0 | 85 | thiscall, ret 8 | declared Toggle: toggle integer option and play selection sound | 0x424f04, 0x42aa60, 0x42aa6f, 0x439cf5, 0x439d04, 0x44053c, 0x4518fb |
 | 0x438d00 | 125 | fastcall-shaped, no SEH | clear/delete all `m_items` UIRect pointers and vector contents | 0x421e20, 0x42868c, 0x42c8af, 0x43ad19, 0x43cb45, 0x43ed6e, 0x43ff8f, 0x443573, 0x448f39 |
 | 0x438d80 | 59 | thiscall, ret 0x24 | declared DrawToggle: draw two-state option label and selected state | 0x428560, 0x42adb3, 0x42d065, 0x439f70, 0x440789, 0x451af3 |
-| 0x438dc0 | 381 | thiscall, ret 0x10, SEH 0x4d83d0? verify handler | draw a menu button/text entry and its selection decoration | 0x4228f1, 0x4229dc, 0x4250e3, 0x42d5ca, 0x44477e, 0x444975 |
+| 0x438dc0 | 381 | thiscall, ret 0x24, SEH 0x4d83c0 | draw a menu button/text entry and its selection decoration | 0x4228f1, 0x4229dc, 0x4250e3, 0x42d5ca, 0x44477e, 0x444975 |
 | 0x438f40 | 77 | thiscall, ret 8 | declared DrawCursor(HudPoint); draws cursor sprite at supplied point | 17+ screens including 0x422f13, 0x425161, 0x439fc1, 0x444b75, 0x451b44 |
 | 0x438f90 | 189 | thiscall, ret 0x0c, SEH 0x4d8420? verify handler, x87 | HitTest: scan item rectangles and test mouse point; update selected item | 0x427d35, 0x42c9fb, 0x42eda7, 0x43a8b6, 0x43e0ee, 0x447f78, 0x44bd67, 0x44eef0 and other menus |
 
-Note: handlers for 0x438dc0 and 0x438f90 are best left unassigned until checking full prologues; the displayed candidate offsets are not relied on. `0x438240/3b0/520` have SEH cleanup for temporary vector objects. Virtual renderer calls and x87 scaling are visible in their bodies.
+Note: the handler for 0x438f90 remains unverified; its displayed candidate offset is not relied on. The `0x438dc0` return size and handler are confirmed by evidence `ev_73b97d230353bead1ead5e92b7252d501ec9446d64872a642c76816f2cc2ac83`. `0x438240/3b0/520` have SEH cleanup for temporary vector objects. Virtual renderer calls and x87 scaling are visible in their bodies.
 
 ### DrawBar exactness finding
 

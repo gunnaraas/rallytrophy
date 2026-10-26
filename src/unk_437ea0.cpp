@@ -711,14 +711,14 @@ void MenuScreen::DrawToggle(TextRenderer* text, MenuLabel* labels, float x, floa
     DrawSelector(text, &labels[value].text, x, y, w, selected, value, a, b);
 }
 
-// NONMATCHING: RALLYTROPHY 0x438dc0
-// Only the prologue differs: the original loads `selected` and DAT_00508c0c before `or edx,-1` and stores the white
-// colour after the EH state; every ordering of the locals tried emits the white store first.
+// FUNCTION: RALLYTROPHY 0x438dc0
+// Default construction precedes white assignment to preserve VC6 EH-state scheduling.
 void MenuScreen::DrawSelector(TextRenderer* text, std::string* value, float x, float y, float w, int selected,
                               int current, int lo, int hi)
 {
-    Color white(0xffffffff);
+    Color white;
     Color col;
+    white.value = -1;
     col.value = selected ? DAT_00508c0c : DAT_00508c04;
     float sx = DAT_0056aea8 * 32.0f;
     float sy = DAT_0056aeac * 32.0f;

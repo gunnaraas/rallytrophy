@@ -40,3 +40,31 @@ Compiler observation: defining this naked method before `DrawSlider` makes
 VC6 remove that caller's SEH frame (229 bytes instead of 265). Placing the
 definition after its callers preserves `DrawSlider` and all 58 exact-marked
 functions in this module.
+
+## `MenuScreen::DrawSelector` (`0x438dc0`)
+
+The target body is 381 bytes, returns with `ret 0x24`, and installs handler
+`0x4d83c0`. Its prologue sets EH state 1 before storing the white color.
+Evidence: `ev_73b97d230353bead1ead5e92b7252d501ec9446d64872a642c76816f2cc2ac83`.
+
+Default-constructing both `Color` locals before assigning `white.value = -1`
+reproduces the original instruction schedule. The focused matcher reports all
+59 functions in this module exact, with no remaining `NONMATCHING` markers.
+The selector itself matches all 381 bytes with 21 COFF relocations.
+
+Local verification limitation: the relocation-copy helper cannot resolve the
+compiler-local EH handler label in `.text$x` because that section has no
+enclosing external function symbol. It therefore does not produce a copy for
+this function. The byte match remains an object comparison with relocation
+fields masked; runtime behavior has not been tested.
+
+Independent COFF/PE audit: all 13 absolute relocations correspond to PE base
+relocations, all five direct calls name the target functions, and the three
+FS references use `__except_list` with zero operands. The generated EH handler
+sets `eax` to its EHInfo and jumps to `__CxxFrameHandler`, matching the original
+handler's structure. Both EHInfo records have magic `0x19930520`, two unwind
+states, and no try/catch entries. The two cleanup actions address the same
+frame slots (`ebp-0x18`, `ebp-0x24`) and invoke `Color::~Color` (`0x402c90`).
+Thus the helper's unresolved label is a local-label resolution limitation;
+the generated unwind semantics are present in the object. This paragraph
+records local object/PE observations.
