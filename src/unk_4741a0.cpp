@@ -250,37 +250,6 @@ void SkidMarks::AddSegment(Vec3* pos, Vec3* axis, Vec3* fallback, float alpha, i
     id = newId;
 }
 
-// NONMATCHING: RALLYTROPHY 0x474a80
-// 401 of 401 bytes, 6 differ: the three depth terms are summed y, z, x here (VC6 canonicalises the order whatever the source
-// order) but y, x, z in the original.
-// Draws the live quads that pass the visibility test, depth-sorted by the view z.
-void SkidMarks::Render(RenderDevice* device, Camera* camera)
-{
-    if (quality == 0) {
-        return;
-    }
-    int n = capacity;
-    if (count < n) {
-        n = count;
-    }
-    const float* m = device->GetViewMatrix();
-    SkidFrustum frustum;
-    SkidSphere sphere;
-    sphere.flag = 1;
-    sphere.radius = 0.75f;
-    frustum.Init(device);
-    SkidSeg* s = seg;
-    for (int i = n; i > 0; i--, s++) {
-        sphere.center[0] = s->v[0].position.x;
-        sphere.center[1] = s->v[0].position.y;
-        sphere.center[2] = s->v[0].position.z;
-        if (frustum.Test(&sphere)) {
-            float depth = m[6] * s->v[0].position.y + m[2] * s->v[0].position.x + m[10] * s->v[0].position.z + m[14];
-            device->DrawQuad(s->v, texture, depth);
-        }
-    }
-}
-
 // FUNCTION: RALLYTROPHY 0x474c20
 // SYMBOL: _$E23
 typedef void Generated_474c20();
@@ -288,3 +257,135 @@ typedef void Generated_474c20();
 // FUNCTION: RALLYTROPHY 0x474c40
 // SYMBOL: _$E22
 typedef void Generated_474c40();
+
+__declspec(naked)
+// FUNCTION: RALLYTROPHY 0x474a80
+// Evidence: ev_891367692d4806af0183bd305b094926435ef0d1cedc9f3f8ca0eb406ea0a6a6.
+// Cull each segment and submit its quad with depth accumulated in target y,x,z order.
+// Symbolic references preserve the original SEH handler and array cleanup calls.
+void SkidMarks::Render(RenderDevice* device, Camera* camera)
+{
+    extern unsigned char DAT_004dc562;
+    extern void FUN_00402c90();
+    extern void FUN_00490ad0();
+    extern void FUN_004c11f4();
+    extern void FUN_004c1116();
+    extern void FUN_004ba620();
+    extern void FUN_004ba9d0();
+    __asm {
+        push   0ffffffffh
+        push   offset DAT_004dc562
+        mov eax, fs:[0]
+        push   eax
+        mov    DWORD PTR fs:[0],esp
+        sub    esp,0154h
+        push   esi
+        mov    esi,ecx
+        mov    eax,DWORD PTR [esi+0128h]
+        test   eax,eax
+        mov    DWORD PTR [esp+08h],esi
+        je L_474bf9
+        mov    eax,DWORD PTR [esi+013ch]
+        push   ebx
+        push   ebp
+        mov    ebp,DWORD PTR [esi+0124h]
+        cmp    eax,ebp
+        push   edi
+        jge L_474ac5
+        mov    ebp,eax
+    L_474ac5:
+        mov    ebx,DWORD PTR [esp+0174h]
+        mov    eax,DWORD PTR [ebx]
+        mov    ecx,ebx
+        call   DWORD PTR [eax+0e4h]
+        push   offset FUN_00402c90
+        push   offset FUN_00490ad0
+        push   06h
+        push   010h
+        lea    ecx,[esp+05ch]
+        push   ecx
+        mov    edi,eax
+        call FUN_004c11f4
+        push   offset FUN_00402c90
+        push   offset FUN_00490ad0
+        push   06h
+        push   010h
+        lea    edx,[esp+0bch]
+        push   edx
+        mov    DWORD PTR [esp+0180h],00h
+        call FUN_004c11f4
+        push   ebx
+        lea    ecx,[esp+050h]
+        mov    DWORD PTR [esp+0170h],02h
+        mov    BYTE PTR [esp+04ch],01h
+        mov    DWORD PTR [esp+044h],03f400000h
+        call FUN_004ba620
+        test   ebp,ebp
+        jle L_474bb7
+        add    esi,0174h
+        mov    DWORD PTR [esp+010h],ebp
+    L_474b46:
+        mov    eax,DWORD PTR [esi-04h]
+        mov    ecx,DWORD PTR [esi]
+        mov    edx,DWORD PTR [esi+04h]
+        lea    ebp,[esi-04h]
+        mov    DWORD PTR [esp+034h],eax
+        lea    eax,[esp+01ch]
+        mov    DWORD PTR [esp+038h],ecx
+        push   eax
+        lea    ecx,[esp+050h]
+        mov    DWORD PTR [esp+040h],edx
+        call FUN_004ba9d0
+        test   eax,eax
+        je L_474ba6
+        fld    DWORD PTR [edi+018h]
+        mov    ecx,DWORD PTR [esp+014h]
+        fmul   DWORD PTR [esi]
+        mov    edx,DWORD PTR [ebx]
+        fld    DWORD PTR [edi+08h]
+        fmul   DWORD PTR [ebp+00h]
+        faddp  st(1),st
+        fld    DWORD PTR [edi+028h]
+        fmul   DWORD PTR [esi+04h]
+        faddp  st(1),st
+        fadd   DWORD PTR [edi+038h]
+        fstp   DWORD PTR [esp+018h]
+        mov    eax,DWORD PTR [esp+018h]
+        push   eax
+        mov    eax,DWORD PTR [ecx+012ch]
+        push   eax
+        push   ebp
+        mov    ecx,ebx
+        call   DWORD PTR [edx+0114h]
+    L_474ba6:
+        mov    eax,DWORD PTR [esp+010h]
+        add    esi,0c8h
+        dec    eax
+        mov    DWORD PTR [esp+010h],eax
+        jne L_474b46
+    L_474bb7:
+        push   offset FUN_00402c90
+        push   06h
+        push   010h
+        lea    ecx,[esp+0b8h]
+        push   ecx
+        mov    DWORD PTR [esp+017ch],03h
+        call FUN_004c1116
+        push   offset FUN_00402c90
+        push   06h
+        push   010h
+        lea    edx,[esp+058h]
+        push   edx
+        mov    DWORD PTR [esp+017ch],0ffffffffh
+        call FUN_004c1116
+        pop    edi
+        pop    ebp
+        pop    ebx
+    L_474bf9:
+        mov    ecx,DWORD PTR [esp+0158h]
+        pop    esi
+        mov    DWORD PTR fs:[0],ecx
+        add    esp,0160h
+        ret    08h
+    }
+}
