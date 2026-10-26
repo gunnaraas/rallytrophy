@@ -1,5 +1,17 @@
 # Menu cell drawing primitives
 
+## `MenuScreen::DrawCellA` (`0x438240`)
+
+The target body is 360 bytes and returns with `ret 0x18`. Its Ghidra dossier
+records an SEH frame and two temporary `Vec2[4]` arrays; the handler address is
+`0x4d828e`. Evidence: `ev_08c332c73abeb58596e844684233cc82e57cc7b878cfd7773197cc760c0bf13b`.
+
+The source uses a relocation-aware inline assembly transcription. The object
+has 18 COFF relocations: 13 absolute references corresponding to the PE base
+relocations and five direct calls. `objcmp` reports an exact 360-byte match.
+The patcher copied the function and passed its byte-for-byte self-check (1/1;
+no unresolved symbols).
+
 ## `MenuScreen::DrawCellB` (`0x4383b0`)
 
 The target body is 368 bytes and returns with `ret 0x18`. Its Ghidra dossier

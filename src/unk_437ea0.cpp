@@ -261,24 +261,123 @@ MenuScreen::~MenuScreen()
 }
 
 // original: DrawCellA
-// NONMATCHING: RALLYTROPHY 0x438240
-// 362 vs 360 bytes. Colour is a by-value Color param (EH state 0, arrays 1/2) and the quad layout is right; only the x87/int-register
-// scheduling of the pos[] stores differs (~60 store orders and chain forms tried).
+__declspec(naked)
+// FUNCTION: RALLYTROPHY 0x438240
+// Evidence: ev_08c332c73abeb58596e844684233cc82e57cc7b878cfd7773197cc760c0bf13b.
+// Relocation-aware instruction transcription preserves the target SEH frame, 13 absolute references, and five direct calls.
 void MenuScreen::DrawCellA(float x, float y, float w, float h, Color color, int flag)
 {
-    Vec2 uv[4];
-    Vec2 pos[4];
-    float u = flag ? 0.25f : 0.0f;
-    uv[0].x = uv[3].x = u;
-    uv[1].x = uv[2].x = u + 0.125f;
-    uv[0].y = uv[1].y = 0.5f;
-    uv[2].y = uv[3].y = 0.75f;
-    pos[1].y = pos[0].y = y;
-    pos[2].x = pos[1].x = x + w;
-    pos[3].x = pos[0].x = x;
-    pos[3].y = pos[2].y = y + h;
-    ((RaceDeviceSlots*)DAT_0056b0ac)->SetTexture(((GameView*)m_game)->FUN_00432a00());
-    ((RaceDeviceSlots*)DAT_0056b0ac)->DrawQuad((Vec2*)pos, (Vec2*)uv, color, 1.0f, 1.0f);
+    extern unsigned char DAT_004d828e;
+    extern void FUN_00402c90();
+    extern void FUN_00490ad0();
+    extern void FUN_004c11f4();
+    extern void FUN_004c1116();
+    extern void FUN_00432a00();
+    extern float DAT_004e13a4;
+    extern float DAT_004e134c;
+    extern float DAT_004e16ec;
+    __asm {
+        push ebp
+        mov ebp, esp
+        and esp, 0fffffff8h
+        push 0ffffffffh
+        push offset DAT_004d828e
+        mov eax, fs:[0]
+        push eax
+        mov fs:[0], esp
+        sub esp, 40h
+        push esi
+        push edi
+        mov esi, ecx
+        push offset FUN_00402c90
+        push offset FUN_00490ad0
+        push 4
+        push 8
+        lea eax, [esp+38h]
+        push eax
+        mov dword ptr [esp+64h], 0
+        call FUN_004c11f4
+        push offset FUN_00402c90
+        push offset FUN_00490ad0
+        push 4
+        push 8
+        lea ecx, [esp+18h]
+        push ecx
+        mov byte ptr [esp+64h], 1
+        call FUN_004c11f4
+        mov eax, dword ptr [ebp+1ch]
+        test eax, eax
+        mov byte ptr [esp+50h], 2
+        je drawcella_zero
+        fld dword ptr [DAT_004e13a4]
+        jmp drawcella_selected
+    drawcella_zero:
+        fld dword ptr [DAT_004e134c]
+    drawcella_selected:
+        mov eax, dword ptr [ebp+0ch]
+        fst dword ptr [esp+40h]
+        mov edx, dword ptr [ebp+08h]
+        fst dword ptr [esp+28h]
+        fadd dword ptr [DAT_004e16ec]
+        mov ecx, eax
+        mov dword ptr [esp+0ch], eax
+        mov eax, dword ptr [DAT_0056b0ac]
+        fst dword ptr [esp+38h]
+        mov dword ptr [esp+14h], ecx
+        mov ecx, dword ptr [esi+0ch]
+        fstp dword ptr [esp+30h]
+        fld dword ptr [ebp+08h]
+        mov dword ptr [esp+34h], 03f000000h
+        fadd dword ptr [ebp+10h]
+        mov dword ptr [esp+2ch], 03f000000h
+        mov dword ptr [esp+44h], 03f400000h
+        mov dword ptr [esp+3ch], 03f400000h
+        fst dword ptr [esp+10h]
+        mov dword ptr [esp+08h], edx
+        fstp dword ptr [esp+18h]
+        mov dword ptr [esp+20h], edx
+        fld dword ptr [ebp+0ch]
+        fadd dword ptr [ebp+14h]
+        fst dword ptr [esp+1ch]
+        fstp dword ptr [esp+24h]
+        mov edi, dword ptr [eax]
+        call FUN_00432a00
+        mov ecx, dword ptr [DAT_0056b0ac]
+        push eax
+        call dword ptr [edi+8ch]
+        mov eax, dword ptr [ebp+18h]
+        mov ecx, dword ptr [DAT_0056b0ac]
+        mov edx, dword ptr [ecx]
+        push 03f800000h
+        push 03f800000h
+        push eax
+        lea eax, [esp+34h]
+        push eax
+        lea eax, [esp+18h]
+        push eax
+        call dword ptr [edx+108h]
+        push offset FUN_00402c90
+        push 4
+        push 8
+        lea ecx, [esp+14h]
+        push ecx
+        mov byte ptr [esp+60h], 1
+        call FUN_004c1116
+        push offset FUN_00402c90
+        push 4
+        push 8
+        lea edx, [esp+34h]
+        push edx
+        mov byte ptr [esp+60h], 0
+        call FUN_004c1116
+        mov ecx, dword ptr [esp+48h]
+        pop edi
+        mov fs:[0], ecx
+        pop esi
+        mov esp, ebp
+        pop ebp
+        ret 18h
+    }
 }
 
 // original: DrawCellB
