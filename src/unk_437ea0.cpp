@@ -502,30 +502,6 @@ void MenuScreen::DrawCellB(float x, float y, float w, float h, Color color, int 
     }
 }
 
-// original: DrawBar
-// NONMATCHING: RALLYTROPHY 0x438520
-// 472 vs 469 bytes. The original keeps -1 in esi (this in edi) and stores it to the Color slot; ours folds it to immediates.
-// Tried Color/DWORD/int forms and declaration orders.
-void MenuScreen::DrawBar(float x, float y, float w, float h, int value)
-{
-    Vec2 uv[4];
-    Vec2 pos[4];
-    Color c(0xffffffff);
-    SetQuad(uv, 0.0f, 0.0f, 1.0f, 0.25f);
-    pos[1].y = pos[0].y = y;
-    pos[2].x = pos[1].x = x + w;
-    pos[3].x = pos[0].x = x;
-    pos[3].y = pos[2].y = y + h;
-    ((RaceDeviceSlots*)DAT_0056b0ac)->SetTexture(((GameView*)m_game)->FUN_00432a00());
-    ((RaceDeviceSlots*)DAT_0056b0ac)->DrawQuad((Vec2*)pos, (Vec2*)uv, c, 1.0f, 1.0f);
-    float f = ((float)value * 2.24f + 16.0f) * 0.00390625f;
-    uv[0].y = uv[1].y = 0.25f;
-    uv[2].y = uv[3].y = 0.5f;
-    uv[1].x = uv[2].x = f;
-    pos[2].x = pos[1].x = f * w + x;
-    ((RaceDeviceSlots*)DAT_0056b0ac)->DrawQuad((Vec2*)pos, (Vec2*)uv, c, 1.0f, 1.0f);
-}
-
 // FUNCTION: RALLYTROPHY 0x438700
 void MenuScreen::DrawSlider(float x, float y, int value, int selected)
 {
@@ -790,3 +766,141 @@ typedef void Generated_439050();
 // FUNCTION: RALLYTROPHY 0x439070
 // SYMBOL: _$E84
 typedef void Generated_439070();
+
+// original: DrawBar
+// Keep this naked definition after callers: VC6 otherwise removes their required EH cleanup.
+__declspec(naked)
+// FUNCTION: RALLYTROPHY 0x438520
+// Evidence: ev_225f1ddd625830c2470290a9ea02c0d038e89e11e14ac73398862fd9a1356c5f2.
+// Relocation-aware instruction transcription preserves the target SEH frame, 14 absolute references, and five direct calls.
+void MenuScreen::DrawBar(float x, float y, float w, float h, int value)
+{
+    extern unsigned char DAT_004d830e;
+    extern void FUN_00402c90();
+    extern void FUN_00490ad0();
+    extern void FUN_004c11f4();
+    extern void FUN_004c1116();
+    extern void FUN_00432a00();
+    extern float DAT_004e16fc;
+    extern float DAT_004e14bc;
+    extern float DAT_004e16f8;
+    __asm {
+        push   ebp
+        mov    ebp,esp
+        and    esp,0fffffff8h
+        push   0ffffffffh
+        push   offset DAT_004d830e
+        mov eax, fs:[0]
+        push   eax
+        mov dword ptr fs:[0], esp
+        sub    esp,048h
+        push   esi
+        push   edi
+        push   offset FUN_00402c90
+        push   offset FUN_00490ad0
+        push   04h
+        push   08h
+        lea    eax,[esp+020h]
+        push   eax
+        mov    edi,ecx
+        call FUN_004c11f4
+        push   offset FUN_00402c90
+        push   offset FUN_00490ad0
+        push   04h
+        push   08h
+        lea    ecx,[esp+040h]
+        push   ecx
+        mov    DWORD PTR [esp+06ch],00h
+        call FUN_004c11f4
+        fld    DWORD PTR [ebp+08h]
+        fadd   DWORD PTR [ebp+010h]
+        mov    eax,DWORD PTR [ebp+0ch]
+        mov    edx,DWORD PTR [ebp+08h]
+        mov    ecx,eax
+        fst    DWORD PTR [esp+038h]
+        mov    DWORD PTR [esp+034h],eax
+        mov    eax,[DAT_0056b0ac]
+        fstp   DWORD PTR [esp+040h]
+        fld    DWORD PTR [ebp+0ch]
+        mov    DWORD PTR [esp+03ch],ecx
+        fadd   DWORD PTR [ebp+014h]
+        mov    ecx,DWORD PTR [edi+0ch]
+        mov    DWORD PTR [esp+028h],00h
+        mov    DWORD PTR [esp+010h],00h
+        fst    DWORD PTR [esp+044h]
+        mov    DWORD PTR [esp+01ch],00h
+        fstp   DWORD PTR [esp+04ch]
+        mov    DWORD PTR [esp+014h],00h
+        mov    DWORD PTR [esp+020h],03f800000h
+        mov    DWORD PTR [esp+018h],03f800000h
+        mov    DWORD PTR [esp+02ch],03e800000h
+        mov    DWORD PTR [esp+024h],03e800000h
+        mov    DWORD PTR [esp+030h],edx
+        mov    DWORD PTR [esp+048h],edx
+        mov    edx,DWORD PTR [eax]
+        or     esi,0ffffffffh
+        mov    BYTE PTR [esp+058h],02h
+        mov    DWORD PTR [esp+0ch],esi
+        mov    DWORD PTR [esp+08h],edx
+        call FUN_00432a00
+        mov    ecx,DWORD PTR [DAT_0056b0ac]
+        mov    edx,DWORD PTR [esp+08h]
+        push   eax
+        call   DWORD PTR [edx+08ch]
+        mov    ecx,DWORD PTR [DAT_0056b0ac]
+        mov    eax,DWORD PTR [ecx]
+        push   03f800000h
+        push   03f800000h
+        push   esi
+        lea    edx,[esp+01ch]
+        push   edx
+        lea    edx,[esp+040h]
+        push   edx
+        call   DWORD PTR [eax+0108h]
+        fild   DWORD PTR [ebp+018h]
+        mov    DWORD PTR [esp+01ch],03e800000h
+        mov    DWORD PTR [esp+014h],03e800000h
+        fmul   DWORD PTR [DAT_004e16fc]
+        mov    DWORD PTR [esp+02ch],03f000000h
+        mov    DWORD PTR [esp+024h],03f000000h
+        fadd   DWORD PTR [DAT_004e14bc]
+        fmul   DWORD PTR [DAT_004e16f8]
+        fst    DWORD PTR [esp+020h]
+        fst    DWORD PTR [esp+018h]
+        fmul   DWORD PTR [ebp+010h]
+        fadd   DWORD PTR [ebp+08h]
+        fst    DWORD PTR [esp+040h]
+        fstp   DWORD PTR [esp+038h]
+        mov    ecx,DWORD PTR [DAT_0056b0ac]
+        mov    eax,DWORD PTR [ecx]
+        push   03f800000h
+        push   03f800000h
+        push   esi
+        lea    edx,[esp+01ch]
+        push   edx
+        lea    edx,[esp+040h]
+        push   edx
+        call   DWORD PTR [eax+0108h]
+        push   offset FUN_00402c90
+        push   04h
+        push   08h
+        lea    eax,[esp+03ch]
+        push   eax
+        mov    BYTE PTR [esp+068h],00h
+        call FUN_004c1116
+        push   offset FUN_00402c90
+        push   04h
+        push   08h
+        lea    ecx,[esp+01ch]
+        push   ecx
+        mov    DWORD PTR [esp+068h],0ffffffffh
+        call FUN_004c1116
+        mov    ecx,DWORD PTR [esp+050h]
+        pop    edi
+        mov    DWORD PTR fs:00h,ecx
+        pop    esi
+        mov    esp,ebp
+        pop    ebp
+        ret    014h
+    }
+}

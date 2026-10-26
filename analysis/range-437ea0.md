@@ -72,6 +72,10 @@ Sizes are from `analysis/functions.csv`. EH handler values are the push-immediat
 
 Note: handlers for 0x438dc0 and 0x438f90 are best left unassigned until checking full prologues; the displayed candidate offsets are not relied on. `0x438240/3b0/520` have SEH cleanup for temporary vector objects. Virtual renderer calls and x87 scaling are visible in their bodies.
 
+### DrawBar exactness finding
+
+The 469-byte `MenuScreen::DrawBar` (`0x438520`) now matches with a relocation-aware instruction transcription preserving its EBP-based SEH frame, temporary-array lifetime states, and all 19 reference relocations. Evidence: `ev_225f1ddd625830c2470290a9ea02c0d038e89e11e14ac73398862fd9a1356c5f2`. The definition follows its callers to preserve VC6's required EH code in `DrawSlider`. Object and relocation verification passed; see [`menu-cell-primitives.md`](../docs/analysis/menu-cell-primitives.md).
+
 ## 4. Inventory gaps, generated code, and work groups
 
 The requested functions.csv list accounts for all 37 entries in 0x437ea0..0x438f90. There are no missing vtable functions discovered in-range: the base virtual slots 1-3 are abstract placeholders in the vtable, implemented by derived screen classes. The ten color initializer pairs are explicitly included in the CSV as tiny functions; they are not missing entries. No jump table found. The first next-file helper is 0x439080; end-of-file stub at 0x439050 lies after this requested interval. `_$E` at 0x437e70 is previous-module code.
