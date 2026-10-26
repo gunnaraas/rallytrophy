@@ -1,0 +1,98 @@
+name,start,end,description
+Language / text table,0x404d50,0x405580,language.cpp: language and text table loader
+Config files,0x405580,0x409690,config.cpp: key/value .ini configuration
+Single-player race mode,0x4807d0,0x481390,unk_4807d0.cpp: single-player race mode (vtable 0x4e23ac): start/reset/update, estimated stage times, start grid
+Mode select screen,0x4266c0,0x427600,unk_4266c0.cpp: GameScreen2DD4 (race mode select)
+Game settings screen,0x427600,0x4295c0,unk_427600.cpp: GameScreen11A4 (players, difficulty, laps)
+Graphics options screen,0x4295c0,0x42c2b0,unk_4295c0.cpp: MenuScreen2A8 (graphics detail settings)
+High score screen,0x42c2b0,0x42e930,unk_42c2b0.cpp: GameScreen1E9C (ranking table)
+Load game screen,0x42e930,0x4303e0,unk_42e930.cpp: GameScreen24FC (save slot list)
+Game object,0x4303e0,0x437ea0,unk_4303e0.cpp: Game (the singleton embedding every menu screen; front-end and race flow)
+MenuScreen base,0x437ea0,0x439080,unk_437ea0.cpp: MenuScreen base methods and the ten menu colours
+Rect helpers,0x439080,0x439170,unk_439080.cpp: UIRect constructor/Contains and a HudPoint helper
+MenuScreenA48,0x439170,0x43a390,unk_439170.cpp: options screen embedded in the menu manager at +0xa48
+Lobby screen,0x43a390,0x43c590,unk_43a390.cpp: Screen1378, the network lobby (Game+0x1378)
+Menu manager,0x43c590,0x43d770,unk_43c590.cpp: MenuManager (options root menu, embeds five screens)
+Player-name screen,0x43d770,0x43f9e0,unk_43d770.cpp: PlayerNameMenu (player names and icons, cheat names)
+Race options screen,0x43f9e0,0x441370,unk_43f9e0.cpp: RaceOptionsMenu (units, ghost car, wildlife, pace notes)
+Track-selection screen,0x441370,0x445e80,unk_441370.cpp: TrackSelectMenu (rally/stage chooser with RallyInfo records)
+Service-area screen,0x445e80,0x44b930,unk_445e80.cpp: ServiceMenu (rally service area: tuning, repairs, stage info)
+Replay menu,0x44b930,0x44d260,unk_44b930.cpp: ReplayMenu (saved replays list) front-end screen
+Save-game files,0x44d260,0x44ea60,unk_44d260.cpp: SaveGame slot files and relay.sav
+Slot menu,0x44ea60,0x450ee0,unk_44ea60.cpp: SlotMenu (save/profile slots) front-end screen
+Sound menu,0x450ee0,0x452380,unk_450ee0.cpp: SoundMenu options screen (MenuScreen base)
+Bonus unlocks,0x452380,0x452530,unk_452380.cpp: unlocked-car mask helpers
+Front-end videos,0x452530,0x452b20,unk_452530.cpp: victory and country Bink videos
+Car animation and driver models,0x452b20,0x4563e0,unk_452b20.cpp: lamp points; accelerations; wiper/flap/driver animation; driver/wiper/rain model loaders
+Car camera,0x4563e0,0x4581f0,unk_4563e0.cpp: ViewManager (car camera); camera.txt presets
+Car collision,0x4581f0,0x458700,unk_4581f0.cpp: world box registration; car-vs-car test
+Car input,0x458700,0x459230,unk_458700.cpp: CarInput (= Controls): smoothing; force feedback; gear shifts
+Car environment map,0x459230,0x459890,unk_459230.cpp: 6-face environment map render
+Car damage and contacts,0x459890,0x45ad10,unk_459890.cpp: AddContact; ProcessContacts; ApplyWheel; repair and damage getters
+Car update and physics,0x45ad10,0x45dac0,unk_45ad10.cpp: steering; Update; PostUpdate; PhysicsStep; suspension; wheel contact; brakes
+Car sun factor,0x45dac0,0x45de90,unk_45dac0.cpp: SunFactor ray test
+Car lights update,0x45de90,0x45e480,unk_45de90.cpp: UpdateLights
+Car constructor file,0x45e480,0x464ab0,unk_45e480.cpp: Car ctor/dtor (CarObject = full Car layout); car/tire ini and texture loaders; wiring helpers
+Rear-view mirror,0x464ab0,0x4654c0,unk_464ab0.cpp: mirror statics; camera setup; visibility test; mirror render; SkidFrustum ctor/dtor
+Car replay and network state,0x4654c0,0x465e90,unk_4654c0.cpp (stub only) + unk_4654f0.cpp: replay mode; GetState/SetState packing
+Car setup,0x465e90,0x4666a0,unk_465e90.cpp: tyre dynamics loader; gearing/suspension/balance/steering setters
+Car sounds,0x4666a0,0x468720,unk_4666a0.cpp: Sounds.ini loader; UpdateSounds; surface sounds
+Car race state,0x468720,0x468c40,unk_468720.cpp: stuck detection; respawn; checkpoints and laps
+Car model parts,0x468c40,0x469630,unk_468c40.cpp: visible parts; cockpit and damaged-model switches
+Car render and effects,0x469630,0x46a8a0,unk_469630.cpp: render transforms; lighting; particles; tyre tracks; gauges
+Drivetrain,0x46a8a0,0x46bb90,unk_46a8a0.cpp: engine/clutch/gearbox/differential (Car+0xdb8)
+Car snapshots,0x46bb90,0x46c2c0,unk_46bb90.cpp: CarSnapshot save/restore slots
+Wheel and tyre forces,0x46c2c0,0x46d720,unk_46c2c0.cpp: Wheel (Car+0x28 x4) and Pacejka tyre forces
+Spring follower,0x46d720,0x46d830,unk_46d720.cpp: SpringFollower
+Car rain,0x46d830,0x46e850,unk_46d830.cpp: CarRain drops on the body/hood/trunk meshes
+Car light glows,0x46e850,0x46eec0,unk_46e850.cpp (stub only) + unk_46e880.cpp: CarLight glow sprites
+City lens flares,0x46eec0,0x46fa80,unk_46eec0.cpp: CityLight glow and flare
+Water animator,0x46fa80,0x46fdf0,unk_46fa80.cpp: WaterAnimator (StageAnimator)
+Car shadows (ParallelShadow),0x46fdf0,0x472c90,unk_46fdf0.cpp: Vec2 operators; ParallelShadow render-to-texture and software shadow rasteriser
+Rain and view-matrix inverse,0x472c90,0x4741a0,unk_472c90.cpp: ViewMat::SetInverseOf; RainEffect weather (Stage weather 1)
+Skid marks,0x4741a0,0x474c50,unk_4741a0.cpp: SkidMarks (4 per car at Car+0x2748)
+Snowfall,0x474c50,0x4758b0,unk_474c50.cpp: SnowFall weather effect (Stage+0x6b0)
+Sky,0x4758b0,0x476490,unk_4758b0.cpp: Sky layers (Stage+0x6ac)
+Texture scroller and window rain,0x476490,0x477370,unk_476490.cpp + unk_4766a0.cpp + unk_4766d0.cpp: TexScroller; WindowRain
+Wheel spray,0x477370,0x478020,unk_477370.cpp: WheelSpray effect (Car+0x2100)
+Exhaust smoke,0x478020,0x478870,unk_478020.cpp: exhaust smoke effect (Car+0x25e8)
+Particle pool,0x478870,0x478be0,unk_478870.cpp: ParticlePool free list (global 0x56ae90)
+Effect base and sprite tables,0x478be0,0x479170,unk_478be0.cpp: Effect base class; sin/cos and uv tables
+Car emitter B,0x479170,0x47b4c0,unk_479170.cpp: CarEmitterB (Car+0x222c)
+Car emitter C,0x47b4c0,0x47c3d0,unk_47b4c0.cpp: CarEmitterC (Car+0x2488)
+Emitter constants,0x47c3d0,0x47c460,unk_47c3d0.cpp: two static float initialisers
+Car particle emitter,0x47c460,0x47ef80,unk_47c460.cpp: CarParticles (Car+0x2358 wheel dust/smoke effect)
+Network race mode,0x481390,0x4843e0,unk_481390.cpp: network race mode (standings/start grid/messages)
+Networking / DirectPlay,0x4843e0,0x4856e0,unk_4843e0.cpp: DirectPlay session handling
+Race-mode base class,0x4856e0,0x48f130,unk_4856e0.cpp: abstract race mode (vtable 0x4e2520): HUD drawing, standings, replay
+Replay race mode,0x48f130,0x48f670,unk_48f130.cpp: ReplayRace (vtable 0x4e2690)
+Ghost race mode,0x48f670,0x48fe20,unk_48f670.cpp: GhostRace (vtable 0x4e2708)
+Game controllers / DirectInput,0x4952e0,0x498360,unk_495640.cpp: joystick and controller handling
+Sound (Miles),0x498360,0x49b630,sound.cpp: Miles Sound System wrapper
+WinMain / setup,0x4a1760,0x4a4b10,winmain.cpp: WinMain; startup; dialogs
+File / archive I/O,0x4a4b10,0x4a6600,file.cpp + file_archive.cpp: archive cache and file access
+Scene-object base,0x4b2830,0x4b3050,scene_object.cpp: hierarchy; state copy; transform traversal; bounds
+Bounding-sphere geometry,0x4b47e0,0x4b5110,scene_sphere.cpp + mesh_triangle_cache.cpp: point supports and randomized sphere construction
+Keyboard/mouse input hooks,0x4b6ac0,0x4b7390,input.cpp: input state and hook callbacks
+Timer / string / registry helpers,0x4b7390,0x4b7790,unk_4b7390.cpp: timer; string conversion; registry
+View object,0x4b77b0,0x4b7a40,view_object.cpp: camera view construction and horizontal basis
+Renderer plugin loader,0x4bbdf0,0x4bc210,unk_4bbdf0.cpp: renderer plugin loader
+Command line,0x4bc210,0x4bc360,commandline.cpp: command-line parser
+Record table (highscores),0x48fe20,0x490950,unk_48fe20.cpp: RecordTable in Game+0x5c30 (records, load/save)
+Player,0x490950,0x491fb0,unk_490950.cpp: race participant (0x1a88 bytes)
+Race session,0x491fb0,0x4952e0,unk_491fb0.cpp: in-race game loop in Game+0x139080
+Sound sources,0x49b630,0x49b8e0,unk_49b630.cpp: SoundSource members (separate file from sound.cpp)
+AI driver,0x49b8e0,0x49f910,unk_49b8e0.cpp: AIDriver (computer players): ai_<n>.ini, steering/throttle
+AI path,0x49f910,0x49fee0,unk_49f910.cpp: AiPath (<stage>.ai): nodes and segments
+AI driver opponents,0x49fee0,0x4a14e0,unk_49fee0.cpp: AIDriver opponent/obstacle detection
+AI path nodes,0x4a14e0,0x4a16a0,unk_4a14e0.cpp + unk_4a1530.cpp: AiNode and AiSegment
+Static-initialiser-only files,0x4a16a0,0x4a1760,unk_4a16a0.cpp ... unk_4a1730.cpp: four files with only the STL _$E pair here
+Startup helpers,0x401000,0x404d50,"range-401000.md: replay recorder, XXTEA cipher, VC6 string internals, hash map, loading screen, save files"
+Stage scene and collision,0x409690,0x420490,"range-409690.md: Bink video, stage loader/destructor, grid, sounds, collision model, car-body physics"
+StageTable/control/credits screens,0x420490,0x4266c0,"range-420490.md: car selection screen, control menu, credits"
+GameSpy SDK (to replace),0x47ef80,0x4807d0,"third-party; not ported (AGENTS.md rule 4)"
+Engine image/font/model files,0x4a9b60,0x4b2830,"range-4a9b60.md: glyph fonts, image objects and converter, model/texture caches, .bmf model reader"
+Collision geometry,0x4b3050,0x4b44e0,"range-4b3050.md: light masks, triangle/segment and swept-sphere tests"
+Transform math and message pump,0x4b5140,0x4b6ac0,"range-4b5140.md: quaternions, matrix helpers, Tri3 intersection, Win32 message pump"
+"Draw context, mesh, shadow and sky",0x4b7a40,0x4bbdf0,"range-4b7a40.md: draw context, scene entries, mesh container, shadow/frustum, sky ray tracing"
+Draw queue and vector helpers,0x4bc360,0x4bcfc7,"vector<void*> insert/reserve, CStr, draw queue"

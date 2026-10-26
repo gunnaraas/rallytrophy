@@ -1,0 +1,11 @@
+name: Lint
+
+on: [push, pull_request]
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Matching needs VC6 and the retail executable, so CI only checks the tooling.
+      - run: python3 -I -m compileall -q tools

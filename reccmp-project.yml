@@ -1,0 +1,18 @@
+targets:
+  RALLYTROPHY:
+    filename: RallyTrophy.exe
+    source_root: .
+    hash:
+      sha256: cc1718e21a83b7422cfd2b304a9fe43e4f6a6e7550389d9f20bf30530f19ec8d
+    data_sources: []
+    encoding:
+    ghidra:
+      ignore_types: []
+      ignore_functions: []
+      name_substitutions: []
+      allow_hash_mismatch: false
+    report:
+      ignore_functions: []
+      ignore_variables: []
+      icon:
+    marker_aliases: {}

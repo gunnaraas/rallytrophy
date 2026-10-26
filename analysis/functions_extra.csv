@@ -1,0 +1,385 @@
+entry,size,note
+0x4b7a30,10,draw queue exit callback (data referenced at 0x4b7a20)
+0x4b6dc0,10,keyboard queue static initializer (data referenced at 0x4f23dc)
+0x4b6e00,10,keyboard queue destructor callback (data referenced at 0x4b6df0)
+0x4b4510,32,sphere pointer-vector destructor callback (data referenced)
+0x4a43b0,134,key dialog procedure (only referenced as data)
+0x4a4c90,32,archive-cache vector cleanup callback
+0x4994e0,23,sound end-of-sample callback for 2D voices (only referenced as data)
+0x499500,23,sound end-of-sample callback for 3D voices (only referenced as data)
+0x498360,59,sound source priority comparator for qsort (only referenced as data)
+0x4b6f90,773,keyboard hook callback (referenced as data by T_56b0bc)
+0x496690,56,controller enumeration callback: collect devices (only referenced as data)
+0x4970e0,9,iostream.h flush manipulator instance (only referenced as data)
+0x496a20,265,controller effect enumeration callback (only referenced as data)
+0x497f30,17,controller configure-UI callback (only referenced as data)
+0x484b70,30,DirectPlay peer message callback (only referenced as data)
+0x484b90,33,DirectPlay lobby message callback (only referenced as data)
+0x481700,345,network race vtable slot 4 (only referenced as data)
+0x481940,1240,network race vtable slot 1 (only referenced as data)
+0x481f40,87,network race vtable slot 13 (only referenced as data)
+0x4823f0,52,qsort comparator (only referenced as data)
+0x482430,121,qsort comparator (only referenced as data)
+0x482500,9,network race vtable slot 25 IsJoined (only referenced as data)
+0x482530,67,network race vtable slot 7 (only referenced as data)
+0x4825d0,640,network race vtable slot 12 (only referenced as data)
+0x482850,127,qsort comparator (only referenced as data)
+0x483c10,321,network race vtable slot 27 (only referenced as data)
+0x483d60,49,network race vtable slot 14 (only referenced as data)
+0x483da0,5,network race vtable slot 17 (only referenced as data)
+0x4843b0,25,static initializer (only referenced as data)
+0x4843d0,12,static initializer atexit registration
+0x483980,25,player check callback (only referenced as data)
+0x48e630,28,race-mode base vtable default (only referenced as data)
+0x48e650,11,race-mode base vtable default (only referenced as data)
+0x48e670,3,race-mode base vtable default (only referenced as data)
+0x4890b0,3,race-mode base vtable default (only referenced as data)
+0x4890c0,6,race-mode base vtable default (only referenced as data)
+0x4890d0,8,race-mode base vtable default (only referenced as data)
+0x488aa0,461,race-mode base slot 18 (car setup pass + ghost fade; vtable only)
+0x488c70,467,race-mode base slot 22 (slot 18 skipping a car; vtable only)
+0x488e50,154,race-mode base slot 19 (car draw pass; vtable only)
+0x485a50,124,race-mode base qsort comparator
+0x485ad0,127,race-mode base qsort comparator
+0x485b50,93,race-mode base qsort comparator
+0x4856e0,10,static initializer wrapper (CRT table entry)
+0x485720,1,static destructor thunk (empty)
+0x485730,10,static initializer wrapper (CRT table entry)
+0x485770,1,static destructor thunk (empty)
+0x485780,10,static initializer wrapper (CRT table entry)
+0x4857c0,1,static destructor thunk (empty)
+0x4857d0,10,static initializer wrapper (CRT table entry)
+0x485810,1,static destructor thunk (empty)
+0x485820,10,static initializer wrapper (CRT table entry)
+0x485860,1,static destructor thunk (empty)
+0x485870,10,static initializer wrapper (CRT table entry)
+0x4858b0,1,static destructor thunk (empty)
+0x4858c0,10,static initializer wrapper (CRT table entry)
+0x485900,1,static destructor thunk (empty)
+0x485910,10,static initializer wrapper (CRT table entry)
+0x485950,1,static destructor thunk (empty)
+0x485960,10,static initializer wrapper (CRT table entry)
+0x4859a0,1,static destructor thunk (empty)
+0x48a060,1,empty destructor thunk of the local static in 0x4899a0 (atexit callback)
+0x48a910,1,empty destructor thunk of the local static in 0x48a070 (atexit callback)
+0x48b050,1,empty destructor thunk of the third local static in 0x48a920 (atexit callback)
+0x48b060,1,empty destructor thunk of the second local static in 0x48a920 (atexit callback)
+0x48b070,1,empty destructor thunk of the first local static in 0x48a920 (atexit callback)
+0x48b610,1,empty atexit destructor thunk for the function-local static in 0x48b080
+0x48f2e0,544,ReplayRace::Update (vtable 0x4e2690 slot 1; only referenced as data)
+0x48f5f0,5,ReplayRace::Slot13 returning 0 (vtable only)
+0x48f760,364,GhostRace::Update (vtable 0x4e2708 slot 1; only referenced as data)
+0x48fcf0,52,qsort comparator of GhostRace::FUN_0048fb10 (only referenced as data)
+0x48f670,10,static initialiser wrapper (_$E) of DAT_005654f0
+0x48f6b0,1,empty destructor thunk of the static DAT_005654f0 (atexit callback)
+0x480830,406,single-player race mode Slot4 (vtable slot 4)
+0x480a50,648,single-player race mode Update (vtable slot 1)
+0x481160,69,single-player race mode Slot13 (vtable slot 13)
+0x481360,25,static initializer (only referenced as data)
+0x481380,12,static initializer atexit registration
+0x4952b0,25,race session module end: guard-bit set of header statics (CRT init-table entry; falls into 0x4952d0)
+0x4952d0,12,race session module end: atexit(0x402c90) registration thunk
+0x4952e0,10,DirectInput file initializer: vector constructor then atexit registration
+0x495320,46,DirectInput global vector destructor callback
+0x495350,10,DirectInput axis-range array initializer: vector constructor then atexit registration
+0x495390,20,DirectInput first axis-range array destructor callback
+0x4953b0,10,DirectInput second axis-range array initializer
+0x4953f0,20,DirectInput second axis-range array destructor callback
+0x4856b0,25,networking module end: guard-bit initialiser of the STL header statics (_$E)
+0x4856d0,12,networking module end: atexit(0x402c90) registration
+0x48f100,25,race-mode base module end: guard-bit initialiser of the STL header statics (_$E)
+0x48f120,12,race-mode base module end: atexit(0x402c90) registration
+0x48f640,25,ReplayRace module end: guard-bit initialiser of the STL header statics (_$E)
+0x48f660,12,ReplayRace module end: atexit(0x402c90) registration
+0x48fdf0,25,GhostRace module end: guard-bit initialiser of the STL header statics (_$E)
+0x48fe10,12,GhostRace module end: atexit(0x402c90) registration
+0x490920,25,record table module end: guard-bit initialiser of the STL header statics (_$E)
+0x490940,12,record table module end: atexit(0x402c90) registration
+0x491f80,25,Player module end: guard-bit initialiser of the STL header statics (_$E)
+0x491fa0,12,Player module end: atexit(0x402c90) registration
+0x49feb0,25,AiPath module end: guard-bit initialiser of the STL header statics (_$E)
+0x49fed0,12,AiPath module end: atexit(0x402c90) registration
+0x4a1500,25,AiNode module end: guard-bit initialiser of the STL header statics (_$E)
+0x4a1520,12,AiNode module end: atexit(0x402c90) registration
+0x4a1670,25,AiSegment module end: guard-bit initialiser of the STL header statics (_$E)
+0x4a1690,12,AiSegment module end: atexit(0x402c90) registration
+0x49b8b0,25,SoundSource module-end guard stub (_$E23)
+0x49b8d0,12,SoundSource module-end atexit registration (_$E22)
+0x49f8e0,25,AI driver module end: guard-bit initialiser of the STL header statics (_$E)
+0x49f900,12,AI driver module end: atexit(0x402c90) registration
+0x4a14b0,25,AI driver part 2 module end: guard-bit initialiser of the STL header statics (_$E)
+0x4a14d0,12,AI driver part 2 module end: atexit(0x402c90) registration
+0x4a16a0,25,stub-only module end: guard-bit initialiser of the STL header statics (_$E)
+0x4a16c0,12,stub-only module end: atexit(0x402c90) registration
+0x4a16d0,25,stub-only module end: guard-bit initialiser of the STL header statics (_$E)
+0x4a16f0,12,stub-only module end: atexit(0x402c90) registration
+0x4a1700,25,stub-only module end: guard-bit initialiser of the STL header statics (_$E)
+0x4a1720,12,stub-only module end: atexit(0x402c90) registration
+0x4a1730,25,stub-only module end: guard-bit initialiser of the STL header statics (_$E)
+0x4a1750,12,stub-only module end: atexit(0x402c90) registration
+0x47c790,268,jump table at 0x47c86c is part of the function
+0x47ef50,25,car particle module end: guard-bit initialiser of the STL header statics (_$E)
+0x47ef70,12,car particle module end: atexit(0x402c90) registration
+0x478bb0,25,particle pool module end: guard-bit initialiser of the STL header statics (_$E)
+0x478bd0,12,particle pool module end: atexit(0x402c90) registration
+0x478be0,10,table static initialiser wrapper (sin/cos)
+0x478c20,43,table destructor with guard bit (sin/cos)
+0x478c50,10,table static initialiser wrapper (8x8 uv)
+0x478c90,40,table destructor with guard bit (8x8 uv)
+0x478cc0,10,table static initialiser wrapper (4x4 (1/4))
+0x478d00,40,table destructor with guard bit (4x4 (1/4))
+0x478d30,10,table static initialiser wrapper (4x4 (1/32))
+0x478d70,44,table destructor with guard bit (4x4 (1/32))
+0x478da0,10,table static initialiser wrapper (2x2 (1/16))
+0x478de0,40,table destructor with guard bit (2x2 (1/16))
+0x478e10,10,table static initialiser wrapper (2x2 (1/8))
+0x478e50,40,table destructor with guard bit (2x2 (1/8))
+0x479140,25,effect module end: guard-bit initialiser of the STL header statics (_$E)
+0x479160,12,effect module end: atexit(0x402c90) registration
+0x47c3d0,5,static float initialiser wrapper (jmp to 0x47c3e0)
+0x47c3e0,19,static float DAT_00563f5c = 1.0f / 0.3f
+0x47c400,5,static float initialiser wrapper (jmp to 0x47c410)
+0x47c410,25,static float DAT_00563f58 = 1.0f / (1.0f - 0.3f)
+0x47c430,25,fade-constants module end: guard-bit initialiser of the STL header statics (_$E)
+0x47c450,12,fade-constants module end: atexit(0x402c90) registration
+0x47b490,25,car emitter B module end: guard-bit initialiser of the STL header statics (_$E)
+0x47b4b0,12,car emitter B module end: atexit(0x402c90) registration
+0x47c3a0,25,car emitter C module end: guard-bit initialiser of the STL header statics (_$E)
+0x47c3c0,12,car emitter C module end: atexit(0x402c90) registration
+0x477370,5,wheel spray static float initialiser wrapper (jmp to 0x477380)
+0x477380,19,static float s_fadeIn (0x561b5c) = 1.0f / 0.4f
+0x4773a0,5,wheel spray static float initialiser wrapper (jmp to 0x4773b0)
+0x4773b0,25,static float s_fadeOut (0x561b58) = 1.0f / (1.0f - 0.4f)
+0x477ff0,25,wheel spray module end: guard-bit initialiser of the STL header statics (_$E)
+0x478010,12,wheel spray module end: atexit(0x402c90) registration
+0x475880,25,snow fall module end: guard-bit initialiser of the STL header statics (_$E)
+0x4758a0,12,snow fall module end: atexit(0x402c90) registration
+0x474c20,25,skid marks module end: guard-bit initialiser of the STL header statics (_$E)
+0x474c40,12,skid marks module end: atexit(0x402c90) registration
+0x4758b0,10,sky: static-initialiser wrapper of the file-static matrix 0x561b08 (construct + register dtor)
+0x4758e0,10,sky: atexit callback destroying the file-static matrix 0x561b08
+0x475a00,5,sky: layer destructor callback (jmp to the Sprite destructor)
+0x476460,25,sky module end: guard-bit initialiser of the STL header statics (_$E)
+0x476480,12,sky module end: atexit(0x402c90) registration
+0x4765d0,153,TexScroller::Update (vtable slot 1; missing from the Ghidra list)
+0x476670,25,TexScroller module end: guard-bit initialiser of the STL header statics (_$E)
+0x476690,12,TexScroller module end: atexit(0x402c90) registration
+0x4766a0,25,empty module 0x4766a0 end: guard-bit initialiser of the STL header statics (_$E)
+0x4766c0,12,empty module 0x4766a0 end: atexit(0x402c90) registration
+0x477080,18,shared inline virtual slot 6 of the effect vtables: forwards to slot 5 (Render)
+0x477340,25,WindowRain module end: guard-bit initialiser of the STL header statics (_$E)
+0x477360,12,WindowRain module end: atexit(0x402c90) registration
+0x478020,5,exhaust smoke static initialiser wrapper (jmp 0x478030)
+0x478030,19,exhaust smoke static float initialiser (1 / 0.2 -> 0x561b6c)
+0x478050,5,exhaust smoke static initialiser wrapper (jmp 0x478060)
+0x478060,25,exhaust smoke static float initialiser (1 / (1 - 0.2) -> 0x561b68)
+0x478840,25,exhaust smoke module end: guard-bit initialiser of the STL header statics (_$E)
+0x478860,12,exhaust smoke module end: atexit(0x402c90) registration
+0x4732a0,7,WeatherEffect base constructor (vptr 0x4e2000; no callers)
+0x4732b0,31,WeatherEffect scalar deleting destructor (vtable 0x4e2000)
+0x474170,25,rain module end: guard-bit initialiser of the STL header statics (_$E)
+0x474190,12,rain module end: atexit(0x402c90) registration
+0x46fe80,7,abstract shadow interface constructor (vtable 0x4e1fb4; no callers)
+0x46fe90,31,abstract shadow interface scalar deleting destructor
+0x46feb0,10,static initializer wrapper (CRT table entry)
+0x46fee0,1,static destructor thunk (empty)
+0x46fef0,10,static initializer wrapper (CRT table entry)
+0x46ff30,23,static destructor of the 0x4000-element projected vertex array (vector destructor)
+0x46ff50,10,static initializer wrapper (CRT table entry)
+0x46ff80,1,static destructor thunk (empty)
+0x46ff90,10,static initializer wrapper (CRT table entry)
+0x46ffc0,10,static destructor thunk (mov ecx,0x509680; jmp 0x402c90)
+0x46ffd0,10,static initializer wrapper (CRT table entry)
+0x470000,10,static destructor thunk (mov ecx,0x509640; jmp 0x402c90)
+0x470010,10,static initializer wrapper (CRT table entry)
+0x470040,10,static destructor thunk (mov ecx,0x509600; jmp 0x402c90)
+0x470050,10,static initializer wrapper (CRT table entry)
+0x470080,10,static destructor thunk (mov ecx,0x5095c0; jmp 0x402c90)
+0x470090,10,static initializer wrapper (CRT table entry)
+0x4700c0,10,static destructor thunk (mov ecx,0x509580; jmp 0x402c90)
+0x4700d0,10,static initializer wrapper (CRT table entry)
+0x470100,1,static destructor thunk (empty)
+0x470110,10,static initializer wrapper (CRT table entry)
+0x470140,1,static destructor thunk (empty)
+0x470150,10,static initializer wrapper (CRT table entry)
+0x470190,20,static destructor of the 3-element clip plane array (vector destructor)
+0x472c60,25,ParallelShadow module end: guard-bit initialiser of the STL header statics (_$E)
+0x472c80,12,ParallelShadow module end: atexit(0x402c90) registration
+0x4708e0,83,ParallelShadow render slot (vtable slot 5)
+0x46e850,25,empty module 0x46e850: guard-bit initialiser of the STL header statics (_$E)
+0x46e870,12,empty module 0x46e850: atexit(0x402c90) registration
+0x46e880,10,CarLight module: static initializer wrapper for s_quad (CRT table entry)
+0x46e8c0,20,CarLight module: s_quad vector destructor thunk (atexit callback)
+0x46ee90,25,CarLight module end: guard-bit initialiser of the STL header statics (_$E)
+0x46eeb0,12,CarLight module end: atexit(0x402c90) registration
+0x46fdc0,25,WaterAnimator module end: guard-bit initialiser of the STL header statics (_$E)
+0x46fde0,12,WaterAnimator module end: atexit(0x402c90) registration
+0x46e820,25,CarRain module end: guard-bit initialiser of the STL header statics (_$E)
+0x46e840,12,CarRain module end: atexit(0x402c90) registration
+0x46fa50,25,CityLight module end: guard-bit initialiser of the STL header statics (_$E)
+0x46fa70,12,CityLight module end: atexit(0x402c90) registration
+0x46bb90,32,CarSnapshot constructor (vec-ctor callback)
+0x46bbb0,5,CarSnapshot destructor thunk: jmp CarSnapshot::Clear (vec-dtor callback)
+0x46c290,25,CarSnapshot module end: guard-bit initialiser of the STL header statics (_$E)
+0x46c2b0,12,CarSnapshot module end: atexit(0x402c90) registration
+0x46d800,25,SpringFollower module end: guard-bit initialiser of the STL header statics (_$E)
+0x46d820,12,SpringFollower module end: atexit(0x402c90) registration
+0x46bb60,25,Drivetrain module end: guard-bit initialiser of the STL header statics (_$E)
+0x46bb80,12,Drivetrain module end: atexit(0x402c90) registration
+0x46afb0,51,Drivetrain::GetDriveTorque (not in functions.csv)
+0x46aff0,7,Drivetrain::GetReactionTorque (not in functions.csv)
+0x46b280,224,Drivetrain::ShiftBy; jump table at 0x46b350 is part of the function
+0x46baa0,192,Drivetrain::SetGearing; jump table at 0x46bb4c is part of the function
+0x46d6f0,25,Wheel module end: guard-bit initialiser of the STL header statics (_$E)
+0x46d710,12,Wheel module end: atexit(0x402c90) registration
+0x468c10,25,Race state module end: guard-bit initialiser of the STL header statics (_$E)
+0x468c30,12,Race state module end: atexit(0x402c90) registration
+0x469600,25,Car model parts module end: guard-bit initialiser of the STL header statics (_$E)
+0x469620,12,Car model parts module end: atexit(0x402c90) registration
+0x4686f0,25,Car sound module end: guard-bit initialiser of the STL header statics (_$E)
+0x468710,12,Car sound module end: atexit(0x402c90) registration
+0x46a870,25,Car render/gauge module end: guard-bit initialiser of the STL header statics (_$E)
+0x46a890,12,Car render/gauge module end: atexit(0x402c90) registration
+0x466590,124,Car::SetBalancePreset including its 5-entry jump table at 0x4665f8
+0x466670,25,Car setup module end: guard-bit initialiser of the STL header statics (_$E)
+0x466690,12,Car setup module end: atexit(0x402c90) registration
+0x465e60,25,Car replay/state module end: guard-bit initialiser of the STL header statics (_$E)
+0x465e80,12,Car replay/state module end: atexit(0x402c90) registration
+0x464ab0,10,Rear-view mirror static init wrapper: Vec2 mirrorPos (_$E21)
+0x464af0,1,Rear-view mirror empty destructor of Vec2 mirrorPos (_$E19)
+0x464b00,10,Rear-view mirror static init wrapper: Vec2 mirrorSize (_$E26)
+0x464b40,1,Rear-view mirror empty destructor of Vec2 mirrorSize (_$E24)
+0x464b50,10,Rear-view mirror static init wrapper: DrawContext (_$E31)
+0x464b80,10,Rear-view mirror DrawContext destructor thunk (_$E29)
+0x464b90,10,Rear-view mirror static init wrapper: view helper (_$E36)
+0x464bc0,10,Rear-view mirror view helper destructor thunk (_$E34)
+0x464bd0,10,Rear-view mirror static init wrapper: SkidFrustum (_$E41)
+0x464c00,10,Rear-view mirror SkidFrustum destructor thunk (_$E39)
+0x4653c0,25,Rear-view mirror module end: guard-bit initialiser of the STL header statics (_$E)
+0x4653e0,12,Rear-view mirror module end: atexit(0x402c90) registration
+0x4654c0,25,Empty module end: guard-bit initialiser of the STL header statics (_$E)
+0x4654e0,12,Empty module end: atexit(0x402c90) registration
+0x4649c0,25,Car constructor file module end: guard-bit initialiser of the STL header statics (_$E23)
+0x4649e0,12,Car constructor file module end: atexit(0x402c90) registration (_$E22)
+0x464a70,25,LightRec constructor (vector constructor iterator callback of the Car light arrays)
+0x464aa0,8,SoundLayer destructor (vector destructor iterator callback; jumps to ~SoundSource)
+0x45ace0,25,Car damage module end: guard-bit initialiser of the STL header statics (_$E23)
+0x45ad00,12,Car damage module end: atexit(0x402c90) registration (_$E22)
+0x45de60,25,SunFactor module end: guard-bit initialiser of the STL header statics (_$E)
+0x45de80,12,SunFactor module end: atexit(0x402c90) registration
+0x45e450,25,UpdateLights module end: guard-bit initialiser of the STL header statics (_$E)
+0x45e470,12,UpdateLights module end: atexit(0x402c90) registration
+0x45ad10,5,Car file static-initialiser entry for 1/g (jmp to 0x45ad20)
+0x45ad20,19,Car file static-initialiser body: 1.0f/9.81f into 0x508f5c
+0x45da90,25,Car update module end: guard-bit initialiser of the STL header statics (_$E)
+0x45dab0,12,Car update module end: atexit(0x402c90) registration
+0x4586d0,25,stub-only module end: guard-bit initialiser of the STL header statics (_$E)
+0x4586f0,12,stub-only module end: atexit(0x402c90) registration
+0x459230,10,static initialiser of the DrawContext at 0x508dc8
+0x459260,10,atexit destructor thunk of the DrawContext at 0x508dc8
+0x459860,25,Car environment map module end: guard-bit initialiser of the STL header statics (_$E)
+0x459880,12,Car environment map module end: atexit(0x402c90) registration
+0x459200,25,CarInput module end: guard-bit initialiser of the STL header statics (_$E)
+0x459220,12,CarInput module end: atexit(0x402c90) registration
+0x4563e0,10,camera preset table static initialiser entry (call 0x4563f0; jmp 0x456410)
+0x456420,40,camera preset table atexit callback (guarded vector destructor iterator)
+0x456450,10,empty static object initialiser entry (call 0x456460; jmp 0x456470)
+0x456480,1,empty static object destructor thunk (ret)
+0x4581c0,25,Car camera module end: guard-bit initialiser of the STL header statics (_$E)
+0x4581e0,12,Car camera module end: atexit(0x402c90) registration
+0x452500,25,bonus-unlock module end: guard-bit initialiser of the STL header statics (_$E)
+0x452520,12,bonus-unlock module end: atexit(0x402c90) registration
+0x452af0,25,front-end video module end: guard-bit initialiser of the STL header statics (_$E)
+0x452b10,12,front-end video module end: atexit(0x402c90) registration
+0x451040,1008,SoundMenu::Setup (vtable slot 1 of 0x4e1a7c; missing from functions.csv)
+0x452350,25,SoundMenu module end: guard-bit initialiser of the STL header statics (_$E)
+0x452370,12,SoundMenu module end: atexit(0x402c90) registration
+0x454cf0,1,atexit callback for the function static at 0x508c70 (empty Vec3 dtor)
+0x454d00,1,atexit callback for the function static at 0x508c80 (empty Vec3 dtor)
+0x455060,1,atexit callback for the function static at 0x508c60 (empty Vec3 dtor)
+0x4563b0,25,Car animation module end: guard-bit initialiser of the STL header statics (_$E)
+0x4563d0,12,Car animation module end: atexit(0x402c90) registration
+0x44eb60,528,SlotMenu::Setup (vtable slot 1)
+0x450be0,704,SlotMenu::Draw (vtable slot 3)
+0x450eb0,25,SlotMenu module end: guard-bit initialiser of the STL header statics (_$E)
+0x450ed0,12,SlotMenu module end: atexit(0x402c90) registration
+0x44ba30,452,ReplayMenu::Setup (vtable slot 1; missing from functions.csv)
+0x44d230,25,ReplayMenu module end: guard-bit initialiser of the STL header statics (_$E)
+0x44d250,12,ReplayMenu module end: atexit(0x402c90) registration
+0x44ea30,25,SaveGame module end: guard-bit initialiser of the STL header statics (_$E)
+0x44ea50,12,SaveGame module end: atexit(0x402c90) registration
+0x4466b0,983,ServiceMenu::Setup (vtable slot 1; missing from Ghidra export)
+0x44b510,983,ServiceMenu::Draw (vtable slot 3; missing from Ghidra export)
+0x44b900,25,ServiceMenu module end: guard-bit initialiser of the STL header statics (_$E)
+0x44b920,12,ServiceMenu module end: atexit(0x402c90) registration
+0x441370,10,TrackSelectMenu static initialiser wrapper (CRT table entry)
+0x4413a0,1,TrackSelectMenu static colour destructor thunk (empty)
+0x4414c0,3,TrackSelectMenu::Slot3 (empty draw slot; folded with other screens)
+0x445e50,25,TrackSelectMenu module end: guard-bit initialiser of the STL header statics (_$E)
+0x445e70,12,TrackSelectMenu module end: atexit(0x402c90) registration
+0x43db40,30,SpriteCell constructor (vector constructor callback: two HudPoints)
+0x43db60,19,SpriteCell destructor (vector destructor callback)
+0x43f9b0,25,PlayerNameMenu module end: guard-bit initialiser of the STL header statics (_$E)
+0x43f9d0,12,PlayerNameMenu module end: atexit(0x402c90) registration
+0x43fba0,989,RaceOptionsMenu::Setup (vtable slot 1)
+0x441340,25,RaceOptionsMenu module end: guard-bit initialiser of the STL header statics (_$E)
+0x441360,12,RaceOptionsMenu module end: atexit(0x402c90) registration
+0x43c770,878,MenuManager::Setup (vtable slot 1; missing from functions.csv)
+0x43d740,25,MenuManager module end: guard-bit initialiser of the STL header statics (_$E)
+0x43d760,12,MenuManager module end: atexit(0x402c90) registration
+0x439140,25,module-end STL initializer guard
+0x439160,12,module-end STL atexit registration
+0x439310,1408,MenuScreenA48::Setup (vtable slot 1; missing from functions.csv)
+0x43a360,25,MenuScreenA48 module end: guard-bit initialiser of the STL header statics (_$E)
+0x43a380,12,MenuScreenA48 module end: atexit(0x402c90) registration
+0x43c560,25,Screen1378 module end: guard-bit initializer for STL header statics (_$E)
+0x43c580,12,Screen1378 module end: atexit(0x402c90) registration
+0x437ea0,10,color object initialiser (compiler-generated _$E; calls constructor then atexit registration)
+0x437ed0,21,guarded empty destructor thunk of a color object (compiler-generated _$E)
+0x437ef0,10,color object initialiser (compiler-generated _$E; calls constructor then atexit registration)
+0x437f20,21,guarded empty destructor thunk of a color object (compiler-generated _$E)
+0x437f40,10,color object initialiser (compiler-generated _$E; calls constructor then atexit registration)
+0x437f70,21,guarded empty destructor thunk of a color object (compiler-generated _$E)
+0x437f90,10,color object initialiser (compiler-generated _$E; calls constructor then atexit registration)
+0x437fc0,21,guarded empty destructor thunk of a color object (compiler-generated _$E)
+0x437fe0,10,color object initialiser (compiler-generated _$E; calls constructor then atexit registration)
+0x438010,21,guarded empty destructor thunk of a color object (compiler-generated _$E)
+0x438030,10,color object initialiser (compiler-generated _$E; calls constructor then atexit registration)
+0x438060,21,guarded empty destructor thunk of a color object (compiler-generated _$E)
+0x438080,10,color object initialiser (compiler-generated _$E; calls constructor then atexit registration)
+0x4380b0,21,guarded empty destructor thunk of a color object (compiler-generated _$E)
+0x4380d0,10,color object initialiser (compiler-generated _$E; calls constructor then atexit registration)
+0x438100,21,guarded empty destructor thunk of a color object (compiler-generated _$E)
+0x438120,10,color object initialiser (compiler-generated _$E; calls constructor then atexit registration)
+0x438150,21,guarded empty destructor thunk of a color object (compiler-generated _$E)
+0x438170,10,color object initialiser (compiler-generated _$E; calls constructor then atexit registration)
+0x4381a0,21,guarded empty destructor thunk of a color object (compiler-generated _$E)
+0x439050,25,module-end guard _$E (guard bit 0 of 0x5826d5, jumps to 0x439070)
+0x439070,12,module-end atexit(0x402c90) registration _$E
+0x437e70,25,Game module end: guard-bit initialiser of the STL header statics (_$E)
+0x437e90,12,Game module end: atexit(0x402c90) registration
+0x42ea30,525,GameScreen24FC::Setup (vtable 0x4e1688 slot 1)
+0x4303b0,25,GameScreen24FC module end: guard-bit initialiser of the STL header statics (_$E)
+0x4303d0,12,GameScreen24FC module end: atexit(0x402c90) registration
+0x4298c0,2384,MenuScreen2A8::Setup (vtable 0x4e15b4 slot 1)
+0x42c280,25,_$E23 module-end STL static guard (unk_4295c0.cpp)
+0x42c2a0,12,_$E22 module-end atexit registration (unk_4295c0.cpp)
+0x426750,29,GameScreen2DD4::Setup (vtable slot 1; missing from functions.csv)
+0x4275d0,25,GameScreen2DD4 module end: guard-bit initialiser of the STL header statics (_$E)
+0x4275f0,12,GameScreen2DD4 module end: atexit(0x402c90) registration
+0x42c400,1120,GameScreen1E9C::Setup (vtable 0x4e1630 slot 1)
+0x42e900,25,GameScreen1E9C module end: guard-bit initialiser of the STL header statics (_$E)
+0x42e920,12,GameScreen1E9C module end: atexit(0x402c90) registration
+0x427b10,24,GameScreen11A4::Setup (vtable 0x4e157c slot 1)
+0x429590,25,GameScreen11A4 module _$E guard initialiser
+0x4295b0,12,GameScreen11A4 module _$E atexit registration
+0x4b2c10,17,scene-object vtable slot 1: transform traversal wrapper
+0x4b2fc0,49,scene-object vtable slot 4: visit non-leaf children
+0x4b3000,3,scene-object vtable slot 5: empty two-argument method
+0x4b2d50,613,scene-object vtable slot 3: bounds update
+0x4a1810,10,ParticlePool destructor callback (data referenced at 0x4a1800)
+0x4a1760,10,global 0x56aeb0 constructor and destructor registration wrapper
+0x4a1790,10,global 0x56aeb0 destructor callback
+0x4a17a0,10,trivial static constructor and destructor registration wrapper
+0x4a17d0,1,trivial static destructor callback (data referenced at 0x4a17c0)
+0x4a17e0,10,ParticlePool constructor and destructor registration wrapper

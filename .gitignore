@@ -1,0 +1,16 @@
+/extracted
+/orig
+*.bak-*
+*.iso
+/build/
+/toolchain/
+/.venv/
+/decomp/.venv/
+/reccmp-user.yml
+/analysis/scratches/
+/analysis/COORDINATION.md
+/tool-results/
+__pycache__/
+*.pyc
+/.claude/
+/analysis/evidence-*.json
