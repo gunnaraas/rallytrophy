@@ -120,27 +120,27 @@ GameScreen24FC::~GameScreen24FC()
     Release();
 }
 
-// NONMATCHING: RALLYTROPHY 0x42ea30
-// Identical code; only the frame slots of the title/back y float (original in the dead `game` slot, +0x24 at the
-// calls) and the inline-assign string pointer (+0x18) are swapped, as in SlotMenu::Setup 0x44eb60 (8 bytes).
+// FUNCTION: RALLYTROPHY 0x42ea30
+// Evidence: ev_770eda4b60286cc6c214e118b921ed6fb5aefc20b39f35b4307f40cb67f601e4.
+// Store the game pointer before float setup and reuse y for target stack slots.
 void GameScreen24FC::Setup(MenuGame* game)
 {
     if (m_state) {
         return;
     }
-    float x = DAT_0056aea8 * H5a_LEFT;
-    float y = DAT_0056aeac * H5a_TOP;
     m_game = game;
     m_state = 1;
+    float x = H5a_LEFT * DAT_0056aea8;
+    float y = H5a_TOP * DAT_0056aeac;
     labels[0].text = FUN_00405380(0x99);
     labels[0].x = x;
     labels[0].y = y;
-    float y2 = H5a_BACKY * DAT_0056aeac;
+    y = H5a_BACKY * DAT_0056aeac;
     labels[1].text = FUN_00405380(0x18);
     labels[1].x = x;
-    labels[1].y = y2;
+    labels[1].y = y;
     float sx = H5a_COLX * DAT_0056aea8;
-    float sy = DAT_0056aeac * H5a_ROWY;
+    float sy = DAT_0056aeac * 260.0f; // literal preserves target global/constant operand order
     float step = H5a_PITCH * DAT_0056aeac;
     for (int i = 2; i < 10; i++) {
         labels[i].x = sx;

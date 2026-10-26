@@ -58,27 +58,27 @@ SlotMenu::~SlotMenu()
     Release();
 }
 
-// NONMATCHING: RALLYTROPHY 0x44eb60
-// Identical code; only the frame slots of the y float (original +0x24 above the inline-assign string pointer at
-// +0x18, mine the reverse) are swapped (11 bytes). original: FUN_0044eb60 (vtable slot 1)
+// FUNCTION: RALLYTROPHY 0x44eb60
+// Evidence: ev_94392a4f4c7f0f32c6614794aa714c68ec62939dfe64d102fd817b4a11bb08d1.
+// Store the game pointer before float setup and reuse y for target stack slots.
 void SlotMenu::Setup(MenuGame* game)
 {
     if (m_state) {
         return;
     }
-    float x = DAT_0056aea8 * A_LEFT;
-    float y = DAT_0056aeac * A_TOP;
     m_game = game;
     m_state = 1;
+    float x = A_LEFT * DAT_0056aea8;
+    float y = A_TOP * DAT_0056aeac;
     labels[0].text = FUN_00405380(0x170);
     labels[0].x = x;
     labels[0].y = y;
-    float y2 = A_BACKY * DAT_0056aeac;
+    y = A_BACKY * DAT_0056aeac;
     labels[1].text = FUN_00405380(0x18);
     labels[1].x = x;
-    labels[1].y = y2;
+    labels[1].y = y;
     float sx = A_COLX * DAT_0056aea8;
-    float sy = DAT_0056aeac * A_ROWY;
+    float sy = DAT_0056aeac * 260.0f; // literal preserves target global/constant operand order
     float step = A_PITCH * DAT_0056aeac;
     for (int i = 2; i < 10; i++) {
         labels[i].x = sx;
