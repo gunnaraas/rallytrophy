@@ -602,21 +602,21 @@ void PlayerNameMenu::SetupLabels()
     blinkTick = timeGetTime();
 }
 
-// NONMATCHING: RALLYTROPHY 0x43f740
-// 368 bytes, -1 now in edi (vf66 takes Color by value). Left: the original schedules the vf35 argument loads
-// (DAT_0056b0ac, plate) before the uv stores and the colour store after `push plate`.
-// original: FUN_0043f740 (the 512 x 256 linename.tga quad)
+// FUNCTION: RALLYTROPHY 0x43f740
+// Evidence: ev_458b690eef42d1cb1d8756b8afed275ba2a1f4a75d7b04d9eb77dc29442b42b0.
+// Construct Color after the arrays; assign it later to preserve EH and store scheduling.
 void PlayerNameMenu::DrawPlate(float x, float y)
 {
     HudPoint uv[4];
     HudPoint pos[4];
+    Color color;
     pos[0].x = pos[3].x = DAT_0056aea8 * x;
     uv[0].x = uv[3].x = 0.0f;
     uv[0].y = uv[1].y = 0.0f;
-    uv[2].x = uv[1].x = 1.0f;
+    uv[1].x = uv[2].x = 1.0f;
     uv[2].y = uv[3].y = 1.0f;
     pos[0].y = pos[1].y = DAT_0056aeac * y;
-    Color color(-1);
+    color.value = -1;
     pos[1].x = pos[2].x = (x + 512.0f) * DAT_0056aea8;
     pos[2].y = pos[3].y = (y + 256.0f) * DAT_0056aeac;
     DAT_0056b0ac->vf35(plate);

@@ -30,11 +30,13 @@ matching maps, compiler notes, and the active work queue are under
   [HUD geometry](analysis/hud-geometry.md).
 - [Car visibility](analysis/car-cockpit-visibility.md),
   [suspension setters](analysis/car-suspension-setter.md),
-  [drivetrain gear selection](analysis/drivetrain-select-gear.md), and
+  [drivetrain gear selection](analysis/drivetrain-select-gear.md),
+  [skid-mark rendering](analysis/skid-render.md), and
   [exhaust smoke](analysis/exhaust-smoke-emission.md).
 - [Menu drawing](analysis/menu-row-drawing.md),
-  [menu toggles](analysis/menu-toggle.md), and
-  [menu volume](analysis/menu-volume.md).
+  [menu toggles](analysis/menu-toggle.md),
+  [menu volume](analysis/menu-volume.md), and
+  [player-name plate drawing](analysis/player-name-plate.md).
 - [Networking session](analysis/networking-session.md),
   [configuration validation](analysis/config-validation.md),
   [language parsing](analysis/language-parser.md), and

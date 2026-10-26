@@ -322,18 +322,15 @@ int Drivetrain::GetEngagedGear()
 
 // original: FUN_0046b020
 
-// NONMATCHING: RALLYTROPHY 0x46b020
-// Same size; only the scheduling of the velocity copy (x/z via FPU, y via integer move) and the EH state
-// store differ in the prologue.
+// FUNCTION: RALLYTROPHY 0x46b020
+// Evidence: ev_38a455eebb45bb71b016327f3427b840f47c2138b5826dc4d3e93599a7c8e104.
+// Copy construction and dot-product source order preserve VC6 copy/EH scheduling.
 int Drivetrain::SelectGear()
 {
     CarBody* b = car->body;
-    Vec3 v;
-    v.x = b->velocity[0];
-    v.y = b->velocity[1];
-    v.z = b->velocity[2];
+    Vec3 v(*(const Vec3*)b->velocity);
     const Vec3* fwd = (const Vec3*)b->forward;
-    float dot = v.z * fwd->z + v.y * fwd->y + v.x * fwd->x;
+    float dot = v.x * fwd->x + v.y * fwd->y + v.z * fwd->z;
     if (*(unsigned*)&dot & 0x80000000)
         v -= *fwd * dot;
     float w = v.Length() * 60.0f / (car->wheel[0].unk264 * 6.2831855f);
@@ -346,7 +343,7 @@ int Drivetrain::SelectGear()
         r = ratio[g];
         r *= endRatio;
         r *= w;
-        if (r > shiftUp[g + 1])
+        if (r > shiftUp[g])
             break;
         g--;
     }
