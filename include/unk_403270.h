@@ -51,6 +51,8 @@ public:
 };
 
 // Header of a savegame/replayN.dat (0x70 bytes).
-struct ReplayHeader { unsigned char raw[0x70]; };
-unsigned int LoadReplay(ReplayHeader* hdr, int index);
+struct ReplayHeader {
+    unsigned char raw[0x70];
+    bool Load(int index);                             // 0x403ca0: reads savegame/replay<index>.dat
+};
 #endif

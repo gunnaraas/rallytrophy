@@ -15,7 +15,10 @@ class NetRace {                               // see include/unk_481390.h
 public:
     BYTE pad[0x24];
     BYTE* session;                            // +0x24: progress percent at +0x17ec
+    int unk28, unk2c;                         // replay header +0x24, +0x28
     void SendByte(BYTE value);                // 0x483040
+    void FUN_00485f60(class ReplayCar* car);
+    void FUN_0048f600(class ReplayFile* f);
 };
 extern NetRace* DAT_00501450;
 class TextRenderer {                          // see include/unk_481390.h
@@ -214,98 +217,134 @@ void LoadScreen::Draw(float t)
 }
 
 // Opaque types for the replay loader (savegame/replay<n>.dat).
-class ReplayFile {                                    // 0x4a4e00 ctor(path, mode 0x81), 0x4a4d90 dtor
+class ReplayFile {                                    // 0x4078 bytes; 0x4a4e00 ctor(path, mode 0x81), 0x4a4d90 dtor
 public:
     ReplayFile(const char* path, int mode);
     ~ReplayFile();
     void Read(void* dst, int bytes);                  // 0x4a5e00
     void Close();                                     // 0x4a5d00
+    BYTE data[0x4078];
 };
 extern bool FileExists(const char* path);             // 0x4a6050
-class ReplayCar {                                     // 0x4909b0 / 0x490b90 ctors
+
+// One car's record in the replay file (0x1d4 bytes).
+struct CarRecord {
+    BYTE setup[0x20];                                 // read by ReplayCar::ReadSetup
+    int a20, a24, a28;
+    float a2c;
+    int blk[90];
+    int blk2[10];
+    int a1c0, a1c4, id, a1cc;
+};
+class ReplayCar {                                     // 0x1a88 bytes
 public:
-    ReplayCar(int);                                   // 0x4909b0 (first car)
-    ReplayCar(int, int);                              // 0x490b90 (other cars)
-    void ReadSetup(void* buf);                        // 0x490fb0
-    void Finish(int v);                               // 0x491130
+    ReplayCar(int first, int unk);                    // 0x4909b0 (first car)
+    ReplayCar(const char* name);                      // 0x490b90 (other cars)
+    void ReadSetup(CarRecord* r);                     // 0x490fb0
+    void Finish();                                    // 0x491130
+    BYTE unk0[0x20];
+    int unk20, unk24;
+    BYTE* body;                                       // +0x28: car body
+    int unk2c;
+    BYTE unk30[0x1888 - 0x30];
+    int blk[90];                                      // +0x1888
+    BYTE unk19f0[0x1a14 - 0x19f0];
+    int id;                                           // +0x1a14
+    BYTE unk1a18[8];
+    float unk1a20;
+    int unk1a24;
+    int blk2[10];                                     // +0x1a28
+    int unk1a50, unk1a54, unk1a58;
+    BYTE unk1a5c[0x1a6c - 0x1a5c];
+    int unk1a6c;
+    BYTE unk1a70[0x1a88 - 0x1a70];
 };
-extern void FUN_00485f60(void* race, ReplayCar* car);
-extern void FUN_0046bbc0(void* p);
-extern void FUN_0046be50(void* car, int mode);
-extern void FUN_00401b00(void* p, ReplayFile* f);
-extern void FUN_0048f600(void* race, ReplayFile* f);
-
-struct CarRecord {                                    // 0x1d4 bytes per car in the replay file
-    int tag; char name[32]; int a20, a24, a2c, a1a20; int blk[90]; int blk2[10]; int a1a50, a1a58, id, a1a6c;
+struct GhostTrack {                                   // car body +0x1c874
+    BYTE unk0[0x74];
+    int count[3];                                     // +0x74
+    int* data[3];                                     // +0x80
+    void Reset();                                     // 0x46bbc0
 };
+struct GhostLog { void Read(ReplayFile* f); };        // car body +0x1bed0, 0x401b00
+class CarBody { public: void FUN_0046be50(int mode); };
 
-// NONMATCHING: RALLYTROPHY 0x403ca0 (draft; faithful port, not byte-matched)
-unsigned int LoadReplay(ReplayHeader* hdr, int index)
+// NONMATCHING: RALLYTROPHY 0x403ca0
+// Calling convention (thiscall on the header, bool result), object sizes, constructor arguments and the helper
+// calls follow the target. Open: the target calls _Tidy 0x402700, _Eos 0x402960 and append 0x403ba0 out of
+// line where this file inlines them (same problem as LoadScreen::Init), which also shifts the frame.
+bool ReplayHeader::Load(int index)
 {
-    std::string name = "savegame/replay";
-    char num[16];
+    std::string name;
+    name = "savegame/replay";
+    char num[2];                                      // the target reserves only two bytes for _itoa
     _itoa(index, num, 10);
-    name.append(num, strlen(num));
-    name.append(".dat", 4);
+    name += num;
+    name += ".dat";
     if (!FileExists(name.c_str()))
-        return 0;
+        return false;
     ReplayFile* f = new ReplayFile(name.c_str(), 0x81);
-    int magic1, magic2;
+    int magic2, magic1;
     f->Read(&magic1, 4);
     f->Read(&magic2, 4);
     if (magic1 != 0x198bf3ae || magic2 != 0x20020109) {
         f->Close();
         delete f;
-        return 0;
+        return false;
     }
-    unsigned char* h = (unsigned char*)hdr;
-    f->Read(h, 0x70);
-    void* race = DAT_00501450;
-    DAT_0050132c = *(int*)(h + 0x2c);
-    DAT_00501464 = *(int*)(h + 0x30);
-    DAT_00501458 = h[0x6e];
-    DAT_00501468 = *(int*)(h + 0x34);
-    DAT_0050145c = h[0x6c];
-    *(int*)((char*)race + 0x28) = *(int*)(h + 0x24);
-    *(int*)((char*)race + 0x2c) = *(int*)(h + 0x28);
-    int cars = *(int*)(h + 0x68) + 1;
+    f->Read(this, 0x70);
+    DAT_0050132c = *(int*)(raw + 0x2c);
+    DAT_00501464 = *(int*)(raw + 0x30);
+    DAT_00501458 = raw[0x6e];
+    DAT_00501468 = *(int*)(raw + 0x34);
+    DAT_0050145c = raw[0x6c];
+    NetRace* race = DAT_00501450;
+    race->unk28 = *(int*)(raw + 0x24);
+    race->unk2c = *(int*)(raw + 0x28);
+    int cars = *(int*)(raw + 0x68) + 1;
     for (int i = 0; i < cars; i++) {
-        ReplayCar* car = i == 0 ? new ReplayCar(0) : new ReplayCar(i, 0);
+        ReplayCar* car = i == 0 ? new ReplayCar(1, 0) : new ReplayCar("dummy");
         CarRecord r;
+        int j;
         f->Read(&r, 0x1d4);
-        car->ReadSetup(r.name);
-        char* c = (char*)car;
-        *(int*)(c + 0x20) = r.a20;
-        *(int*)(c + 0x1a20) = r.a1a20;
-        memcpy(c + 0x1888, r.blk, sizeof(r.blk));
-        *(int*)(c + 0x24) = r.a24;
-        *(int*)(c + 0x2c) = r.a2c;
-        memcpy(c + 0x1a28, r.blk2, sizeof(r.blk2));
-        *(int*)(c + 0x1a50) = r.a1a50;
-        *(int*)(c + 0x1a58) = r.a1a58;
-        *(int*)(c + 0x1a14) = r.id;
-        *(int*)(c + 0x1a6c) = r.a1a6c;
-        car->Finish(r.id);
-        FUN_00485f60(race, car);
-        char* body = *(char**)((char*)car + 0x28);
-        FUN_0046bbc0(body + 0x1c874);
-        f->Read(body + 0x1c874, 0x8c);
-        for (int k = 0; k < 3; k++) {
-            int n = *(int*)(body + 0x1c8e8 + k * 4);
-            if (n) {
-                int* arr = (int*)PoolAlloc(n * 4);
-                *(int**)(body + 0x1c8f4 + k * 4) = arr;
-                f->Read(arr, n * 4);
-            }
+        car->ReadSetup(&r);
+        car->unk20 = r.a20;
+        car->unk1a20 = r.a2c;
+        for (j = 0; j < 90; j++)
+            car->blk[j] = r.blk[j];
+        car->unk24 = r.a24;
+        car->unk2c = r.a28;
+        for (j = 0; j < 10; j++)
+            car->blk2[j] = r.blk2[j];
+        car->unk1a50 = r.a1c0;
+        car->unk1a58 = r.a1c4;
+        car->id = r.id;
+        car->unk1a6c = r.a1cc;
+        car->Finish();
+        race->FUN_00485f60(car);
+        BYTE* body = car->body;
+        GhostTrack* g = (GhostTrack*)(body + 0x1c874);
+        g->Reset();
+        f->Read(g, 0x8c);
+        if (g->count[0]) {
+            g->data[0] = (int*)PoolAlloc(g->count[0] * 4);
+            f->Read(g->data[0], g->count[0] * 4);
         }
-        FUN_0046be50(body, 2);
+        if (g->count[1]) {
+            g->data[1] = (int*)PoolAlloc(g->count[1] * 4);
+            f->Read(g->data[1], g->count[1] * 4);
+        }
+        if (g->count[2]) {
+            g->data[2] = (int*)PoolAlloc(g->count[2] * 4);
+            f->Read(g->data[2], g->count[2] * 4);
+        }
+        ((CarBody*)body)->FUN_0046be50(2);
         int has;
         f->Read(&has, 4);
         if (has)
-            FUN_00401b00(body + 0x1bed0, f);
+            ((GhostLog*)(body + 0x1bed0))->Read(f);
     }
-    FUN_0048f600(race, f);
+    race->FUN_0048f600(f);
     f->Close();
     delete f;
-    return 1;
+    return true;
 }
