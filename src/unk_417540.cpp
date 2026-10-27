@@ -14,11 +14,62 @@ static __forceinline int RoundF(float v)
     return r;
 }
 
+// cresult = ca x cb, a hand-written x87 block in the original.
+inline void AnimCross(const float* ca, const float* cb, float* cresult)
+{
+    __asm mov ecx, ca
+    __asm mov edx, cb
+    __asm mov eax, cresult
+    __asm fld dword ptr [ecx+4]
+    __asm fmul dword ptr [edx+8]
+    __asm fld dword ptr [ecx+8]
+    __asm fmul dword ptr [edx]
+    __asm fld dword ptr [ecx]
+    __asm fmul dword ptr [edx+4]
+    __asm fld dword ptr [ecx+8]
+    __asm fmul dword ptr [edx+4]
+    __asm fld dword ptr [ecx]
+    __asm fmul dword ptr [edx+8]
+    __asm fld dword ptr [ecx+4]
+    __asm fmul dword ptr [edx]
+    __asm fxch st(2)
+    __asm fsubp st(5), st
+    __asm fsubp st(3), st
+    __asm fsubp st(1), st
+    __asm fxch st(2)
+    __asm fstp dword ptr [eax]
+    __asm fstp dword ptr [eax+4]
+    __asm fstp dword ptr [eax+8]
+}
+
+struct AVec {
+    float x, y, z;
+    void operator-=(const AVec& v)
+    {
+        x -= v.x;
+        y -= v.y;
+        z -= v.z;
+    }
+    void operator*=(float k)
+    {
+        x = k * x;
+        y = k * y;
+        z = k * z;
+    }
+    float Length() const
+    {
+        float a = x, b = y, c = z;
+        return (float)sqrt(a * a + b * b + c * c);
+    }
+};
+
 #define F(o, t) (*(t*)((BYTE*)this + (o)))
+#define DIR (*(AVec*)((BYTE*)this + 0x1390))
 #define REC(i) ((float*)(F(0x13ac, int) + (i) * 0x24))
 
 // NONMATCHING: RALLYTROPHY 0x417540
-// reason: RoundF applied; still 185 bytes short of original and regalloc/frame layout differs (not investigated further)
+// 2234 vs 2332 bytes. The three cross products are the inline asm helper and dir/ov use vector ops like the
+// original; still short elsewhere (the record lerp and sphere setup) and the frame is 4 bytes larger.
 void Stage::FUN_00417540(Player* player, int time, int dt)
 {
     int car = *(int*)((BYTE*)player + 0x28);
@@ -73,36 +124,21 @@ void Stage::FUN_00417540(Player* player, int time, int dt)
             }
             F(0x1378, float) = r[0];
             F(0x1380, float) = r[2];
-            f4 = r[3];
             F(0x1370, int) = local30;
             F(0x137c, float) = r[1];
-            F(0x1390, float) = f4;
-            f4 = r[0];
-            F(0x1394, float) = r[4];
-            f5 = r[5];
-            F(0x1390, float) = F(0x1390, float) - f4;
-            F(0x1398, float) = f5;
-            f4 = F(0x1394, float);
             F(0x139c, int) = 0;
-            f5 = r[1];
             F(0x13a0, int) = 0;
             F(0x1394, int) = 0;
-            F(0x1394, float) = f4 - f5;
+            DIR = *(AVec*)&r[3];
+            DIR -= *(AVec*)&r[0];
             F(0x136c, unsigned int) = idx;
-            f4 = r[2];
             F(0x1374, int) = 1;
             float up[3];
             up[0] = 0.0f;
             up[1] = 1.0f;
             up[2] = 0.0f;
-            F(0x1398, float) = F(0x1398, float) - f4;
-            f4 = DAT_004e1348 / (float)sqrt(F(0x1398, float) * F(0x1398, float) + F(0x1394, float) * F(0x1394, float) + F(0x1390, float) * F(0x1390, float));
-            F(0x1390, float) = f4 * F(0x1390, float);
-            F(0x1394, float) = f4 * F(0x1394, float);
-            F(0x1398, float) = f4 * F(0x1398, float);
-            F(0x1384, float) = F(0x1398, float) * up[1] - F(0x1394, float) * up[2];
-            F(0x1388, float) = F(0x1390, float) * up[2] - F(0x1398, float) * up[0];
-            F(0x138c, float) = F(0x1394, float) * up[0] - F(0x1390, float) * up[1];
+            DIR *= DAT_004e1348 / DIR.Length();
+            AnimCross(up, &F(0x1390, float), &F(0x1384, float));
             if (F(0x13ec, int) == 1) {
                 int n = F(0x13f0, int);
                 F(0x13f8 + n * 8, unsigned int) = idx;
@@ -214,38 +250,20 @@ tail:
         float* ov = (float*)(obj + 0x40);
         float* o2 = (float*)(obj + 0x20);
         if (h1 < DAT_004e1348 && h2 < DAT_004e1348) {
-            ov[0] = n1[0];
-            ov[1] = n1[1];
-            ov[2] = n1[2];
-            f4 = F(0x1384, float);
-            ov[0] = ov[0] - n2[0];
-            ov[1] = ov[1] - n2[1];
-            ov[2] = ov[2] - n2[2];
-            f5 = DAT_004e1348 / (float)sqrt(ov[2] * ov[2] + ov[1] * ov[1] + ov[0] * ov[0]);
-            ov[0] = f5 * ov[0];
-            o2[0] = f4;
-            o2[1] = F(0x1388, float);
-            ov[1] = f5 * ov[1];
-            o2[2] = F(0x138c, float);
-            ov[2] = f5 * ov[2];
-            *(float*)(obj + 0x30) = ov[1] * o2[2] - ov[2] * o2[1];
-            *(float*)(obj + 0x34) = ov[2] * o2[0] - ov[0] * o2[2];
-            *(float*)(obj + 0x38) = ov[0] * o2[1] - ov[1] * o2[0];
+            *(AVec*)ov = *(AVec*)n1;
+            *(AVec*)ov -= *(AVec*)n2;
+            *(AVec*)ov *= DAT_004e1348 / ((AVec*)ov)->Length();
+            *(AVec*)o2 = *(AVec*)&F(0x1384, float);
+            AnimCross(ov, o2, (float*)(obj + 0x30));
             *(float*)(obj + 0x14) = F(0x1378, float);
             *(float*)(obj + 0x18) = F(0x137c, float);
             *(float*)(obj + 0x1c) = F(0x1380, float);
             *(float*)(obj + 0x18) = (n2[1] + n1[1]) * DAT_004e138c;
             return;
         }
-        ov[0] = F(0x1390, float);
-        ov[1] = F(0x1394, float);
-        ov[2] = F(0x1398, float);
-        o2[0] = F(0x1384, float);
-        o2[1] = F(0x1388, float);
-        o2[2] = F(0x138c, float);
-        *(float*)(obj + 0x30) = ov[1] * o2[2] - ov[2] * o2[1];
-        *(float*)(obj + 0x34) = ov[2] * o2[0] - ov[0] * o2[2];
-        *(float*)(obj + 0x38) = ov[0] * o2[1] - ov[1] * o2[0];
+        *(AVec*)ov = DIR;
+        *(AVec*)o2 = *(AVec*)&F(0x1384, float);
+        AnimCross(ov, o2, (float*)(obj + 0x30));
         *(float*)(obj + 0x14) = F(0x1378, float);
         *(float*)(obj + 0x18) = F(0x137c, float);
         *(float*)(obj + 0x1c) = F(0x1380, float);
