@@ -42,6 +42,8 @@ public:
     BYTE data[12];
 };
 
+struct SceneDt { ~SceneDt() {} };          // empty destructor members: only shift the unwind state numbering
+
 class StageScene {
 public:
     ~StageScene();                         // 0x40eb80 (destroys the member at 0x7c only)
@@ -50,7 +52,8 @@ public:
     void CollectHandles(SceneStage* s, GrowArray* out); // 0x410f70
     int CellIndex(float* pos);             // 0x411080
     void CellCoords(float* pos, int* x, int* z); // 0x4110c0
-    BYTE pad0[0x28];
+    BYTE pad0[0x28 - 10];
+    SceneDt dt0, dt1, dt2, dt3, dt4, dt5, dt6, dt7, dt8, dt9;   // 0x1e..0x27
     SceneVec<SceneHolder> vecA;            // 0x28
     SceneVec<SceneHolder> vecB;            // 0x38
     BYTE pad48[0x7c - 0x48];

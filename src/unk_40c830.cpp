@@ -40,7 +40,8 @@ void Fun_0040c970()
     DAT_00508464 = 0.1f;
 }
 
-// NONMATCHING: RALLYTROPHY 0x40eb80 (needs the real class layout: original EH state 9 = ~10 earlier members with dtors; matches except that byte once SceneVec gets an empty dtor and enough such members)
+// FUNCTION: RALLYTROPHY 0x40eb80
+// The ten empty-destructor members in the header reproduce the original unwind state 9 for the member at 0x7c.
 StageScene::~StageScene()
 {
 }
