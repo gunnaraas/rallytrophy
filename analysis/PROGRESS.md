@@ -6,7 +6,7 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Status
 
-- Marker inventory: 1787/2084 byte-exact (85.75%); 2078/2084 functions written (99.71%), from `tools/progress.py`.
+- Marker inventory: 1788/2084 byte-exact (85.80%); 2079/2084 functions written (99.76%), from `tools/progress.py`.
 - Game code: about 1,690 functions in `0x401000`–`0x4bcfc6`
 
 ## Queue
@@ -32,6 +32,7 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Log
 
+- 2026-10-27 (Codex, image lookup-table initializer `0x4a7dc0`): Resolved its x87 CRT-call alias, five constants, and three table definitions with consumer-compatible linkage. Exact 275-byte match with 15 audited relocations; independent comparison confirms constant bytes and table sizes. Evidence: `docs/analysis/model-image-lut.md`.
 - 2026-10-27 (Codex, texture upload helper `0x4a8350`): Replaced five raw call displacements with symbolic calls and audited the targets against existing symbols. Exact 309-byte match with five COFF relocations; target table and remaining integration scope are in `docs/analysis/model-texture-upload.md`.
 - 2026-10-27 (Codex, scene-entry destructor thunk `0x4a66a0`): Replaced the pending raw relative jump with a symbolic jump and audited its linker alias to the existing destructor at `0x4b89f0`. Exact five-byte match with one COFF relocation; evidence and scope are in `docs/analysis/scene-entry-destructor-thunk.md`.
 - 2026-10-27 (Codex, `CarModelCache::CarModelCache` `0x4ade40`): Verified the pending first-flag volatile-store change as an exact 59-byte match with zero relocations. Recorded the target's uninitialized stack-byte copies in `docs/analysis/car-model-cache-constructor.md`; committing this function separately from shared experiments.

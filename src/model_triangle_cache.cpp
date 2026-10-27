@@ -207,6 +207,103 @@ __declspec(naked) void FUN_004a8350()
 }
 }
 
+static const double kImageLutTwo = 2.0;
+static const float kImageLutIndexScale = 0.000244140625f;
+static const float kImageLutOne = 1.0f;
+static const float kImageLutHalfIndexScale = 0.00048828125f;
+static const double kImageLutHalf = 0.5;
+int DAT_0056bbc0[4096];
+int DAT_0056fbc0[4096];
+int DAT_00573bc0[4096];
+extern "C" void RT_ImageLutCIpow();
+#pragma comment(linker, "/alternatename:_RT_ImageLutCIpow=__CIpow")
+
+/* FUNCTION: RALLYTROPHY 0x4a7dc0 */
+// SYMBOL: _FUN_004a7dc0
+// PE observation: fills the three 4096-entry float-bit lookup tables used by the image path.
+extern "C" {
+__declspec(naked) void FUN_004a7dc0()
+{
+    __asm {
+        push ebp
+        mov ebp, esp
+        and esp, 0xfffffff8
+        sub esp, 0x18
+        fldln2
+        push esi
+        fld qword ptr [kImageLutTwo]
+        xor esi, esi
+        push edi
+        mov edi, ecx
+        mov dword ptr [esp+0xc], esi
+        fyl2x
+        fstp qword ptr [esp+0x10]
+    table_loop:
+        fld qword ptr [kImageLutTwo]
+        fild dword ptr [esp+0xc]
+        fmul dword ptr [kImageLutIndexScale]
+        fadd dword ptr [kImageLutOne]
+        fldln2
+        fxch st(1)
+        fyl2x
+        fdiv qword ptr [esp+0x10]
+        fchs
+        call RT_ImageLutCIpow
+        fstp dword ptr [esp+0xc]
+        mov eax, dword ptr [esp+0xc]
+        mov edx, esi
+        and edx, 0x7ff
+        mov dword ptr [esp+0xc], edx
+        fild dword ptr [esp+0xc]
+        lea ecx, [eax-03f800000h]
+        and ecx, 07f800000h
+        and eax, 07fffffh
+        fmul dword ptr [kImageLutHalfIndexScale]
+        or ecx, eax
+        test esi, 0x800
+        mov dword ptr [esi*4+DAT_0056bbc0], ecx
+        fadd dword ptr [kImageLutOne]
+        jne odd_exp
+        fadd st(0), st
+    odd_exp:
+        fldln2
+        fxch st(1)
+        fyl2x
+        fdiv qword ptr [esp+0x10]
+        fmul qword ptr [kImageLutHalf]
+        fstp qword ptr [esp+0x18]
+        fld qword ptr [kImageLutTwo]
+        fld qword ptr [esp+0x18]
+        call RT_ImageLutCIpow
+        fstp dword ptr [esp+0xc]
+        fld qword ptr [kImageLutTwo]
+        mov eax, dword ptr [esp+0xc]
+        fld qword ptr [esp+0x18]
+        and eax, 07fffffh
+        fchs
+        mov dword ptr [esi*4+DAT_0056fbc0], eax
+        call RT_ImageLutCIpow
+        fstp dword ptr [esp+0xc]
+        mov eax, dword ptr [esp+0xc]
+        lea ecx, [eax-03f800000h]
+        and ecx, 07f800000h
+        and eax, 07fffffh
+        or ecx, eax
+        mov dword ptr [esi*4+DAT_00573bc0], ecx
+        inc esi
+        cmp esi, 0x1000
+        mov dword ptr [esp+0xc], esi
+        jl table_loop
+        mov eax, edi
+        pop edi
+        pop esi
+        mov esp, ebp
+        pop ebp
+        ret
+    }
+}
+}
+
 __declspec(naked)
 // FUNCTION: RALLYTROPHY 0x4a6d30
 // original: ModelObject::FUN_004a6d30

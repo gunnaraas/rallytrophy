@@ -2,7 +2,7 @@
 <title>Rally Trophy per-function decompilation map</title>
 <rect width="1600" height="1120" rx="8" fill="#0d1117"/>
 <text x="20" y="30" font-size="18" font-weight="600" fill="#e6edf3">Every game function, sized by code bytes and branch complexity</text>
-<text x="20" y="53" fill="#8b949e">1,787 byte-exact · 291 written but not byte-exact · 6 unwritten. Tile area = bytes × (1 + log₂(1 + branch points)); hover for details.</text>
+<text x="20" y="53" fill="#8b949e">1,788 byte-exact · 291 written but not byte-exact · 5 unwritten. Tile area = bytes × (1 + log₂(1 + branch points)); hover for details.</text>
 <g transform="translate(20,72)" fill="#e6edf3">
 <rect width="12" height="12" fill="#3fb950"/><text x="18" y="11">byte-exact</text>
 <rect x="118" width="12" height="12" fill="#e3b341"/><text x="136" y="11">written, not exact</text>
@@ -1825,7 +1825,7 @@
 <rect x="81.25" y="976.73" width="2.77" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x004a7d30 · FUN_004a7d30 · Outside mapped modules · 87 code bytes · complexity 5 (4 branch points) · byte-exact</title></rect>
 <rect x="85.02" y="976.73" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x004a7d90 · FUN_004a7d90 · Outside mapped modules · 8 code bytes · complexity 1 (0 branch points) · byte-exact</title></rect>
 <rect x="85.13" y="976.73" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x004a7da0 · FUN_004a7da0 · Outside mapped modules · 31 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>
-<rect x="85.93" y="976.73" width="8.27" height="28.82" fill="#484f58" stroke="#0d1117" stroke-width="0.8"><title>0x004a7dc0 · FUN_004a7dc0 · Outside mapped modules · 275 code bytes · complexity 3 (2 branch points) · not written</title></rect>
+<rect x="85.93" y="976.73" width="8.27" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x004a7dc0 · FUN_004a7dc0 · Outside mapped modules · 275 code bytes · complexity 3 (2 branch points) · byte-exact</title></rect>
 <rect x="95.21" y="976.73" width="0.37" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x004a7f30 · FUN_004a7f30 · Outside mapped modules · 105 code bytes · complexity 1 (0 branch points) · byte-exact</title></rect>
 <rect x="96.58" y="976.73" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x004a7fd0 · FUN_004a7fd0 · Outside mapped modules · 96 code bytes · complexity 1 (0 branch points) · byte-exact</title></rect>
 <rect x="97.83" y="976.73" width="2.39" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x004a8030 · FUN_004a8030 · Outside mapped modules · 130 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>

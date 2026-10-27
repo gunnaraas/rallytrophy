@@ -1189,6 +1189,6 @@
 <text x="1018" y="2736" fill="#e6edf3">81% exact / 100% written</text>
 <text x="260" y="2762" text-anchor="end" fill="#e6edf3">Outside mapped modules</text>
 <rect x="270" y="2748" width="740" height="18" rx="2" fill="#484f58"/>
-<rect x="270" y="2748" width="521.5" height="18" fill="#3fb950"/>
-<text x="1018" y="2762" fill="#e6edf3">70% exact / 70% written</text>
+<rect x="270" y="2748" width="535.7" height="18" fill="#3fb950"/>
+<text x="1018" y="2762" fill="#e6edf3">72% exact / 72% written</text>
 </svg>
