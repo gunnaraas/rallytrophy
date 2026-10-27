@@ -437,12 +437,15 @@ BoundsNode::BoundsNode()
     indices = 0;
 }
 
-// NONMATCHING: RALLYTROPHY 0x418300
-// EH state numbering differs (original state 1, ours 0) and register allocation of this.
+// FUNCTION: RALLYTROPHY 0x418300
+// The empty-destructor local shifts the unwind state of the child deletes to 1, as in the original.
 BoundsNode::~BoundsNode()
 {
-    delete left;
-    delete right;
+    NodeTag0 g;
+    if (left)
+        delete left;
+    if (right)
+        delete right;
 }
 
 __declspec(naked)
