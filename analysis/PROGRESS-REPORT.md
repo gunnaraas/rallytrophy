@@ -15,13 +15,13 @@ _Updated 2026-10-27 by `tools/progress.py` (game code `0x401000`–`0x4bcfc6`)._
 
 | | Functions | Code bytes |
 |---|---|---|
-| Byte-exact | 1788 / 2084 (85.80%) | 300,698 / 742,273 (40.51%) |
-| Written, not yet exact | 291 | 437,617 |
-| Written in total | 2079 / 2084 (99.76%) | 738,315 / 742,273 (99.47%) |
+| Byte-exact | 1794 / 2084 (86.08%) | 304,976 / 742,273 (41.09%) |
+| Written, not yet exact | 290 | 437,297 |
+| Written in total | 2084 / 2084 (100.00%) | 742,273 / 742,273 (100.00%) |
 
 ```
-exact   ████████████░░░░░░░░░░░░░░░░░░ 40.51% of code bytes
-written ██████████████████████████████ 99.47% of code bytes
+exact   ████████████░░░░░░░░░░░░░░░░░░ 41.09% of code bytes
+written ██████████████████████████████ 100.00% of code bytes
 ```
 
 ![Decompilation progress](progress.svg)
@@ -97,11 +97,11 @@ Progress by module (ranges in `analysis/modules.csv`):
 | Car emitter C | `0x47b4c0`–`0x47c3d0` | 8 / 9 / 9 | 44.3% | 100.0% | `████████████` |
 | Emitter constants | `0x47c3d0`–`0x47c460` | 6 / 6 / 6 | 100.0% | 100.0% | `████████████` |
 | Car particle emitter | `0x47c460`–`0x47ef80` | 18 / 24 / 24 | 27.6% | 100.0% | `████████████` |
-| GameSpy SDK (to replace) | `0x47ef80`–`0x4807d0` | 33 / 33 / 33 | 100.0% | 100.0% | `████████████` |
+| GameSpy SDK (third-party; out of scope) | `0x47ef80`–`0x4807d0` | 33 / 33 / 33 | 100.0% | 100.0% | `████████████` |
 | Single-player race mode | `0x4807d0`–`0x481390` | 10 / 13 / 13 | 27.2% | 100.0% | `████████████` |
 | Network race mode | `0x481390`–`0x4843e0` | 46 / 53 / 53 | 53.7% | 100.0% | `████████████` |
 | Networking / DirectPlay | `0x4843e0`–`0x4856e0` | 19 / 19 / 19 | 100.0% | 100.0% | `████████████` |
-| Race-mode base class | `0x4856e0`–`0x48f130` | 96 / 124 / 124 | 30.9% | 100.0% | `████████████` |
+| Race-mode base class | `0x4856e0`–`0x48f130` | 97 / 124 / 124 | 31.7% | 100.0% | `████████████` |
 | Replay race mode | `0x48f130`–`0x48f670` | 11 / 11 / 11 | 100.0% | 100.0% | `████████████` |
 | Ghost race mode | `0x48f670`–`0x48fe20` | 17 / 18 / 18 | 74.3% | 100.0% | `████████████` |
 | Record table (highscores) | `0x48fe20`–`0x490950` | 6 / 11 / 11 | 15.1% | 100.0% | `████████████` |
@@ -129,7 +129,7 @@ Progress by module (ranges in `analysis/modules.csv`):
 | Renderer plugin loader | `0x4bbdf0`–`0x4bc210` | 5 / 5 / 5 | 100.0% | 100.0% | `████████████` |
 | Command line | `0x4bc210`–`0x4bc360` | 3 / 3 / 3 | 100.0% | 100.0% | `████████████` |
 | Draw queue and vector helpers | `0x4bc360`–`0x4bcfc7` | 9 / 10 / 10 | 81.2% | 100.0% | `████████████` |
-| Outside mapped modules |  | 55 / 55 / 60 | 72.4% | 72.4% | `█████████░░░` |
+| Outside mapped modules |  | 60 / 60 / 60 | 100.0% | 100.0% | `████████████` |
 <!-- progress:end -->
 
 `// FUNCTION:` marks a function that has passed the byte matcher;

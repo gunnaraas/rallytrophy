@@ -129,9 +129,9 @@ void WheelSpray::Update(float dt)
 }
 
 // NONMATCHING: RALLYTROPHY 0x477690
-// 1227 bytes, same size and layout; 8 bytes differ: the two atlas-step adds `0.125 + v.u` / `0.125 + v.v`
-// load the constant first in the original (`fld 0.125; fadd [v.u]`), the variable first here (every
-// source form of the add tried keeps the constant as the second operand).
+// 1227 bytes, same size and layout; named atlas accumulators reproduce the target's constant-first x87 adds.
+// Four bytes differ: the depth argument load is scheduled before the first add instead of after it.
+// Evidence: ev_6e2034557ea54db46de9b42321c77c445cd8efd3f0dbae384e3a4b07d011fb93.
 // Draws every visible live particle as a rotated camera-facing quad.
 void WheelSpray::Render(RenderDevice* device, Camera* camera)
 {
@@ -204,8 +204,12 @@ void WheelSpray::Render(RenderDevice* device, Camera* camera)
             int row = p->frame >> 4;
             v[0].u = v[3].u = DAT_00561b78[col * 2] + DAT_00561c38[row * 2];
             v[0].v = v[1].v = DAT_00561b78[col * 2 + 1] + DAT_00561c38[row * 2 + 1];
-            v[1].u = v[2].u = v[3].u + kAtlasStep;
-            v[2].v = v[3].v = v[1].v + kAtlasStep;
+            float atlasU = kAtlasStep;
+            atlasU += v[3].u;
+            v[1].u = v[2].u = atlasU;
+            float atlasV = kAtlasStep;
+            atlasV += v[1].v;
+            v[2].v = v[3].v = atlasV;
             device->DrawQuad(v, texture, depth);
         }
     }

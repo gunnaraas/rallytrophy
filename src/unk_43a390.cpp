@@ -75,38 +75,48 @@ Screen1378::~Screen1378()
 }
 
 // NONMATCHING: RALLYTROPHY 0x43a490
-// Setup resource initialization and the two Sprite layouts are reconstructed; exact VC6 EH-state and register
-// allocation remain different (built 457 bytes; original 432).
+// Setup resource initialization and the two Sprite layouts are reconstructed; VC6 EH-state, field-store order,
+// and register allocation remain different (built 426 bytes; original 432; 140 differing bytes).
 void Screen1378::Setup(MenuGame* game)
 {
     if (m_state) {
         return;
     }
-    Sprite* first = new Sprite;
-    unk24 = first;
-    Sprite* second = new Sprite;
-    unk28 = second;
-    Texture* firstTexture = new Texture("data/menu/network_box1.tga", 0x841, 1);
-    first->texture = firstTexture;
-    Texture* secondTexture = new Texture("data/menu/network_box2.tga", 0x841, 1);
-    second->texture = secondTexture;
+    unk24 = new Sprite;
+    unk28 = new Sprite;
+    static_cast<Sprite*>(unk24)->texture = new Texture("data/menu/network_box1.tga", 0x841, 1);
+    static_cast<Sprite*>(unk28)->texture = new Texture("data/menu/network_box2.tga", 0x841, 1);
 
-    first->unk98 = 0xf;
+    volatile Sprite* first = static_cast<Sprite*>(unk24);
+    volatile Sprite* second = static_cast<Sprite*>(unk28);
     first->unk9c = 0xe;
-    first->unk60[0] = first->unk60[1] = first->unk60[2] = first->unk60[3] = 1.0f;
-    first->unk40[0] = first->unk40[1] = first->unk40[2] = first->unk40[3] = 1.0f;
-    first->unk18 = 5;
-    first->unk1c = 6;
-    second->unk98 = 0xf;
     second->unk9c = 0xe;
-    second->unk60[0] = second->unk60[1] = second->unk60[2] = second->unk60[3] = 1.0f;
-    second->unk40[0] = second->unk40[1] = second->unk40[2] = second->unk40[3] = 1.0f;
+    first->unk98 = 0xf;
+    first->unk60[0] = 1.0f;
+    first->unk60[1] = 1.0f;
+    first->unk60[2] = 1.0f;
+    first->unk60[3] = 1.0f;
+    first->unk18 = 5;
+    second->unk98 = 0xf;
+    second->unk60[0] = 1.0f;
+    second->unk60[1] = 1.0f;
+    second->unk60[2] = 1.0f;
+    second->unk60[3] = 1.0f;
+    first->unk40[0] = 1.0f;
+    first->unk40[1] = 1.0f;
+    first->unk40[2] = 1.0f;
+    first->unk40[3] = 1.0f;
+    first->unk1c = 6;
+    second->unk40[0] = 1.0f;
+    second->unk40[1] = 1.0f;
+    second->unk40[2] = 1.0f;
+    second->unk40[3] = 1.0f;
     second->unk18 = 5;
     second->unk1c = 6;
     first->unk24 = 2;
     second->unk24 = 2;
-    firstTexture->Upload(DAT_0056b0ac);
-    secondTexture->Upload(DAT_0056b0ac);
+    first->texture->Upload(DAT_0056b0ac);
+    second->texture->Upload(DAT_0056b0ac);
     Begin(game);
 }
 

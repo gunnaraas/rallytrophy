@@ -74,10 +74,8 @@ typedef void Generated_459250();
 typedef void Generated_459260();
 
 // NONMATCHING: RALLYTROPHY 0x459270
-// Same size (1516 with the jump table), 206 differing bytes, all instruction scheduling: the original loads
-// the p.x term from the body base before forming the matrix pointer (here it folds into mat+0x8c), spills the
-// camera frame pointer before the three projection stores, and emits the identity constructor stores of the
-// face matrix after the cross-product argument pushes (here before them).
+// Same size (1516 with the jump table), 54 differing bytes. Volatile reads reduce the mismatch, but VC6
+// reverses the target's x87 operand order; matrix identity stores follow the target order around the call.
 void Car::Draw459270(ViewManager* view, DrawContext* context)
 {
     EnvCar* car = (EnvCar*)this;
@@ -90,15 +88,15 @@ void Car::Draw459270(ViewManager* view, DrawContext* context)
     ((EnvDevice*)DAT_0056b0ac)->BeginFrame();
     MirrorView lv;
     EnvCamera* camera = (EnvCamera*)view;
+    EnvBlock* frameSrc = &camera->frame;
     lv.fov = 1.5707964f;
     lv.nearPlane = 0.5f;
     lv.farPlane = 50.0f;
-    EnvBlock* frameSrc = &camera->frame;
     *(EnvBlock*)lv.unk20 = *frameSrc;
     *(EnvBlock*)lv.m0 = camera->view;
-    EnvBody* body = car->body;
+    EnvBody* body = *(EnvBody* volatile*)&car->body;
     Vec3 p = body->center;
-    p.x += body->unkac;
+    p.x = *(volatile float*)&body->unkac + *(volatile float*)&p.x;
     const float* trans = body->pos;
     const float* mat = body->rows;
     p.y += mat[0x24];
@@ -195,7 +193,7 @@ void Car::Draw459270(ViewManager* view, DrawContext* context)
         EnvBuf b;
         Vec3 pad;
         Vec3 tmp;
-        Vec3* right = FUN_004203e0(&tmp, up, fwd);
+        Vec3* right = (m.SetIdentity(), FUN_004203e0)(&tmp, up, fwd);
         m.m[0] = right->x;
         m.m[1] = right->y;
         m.m[2] = right->z;

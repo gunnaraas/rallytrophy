@@ -199,3 +199,22 @@ The `SoundSource::SetVolume` calls use a linker alias to the existing method
 definition. Focused matcher: 42/42 marked functions match, with 9 other
 functions still NONMATCHING. Full matcher after this change: 1,766/1,766
 marked functions exact, 318 NONMATCHING, no differences or compile failures.
+
+## Replay-menu detail field `0x44c580`
+
+Local `objcmp` observations: `ReplayMenu::DrawField` is 2,554 bytes on both
+sides, with 13 differing bytes in the rally-table lookup. The target loads
+the rally into EDX, computes `rally * 63` using a shift/subtract, loads the
+Game pointer into EDX, then completes the effective `rally * 1512` address.
+The candidate uses ESI for the rally and hoists the Game load before the
+shift/subtract. The surrounding instruction sequence matches.
+
+A named full byte-offset local, explicit `*63`/`*24` factors with a Game
+pointer local, and an inline rally accessor each emitted unchanged bytes.
+These compiler probes were reverted. The function remains NONMATCHING.
+
+A volatile read of the Game pointer changed the load schedule but increased
+the difference to 17 bytes. An eight-byte typed-array view emitted unchanged
+bytes. Assigning the complete subtraction on the flagged branch and the
+unadjusted value on the other branch produced 2,559 bytes with 1,050
+differences. All three probes were reverted.

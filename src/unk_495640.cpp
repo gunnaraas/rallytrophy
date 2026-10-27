@@ -10,6 +10,7 @@ extern int __cdecl FUN_004c0d01(void (__cdecl *callback)(void));
 extern void __stdcall FUN_004c1116();
 extern void __stdcall FUN_004c11f4();
 extern void __fastcall FUN_00490ad0();
+extern char DAT_005070b0[];
 
 void __fastcall FUN_004952f0(void);
 void __stdcall FUN_00495310(void);
@@ -509,10 +510,10 @@ static BOOL __stdcall MapDevice(const DeviceInstance* instance, IDirectInputDevi
 static BOOL __stdcall ConfigureCallback(void* surface, void* context);
 
 // NONMATCHING: RALLYTROPHY 0x495a60
-// 1474 vs 1568 bytes: logic complete. The original keeps more of the name
-// building's string appends out of line (append(const char*, n) 0x403ba0 for
-// the text and " ", inline for the number) and destroys both strings on each
-// early return; first attempt, not yet iterated.
+// Evidence: ev_4ed365b0cbf63abb24939040c5cb657c1776ec50aa6df6154220034f281fd370 (body/pseudocode),
+// ev_a822bdd79943b37f0fead09e596472f4c18bf4a9f10be94d8f8778d0425888ee (assembly),
+// ev_b25e98ef80db0bc0a1ac0d3946b3948142dc014cb9a56c005359702275f00557 (empty initial text).
+// Candidate 1533/1568 bytes, 1167 differing; the observed append forms reduced the first candidate's 1191 differences.
 // Creates DirectInput, names the players ("<text 0x94> <n>"), fills the
 // action format and maps each player's devices. Returns the HRESULT.
 int T_56b0b4::Init(int unused, int players)
@@ -526,14 +527,16 @@ int T_56b0b4::Init(int unused, int players)
     }
     m_players = new PlayerDevices[m_playerCount];
     std::string names = "";
+    names += DAT_005070b0;
     int total = 0;
     int i;
     for (i = 0; i < m_playerCount;) {
         char number[32];
         _itoa(++i, number, 10);
-        names += FUN_00405380(0x94);
+        const char* playerText = FUN_00405380(0x94);
+        names.append(playerText, strlen(playerText));
         total += strlen(FUN_00405380(0x94));
-        names += " ";
+        names.append(" ", 1);
         names += number;
         names += DAT_00569e6c;
         total += 3;

@@ -148,9 +148,8 @@ PlayerNameMenu::~PlayerNameMenu()
 }
 
 // NONMATCHING: RALLYTROPHY 0x43dc70
-// 414 vs 416 bytes; every instruction of the loop and the tail is present. The original keeps the int->float temps of
-// col, row and row + 1 in the dead parameter slot and the pushed `ecx` slot (frame 0x10), mine allocates a third
-// temp for row + 1 (`sub esp,8`); the cell loop reloads this->iconTexture each pass only via cells[i] indexing.
+// Evidence: ev_876a2734e4c2d619b1baad3e35e80609fe8494878e8d3049195e7dbfe5e97284. Candidate 414 bytes, 316 differing
+// bytes. The target reuses a stack slot for the col and row+1 conversions; the candidate allocates an extra slot.
 // original: FUN_0043dc70 (vtable slot 1)
 void PlayerNameMenu::Setup(MenuGame* game)
 {

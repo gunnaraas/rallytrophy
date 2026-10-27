@@ -77,6 +77,8 @@ Frames: "SEH" = FS:[0] frame with the EH handler address; "FPU n" = number of x8
 | 0x43f8b0 | 241 | thiscall (ecx set, **`this` unused**), `ret 4`, no SEH, no FPU | **CheckCheatName(const char* name)**: inlined `strcmp` against `KALJAKOPPA` / `QUALIFY` (see above); returns 1 for the unlock code, 0 otherwise | Run 0x43e1e5 |
 | 0x43f9b0 | 48 | `_$E` stub | guard bit 0x5826d5 + `atexit(0x402c90)` (STL init) | init table 0xefb54 |
 
+Ghidra evidence `ev_d378b16bc7d7bf3b1b773af280befd0195b1c1203350bf8066a6ea214b9c2e17` confirms the 368-byte target and the scheduling around the two renderer calls. Early `DAT_0056b0ac` / `plate` locals, including a trial that moved `Color(-1)` closer to `DrawQuad`, worsened code generation (373–375 bytes and shifted EH/local frame); the variants were reverted. Keep the current compiler-generated EBP SEH frame until a lifetime change preserves it.
+
 ## 2. File B: RaceOptionsMenu, 0x43f9e0 - 0x44133f (guard stub 0x441340)
 
 Constructor caller: menu manager ctor 0x43c590 at 0x43c5f2 (`lea ecx,[esi+0x11c]; call 0x43f9e0`, EH state 2); destructor caller: manager dtor 0x43c680 at 0x43c6fb (call 0x43fac0, state 2 -> direct call, not through the deleting dtor); Run caller: manager dispatch method 0x43cb70 (186 bytes, jump table 0x43cc2c, case at 0x43cb9b: `Run(game = [this+0xc], net = [this+0xcf4])`). Neighbours in the manager: +0x2a8 (ctor 0x4295f0, size 0x4a8), SoundMenu +0x750, +0x8dc (0x424410), +0xa48 (0x439170). In Game: **Game+0x2df4 + 0x11c = Game+0x2f10**.

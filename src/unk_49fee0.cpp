@@ -86,7 +86,7 @@ static inline Vec3 Flat(const Vec3& v)
 }
 
 // NONMATCHING: RALLYTROPHY 0x49ffa0
-// Logic complete (1112 vs 1149 bytes). The original has four Vec3 objects (EH state 4) alive before the loop and
+// Logic complete (1110 vs 1149 bytes). The original has four Vec3 objects (EH state 4) alive before the loop and
 // reads the results of the out-of-line Vec3 +/- (0x419f00/0x414330) straight from the returned pointers; the
 // build's temporaries, EH state numbers and register allocation (original: this in edi) differ.
 void AIDriver::FUN_0049ffa0()

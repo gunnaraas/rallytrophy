@@ -72,7 +72,9 @@ int GameScreen2DD4::Run(MenuGame* game)
 // NONMATCHING: RALLYTROPHY 0x4267a0
 // original: FUN_004267a0. Same size and code except 54 bytes of scheduling in the title-print prologue: the original
 // loads DAT_00501458 after the text->color store (color in eax), VC6 here hoists the load above the stores (color in
-// ecx) and picks other temps for the DAT_0056b0ac loads. Tried statement order, !x, swapped arms, SetScale/SetColor.
+// ecx) and picks other temps for the DAT_0056b0ac loads. Tried statement order, !x, swapped arms, SetScale/SetColor;
+// a volatile title-mode read kept the size and diff count unchanged but changed store order; a named titleColor
+// temporary emitted identical bytes to baseline.
 int GameScreen2DD4::Frame()
 {
     int done = 0;

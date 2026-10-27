@@ -75,7 +75,7 @@ struct CaptionFont {
 // NONMATCHING: RALLYTROPHY 0x4526e0
 // Same size (1040), 21 bytes differ: the original issues the `push 0` of the first FUN_004b69f0(0) after the four
 // caption coordinate stores, VC6 hoists it above the first fsubr here (frame offsets shift by 4). Source variants tried: float
-// order, inline coordinates, loop forms.
+// order, inline coordinates, loop forms. Empty inline-asm barrier disables frame-pointer omission and causes 558 diff bytes.
 void GameView::ShowCountryVideo(int n)
 {
     char path[24] = "data/video/country1.bik";

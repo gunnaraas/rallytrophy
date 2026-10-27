@@ -90,7 +90,7 @@ Static-initialiser-only files,0x4a16a0,0x4a1760,unk_4a16a0.cpp ... unk_4a1730.cp
 Startup helpers,0x401000,0x404d50,"range-401000.md: replay recorder, XXTEA cipher, VC6 string internals, hash map, loading screen, save files"
 Stage scene and collision,0x409690,0x420490,"range-409690.md: Bink video, stage loader/destructor, grid, sounds, collision model, car-body physics"
 StageTable/control/credits screens,0x420490,0x4266c0,"range-420490.md: car selection screen, control menu, credits"
-GameSpy SDK (to replace),0x47ef80,0x4807d0,"third-party; not ported (AGENTS.md rule 4)"
+GameSpy SDK (third-party; out of scope),0x47ef80,0x4807d0,"reference-only inventory; excluded from first-party completion claims"
 Engine image/font/model files,0x4a9b60,0x4b2830,"range-4a9b60.md: glyph fonts, image objects and converter, model/texture caches, .bmf model reader"
 Collision geometry,0x4b3050,0x4b44e0,"range-4b3050.md: light masks, triangle/segment and swept-sphere tests"
 Transform math and message pump,0x4b5140,0x4b6ac0,"range-4b5140.md: quaternions, matrix helpers, Tri3 intersection, Win32 message pump"

@@ -187,8 +187,9 @@ static float Pacejka(float x, float B, float C, float D, float E);
     __asm fstp dword ptr [eax+8]
 
 // NONMATCHING: RALLYTROPHY 0x46c2c0
-// Same size (317); only the store schedule differs: the original issues `pop edi` after the normal.x/normal.z stores
-// and the normal.y = 1.0 store right behind it, the build pops edi first and sinks the 1.0 store to the end.
+// Same size (317). Making only normal.y volatile reduces the mismatch from 66 to 27 bytes, but the target reloads ecx
+// before the three stores and pops edi between z and y; this build reloads ecx and pops edi afterward. Volatile x or z
+// individually, with y volatile, leaves the 27-byte diff unchanged. Plain objcmp.
 Wheel::Wheel()
 {
     tire.SetParent(this);
@@ -211,7 +212,7 @@ Wheel::Wheel()
     Reset();
     normal.x = 0;
     normal.z = 0;
-    normal.y = 1.0f;
+    *(volatile float*)&normal.y = 1.0f;
     touching = 0;
     active = 0;
     forceA.z = 0;

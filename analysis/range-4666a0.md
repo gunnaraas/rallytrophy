@@ -89,6 +89,8 @@ Decompile: one worker for the five real functions; 0x4689b0 is the only FPU-heav
 | 0x4695c0 | 53 | thiscall `ret 4` (float a), no frame, FPU | **Car::SetBodyAlpha(float)**: if `+0x1eb8`: `a*0.75` stored to `node->data+0x4c` for every node of list +0xfac | 0x488b08, 0x488c3d, 0x488cde, 0x488e13 |
 | 0x469600 | 48 | `_$E` stub | | init table (0xefbe4) |
 
+Evidence `ev_06648552681e86e21ea85e48e812fce3e34a5089ef0aa3b5ed596e67b326cea5` records the 1,392-byte `BuildVisibleParts` body. The focused matcher on `src/unk_468c40.cpp` reports 4/4 marked functions (3 existing NONMATCHING); `objcmp` reports 1,390 built bytes and 928 differing bytes outside relocations, with most disassembly shifts downstream of the two-byte size gap. Replacing the saved old-buffer temporary with `list->data` at the later delete did not change codegen. An explicit `goto` layout around the `v1c738` test also compiled identically. Both trials were reverted; EH is absent in this function and unaffected.
+
 Decompile: group (all small except 0x468c70 whose long cascades of `if (p) p->flag |= 1` must be matched by order; build with a local helper only if it does not change codegen).
 
 ## 5. F4: render, lighting, effects, gauges, 0x469630 - 0x46a89f (11 fns + stub)

@@ -1,8 +1,7 @@
 # File open path (Patch 1.01)
 
 Target: `File::Open`, original `FUN_004a4f50` at `0x4a4f50` (1247 bytes).
-The Ghidra pseudocode is retained in
-`analysis/evidence-2026-10-22-loop18.json` as
+REA pseudocode evidence:
 `ev_99c9e6265233a208ee2d60d17289d27174e62b68f151a2d9bd0b01833ecdd22b`.
 These addresses belong to Patch 1.01.
 

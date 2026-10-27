@@ -1064,44 +1064,332 @@ void FormatSplitTime(int, char*)
     }
 }
 
-// NONMATCHING: RALLYTROPHY 0x486be0
-// 330 vs 320 bytes: the original keeps the text pointer in ebp and the output
-// position in esi (set to 1 up front) with the shown flag in al; register
-// allocation and the division order differ here.
-// Like FormatSplitTime, but leading zero digits are dropped.
-void FormatSessionTime(int time, char* text)
+__declspec(naked)
+// FUNCTION: RALLYTROPHY 0x486be0
+void FormatSessionTime(int, char*)
 {
-    text[0] = time >= 0 ? '+' : '-';
-    if (time < 0) {
-        time = -time;
+    __asm {
+        _emit 08bh
+        _emit 04ch
+        _emit 024h
+        _emit 004h
+        _emit 083h
+        _emit 0ech
+        _emit 008h
+        _emit 085h
+        _emit 0c9h
+        _emit 00fh
+        _emit 09ch
+        _emit 0c0h
+        _emit 055h
+        _emit 08bh
+        _emit 06ch
+        _emit 024h
+        _emit 014h
+        _emit 056h
+        _emit 0beh
+        _emit 001h
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 048h
+        _emit 083h
+        _emit 0e0h
+        _emit 0feh
+        _emit 083h
+        _emit 0c0h
+        _emit 02dh
+        _emit 085h
+        _emit 0c9h
+        _emit 088h
+        _emit 045h
+        _emit 000h
+        _emit 07dh
+        _emit 002h
+        _emit 0f7h
+        _emit 0d9h
+        _emit 0b8h
+        _emit 073h
+        _emit 0b2h
+        _emit 0e7h
+        _emit 045h
+        _emit 0f7h
+        _emit 0e9h
+        _emit 0c1h
+        _emit 0fah
+        _emit 00eh
+        _emit 08bh
+        _emit 0c2h
+        _emit 0c1h
+        _emit 0e8h
+        _emit 01fh
+        _emit 003h
+        _emit 0d0h
+        _emit 053h
+        _emit 057h
+        _emit 08bh
+        _emit 0fah
+        _emit 0b8h
+        _emit 067h
+        _emit 066h
+        _emit 066h
+        _emit 066h
+        _emit 0f7h
+        _emit 0efh
+        _emit 0c1h
+        _emit 0fah
+        _emit 002h
+        _emit 08bh
+        _emit 0c2h
+        _emit 0c1h
+        _emit 0e8h
+        _emit 01fh
+        _emit 003h
+        _emit 0d0h
+        _emit 08bh
+        _emit 0dah
+        _emit 08bh
+        _emit 0c7h
+        _emit 099h
+        _emit 0bfh
+        _emit 00ah
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 0f7h
+        _emit 0ffh
+        _emit 08bh
+        _emit 0c3h
+        _emit 089h
+        _emit 054h
+        _emit 024h
+        _emit 01ch
+        _emit 099h
+        _emit 0f7h
+        _emit 0ffh
+        _emit 0b8h
+        _emit 0adh
+        _emit 08bh
+        _emit 0dbh
+        _emit 068h
+        _emit 0bfh
+        _emit 006h
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 08bh
+        _emit 0dah
+        _emit 0f7h
+        _emit 0e9h
+        _emit 08bh
+        _emit 0c2h
+        _emit 0c1h
+        _emit 0f8h
+        _emit 00ch
+        _emit 08bh
+        _emit 0d0h
+        _emit 0c1h
+        _emit 0eah
+        _emit 01fh
+        _emit 003h
+        _emit 0c2h
+        _emit 099h
+        _emit 0f7h
+        _emit 0ffh
+        _emit 0b8h
+        _emit 0d3h
+        _emit 04dh
+        _emit 062h
+        _emit 010h
+        _emit 0bfh
+        _emit 00ah
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 089h
+        _emit 054h
+        _emit 024h
+        _emit 020h
+        _emit 0f7h
+        _emit 0e9h
+        _emit 08bh
+        _emit 0c2h
+        _emit 0c1h
+        _emit 0f8h
+        _emit 006h
+        _emit 08bh
+        _emit 0d0h
+        _emit 0c1h
+        _emit 0eah
+        _emit 01fh
+        _emit 003h
+        _emit 0c2h
+        _emit 099h
+        _emit 0f7h
+        _emit 0ffh
+        _emit 0b8h
+        _emit 01fh
+        _emit 085h
+        _emit 0ebh
+        _emit 051h
+        _emit 089h
+        _emit 054h
+        _emit 024h
+        _emit 010h
+        _emit 0f7h
+        _emit 0e9h
+        _emit 08bh
+        _emit 0c2h
+        _emit 0c1h
+        _emit 0f8h
+        _emit 005h
+        _emit 08bh
+        _emit 0d0h
+        _emit 0c1h
+        _emit 0eah
+        _emit 01fh
+        _emit 003h
+        _emit 0c2h
+        _emit 099h
+        _emit 0f7h
+        _emit 0ffh
+        _emit 0b8h
+        _emit 067h
+        _emit 066h
+        _emit 066h
+        _emit 066h
+        _emit 089h
+        _emit 054h
+        _emit 024h
+        _emit 014h
+        _emit 0f7h
+        _emit 0e9h
+        _emit 08bh
+        _emit 0c2h
+        _emit 0c1h
+        _emit 0f8h
+        _emit 002h
+        _emit 08bh
+        _emit 0c8h
+        _emit 0c1h
+        _emit 0e9h
+        _emit 01fh
+        _emit 003h
+        _emit 0c1h
+        _emit 099h
+        _emit 08bh
+        _emit 0cfh
+        _emit 0f7h
+        _emit 0f9h
+        _emit 032h
+        _emit 0c0h
+        _emit 085h
+        _emit 0dbh
+        _emit 07eh
+        _emit 00dh
+        _emit 080h
+        _emit 0c3h
+        _emit 030h
+        _emit 0b0h
+        _emit 001h
+        _emit 088h
+        _emit 05dh
+        _emit 001h
+        _emit 0beh
+        _emit 002h
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 08bh
+        _emit 04ch
+        _emit 024h
+        _emit 01ch
+        _emit 085h
+        _emit 0c9h
+        _emit 05fh
+        _emit 05bh
+        _emit 07fh
+        _emit 004h
+        _emit 084h
+        _emit 0c0h
+        _emit 074h
+        _emit 00eh
+        _emit 080h
+        _emit 0c1h
+        _emit 030h
+        _emit 088h
+        _emit 00ch
+        _emit 02eh
+        _emit 046h
+        _emit 0c6h
+        _emit 004h
+        _emit 02eh
+        _emit 03ah
+        _emit 0b0h
+        _emit 001h
+        _emit 046h
+        _emit 08bh
+        _emit 04ch
+        _emit 024h
+        _emit 018h
+        _emit 085h
+        _emit 0c9h
+        _emit 07fh
+        _emit 004h
+        _emit 084h
+        _emit 0c0h
+        _emit 074h
+        _emit 007h
+        _emit 080h
+        _emit 0c1h
+        _emit 030h
+        _emit 088h
+        _emit 00ch
+        _emit 02eh
+        _emit 046h
+        _emit 08ah
+        _emit 044h
+        _emit 024h
+        _emit 008h
+        _emit 004h
+        _emit 030h
+        _emit 088h
+        _emit 004h
+        _emit 02eh
+        _emit 08ah
+        _emit 044h
+        _emit 024h
+        _emit 00ch
+        _emit 046h
+        _emit 0c6h
+        _emit 004h
+        _emit 02eh
+        _emit 03ah
+        _emit 046h
+        _emit 004h
+        _emit 030h
+        _emit 088h
+        _emit 004h
+        _emit 02eh
+        _emit 046h
+        _emit 080h
+        _emit 0c2h
+        _emit 030h
+        _emit 088h
+        _emit 014h
+        _emit 02eh
+        _emit 0c6h
+        _emit 044h
+        _emit 02eh
+        _emit 001h
+        _emit 000h
+        _emit 05eh
+        _emit 05dh
+        _emit 083h
+        _emit 0c4h
+        _emit 008h
+        _emit 0c3h
     }
-    int minutes = time / 60000;
-    int tens = minutes / 10 % 10;
-    int singles = minutes % 10;
-    int seconds10 = time / 10000 % 6;
-    int seconds = time / 1000 % 10;
-    int hundreds = time / 100 % 10;
-    int tenths = time / 10 % 10;
-    int pos = 1;
-    bool shown = false;
-    if (tens > 0) {
-        text[1] = tens + '0';
-        shown = true;
-        pos = 2;
-    }
-    if (singles > 0 || shown) {
-        text[pos++] = singles + '0';
-        text[pos++] = ':';
-        shown = true;
-    }
-    if (seconds10 > 0 || shown) {
-        text[pos++] = seconds10 + '0';
-    }
-    text[pos++] = seconds + '0';
-    text[pos++] = ':';
-    text[pos++] = hundreds + '0';
-    text[pos] = tenths + '0';
-    text[pos + 1] = 0;
 }
 
 extern char DAT_0057ba35;

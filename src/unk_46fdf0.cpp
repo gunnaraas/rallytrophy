@@ -475,9 +475,9 @@ __declspec(naked) void BuildColourLuts(const Vec3* light)
 
 // original: FUN_004703c0
 // NONMATCHING: RALLYTROPHY 0x4703c0
-// 384 vs 378 bytes. Everything up to the vertex init loop matches (EH states, flag stores, Mesh/array news); the original
-// keeps the vertices pointer in one register and reloads this->mesh->vertices after the u2 and v2 stores (no source form
-// found), and zeroes casters[] with a fresh register instead of ebx.
+// Target evidence (ev_e2d18152e9c91241b4226ef784a2de4febf5e28195db3b37cc938a94cbefa4fb) shows a byte-offset loop
+// with stride 0x2c through 0xb000 and four caster clears. Moving the offset declaration before the pointer locals
+// reduces the 378-byte candidate from 15 to 14 differing bytes; the remaining difference is register/SIB selection.
 ParallelShadow::ParallelShadow()
 {
     sysTexture = 0;
@@ -490,18 +490,20 @@ ParallelShadow::ParallelShadow()
     m->material = &spriteA;
     m->vertices = new EffectVertex[0x400];
     m->indices = new WORD[0xc00];
-    for (int i = 0; i < 0x400; i++) {
-        m->vertices[i].color = -1;
-        m->vertices[i].u2 = 0;
-        m->vertices[i].v2 = 0;
-        mesh->vertices[i].normal.x = 0;
-        mesh->vertices[i].normal.y = 0;
-        mesh->vertices[i].normal.z = 0;
+    int offset = 0;
+    EffectVertex* volatile* sourceVertices = (EffectVertex* volatile*)((BYTE*)m + 4);
+    register EffectVertex* initialVertices = *sourceVertices;
+    for (; offset < 0xb000; offset += 0x2c) {
+        *(int*)((BYTE*)initialVertices + offset + 0x18) = -1;
+        *(int*)((BYTE*)initialVertices + offset + 0x24) = 0;
+        *(int*)((BYTE*)mesh->vertices + offset + 0x28) = 0;
+        EffectVertex* vertices = mesh->vertices;
+        *(int*)((BYTE*)vertices + offset + 0x0c) = 0;
+        *(int*)((BYTE*)vertices + offset + 0x10) = 0;
+        *(int*)((BYTE*)vertices + offset + 0x14) = 0;
     }
-    casters[0] = 0;
-    casters[1] = 0;
-    casters[2] = 0;
-    casters[3] = 0;
+    for (int i = 0; i < 4; ++i)
+        casters[i] = 0;
     unk8 = 1;
 }
 
@@ -521,9 +523,9 @@ ParallelShadow::~ParallelShadow()
 
 // original: FUN_00470610
 // NONMATCHING: RALLYTROPHY 0x470610
-// Same size (715) and registers; 168 bytes differ only in instruction scheduling: the original interleaves the call
-// setup pushes with the sprite field stores in source order, VC6 here hoists the setup and the unk18/unk24 stores.
-// No statement order of the stores (all group orders and a hill climb tried) reproduces it.
+// Same size (715); the best candidate has 162 differing bytes. Making only the unk60 stores volatile improves the
+// instruction schedule slightly, but VC6 still places call-setup pushes differently from the original's interleaving.
+// Making unk40 volatile or making unk18/unk24 volatile does not improve the best candidate.
 // Allocates the shadow texture: a render target when the device can draw into textures, else a texture
 // filled by the software rasteriser through a system-memory copy.
 void ParallelShadow::Create(ShadowEngine* engine, int size)
@@ -538,10 +540,10 @@ void ParallelShadow::Create(ShadowEngine* engine, int size)
         spriteA.unk40[1] = 0;
         spriteA.unk40[2] = 0;
         spriteA.unk40[3] = 1.0f;
-        spriteA.unk60[0] = 0;
-        spriteA.unk60[1] = 0;
-        spriteA.unk60[2] = 0;
-        spriteA.unk60[3] = 0;
+        ((volatile Sprite*)&spriteA)->unk60[0] = 0;
+        ((volatile Sprite*)&spriteA)->unk60[1] = 0;
+        ((volatile Sprite*)&spriteA)->unk60[2] = 0;
+        ((volatile Sprite*)&spriteA)->unk60[3] = 0;
         spriteA.unk18 = 1;
         spriteA.unk24 = 1;
         spriteA.unk70[0] = 0;
@@ -649,7 +651,8 @@ void ParallelShadow::Prepare(RenderDevice* device, void* unused, DrawContext* co
         Vec3 c;
         Vec3& dir = LightRow(2);
         Vec3* fwd = &camera->forward;
-        if (dir.x * fwd->x + dir.y * fwd->y + dir.z * fwd->z <= 0.0f) {
+        // Keep the source products in the target's observed z/y/x accumulator order.
+        if (dir.z * fwd->z + dir.y * fwd->y + dir.x * fwd->x <= 0.0f) {
             DAT_00509500.x = fwd->x;
             DAT_00509500.y = fwd->y;
             DAT_00509500.z = fwd->z;
@@ -986,9 +989,9 @@ inline WORD EmitVertex(WORD* slot, ShadowVertex* src)
 }
 
 // NONMATCHING: RALLYTROPHY 0x471ab0
-// Structure, constants and call order match (1753 of 1788 bytes); register assignment differs (original keeps
-// the mesh index in ebp and a second face pointer f+0x18), the plane-distance term order of vertex 0 comes out
-// x,z,y instead of x,y,z, and `fld radius` is not hoisted above the o computation.
+// Center offsets now follow the target's z/y/x store schedule; this improves the candidate to 1763/1788 bytes, 1121 diffs.
+// The x87 radius and plane schedules are documented by Evidence ev_378c13001f5c265115cca9d40c27f7d342ab1bd4c7ce252692de74fc458d597c.
+// Frame/register scheduling remains different (target: Evidence above).
 // original: FUN_00471ab0 (project the caster meshes into the shadow plane)
 void ParallelShadow::ProjectMeshes(ShadowCaster* obj)
 {
@@ -1016,11 +1019,12 @@ void ParallelShadow::ProjectMeshes(ShadowCaster* obj)
             if (!(*(unsigned*)&dn & 0x80000000)) {
                 continue;
             }
+            float faceRadius = f->radius;
             Vec3 o;
-            o.x = g_shadowSphere.centre.x - f->cx;
-            o.y = g_shadowSphere.centre.y - f->cy;
             o.z = g_shadowSphere.centre.z - f->cz;
-            float s = g_shadowSphere.radius + f->radius;
+            o.y = g_shadowSphere.centre.y - f->cy;
+            o.x = g_shadowSphere.centre.x - f->cx;
+            float s = g_shadowSphere.radius + faceRadius;
             float d = o.z * LightRow(2).z + o.y * LightRow(2).y + o.x * LightRow(2).x;
             if (d > s) {
                 continue;
@@ -1036,7 +1040,8 @@ void ParallelShadow::ProjectMeshes(ShadowCaster* obj)
             ShadowVertex* v2 = verts + (WORD)i2;
             for (int k = 0; k < 3; k++) {
                 ShadowPlane* pl = &g_shadowPlanes[k];
-                if (pl->nx * v0->x + v0->y * pl->ny + v0->z * pl->nz - pl->d > 0.0f
+                float plane0 = pl->nx * v0->x + v0->y * pl->ny;
+                if (plane0 + v0->z * pl->nz - pl->d > 0.0f
                     && v1->z * pl->nz + v1->y * pl->ny + pl->nx * v1->x - pl->d > 0.0f
                     && v2->z * pl->nz + v2->y * pl->ny + pl->nx * v2->x - pl->d > 0.0f) {
                     goto skip;
@@ -1103,9 +1108,12 @@ static const float kTwo = 2.0f;          // 0x4e1b44
 
 // original: FUN_004721b0
 // NONMATCHING: RALLYTROPHY 0x4721b0
-// 1347 vs 1372 bytes. EH frame, calls, CROSS block, culling test, projection blocks and the fill dispatch are in place.
+// Baseline 1347/1372 bytes. EH frame, calls, CROSS block, culling test, projection blocks and the fill dispatch are in place.
 // Open: VC6 keeps h = size/2 in the FPU (the original spills it to [ebp-0x10]), puts e1/e2 in the opposite stack slots,
 // and loads cross.y/z before the light-direction terms in the dot product (the original loads the global first).
+// Evidence ev_29d97e716110d7023b37b541d681a71602455c2e54fc525bd1455f0e8cda5ddd shows the target h stack home.
+// Splitting -b*m[13] before the m[12] update follows the target schedule in evidence ev_97dc54e79fef93c284c6e010b9015776b75175379b7307954374c1592c15c85e;
+// current candidate is 1362/1372 bytes with 550 differing bytes (volatile h alone: 1354/1372, 634 diffs).
 // Projects the back-facing triangles of a caster's meshes into the shadow plane (16.16 fixed point) and
 // fills them into the locked shadow surface.
 void ParallelShadow::RasteriseObject(ShadowCaster* obj)
@@ -1118,7 +1126,7 @@ void ParallelShadow::RasteriseObject(ShadowCaster* obj)
     g_origin.x = -(m[14] * m[2] + m[13] * m[1] + m[12] * m[0]);
     g_origin.y = -(m[6] * m[14] + m[5] * m[13] + m[4] * m[12]);
     g_origin.z = -(m[10] * m[14] + m[9] * m[13] + m[8] * m[12]);
-    float h = (float)half;
+    volatile float h = (float)half;
     float t = h - kTwo;
     float a = t / DAT_005096e0;
     float b = t / DAT_005096dc;
@@ -1129,8 +1137,9 @@ void ParallelShadow::RasteriseObject(ShadowCaster* obj)
     m[1] *= b;
     m[5] *= b;
     m[9] *= b;
+    float m13Scaled = -(b * m[13]);
     m[12] += h;
-    m[13] = -(b * m[13]) + h;
+    m[13] = m13Scaled + h;
     ShadowMeshNodeRaw* node = (ShadowMeshNodeRaw*)obj->meshList.At(0);
     g_scanline = surf->bits;
     g_pitch = surf->pitch;
@@ -1208,8 +1217,9 @@ void ParallelShadow::RasteriseObject(ShadowCaster* obj)
 
 // original: FUN_00472710
 // NONMATCHING: RALLYTROPHY 0x472710
-// 413 vs 405 bytes. Same prologue, edge loops and rep stos fill; VC6 here promotes s_rowsA to edx and
-// keeps 0xffff as an immediate, the original keeps 0xffff in edi and reloads the row counters.
+// 414 vs 405 bytes, 92 differing bytes. The target's row-A decrement is dec/test/store; keep the nonvolatile source
+// form, which emits that exact sequence (Evidence ev_183891f7dd3fcb066f1d31b4cd436092089ebcd199d92facdf9f5b616af31588).
+// VC6 keeps 0xffff immediate; the target loads it into edi. A register `fixedOne` local emitted baseline bytes.
 // Fill a triangle with the 16-bit colour: scan the two edges row by row (16.16 fixed point).
 void FillTriangle(ProjVertex** tri)
 {
@@ -1333,6 +1343,7 @@ void StepEdgeB()
 // original: FUN_00472a30
 // NONMATCHING: RALLYTROPHY 0x472a30
 // 389 vs 382 bytes, same register-allocation difference as 0x472710.
+// A volatile s_rowsA decrement regressed to 391/382 bytes, 176 differences; a `fixedOne` register local changed no bytes.
 // The same with the 32-bit colour.
 void FillTriangleFlat(ProjVertex** tri)
 {

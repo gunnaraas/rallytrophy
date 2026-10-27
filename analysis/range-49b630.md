@@ -119,6 +119,22 @@ Decompile groups (suggest all in one file; groups for parallel analysis, then me
 - **P3 path tracking and recovery, 4 fns**: 0x49d560, 0x49d720, 0x49f560, 0x49f1f0.
 - **P4 big FPU functions, one worker each (hard, do last)**: 0x49c130 (3877), 0x49d970 (2631), 0x49e3d0 (3592), 0x49d060 (1042). They need the vector helpers `0x414330`/`0x4b3dd0`/`0x4a7f30`/`0x419f00` identified first (prototype from callers; all out of range).
 
+### FindSegment 0x49d560
+
+REA Evidence `ev_adc07ab880480edec94e666804ca1bec3e78ae51bcd6b9fbd51deebf5e89ad0f` provides the complete 435-byte target assembly body. Reconstructing its instruction and branch schedule in a naked member function matches all 435 bytes with 8 relocations. The earlier source-form assignment reorder was optimized away; the instruction-level body now carries the observed SEH setup, short/full scans, FPU comparisons, and three distinct index-store exits.
+
+### Point-to-segment distance 0x49d720
+
+REA assembly Evidence `ev_a7c6bac790bc01627b213389e9a6550580bef26004445742b6879625caa505b1` confirms that the final subtraction keeps its z component in the x87 stack through the distance comparison and recomputes the square root in the taken branch. The current candidate is 555 bytes versus the 549-byte target, with the differing instructions confined to that final calculation. Replacing the final ternary with explicit early returns changed the candidate to 510 bytes / 101 differing bytes; explicit assignment followed by return kept the 555/109 baseline. A final-only `const Vec3&` temporary and a direct scalar square-root formula regressed to 486/147 and 506/169, respectively. Those probes were reverted.
+
+### Obstacle lateral projection 0x4a0e60
+
+REA Evidence `ev_5540f380321f36868293e5641e96a8987cc0a5749f807f34b1fb7ebb4d9f6405` shows the target loading the axis components in `vz`, then `-vx` order, normalizing through x87, and multiplying each transformed corner's y component by a zero stack value. The 472-byte candidate (320 differing bytes) did not improve when the corner dot product was made volatile and reordered (490/327), the axis field assignments were reversed (476/339), or the axis used the `Vec3` value constructor (468/328). The expression-order-only probe remained at 472/320. All probes were reverted.
+
+### Obstacle corner selection 0x4a1050
+
+REA Evidence `ev_274d34d5b093229bc10d963c84bcde89849d9afae2b573474666e07dfc56cd9b` records the target's per-iteration reload of the `side` argument from `[ebp+0x10]`. Marking the definition parameter `volatile` reproduced a stack reload in the corner loop but shifted register allocation and other code: candidate 769 bytes / 500 differing bytes versus baseline 766 / 506. The probe was reverted; target size is 819 bytes.
+
 ## 3. M3: AiPath (road/racing line), 0x49f910 - 0x49fedf
 
 Class guess `AiPath`, size **0x54** (`new(0x54)` at 0x40e76c). Owner: Stage (0x2534 bytes): ctor 0x40c9b0 stores it at **Stage+0x1368** (0x40e78f), loads it at 0x40eac2 with `<stage name> + ".ai"` (string 0x4f4f60 = ".ai"), destructs it at 0x40ee48 (+ delete). Non-polymorphic.

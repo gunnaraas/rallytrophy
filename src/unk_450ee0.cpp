@@ -84,8 +84,10 @@ SoundMenu::~SoundMenu()
 }
 
 // NONMATCHING: RALLYTROPHY 0x451040
-// All 10 string assigns and the frame match (9 unexpanded _Eos calls need the inline SetPos/Begin calls to spend VC6's
-// inline budget); only the operand order of the four scaled constants differs (original: fld const; fmul mem).
+// The built body is 998 bytes; the target interval is 1008, with ten NOPs after ret 4. Comparing the bodies leaves
+// 21 differing bytes in x87 operand order and loop stack scheduling. Reversing products had no effect; volatile xs/ys
+// gave 76 body bytes, x-before-y 23, ys-before-xs 25, step/y/x order 30, volatile constant-address reads 53, and a
+// nonvolatile 262-address read 28. Plain objcmp observations.
 void SoundMenu::Setup(MenuGame* game)
 {
     if (m_state) {

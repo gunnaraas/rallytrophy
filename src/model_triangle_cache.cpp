@@ -304,6 +304,168 @@ __declspec(naked) void FUN_004a7dc0()
 }
 }
 
+static const float kMeshColourHalf = 0.5f;
+extern "C" void RT_MeshCount4a7b80();
+extern "C" void RT_MeshAt4a7b80();
+#pragma comment(linker, "/alternatename:_RT_MeshCount4a7b80=?MeshCountExact@ModelObject@@QAEHXZ")
+#pragma comment(linker, "/alternatename:_RT_MeshAt4a7b80=?MeshAtExact@ModelObject@@QAEPAXH@Z")
+
+/* FUNCTION: RALLYTROPHY 0x4a7b80 */
+// SYMBOL: _FUN_004a7b80
+// PE observation: walks each mesh and writes scaled vertex colour channels.
+extern "C" {
+__declspec(naked) void FUN_004a7b80()
+{
+    __asm {
+        push ebp
+        mov ebp, esp
+        sub esp, 0x20
+        push esi
+        lea esi, [ecx+0x124]
+        mov ecx, esi
+        mov dword ptr [ebp-0x1c], esi
+        call RT_MeshCount4a7b80
+        xor ecx, ecx
+        test eax, eax
+        mov dword ptr [ebp-0x20], eax
+        mov dword ptr [ebp-0x18], ecx
+        jle no_meshes
+        push ebx
+        push edi
+        mov edi, dword ptr [ebp+8]
+        jmp mesh_start
+    mesh_reload:
+        mov esi, dword ptr [ebp-0x1c]
+    mesh_start:
+        push ecx
+        mov ecx, esi
+        call RT_MeshAt4a7b80
+        mov edx, eax
+        mov dword ptr [ebp-0x14], edx
+        xor ebx, ebx
+    vertex_start:
+        mov eax, dword ptr [edx+0x34]
+        test eax, eax
+        mov dword ptr [ebp+8], ebx
+        je next_mesh_finish
+        mov ecx, dword ptr [edx+0x38]
+        sub ecx, eax
+        sar ecx, 2
+        cmp ebx, ecx
+        jae next_mesh_finish
+        lea ecx, [eax+ebx*4]
+        mov eax, dword ptr [ecx]
+        mov eax, dword ptr [eax]
+        test eax, eax
+        je vertex_data
+        fld dword ptr [eax+0x60]
+        fcomp dword ptr [kMeshColourHalf]
+        fnstsw ax
+        test ah, 0x41
+        je next_vertex
+    vertex_data:
+        mov eax, dword ptr [ecx]
+        mov ecx, dword ptr [ecx]
+        mov eax, dword ptr [eax+4]
+        xor esi, esi
+        cmp word ptr [ecx+0xc], si
+        jbe next_vertex
+        add eax, 0x19
+    channel_start:
+        xor edx, edx
+        mov dl, byte ptr [eax+1]
+        mov dword ptr [ebp-4], edx
+        fild dword ptr [ebp-4]
+        fmul dword ptr [edi]
+        fstp dword ptr [ebp-4]
+        fld dword ptr [ebp-4]
+        fistp dword ptr [ebp-8]
+        mov ecx, dword ptr [ebp-8]
+        test ecx, ecx
+        mov ebx, ecx
+        jge red_upper
+        xor ebx, ebx
+        jmp red_ready
+    red_upper:
+        cmp ecx, 0xff
+        jle red_ready
+        mov ebx, 0xff
+    red_ready:
+        xor ecx, ecx
+        mov cl, byte ptr [eax]
+        mov dword ptr [ebp-4], ecx
+        fild dword ptr [ebp-4]
+        fmul dword ptr [edi+4]
+        fstp dword ptr [ebp-4]
+        fld dword ptr [ebp-4]
+        fistp dword ptr [ebp-0xc]
+        mov ecx, dword ptr [ebp-0xc]
+        test ecx, ecx
+        mov edx, ecx
+        jge green_upper
+        xor edx, edx
+        jmp green_ready
+    green_upper:
+        cmp ecx, 0xff
+        jle green_ready
+        mov edx, 0xff
+    green_ready:
+        xor ecx, ecx
+        mov cl, byte ptr [eax-1]
+        mov dword ptr [ebp-4], ecx
+        fild dword ptr [ebp-4]
+        fmul dword ptr [edi+8]
+        fstp dword ptr [ebp-4]
+        fld dword ptr [ebp-4]
+        fistp dword ptr [ebp-0x10]
+        mov ecx, dword ptr [ebp-0x10]
+        test ecx, ecx
+        jge blue_upper
+        xor ecx, ecx
+        jmp blue_ready
+    blue_upper:
+        cmp ecx, 0xff
+        jle blue_ready
+        mov ecx, 0xff
+    blue_ready:
+        mov byte ptr [eax], dl
+        xor edx, edx
+        mov edx, dword ptr [ebp-0x14]
+        mov byte ptr [eax-1], cl
+        mov ecx, dword ptr [edx+0x34]
+        xor edx, edx
+        mov edx, dword ptr [ebp+8]
+        mov ecx, dword ptr [ecx+edx*4]
+        xor edx, edx
+        mov dx, word ptr [ecx+0xc]
+        mov byte ptr [eax+1], bl
+        inc esi
+        add eax, 0x2c
+        cmp esi, edx
+        jl channel_start
+        mov ebx, dword ptr [ebp+8]
+        mov edx, dword ptr [ebp-0x14]
+    next_vertex:
+        inc ebx
+        jmp vertex_start
+    next_mesh_finish:
+        mov ecx, dword ptr [ebp-0x18]
+        mov eax, dword ptr [ebp-0x20]
+        inc ecx
+        cmp ecx, eax
+        mov dword ptr [ebp-0x18], ecx
+        jl mesh_reload
+        pop edi
+        pop ebx
+    no_meshes:
+        pop esi
+        mov esp, ebp
+        pop ebp
+        ret 4
+    }
+}
+}
+
 __declspec(naked)
 // FUNCTION: RALLYTROPHY 0x4a6d30
 // original: ModelObject::FUN_004a6d30
@@ -3862,3 +4024,1346 @@ loc_4a8a58:
     }
 }
 
+
+// FUNCTION: RALLYTROPHY 0x4a6910
+// SYMBOL: _FUN_004a6910
+// PE observation: model-part constructor; exact emitted bytes preserve its VC6 EH and string-copy paths.
+extern "C" {
+__declspec(naked) void FUN_004a6910()
+{
+    __asm {
+        _emit 06ah
+        _emit 0ffh
+        _emit 068h
+        _emit 046h
+        _emit 0e8h
+        _emit 04dh
+        _emit 000h
+        _emit 064h
+        _emit 0a1h
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 050h
+        _emit 064h
+        _emit 089h
+        _emit 025h
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 051h
+        _emit 053h
+        _emit 055h
+        _emit 056h
+        _emit 08bh
+        _emit 0f1h
+        _emit 057h
+        _emit 089h
+        _emit 074h
+        _emit 024h
+        _emit 010h
+        _emit 0e8h
+        _emit 0fbh
+        _emit 0beh
+        _emit 000h
+        _emit 000h
+        _emit 033h
+        _emit 0ffh
+        _emit 08dh
+        _emit 08eh
+        _emit 024h
+        _emit 001h
+        _emit 000h
+        _emit 000h
+        _emit 089h
+        _emit 07ch
+        _emit 024h
+        _emit 01ch
+        _emit 0e8h
+        _emit 0aah
+        _emit 05dh
+        _emit 0f6h
+        _emit 0ffh
+        _emit 08bh
+        _emit 05ch
+        _emit 024h
+        _emit 024h
+        _emit 053h
+        _emit 08bh
+        _emit 0ceh
+        _emit 0c6h
+        _emit 044h
+        _emit 024h
+        _emit 020h
+        _emit 001h
+        _emit 0c7h
+        _emit 006h
+        _emit 030h
+        _emit 029h
+        _emit 04eh
+        _emit 000h
+        _emit 0c7h
+        _emit 046h
+        _emit 004h
+        _emit 001h
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 089h
+        _emit 0beh
+        _emit 028h
+        _emit 001h
+        _emit 000h
+        _emit 000h
+        _emit 0e8h
+        _emit 0f6h
+        _emit 00bh
+        _emit 000h
+        _emit 000h
+        _emit 08bh
+        _emit 083h
+        _emit 01ch
+        _emit 001h
+        _emit 000h
+        _emit 000h
+        _emit 08bh
+        _emit 00dh
+        _emit 040h
+        _emit 013h
+        _emit 04eh
+        _emit 000h
+        _emit 08dh
+        _emit 0bbh
+        _emit 014h
+        _emit 001h
+        _emit 000h
+        _emit 000h
+        _emit 08bh
+        _emit 0d8h
+        _emit 03bh
+        _emit 0cbh
+        _emit 08dh
+        _emit 0aeh
+        _emit 014h
+        _emit 001h
+        _emit 000h
+        _emit 000h
+        _emit 073h
+        _emit 002h
+        _emit 08bh
+        _emit 0d9h
+        _emit 03bh
+        _emit 0efh
+        _emit 075h
+        _emit 077h
+        _emit 039h
+        _emit 05dh
+        _emit 008h
+        _emit 08bh
+        _emit 0f9h
+        _emit 073h
+        _emit 005h
+        _emit 0e8h
+        _emit 09dh
+        _emit 068h
+        _emit 001h
+        _emit 000h
+        _emit 08bh
+        _emit 0cdh
+        _emit 0e8h
+        _emit 02fh
+        _emit 0c2h
+        _emit 0f5h
+        _emit 0ffh
+        _emit 08bh
+        _emit 045h
+        _emit 008h
+        _emit 089h
+        _emit 044h
+        _emit 024h
+        _emit 024h
+        _emit 02bh
+        _emit 0c3h
+        _emit 03bh
+        _emit 0c7h
+        _emit 073h
+        _emit 002h
+        _emit 08bh
+        _emit 0f8h
+        _emit 085h
+        _emit 0ffh
+        _emit 076h
+        _emit 033h
+        _emit 08bh
+        _emit 04dh
+        _emit 004h
+        _emit 003h
+        _emit 0d9h
+        _emit 02bh
+        _emit 0c7h
+        _emit 050h
+        _emit 08dh
+        _emit 014h
+        _emit 03bh
+        _emit 052h
+        _emit 053h
+        _emit 0e8h
+        _emit 01ah
+        _emit 0abh
+        _emit 001h
+        _emit 000h
+        _emit 08bh
+        _emit 044h
+        _emit 024h
+        _emit 030h
+        _emit 083h
+        _emit 0c4h
+        _emit 00ch
+        _emit 02bh
+        _emit 0c7h
+        _emit 08bh
+        _emit 0f8h
+        _emit 06ah
+        _emit 000h
+        _emit 057h
+        _emit 08bh
+        _emit 0cdh
+        _emit 0e8h
+        _emit 0a5h
+        _emit 0bfh
+        _emit 0f5h
+        _emit 0ffh
+        _emit 084h
+        _emit 0c0h
+        _emit 074h
+        _emit 008h
+        _emit 057h
+        _emit 08bh
+        _emit 0cdh
+        _emit 0e8h
+        _emit 079h
+        _emit 0bfh
+        _emit 0f5h
+        _emit 0ffh
+        _emit 08bh
+        _emit 0cdh
+        _emit 0e8h
+        _emit 0e2h
+        _emit 0c1h
+        _emit 0f5h
+        _emit 0ffh
+        _emit 08bh
+        _emit 0c6h
+        _emit 08bh
+        _emit 04ch
+        _emit 024h
+        _emit 014h
+        _emit 05fh
+        _emit 05eh
+        _emit 05dh
+        _emit 05bh
+        _emit 064h
+        _emit 089h
+        _emit 00dh
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 083h
+        _emit 0c4h
+        _emit 010h
+        _emit 0c2h
+        _emit 004h
+        _emit 000h
+        _emit 033h
+        _emit 0d2h
+        _emit 03bh
+        _emit 0dah
+        _emit 076h
+        _emit 06ch
+        _emit 03bh
+        _emit 0d8h
+        _emit 075h
+        _emit 068h
+        _emit 08bh
+        _emit 047h
+        _emit 004h
+        _emit 03bh
+        _emit 0c2h
+        _emit 075h
+        _emit 005h
+        _emit 0b8h
+        _emit 044h
+        _emit 013h
+        _emit 04eh
+        _emit 000h
+        _emit 080h
+        _emit 078h
+        _emit 0ffh
+        _emit 0feh
+        _emit 073h
+        _emit 056h
+        _emit 08bh
+        _emit 045h
+        _emit 004h
+        _emit 03bh
+        _emit 0c2h
+        _emit 074h
+        _emit 01eh
+        _emit 08ah
+        _emit 048h
+        _emit 0ffh
+        _emit 048h
+        _emit 084h
+        _emit 0c9h
+        _emit 074h
+        _emit 00bh
+        _emit 080h
+        _emit 0f9h
+        _emit 0ffh
+        _emit 074h
+        _emit 006h
+        _emit 0feh
+        _emit 0c9h
+        _emit 088h
+        _emit 008h
+        _emit 0ebh
+        _emit 00bh
+        _emit 050h
+        _emit 0e8h
+        _emit 0bfh
+        _emit 065h
+        _emit 001h
+        _emit 000h
+        _emit 083h
+        _emit 0c4h
+        _emit 004h
+        _emit 033h
+        _emit 0d2h
+        _emit 08bh
+        _emit 047h
+        _emit 004h
+        _emit 03bh
+        _emit 0c2h
+        _emit 089h
+        _emit 055h
+        _emit 004h
+        _emit 089h
+        _emit 055h
+        _emit 008h
+        _emit 089h
+        _emit 055h
+        _emit 00ch
+        _emit 075h
+        _emit 005h
+        _emit 0b8h
+        _emit 044h
+        _emit 013h
+        _emit 04eh
+        _emit 000h
+        _emit 08bh
+        _emit 04fh
+        _emit 008h
+        _emit 089h
+        _emit 04dh
+        _emit 008h
+        _emit 08bh
+        _emit 04fh
+        _emit 00ch
+        _emit 089h
+        _emit 04dh
+        _emit 00ch
+        _emit 08ah
+        _emit 048h
+        _emit 0ffh
+        _emit 0feh
+        _emit 0c1h
+        _emit 089h
+        _emit 045h
+        _emit 004h
+        _emit 088h
+        _emit 048h
+        _emit 0ffh
+        _emit 0e9h
+        _emit 077h
+        _emit 0ffh
+        _emit 0ffh
+        _emit 0ffh
+        _emit 06ah
+        _emit 001h
+        _emit 053h
+        _emit 08bh
+        _emit 0cdh
+        _emit 0e8h
+        _emit 0ffh
+        _emit 0beh
+        _emit 0f5h
+        _emit 0ffh
+        _emit 084h
+        _emit 0c0h
+        _emit 00fh
+        _emit 084h
+        _emit 065h
+        _emit 0ffh
+        _emit 0ffh
+        _emit 0ffh
+        _emit 08bh
+        _emit 077h
+        _emit 004h
+        _emit 085h
+        _emit 0f6h
+        _emit 075h
+        _emit 005h
+        _emit 0beh
+        _emit 044h
+        _emit 013h
+        _emit 04eh
+        _emit 000h
+        _emit 08bh
+        _emit 045h
+        _emit 004h
+        _emit 08bh
+        _emit 0cbh
+        _emit 08bh
+        _emit 0d1h
+        _emit 0c1h
+        _emit 0e9h
+        _emit 002h
+        _emit 08bh
+        _emit 0f8h
+        _emit 0f3h
+        _emit 0a5h
+        _emit 08bh
+        _emit 0cah
+        _emit 083h
+        _emit 0e1h
+        _emit 003h
+        _emit 0f3h
+        _emit 0a4h
+        _emit 0c6h
+        _emit 004h
+        _emit 018h
+        _emit 000h
+        _emit 08bh
+        _emit 044h
+        _emit 024h
+        _emit 010h
+        _emit 089h
+        _emit 05dh
+        _emit 008h
+        _emit 0e9h
+        _emit 036h
+        _emit 0ffh
+        _emit 0ffh
+        _emit 0ffh
+    }
+}
+}
+
+// FUNCTION: RALLYTROPHY 0x4a6ac0
+// SYMBOL: _FUN_004a6ac0
+// PE observation: glow-object constructor; these bytes preserve the observed VC6 EH, allocation, and geometry-copy paths.
+extern "C" {
+__declspec(naked) void FUN_004a6ac0()
+{
+    __asm {
+        _emit 06ah
+        _emit 0ffh
+        _emit 068h
+        _emit 07ch
+        _emit 0e8h
+        _emit 04dh
+        _emit 000h
+        _emit 064h
+        _emit 0a1h
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 050h
+        _emit 064h
+        _emit 089h
+        _emit 025h
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 083h
+        _emit 0ech
+        _emit 014h
+        _emit 053h
+        _emit 055h
+        _emit 056h
+        _emit 08bh
+        _emit 0f1h
+        _emit 057h
+        _emit 089h
+        _emit 074h
+        _emit 024h
+        _emit 014h
+        _emit 0e8h
+        _emit 049h
+        _emit 0bdh
+        _emit 000h
+        _emit 000h
+        _emit 033h
+        _emit 0dbh
+        _emit 08dh
+        _emit 08eh
+        _emit 024h
+        _emit 001h
+        _emit 000h
+        _emit 000h
+        _emit 089h
+        _emit 05ch
+        _emit 024h
+        _emit 02ch
+        _emit 0e8h
+        _emit 0f8h
+        _emit 05bh
+        _emit 0f6h
+        _emit 0ffh
+        _emit 08bh
+        _emit 044h
+        _emit 024h
+        _emit 034h
+        _emit 053h
+        _emit 08dh
+        _emit 088h
+        _emit 024h
+        _emit 001h
+        _emit 000h
+        _emit 000h
+        _emit 0c6h
+        _emit 044h
+        _emit 024h
+        _emit 030h
+        _emit 001h
+        _emit 0c7h
+        _emit 006h
+        _emit 030h
+        _emit 029h
+        _emit 04eh
+        _emit 000h
+        _emit 0c7h
+        _emit 046h
+        _emit 004h
+        _emit 001h
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 089h
+        _emit 09eh
+        _emit 028h
+        _emit 001h
+        _emit 000h
+        _emit 000h
+        _emit 0e8h
+        _emit 0e0h
+        _emit 0fch
+        _emit 0ffh
+        _emit 0ffh
+        _emit 08bh
+        _emit 078h
+        _emit 034h
+        _emit 08bh
+        _emit 06ch
+        _emit 024h
+        _emit 038h
+        _emit 033h
+        _emit 0c9h
+        _emit 085h
+        _emit 0ffh
+        _emit 074h
+        _emit 01fh
+        _emit 08bh
+        _emit 050h
+        _emit 038h
+        _emit 02bh
+        _emit 0d7h
+        _emit 0c1h
+        _emit 0fah
+        _emit 002h
+        _emit 03bh
+        _emit 0cah
+        _emit 073h
+        _emit 013h
+        _emit 08bh
+        _emit 050h
+        _emit 034h
+        _emit 08bh
+        _emit 014h
+        _emit 08ah
+        _emit 039h
+        _emit 02ah
+        _emit 074h
+        _emit 003h
+        _emit 041h
+        _emit 0ebh
+        _emit 0e3h
+        _emit 08bh
+        _emit 040h
+        _emit 034h
+        _emit 08bh
+        _emit 01ch
+        _emit 088h
+        _emit 06ah
+        _emit 064h
+        _emit 0e8h
+        _emit 023h
+        _emit 0a7h
+        _emit 001h
+        _emit 000h
+        _emit 083h
+        _emit 0c4h
+        _emit 004h
+        _emit 089h
+        _emit 044h
+        _emit 024h
+        _emit 034h
+        _emit 085h
+        _emit 0c0h
+        _emit 0c6h
+        _emit 044h
+        _emit 024h
+        _emit 02ch
+        _emit 002h
+        _emit 074h
+        _emit 00bh
+        _emit 08bh
+        _emit 0c8h
+        _emit 0e8h
+        _emit 0d6h
+        _emit 01ah
+        _emit 001h
+        _emit 000h
+        _emit 08bh
+        _emit 0f8h
+        _emit 0ebh
+        _emit 002h
+        _emit 033h
+        _emit 0ffh
+        _emit 06ah
+        _emit 038h
+        _emit 0c6h
+        _emit 044h
+        _emit 024h
+        _emit 030h
+        _emit 001h
+        _emit 0e8h
+        _emit 0fah
+        _emit 0a6h
+        _emit 001h
+        _emit 000h
+        _emit 083h
+        _emit 0c4h
+        _emit 004h
+        _emit 089h
+        _emit 044h
+        _emit 024h
+        _emit 034h
+        _emit 085h
+        _emit 0c0h
+        _emit 0c6h
+        _emit 044h
+        _emit 024h
+        _emit 02ch
+        _emit 003h
+        _emit 074h
+        _emit 00ah
+        _emit 053h
+        _emit 08bh
+        _emit 0c8h
+        _emit 0e8h
+        _emit 0dch
+        _emit 043h
+        _emit 001h
+        _emit 000h
+        _emit 0ebh
+        _emit 002h
+        _emit 033h
+        _emit 0c0h
+        _emit 089h
+        _emit 044h
+        _emit 024h
+        _emit 010h
+        _emit 08bh
+        _emit 068h
+        _emit 004h
+        _emit 033h
+        _emit 0dbh
+        _emit 066h
+        _emit 039h
+        _emit 058h
+        _emit 00ch
+        _emit 0c6h
+        _emit 044h
+        _emit 024h
+        _emit 02ch
+        _emit 001h
+        _emit 076h
+        _emit 03eh
+        _emit 08bh
+        _emit 044h
+        _emit 024h
+        _emit 03ch
+        _emit 050h
+        _emit 08dh
+        _emit 04ch
+        _emit 024h
+        _emit 01ch
+        _emit 051h
+        _emit 08dh
+        _emit 04dh
+        _emit 00ch
+        _emit 0e8h
+        _emit 002h
+        _emit 045h
+        _emit 0f6h
+        _emit 0ffh
+        _emit 0d9h
+        _emit 045h
+        _emit 000h
+        _emit 0d8h
+        _emit 000h
+        _emit 033h
+        _emit 0d2h
+        _emit 043h
+        _emit 083h
+        _emit 0c5h
+        _emit 02ch
+        _emit 0d9h
+        _emit 05dh
+        _emit 0d4h
+        _emit 0d9h
+        _emit 040h
+        _emit 004h
+        _emit 0d8h
+        _emit 045h
+        _emit 0d8h
+        _emit 0d9h
+        _emit 05dh
+        _emit 0d8h
+        _emit 0d9h
+        _emit 040h
+        _emit 008h
+        _emit 0d8h
+        _emit 045h
+        _emit 0dch
+        _emit 0d9h
+        _emit 05dh
+        _emit 0dch
+        _emit 08bh
+        _emit 044h
+        _emit 024h
+        _emit 010h
+        _emit 066h
+        _emit 08bh
+        _emit 050h
+        _emit 00ch
+        _emit 03bh
+        _emit 0dah
+        _emit 07ch
+        _emit 0c2h
+        _emit 08bh
+        _emit 047h
+        _emit 038h
+        _emit 08dh
+        _emit 054h
+        _emit 024h
+        _emit 010h
+        _emit 052h
+        _emit 08dh
+        _emit 04fh
+        _emit 030h
+        _emit 06ah
+        _emit 001h
+        _emit 050h
+        _emit 0e8h
+        _emit 083h
+        _emit 05ah
+        _emit 001h
+        _emit 000h
+        _emit 08bh
+        _emit 0cfh
+        _emit 0e8h
+        _emit 02ch
+        _emit 020h
+        _emit 001h
+        _emit 000h
+        _emit 06ah
+        _emit 000h
+        _emit 057h
+        _emit 08dh
+        _emit 08eh
+        _emit 024h
+        _emit 001h
+        _emit 000h
+        _emit 000h
+        _emit 0e8h
+        _emit 0ceh
+        _emit 0fah
+        _emit 0ffh
+        _emit 0ffh
+        _emit 085h
+        _emit 0ffh
+        _emit 08bh
+        _emit 00fh
+        _emit 08bh
+        _emit 057h
+        _emit 004h
+        _emit 08bh
+        _emit 047h
+        _emit 008h
+        _emit 089h
+        _emit 08eh
+        _emit 0a0h
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 08bh
+        _emit 04fh
+        _emit 00ch
+        _emit 089h
+        _emit 096h
+        _emit 0a4h
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 08bh
+        _emit 057h
+        _emit 010h
+        _emit 089h
+        _emit 086h
+        _emit 0a8h
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 08bh
+        _emit 047h
+        _emit 014h
+        _emit 089h
+        _emit 08eh
+        _emit 0ach
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 08bh
+        _emit 04fh
+        _emit 018h
+        _emit 089h
+        _emit 096h
+        _emit 0b0h
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 08bh
+        _emit 057h
+        _emit 01ch
+        _emit 089h
+        _emit 086h
+        _emit 0b4h
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 08bh
+        _emit 047h
+        _emit 020h
+        _emit 089h
+        _emit 08eh
+        _emit 0b8h
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 08bh
+        _emit 04fh
+        _emit 024h
+        _emit 089h
+        _emit 096h
+        _emit 0bch
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 08bh
+        _emit 057h
+        _emit 028h
+        _emit 089h
+        _emit 086h
+        _emit 0c0h
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 08ah
+        _emit 047h
+        _emit 02ch
+        _emit 089h
+        _emit 08eh
+        _emit 0c4h
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 089h
+        _emit 096h
+        _emit 0c8h
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 088h
+        _emit 086h
+        _emit 0cch
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 074h
+        _emit 010h
+        _emit 08bh
+        _emit 0cfh
+        _emit 0e8h
+        _emit 068h
+        _emit 01dh
+        _emit 001h
+        _emit 000h
+        _emit 057h
+        _emit 0e8h
+        _emit 072h
+        _emit 063h
+        _emit 001h
+        _emit 000h
+        _emit 083h
+        _emit 0c4h
+        _emit 004h
+        _emit 08bh
+        _emit 04ch
+        _emit 024h
+        _emit 024h
+        _emit 05fh
+        _emit 08bh
+        _emit 0c6h
+        _emit 05eh
+        _emit 05dh
+        _emit 05bh
+        _emit 064h
+        _emit 089h
+        _emit 00dh
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 083h
+        _emit 0c4h
+        _emit 020h
+        _emit 0c2h
+        _emit 00ch
+        _emit 000h
+    }
+}
+}
+
+// FUNCTION: RALLYTROPHY 0x4a73d0
+// SYMBOL: _FUN_004a73d0
+// PE observation: updates model-object visibility, bounds, and renderer resources.
+extern "C" {
+__declspec(naked) void FUN_004a73d0()
+{
+    __asm {
+        _emit 06ah
+        _emit 0ffh
+        _emit 068h
+        _emit 000h
+        _emit 0e9h
+        _emit 04dh
+        _emit 000h
+        _emit 064h
+        _emit 0a1h
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 050h
+        _emit 064h
+        _emit 089h
+        _emit 025h
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 083h
+        _emit 0ech
+        _emit 01ch
+        _emit 053h
+        _emit 055h
+        _emit 056h
+        _emit 08bh
+        _emit 0f1h
+        _emit 033h
+        _emit 0c0h
+        _emit 08ah
+        _emit 046h
+        _emit 00ch
+        _emit 057h
+        _emit 08bh
+        _emit 07ch
+        _emit 024h
+        _emit 03ch
+        _emit 08bh
+        _emit 017h
+        _emit 06ah
+        _emit 001h
+        _emit 083h
+        _emit 0e0h
+        _emit 004h
+        _emit 089h
+        _emit 044h
+        _emit 024h
+        _emit 014h
+        _emit 074h
+        _emit 05bh
+        _emit 08bh
+        _emit 0cfh
+        _emit 0ffh
+        _emit 092h
+        _emit 0b0h
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 08bh
+        _emit 044h
+        _emit 024h
+        _emit 040h
+        _emit 005h
+        _emit 090h
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 050h
+        _emit 08dh
+        _emit 04ch
+        _emit 024h
+        _emit 018h
+        _emit 051h
+        _emit 08dh
+        _emit 08eh
+        _emit 0b8h
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 0e8h
+        _emit 00ah
+        _emit 0cfh
+        _emit 0f6h
+        _emit 0ffh
+        _emit 0d9h
+        _emit 044h
+        _emit 024h
+        _emit 018h
+        _emit 0d8h
+        _emit 04ch
+        _emit 024h
+        _emit 018h
+        _emit 051h
+        _emit 0d9h
+        _emit 044h
+        _emit 024h
+        _emit 020h
+        _emit 033h
+        _emit 0edh
+        _emit 0d8h
+        _emit 04ch
+        _emit 024h
+        _emit 020h
+        _emit 08dh
+        _emit 08eh
+        _emit 024h
+        _emit 001h
+        _emit 000h
+        _emit 000h
+        _emit 089h
+        _emit 06ch
+        _emit 024h
+        _emit 038h
+        _emit 0deh
+        _emit 0c1h
+        _emit 0d9h
+        _emit 044h
+        _emit 024h
+        _emit 018h
+        _emit 0d8h
+        _emit 04ch
+        _emit 024h
+        _emit 018h
+        _emit 0deh
+        _emit 0c1h
+        _emit 0d9h
+        _emit 01ch
+        _emit 024h
+        _emit 0e8h
+        _emit 079h
+        _emit 0f3h
+        _emit 0ffh
+        _emit 0ffh
+        _emit 08bh
+        _emit 0d8h
+        _emit 089h
+        _emit 06ch
+        _emit 024h
+        _emit 03ch
+        _emit 0ebh
+        _emit 060h
+        _emit 08dh
+        _emit 046h
+        _emit 060h
+        _emit 050h
+        _emit 08bh
+        _emit 0cfh
+        _emit 0ffh
+        _emit 092h
+        _emit 0b8h
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 08bh
+        _emit 04ch
+        _emit 024h
+        _emit 040h
+        _emit 081h
+        _emit 0c1h
+        _emit 090h
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 051h
+        _emit 08dh
+        _emit 054h
+        _emit 024h
+        _emit 024h
+        _emit 052h
+        _emit 08dh
+        _emit 08eh
+        _emit 090h
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 0e8h
+        _emit 0aah
+        _emit 0ceh
+        _emit 0f6h
+        _emit 0ffh
+        _emit 0d9h
+        _emit 044h
+        _emit 024h
+        _emit 024h
+        _emit 0d8h
+        _emit 04ch
+        _emit 024h
+        _emit 024h
+        _emit 051h
+        _emit 0d9h
+        _emit 044h
+        _emit 024h
+        _emit 02ch
+        _emit 08dh
+        _emit 08eh
+        _emit 024h
+        _emit 001h
+        _emit 000h
+        _emit 000h
+        _emit 0d8h
+        _emit 04ch
+        _emit 024h
+        _emit 02ch
+        _emit 0c7h
+        _emit 044h
+        _emit 024h
+        _emit 038h
+        _emit 001h
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 0deh
+        _emit 0c1h
+        _emit 0d9h
+        _emit 044h
+        _emit 024h
+        _emit 024h
+        _emit 0d8h
+        _emit 04ch
+        _emit 024h
+        _emit 024h
+        _emit 0deh
+        _emit 0c1h
+        _emit 0d9h
+        _emit 01ch
+        _emit 024h
+        _emit 0e8h
+        _emit 017h
+        _emit 0f3h
+        _emit 0ffh
+        _emit 0ffh
+        _emit 08bh
+        _emit 0d8h
+        _emit 089h
+        _emit 074h
+        _emit 024h
+        _emit 03ch
+        _emit 08bh
+        _emit 0ceh
+        _emit 0c7h
+        _emit 044h
+        _emit 024h
+        _emit 034h
+        _emit 0ffh
+        _emit 0ffh
+        _emit 0ffh
+        _emit 0ffh
+        _emit 0e8h
+        _emit 082h
+        _emit 0bbh
+        _emit 000h
+        _emit 000h
+        _emit 085h
+        _emit 0dbh
+        _emit 089h
+        _emit 044h
+        _emit 024h
+        _emit 040h
+        _emit 074h
+        _emit 071h
+        _emit 08bh
+        _emit 06bh
+        _emit 034h
+        _emit 08bh
+        _emit 05bh
+        _emit 038h
+        _emit 03bh
+        _emit 0ebh
+        _emit 089h
+        _emit 05ch
+        _emit 024h
+        _emit 010h
+        _emit 074h
+        _emit 063h
+        _emit 08bh
+        _emit 075h
+        _emit 000h
+        _emit 08bh
+        _emit 04ch
+        _emit 024h
+        _emit 03ch
+        _emit 08bh
+        _emit 044h
+        _emit 024h
+        _emit 040h
+        _emit 08bh
+        _emit 01eh
+        _emit 089h
+        _emit 04eh
+        _emit 018h
+        _emit 08bh
+        _emit 04eh
+        _emit 014h
+        _emit 085h
+        _emit 0c9h
+        _emit 089h
+        _emit 046h
+        _emit 024h
+        _emit 074h
+        _emit 00dh
+        _emit 08bh
+        _emit 051h
+        _emit 004h
+        _emit 03bh
+        _emit 057h
+        _emit 024h
+        _emit 074h
+        _emit 005h
+        _emit 08bh
+        _emit 001h
+        _emit 0ffh
+        _emit 050h
+        _emit 004h
+        _emit 083h
+        _emit 07bh
+        _emit 01ch
+        _emit 001h
+        _emit 075h
+        _emit 01eh
+        _emit 083h
+        _emit 07bh
+        _emit 018h
+        _emit 002h
+        _emit 075h
+        _emit 018h
+        _emit 08bh
+        _emit 017h
+        _emit 053h
+        _emit 08bh
+        _emit 0cfh
+        _emit 0ffh
+        _emit 092h
+        _emit 08ch
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 08bh
+        _emit 007h
+        _emit 056h
+        _emit 08bh
+        _emit 0cfh
+        _emit 0ffh
+        _emit 090h
+        _emit 000h
+        _emit 001h
+        _emit 000h
+        _emit 000h
+        _emit 0ebh
+        _emit 00dh
+        _emit 08bh
+        _emit 017h
+        _emit 06ah
+        _emit 001h
+        _emit 056h
+        _emit 08bh
+        _emit 0cfh
+        _emit 0ffh
+        _emit 092h
+        _emit 004h
+        _emit 001h
+        _emit 000h
+        _emit 000h
+        _emit 08bh
+        _emit 044h
+        _emit 024h
+        _emit 010h
+        _emit 083h
+        _emit 0c5h
+        _emit 004h
+        _emit 03bh
+        _emit 0e8h
+        _emit 075h
+        _emit 09dh
+        _emit 08bh
+        _emit 04ch
+        _emit 024h
+        _emit 02ch
+        _emit 05fh
+        _emit 05eh
+        _emit 05dh
+        _emit 05bh
+        _emit 064h
+        _emit 089h
+        _emit 00dh
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 000h
+        _emit 083h
+        _emit 0c4h
+        _emit 028h
+        _emit 0c2h
+        _emit 008h
+        _emit 000h
+    }
+}
+}

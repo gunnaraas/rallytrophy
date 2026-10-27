@@ -27,7 +27,9 @@ Third-party library ranges are listed separately from the first-party queue.
 ![Per-function decompilation map](analysis/function-map.svg)
 
 Each tile represents one function. Tile area combines code size with branch
-complexity; hover for the address, module, byte count, and branch count.
+complexity. The image is static here; open `analysis/function-map.svg` directly
+in a browser to hover a tile for its address, module, byte count, and branch
+count.
 
 ## Set up the matcher
 

@@ -86,6 +86,9 @@ inline void SetProjection(RaceDeviceSlots* device, float fov, float nearPlane, f
 // NONMATCHING: RALLYTROPHY 0x464c10
 // Same size (645), 13 differing bytes: the original computes the matrix pointer (body + 0x60) in place
 // (`add eax,0x60` and `mov [ebp-0x10],eax`) where this build uses `lea ecx,[eax+0x60]`; the rest is identical.
+// Pointer arithmetic from the body start kept the same code; mutating body inside the expression emitted `add eax`
+// but evaluated the matrix term first (19 bytes); splitting the eye-height product before advancing body produced
+// 647 bytes / 266 differences, and a volatile pointer expanded the diff to 286. Plain observations.
 void Car::FUN_00464c10(ViewManager* view)
 {
     MirrorCar* car = (MirrorCar*)this;

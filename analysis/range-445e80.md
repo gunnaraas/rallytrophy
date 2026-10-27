@@ -81,11 +81,14 @@ Members (ctor 0x445e80 and users):
 | 0x449860 | 2981 | thiscall, ebp frame, SEH (EH 0x4d9bd9), FPU 193; contains the 5-way `switch` with jump table 0x44a408 | page 1 `DrawTune()` | Draw 0x44b7d0 |
 | 0x44a420 | 2256 | thiscall, ebp frame, SEH (EH 0x4d9c1e), FPU 159 | page 2 `DrawRepair()` | Draw 0x44b7d9 |
 | 0x44acf0 | 366 | thiscall, ebp frame, SEH (EH 0x4d9c5e), FPU 16 | page 3 `DrawSavePage()` (load.tga quad) | Draw 0x44b7e2 |
+
 | 0x44ae60 | 366 | thiscall, ebp frame, SEH (EH 0x4d9c9e), FPU 16 | page 4 `DrawContinuePage()` (startrace.tga quad) | Draw 0x44b7eb |
 | 0x44afd0 | 1331 | thiscall, SEH (EH 0x4d9d0c), 0x30 locals, FPU 47 | `BuildRects()` | Frame 0x447edf |
 | 0x44b510 | 983 | thiscall `ret 4`, SEH (EH 0x4d9d28), 8 locals, FPU 60; **missing in functions.csv**; jump table 0x44b8e8 follows the code | vtable slot 3 `Draw(int skipPresent)` | vtable slot 3: Frame (`push 0; call [vtbl+0xc]`, 0x448f08) |
 | 0x44b8e8 | 20 | data (5 dwords) | `switch` jump table of Draw (cases -> 0x44b7c5/ce/d7/e0/e9) | Draw 0x44b7be |
 | 0x44b900 | 48 | `_$E` guard stub | module end (init-table entry, file offset 0xefb64) | init table |
+
+Evidence `ev_e0fbefa0dc6dd927fcbc0896fe6fb7fe21955705090a936097f9ba4d76358d27` confirms the 366-byte target and its `-1` color lifetime through the slot store, push, and EH-state update. Moving `Color white` before UV initialization yields an equal-size body and reduces differing non-relocation bytes from 105 to 82 while preserving the compiler-generated EH frame; the `edi` load/store now occurs too early. Other declaration positions gave 83–93 differing bytes; default-constructing `Color` and assigning its field separately gave 84. Constructing after `vf35` expanded the body to 373 bytes. The temporary best form was not retained after the final direct-`Color(0xffffffff)` call widened the body to 373 bytes / 210 differences; source is restored to baseline. Its 82 differing offsets are confined to `+0x5a–0x5b`, `+0x60–0x61`, `+0x66–0x67`, `+0x6c–0x70`, `+0x74–0x78`, `+0x7c–0x90`, `+0x92–0x95`, `+0x9a–0xa2`, `+0xa8`, `+0xad–0xae`, `+0xb3–0xc8`, `+0xcd–0xce`, `+0xd7–0xd9`, and `+0xe1–0xe2`.
 
 ## 2. Subagent work groups (suggested) and compiler-generated code
 

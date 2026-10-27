@@ -2158,7 +2158,7 @@ typedef void Inst_409130();
 typedef void Inst_409260();
 
 // NONMATCHING: RALLYTROPHY 0x409390
-// Header-inline ctor: 357 vs 372 bytes; the original has one fewer EH state (no per-temporary state updates).
+// Header-inline candidate: 372 bytes vs. the 357-byte target; its temporary cleanup EH-state stores differ.
 // SYMBOL: ??0file_error@@QAE@ABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@0@Z
 // file_error::file_error(filename, message)
 typedef void Inst_409390();

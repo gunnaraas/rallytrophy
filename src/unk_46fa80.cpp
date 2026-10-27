@@ -56,9 +56,9 @@ WaterAnimator::~WaterAnimator()
 
 // original: FUN_0046fc10
 // NONMATCHING: RALLYTROPHY 0x46fc10
-// Same structure and EH states (24 bytes shorter than the original's 428: the original keeps `this` in edi and
-// the count in eax, loads the clock time before the tick count, and reads the uv2 temporary's x straight from
-// the call result). Not reproduced after ~25 variants.
+// Evidence: ev_098aeda40f3866cc5d46de6aa9df644e5a1638f8a9cce76a6f260f691961b0eb. The 428-byte target's loop and helper calls are documented in analysis/range-46d830.md.
+// The current candidate is 424 bytes with 290 differing bytes outside relocations. The target keeps `this` in
+// edi, loads clock time before the tick count, and reads uv2.x from the subtraction result in eax.
 void WaterAnimator::Update()
 {
     StageClock* clock = (StageClock*)DAT_0056b0ac;

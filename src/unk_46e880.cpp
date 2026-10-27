@@ -129,101 +129,104 @@ inline float Dot(const Vec3& a, const Vec3& b)
 }
 
 // NONMATCHING: RALLYTROPHY 0x46ea20
-// Same algorithm and constants (1091 vs 1124 bytes). Differences: the original loads the near plane into
-// the FPU before the dot product, keeps alpha in [ebp-0x10], copies near/far and size through
-// dead-parameter stack slots, and builds the quad corners with CSE temporaries at [ebp-0x14/-0x18].
+// Same algorithm and constants (1095 vs 1124 bytes; 626 differing bytes). The positive near-plane branch
+// emits the target's unordered-aware status-mask test; alpha storage, stack slots, and quad construction
+// still differ.
 // Draws the glow quad when the light is in front of the camera and faces it.
 void CarLight::Render(RenderDevice* device, Camera* camera)
 {
     Vec3 v(Position());
-    v -= camera->eyePosition;
-    if (!(*(float*)&camera->nearBits
-          < v.x * camera->forward.x + v.y * camera->forward.y + v.z * camera->forward.z)) {
-        return;
-    }
-    float inv = 1.0f / (float)sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
-    v.x = v.x * inv;
-    v.y = v.y * inv;
-    v.z = v.z * inv;
-    float facing = Dot(-v, Forward());
-    if (*(unsigned*)&facing & 0x80000000) {
-        return;
-    }
-    if (*(int*)&facing < 0) {
-        facing = 0.0f;
-    } else if (*(int*)&facing > 0x3f800000) {
-        facing = 1.0f;
-    }
-    float e = exponent;
-    float a = (float)pow(facing, e) * scale + bias;
-    if (*(int*)&a < 0) {
-        return;
-    }
-    if (*(int*)&a > 0x3f800000) {
-        a = 1.0f;
-    } else if (a <= 0.001f) {
-        return;
-    }
-    const float* m = device->GetViewMatrix();
-    float depth = position[0] * m[2] + position[1] * m[6] + position[2] * m[10] + m[14];
-    if (*(int*)&depth <= camera->nearBits) {
-        return;
-    }
-    if (*(int*)&depth >= camera->farBits) {
-        return;
-    }
-    float z = depth - size;
-    if (*(int*)&z <= camera->nearBits) {
-        *(int*)&z = camera->nearBits;
-    }
-    Vec3 p(Position());
-    Vec3 r(Right());
-    Vec3 u(Up());
-    r.x = r.x * size;
-    r.y = r.y * size;
-    r.z = r.z * size;
-    u.x = u.x * size;
-    u.y = u.y * size;
-    u.z = u.z * size;
-    BYTE c = (BYTE)FloatToInt(a * 255.0f);
-    DWORD g = c | (c << 8);
-    DWORD col = g | (g << 16);
-    s_quad[0].color = col;
-    s_quad[1].color = col;
-    s_quad[2].color = col;
-    s_quad[3].color = col;
-    s_quad[0].position.x = p.x + r.x;
-    s_quad[0].position.y = p.y + r.y;
-    s_quad[0].position.z = p.z + r.z;
-    s_quad[0].position += u;
-    s_quad[1].position.x = p.x - r.x;
-    s_quad[1].position.y = p.y - r.y;
-    s_quad[1].position.z = p.z - r.z;
-    s_quad[1].position += u;
-    s_quad[2].position.x = p.x - r.x;
-    s_quad[2].position.y = p.y - r.y;
-    s_quad[2].position.z = p.z - r.z;
-    s_quad[2].position -= u;
-    s_quad[3].position.x = p.x + r.x;
-    s_quad[3].position.y = p.y + r.y;
-    s_quad[3].position.z = p.z + r.z;
-    s_quad[3].position -= u;
-    s_quad[0].v = 0.0f;
-    s_quad[1].v = 0.0f;
-    s_quad[2].v = 1.0f;
-    s_quad[3].v = 1.0f;
-    if (mirror == 0) {
-        s_quad[0].u = 0.0f;
-        s_quad[1].u = 1.0f;
-        s_quad[2].u = 1.0f;
-        s_quad[3].u = 0.0f;
+    v.x = v.x - camera->eyePosition.x;
+    v.y = v.y - camera->eyePosition.y;
+    v.z = v.z - camera->eyePosition.z;
+    float nearPlane = *(float*)&camera->nearBits;
+    float forwardDistance = v.x * camera->forward.x + v.y * camera->forward.y
+                          + v.z * camera->forward.z;
+    if (forwardDistance > nearPlane) {
+        float inv = 1.0f / (float)sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+        v.x = v.x * inv;
+        v.y = v.y * inv;
+        v.z = v.z * inv;
+        float facing = Dot(Forward(), -v);
+        if (*(unsigned*)&facing & 0x80000000) {
+            return;
+        }
+        if (*(int*)&facing < 0) {
+            facing = 0.0f;
+        } else if (*(int*)&facing > 0x3f800000) {
+            facing = 1.0f;
+        }
+        float e = exponent;
+        float a = (float)pow(facing, e) * scale + bias;
+        if (*(int*)&a < 0) {
+            return;
+        }
+        if (*(int*)&a > 0x3f800000) {
+            a = 1.0f;
+        } else if (a <= 0.001f) {
+            return;
+        }
+        const float* m = device->GetViewMatrix();
+        float depth = position[0] * m[2] + position[1] * m[6] + position[2] * m[10] + m[14];
+        if (*(int*)&depth > camera->nearBits && *(int*)&depth < camera->farBits) {
+            float z = depth - size;
+            if (*(int*)&z <= camera->nearBits) {
+                *(int*)&z = camera->nearBits;
+            }
+            Vec3 r(Right());
+            Vec3 p(Position());
+            Vec3 u(Up());
+            r.x = r.x * size;
+            r.y = r.y * size;
+            r.z = r.z * size;
+            u.x = u.x * size;
+            u.y = u.y * size;
+            u.z = u.z * size;
+            int c = FloatToInt(a * 255.0f) & 0xff;
+            DWORD g = c | (c << 8);
+            DWORD col = g | (g << 16);
+            s_quad[0].color = col;
+            s_quad[1].color = col;
+            s_quad[2].color = col;
+            s_quad[3].color = col;
+            s_quad[0].position.x = p.x + r.x;
+            s_quad[0].position.y = p.y + r.y;
+            s_quad[0].position.z = p.z + r.z;
+            s_quad[0].position += u;
+            s_quad[1].position.x = p.x - r.x;
+            s_quad[1].position.y = p.y - r.y;
+            s_quad[1].position.z = p.z - r.z;
+            s_quad[1].position += u;
+            s_quad[2].position.x = p.x - r.x;
+            s_quad[2].position.y = p.y - r.y;
+            s_quad[2].position.z = p.z - r.z;
+            s_quad[2].position -= u;
+            s_quad[3].position.x = p.x + r.x;
+            s_quad[3].position.y = p.y + r.y;
+            s_quad[3].position.z = p.z + r.z;
+            s_quad[3].position -= u;
+            s_quad[0].v = 0.0f;
+            s_quad[1].v = 0.0f;
+            s_quad[2].v = 1.0f;
+            s_quad[3].v = 1.0f;
+            if (mirror == 0) {
+                s_quad[0].u = 0.0f;
+                s_quad[1].u = 1.0f;
+                s_quad[2].u = 1.0f;
+                s_quad[3].u = 0.0f;
+            } else {
+                s_quad[0].u = 1.0f;
+                s_quad[1].u = 0.0f;
+                s_quad[2].u = 0.0f;
+                s_quad[3].u = 1.0f;
+            }
+            device->DrawQuad(s_quad, texture, z);
+        } else {
+            return;
+        }
     } else {
-        s_quad[0].u = 1.0f;
-        s_quad[1].u = 0.0f;
-        s_quad[2].u = 0.0f;
-        s_quad[3].u = 1.0f;
+        return;
     }
-    device->DrawQuad(s_quad, texture, z);
 }
 
 // Module end: static initialiser pieces of s_quad and the STL guard stub.

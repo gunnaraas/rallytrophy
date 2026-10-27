@@ -220,6 +220,7 @@ Globals: `0x509418`, `0x50941c` (two runtime floats multiplied in UpdateForces; 
 | Addr | Size | Convention | What | External callers |
 |---|---|---|---|---|
 | 0x46c2c0 | 317 | thiscall, no args, SEH (EH 0x4dbcbc), vec-ctor callback | **Wheel ctor**: `0x4b2830`, `0x4a6890(this+0x134)`, set vptr 0x4e1ee8, `0x4b2b30(this+0x134,this)`, name string "tire", then field init, `call 0x46c6b0` (Reset), more zeroing | Car ctor vec-ctor (init table / file offset 0x5daa7) |
+- Plain objcmp observation: the baseline ctor differs in 66 bytes of register-restore/store scheduling. Making only `normal.y` volatile reduces that to 27; making x or z volatile individually, or both, leaves 27. Volatile x/z with nonvolatile y yields 71. The remaining target order is `mov ecx`, zero x/z, `pop edi`, then y=1.0.
 | 0x46c400 | 30 | thiscall `ret 4` | **scalar deleting dtor** (vtable slot 0) | vtable only |
 | 0x46c420 | 85 | thiscall, SEH (EH 0x4dbce6) | **dtor**: vptr = 0x4e1ee8, `0x4a6cb0(this+0x134)`, `0x4b29c0` | 0x46c403, vec-dtor refs |
 | 0x46c480 | 206 | thiscall `ret 4` | **LoadModel(const char\* name)**: `0x4a66e0(this+0x258, name, 0)`, vcall `[this+0x134]` slot 2, assigns `"tire"` (0x4fe454) to the std::string at +0x248 (inlined `string::assign`, uses 0x402700/0x402ab0 grow/unshare) | Car loader 0x460080 |

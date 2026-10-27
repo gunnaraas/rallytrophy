@@ -7,6 +7,16 @@ extern float DAT_004e13a4, DAT_004e13a8, DAT_004e13ac, DAT_004e13b0, DAT_004e134
 extern float DAT_005082d0[][2];
 extern float DAT_005083d0, DAT_005083d4, DAT_005083d8, DAT_005083dc;
 
+static inline int TrailFloatToInt(float value)
+{
+    int result;
+    __asm {
+        fld value
+        fistp result
+    }
+    return result;
+}
+
 __declspec(naked)
 // PE transcription preserves the original address calculation and store order.
 // FUNCTION: RALLYTROPHY 0x40b560
@@ -54,42 +64,78 @@ void TrailQueue::Push(int corner, int t)
     head = (head + 1) & 3;
 }
 
-// NONMATCHING: RALLYTROPHY 0x40b600 (draw via raw vtable calls; float/ftol order unverified)
+// NONMATCHING: RALLYTROPHY 0x40b600
+// Current candidate is 656 bytes vs. 663, with 408 differing bytes. Expiry, alpha-byte math, FISTP
+// conversion, and integer screen dimensions now follow the target; local-slot and schedule differences remain.
 void TrailQueue::Draw(int now)
 {
     int total = 0, alive = 0;
-    for (int j = 0; j < 4; j++) {
-        if (!used[j]) continue;
-        int age = now - time[j];
-        if (time[j] < now - 5000) { used[j] = 0; continue; }
-        int a;
-        if (age < 500) a = (int)((float)age * DAT_004e13b0 * DAT_004e13ac);
-        else if (age < 0x1195) a = 0xff;
-        else a = 0xff - (int)((float)(age - 0x1194) * DAT_004e13b0 * DAT_004e13ac);
-        ((BYTE*)&color[j])[3] = (BYTE)a;
-        total += a;
-        alive++;
-    }
+    BYTE* alphaPtr = (BYTE*)color + 3;
+    char* usedPtr = used;
+    do {
+        if (*usedPtr) {
+            int t = *(int*)(alphaPtr + 0x8d);
+            if (t < now - 5000) {
+                *usedPtr = 0;
+            } else {
+                int age = now - t;
+                if (age < 500) {
+                    float scaled = (float)age * DAT_004e13b0 * DAT_004e13ac;
+                    int a = TrailFloatToInt(scaled);
+                    BYTE alpha = (BYTE)a;
+                    *alphaPtr = alpha;
+                    total += alpha;
+                }
+                else if (age > 0x1194)
+                {
+                    float scaled = (float)(age - 0x1194) * DAT_004e13b0 * DAT_004e13ac;
+                    int delta = TrailFloatToInt(scaled);
+                    *alphaPtr = (BYTE)(0xff - delta);
+                    total += 0x1fe - (BYTE)(0xff - delta);
+                }
+                else {
+                    *alphaPtr = 0xff;
+                    total += 0xff;
+                }
+                alive++;
+            }
+        }
+        usedPtr++;
+        alphaPtr += 4;
+    } while ((int)usedPtr + (-0xa0 - (int)this) < 4);
     if (alive == 0 || DAT_00501478 == 0) return;
-    float s = (float)total * DAT_004e13a8;
+    __int64 wideTotal = (unsigned int)total;
+    float s = (float)wideTotal * DAT_004e13a8;
     if (s < DAT_004e1348) s = 1.0f;
-    float ys = (float)((float*)DAT_0056b0ac)[1] * DAT_004e1358;
-    HudPoint uv[4];
-    float* f = (float*)uv;
-    f[0] = f[6] = DAT_005083dc * ((float*)DAT_0056b0ac)[2] * DAT_004e1354;
-    f[2] = f[4] = (DAT_005083d4 + DAT_005083dc) * ((float*)DAT_0056b0ac)[2] * DAT_004e1354;
-    float y = (DAT_005083d8 - (DAT_005083d0 * s + (s - DAT_004e1348) * DAT_004f2ffc) * DAT_004e138c) * ys;
-    float h = DAT_005083d0 * ys;
-    float step = DAT_004f2ffc * ys + h;
+    int height, width, dimension;
+    float h;
+    struct TrailQuadData {
+        HudPoint uv[4];
+        float step;
+    } quadData;
+    HudPoint* uv = quadData.uv;
+    height = ((int*)DAT_0056b0ac)[1];
+    width = ((int*)DAT_0056b0ac)[2];
+    dimension = height;
+    float ys = (float)dimension * DAT_004e1358;
+    dimension = width;
+    float xs = (float)dimension * DAT_004e1354;
+    uv[0].x = uv[3].x = DAT_005083dc * xs;
+    uv[1].x = uv[2].x = (DAT_005083d4 + DAT_005083dc) * xs;
+    float y = DAT_005083d8;
+    y -= (DAT_005083d0 * s + (s - DAT_004e1348) * DAT_004f2ffc) * DAT_004e138c;
+    y *= ys;
+    h = DAT_005083d0 * ys;
+    quadData.step = DAT_004f2ffc * ys + h;
     DAT_0056b0ac->vf38(0);
     DAT_0056b0ac->vf35(*(Sprite**)((BYTE*)DAT_0056b0c8 + 0x139488));
     unsigned i = head;
     for (int n = 4; n; n--) {
         if (used[i]) {
-            f[1] = f[3] = y;
-            f[5] = f[7] = y + h;
+            uv[0].y = uv[1].y = y;
+            uv[2].y = uv[3].y = y + h;
             DAT_0056b0ac->vf66(uv, (HudPoint*)&quad[i][0], color[i], 1.0f, 1.0f);
-            y += step;
+            y += quadData.step;
         }
         i = (i + 1) & 3;
     }

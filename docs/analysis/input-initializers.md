@@ -97,3 +97,38 @@ those bounds. The keyboard callback now matches all 773 bytes after replacing
 its earlier nonmatching C++ body with the observed PE instruction sequence.
 This change retains the matcher's general limitation that relocated target
 identities are not checked automatically.
+
+## Controller initialization (`0x495a60`)
+
+`T_56b0b4::Init` is a 1,568-byte DirectInput initializer. The analyzed body and
+pseudocode are Evidence `ev_4ed365b0cbf63abb24939040c5cb657c1776ec50aa6df6154220034f281fd370`;
+instruction order is recorded in `ev_a822bdd79943b37f0fead09e596472f4c18bf4a9f10be94d8f8778d0425888ee`.
+The array helper receives callbacks at `0x430700` and `0x401bb0`; their bodies
+are recorded in `ev_a9ab59fe6fa957ab93e6d38455f00c7f4395239ac387e87e80b0acdf01162eab`
+and `ev_0ead9f4acd3283a5b85f1e0e51e0763be5557b6795f3150a39ef15d3d513e4f7`.
+The target initializes a string, appends the empty global at `0x5070b0`, then
+builds the per-player names before creating the DirectInput interface. The
+global's zero-filled bytes are confirmed by
+`ev_b25e98ef80db0bc0a1ac0d3946b3948142dc014cb9a56c005359702275f00557`.
+The target also uses the one-space string at `0x4f2e40`; its terminating NUL
+and adjacent data are recorded in `ev_fc3abab171d4c5dca51f5f9aafa8205a4418fc642ae75efbded2d89ac88ea4dd`.
+
+The current source explicitly appends the text with `append(const char*, n)`,
+appends one space, and retains the empty-global append. This source shape emits
+1,533 bytes with 1,167 differing bytes outside relocations, improving on the
+initial 1,474-byte candidate with 1,191 differing bytes. An explicit append
+using the one-space length from `strlen` regressed to 1,580 bytes and 1,192
+differences, so that form was discarded. These are source-shape experiments;
+the function remains `NONMATCHING`, with stack layout, register assignment,
+and several control-flow regions still unresolved. Adding explicit empty
+`PlayerDevices` constructor/destructor declarations did not change the emitted
+candidate. The target array allocation passes callbacks at `0x430700` and
+`0x401bb0` to the vector helper (assembly Evidence above). A manual allocation
+and helper call with those callbacks was tested with both caller-cleanup and
+callee-cleanup declarations; candidates were 1,527/1,174 and 1,524/1,176,
+respectively, so both were discarded. Moving the string declaration before
+the player allocation was also tested: initializing it from `""` produced
+1,559/1,171, while default initialization produced 1,479/1,185. Both were
+reverted. Default initialization after the allocation produced 1,484/1,186.
+Reordering the `i` and `total` declarations emitted the same candidate. These
+probes did not improve on the current 1,533/1,167 candidate.

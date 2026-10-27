@@ -21,9 +21,9 @@ inline int FloatToInt(float f)
 }
 
 // NONMATCHING: RALLYTROPHY 0x46eec0
-// 958 vs 1044 bytes. The original copies the child matrix into the temporary with 16 strictly sequential
-// ecx load/store pairs (and keeps the dead translation stores); every source form tried (16 assignments, loops,
-// volatile source) gives rep movsd or the edx/ecx load-ahead pairs. Its &corner[0] also stays in ebx.
+// The original copies the child matrix with 16 strictly sequential ecx load/store pairs and keeps three
+// overwritten translation stores. Volatile destination stores preserve those three, but the ctor remains
+// NONMATCHING (979/1044 bytes, 746 differing); the corner helper also uses a different register schedule.
 CityLight::CityLight(LightSource* source, TextureLoader* loader, Sprite* glowSprite, Sprite* flareSprite)
 {
     unk8 = 0;
@@ -38,7 +38,7 @@ CityLight::CityLight(LightSource* source, TextureLoader* loader, Sprite* glowSpr
     LightSource* child = source->child;
     if (child) {
         ViewMat tmp;
-            tmp.m[0] = child->matrix.m[0];
+        tmp.m[0] = child->matrix.m[0];
         tmp.m[1] = child->matrix.m[1];
         tmp.m[2] = child->matrix.m[2];
         tmp.m[3] = child->matrix.m[3];
@@ -50,9 +50,9 @@ CityLight::CityLight(LightSource* source, TextureLoader* loader, Sprite* glowSpr
         tmp.m[9] = child->matrix.m[9];
         tmp.m[10] = child->matrix.m[10];
         tmp.m[11] = child->matrix.m[11];
-        tmp.m[12] = child->matrix.translation.x;
-        tmp.m[13] = child->matrix.translation.y;
-        tmp.m[14] = child->matrix.translation.z;
+        *(volatile float*)&tmp.m[12] = child->matrix.translation.x;
+        *(volatile float*)&tmp.m[13] = child->matrix.translation.y;
+        *(volatile float*)&tmp.m[14] = child->matrix.translation.z;
         tmp.m[15] = child->matrix.w;
         tmp.m[12] = child->position.x;
         tmp.m[13] = child->position.y;

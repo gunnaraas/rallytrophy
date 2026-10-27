@@ -3638,17 +3638,18 @@ struct G13_WarpPoint {
 };
 
 // NONMATCHING: RALLYTROPHY 0x436250
-// 1559 vs 1605 bytes. Control flow, EH states (mouse temp = state 0, warp temps 1-2, string 3), string expansion and
-// calls match; left: the 0/1 constant registers are swapped (original ebx=0, edi=1), the font pointer lands in esi
-// instead of ebp, and the string ctor/append spill slots differ. `while (1)` (not `while (cond)`) avoids loop rotation.
+// 1599 vs 1605 bytes; 461 differing bytes after placing wait/choice/first in that declaration order and reusing x
+// instead of retaining a centered-x local. Control flow, EH states (mouse temp = state 0, warp temps 1-2, string 3),
+// renderer register and EBX=0/EDI=1 constants match. Remaining differences include local stack slots and string spills.
+// `while (1)` (not `while (cond)`) avoids loop rotation.
 // Modal "question / Yes / No" dialog: Left/Right or the mouse pick the answer, Enter or a click confirms, Esc cancels.
 // Returns 1 for Yes (class Game in the merged header). original: FUN_00436250
 int GameObj::FUN_00436250(MenuScreen* screen)
 {
-    HudPoint mouse;
     int wait = 0;
     int choice = 1;
     int first = 1;
+    HudPoint mouse;
     DAT_0056b0bc->ClearKeys();
     while (1) {
         if (!FUN_004b69f0(wait)) {
@@ -3706,33 +3707,33 @@ int GameObj::FUN_00436250(MenuScreen* screen)
         }
         DAT_0056b0ac->vf38(0);
         FUN_00436ed0();
+        TextRenderer* renderer = text;
         DWORD normal = DAT_00508c04;
-        text->color = normal;
+        renderer->color = normal;
         float y = DAT_0056aeac * 350.0f;
-        float cx = DAT_0056aea8 * 512.0f;
-        float x = cx - text->GetWidth(FUN_00405380(0xa2), 0) * 0.5f;
-        text->Print(DAT_0056b0ac, x, y, FUN_00405380(0xa2), 0, 1.0f, 1.0f);
+        float x = DAT_0056aea8 * 512.0f - renderer->GetWidth(FUN_00405380(0xa2), 0) * 0.5f;
+        renderer->Print(DAT_0056b0ac, x, y, FUN_00405380(0xa2), 0, 1.0f, 1.0f);
         G13_String line(FUN_00405380(0x22));
         line.Append("/");
         line.Append(FUN_00405380(0x23));
         y = DAT_0056aeac * 387.0f;
-        x = cx - text->GetWidth(line.c_str(), 0) * 0.5f;
+        x = DAT_0056aea8 * 512.0f - renderer->GetWidth(line.c_str(), 0) * 0.5f;
         DWORD color = normal;
         if (choice == 0) {
             color = DAT_00508c0c;
         }
-        text->color = color;
-        text->Print(DAT_0056b0ac, x, y, FUN_00405380(0x22), 0, 1.0f, 1.0f);
-        text->color = normal;
-        x += text->GetWidth(FUN_00405380(0x22), 0);
-        text->Print(DAT_0056b0ac, x, y, "/", 0, 1.0f, 1.0f);
-        x += text->GetWidth("/", 0);
+        renderer->color = color;
+        renderer->Print(DAT_0056b0ac, x, y, FUN_00405380(0x22), 0, 1.0f, 1.0f);
+        renderer->color = normal;
+        x += renderer->GetWidth(FUN_00405380(0x22), 0);
+        renderer->Print(DAT_0056b0ac, x, y, "/", 0, 1.0f, 1.0f);
+        x += renderer->GetWidth("/", 0);
         if (choice == 1) {
             normal = DAT_00508c0c;
         }
-        text->color = normal;
-        text->Print(DAT_0056b0ac, x, y, FUN_00405380(0x23), 0, 1.0f, 1.0f);
-        text->color = DAT_00508c04;
+        renderer->color = normal;
+        renderer->Print(DAT_0056b0ac, x, y, FUN_00405380(0x23), 0, 1.0f, 1.0f);
+        renderer->color = DAT_00508c04;
         FUN_00435430(*((MouseInput*)DAT_0056b0c0)->GetPosition());
         DAT_0056b0ac->EndScene();
         DAT_0056b0ac->Present();
@@ -4111,7 +4112,7 @@ struct G15_Str {
 // NONMATCHING: RALLYTROPHY 0x437220
 // 1384 vs 1346 bytes. All call sequences, EH states (Color at function scope = state 0, two mouse-warp temporaries,
 // string = 3), the string expansion and the float spill (G15_Point takes (y, x): VC6 then spills y) match. Left: the
-// frame is 0x2c (original 0x28: the warp temporary should overlap the float locals), sel/y2 swap esi/ebx, and the
+// frame is 0x2c (original 0x28: the warp temporary should overlap the float locals), selection/y still swap esi/ebx, and the
 // two inline-destructor returns each get their own epilogue (original jumps to one shared epilogue).
 // original: FUN_00437220 (fastcall; confirmation dialog, -1 while open, else the chosen answer)
 int Game::FUN_00437220(int a)
@@ -4153,29 +4154,29 @@ int Game::FUN_00437220(int a)
     color.value = DAT_00508c04;
     text->color = color.value;
     float x = DAT_0056aea8 * 512.0f;
-    float left = x - text->GetWidth(FUN_00405380(0x21), 0) * 0.5f;
-    text->Print(DAT_0056b0ac, left, y, FUN_00405380(0x21), 0, 1.0f, 1.0f);
+    x -= text->GetWidth(FUN_00405380(0x21), 0) * 0.5f;
+    text->Print(DAT_0056b0ac, x, y, FUN_00405380(0x21), 0, 1.0f, 1.0f);
     G15_Str both(FUN_00405380(0x22));
     both.Append("/");
     both.Append(FUN_00405380(0x23));
-    float y2 = DAT_0056aeac * 387.0f;
+    y = DAT_0056aeac * 387.0f;
     x = DAT_0056aea8 * 512.0f - text->GetWidth(both.c_str(), 0) * 0.5f;
     int sel = v->confirmSel;
     if (sel == 0) {
         color.value = DAT_00508c0c;
     }
     text->color = color.value;
-    text->Print(DAT_0056b0ac, x, y2, FUN_00405380(0x22), 0, 1.0f, 1.0f);
+    text->Print(DAT_0056b0ac, x, y, FUN_00405380(0x22), 0, 1.0f, 1.0f);
     color.value = DAT_00508c04;
     text->color = color.value;
-    float xs = x + text->GetWidth(FUN_00405380(0x22), 0);
-    text->Print(DAT_0056b0ac, xs, y2, "/", 0, 1.0f, 1.0f);
+    x += text->GetWidth(FUN_00405380(0x22), 0);
+    text->Print(DAT_0056b0ac, x, y, "/", 0, 1.0f, 1.0f);
     x += text->GetWidth("/", 0);
     if (sel == 1) {
         color.value = DAT_00508c0c;
     }
     text->color = color.value;
-    text->Print(DAT_0056b0ac, x, y2, FUN_00405380(0x23), 0, 1.0f, 1.0f);
+    text->Print(DAT_0056b0ac, x, y, FUN_00405380(0x23), 0, 1.0f, 1.0f);
     text->color = DAT_00508c04;
 
     if (closed) {

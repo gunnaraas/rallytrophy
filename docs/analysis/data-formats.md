@@ -2,7 +2,7 @@
 
 Analysis date: 2026-10-22. Analyst: subagent shell-only analysis (xxd/python3/file/strings + web research).
 All findings below were verified by decrypting and parsing **all 52 .bzf archives / 2933 entries** with
-`tools/bzf_parse.py`; zero parse/decompression failures. Facts are tagged **[observed]** (verified on
+`../Rally-Trophy-Rust/tools/bzf_parse.py`; zero parse/decompression failures. Facts are tagged **[observed]** (verified on
 bytes), **[inferred]** (strong circumstantial evidence), or **[external]** (from referenced sources).
 
 ## 1. Inventory
@@ -73,7 +73,7 @@ see 2.3/2.5).
   i.e. payload byte `i` of an entry is XORed with `KEY[(12 + i) % 256]`. (bfstool's model restarts
   at 0; Rally Trophy data restarts at 0x0C. Verified on all 2933 entries.)
 * KEY is a fixed 256-byte table, identical for every archive in the game. It is embedded in
-  `tools/bzf_parse.py`. It was recovered by known-plaintext analysis: name fields are NUL-padded,
+  `../Rally-Trophy-Rust/tools/bzf_parse.py`. It was recovered by known-plaintext analysis: name fields are NUL-padded,
   so most directory bytes are known-plaintext zero; per-key-position majority voting over all 52
   archives yields the full table, self-validated by clean parses of every archive.
 * KEY visibly contains header-shaped fragments (e.g. `46 42 18 25 80 ... 6d 1d 78 e6`), i.e. it
@@ -145,14 +145,47 @@ entire gameplay/physics tuning surface:
 * **`fonts.bzf`**: per font a 5500-byte metrics blob (extensionless, e.g. `CounterFont`) + `.tga`
   atlas (`mpFont16/20/32`, `mpFont32Ariel`).
 
-### 3.2 `.bmf` — binary model format (Bugbear Mesh File) **[observed, partially parsed]**
+### 3.2 `.bmf` — binary model format (Bugbear Mesh File) **[observed, parsed]**
 
 Chunked binary; written by "3ds Max R3 Exporter" (string present in INFO chunk). Layout:
-repeating `[u32 size][tag, 4 chars + NUL][payload]`; chunks nest (MAIN > INFO / MATERIALLIST >
-MATERIAL / geometry lists). First u32 of MAIN equals the payload's full unpacked size. MATERIAL
-payloads contain float32 quad(s) (0x3F800000 = 1.0f) — diffuse/specular colors **[inferred]**.
-Used for car bodies (`model.BMF`), collision meshes (`collision.BMF`), wipers, rain drops, driver
-body parts, and all track geometry. Not fully reverse-engineered (open question §6).
+repeating `[u32 size][tag, chars + NUL][payload]`; `size` covers the u32, tag and payload, i.e.
+it is the total chunk size measured from the u32 field. Chunks nest. Confirmed tree (all 236
+shipped files parse clean, 2026-10-24; `../Rally-Trophy-Rust/crates/rt-assets/tests/bmf_sweep.rs`):
+
+```text
+MAIN
+├─ INFO            "BMF\0" + exporter banner + version word
+├─ MATERIALLIST    u32 count, then that many MATERIAL chunks
+│   └─ MATERIAL    5 ints, 4 RGB float triples, power float, 5 ints,
+│                  then 4 NUL-strings (name, texture, texture2, texture3)
+├─ HIERARCHY       u32 count, then that many children:
+│   ├─ SCENE       part record + 12 trailing bytes (original skips it, 0x4af710)
+│   ├─ MESH        part record (name, parent i32, 4x4 matrix, 5 float3, flags,
+│   │              scalar — 142 bytes), one i32 (frame index in animations),
+│   │              then one MODEL chunk with the geometry
+│   ├─ LIGHT / CAMERA / CAMERA2   part record + typed extras
+│   └─ (other)     skipped raw by the original (0x4af710)
+├─ TRACK           3 float3 words, u32 count, then that many MODEL chunks
+│                  (animation keyframes; MESH+MODEL per frame in practice)
+└─ MODEL           44-byte mesh header (flags i32, float3, float radius,
+    (nested)       float3, float3 — bounds min/max + bounding sphere radius INFERRED),
+                   then any of:
+    ├─ VERTEXLIST  u32 count, count float3 positions (12 B each)
+    ├─ POLYLIST    u32 count, then 16 B records: u32 material index
+    │              (bounds-checked) + six u16 words (vertex/aux indices)
+    └─ BATCH/BATCH2  material i32, nverts i32, ntris i32, then vertices
+                     (BATCH 44 B: pos3, field3(normal?-unknown), ARGB color,
+                     uv, uv2; BATCH2 36 B: no uv2) and triangle records
+                     (BATCH 8 B = 3 u16 + 2 aux u16; BATCH2 6 B = 3 u16),
+                     vertex indices bounds-checked ("illegal vertex index")
+```
+
+First u32 of MAIN equals the remaining file size. MATERIAL payloads contain float32 quad(s)
+(0x3F800000 = 1.0f) — diffuse/specular colors **[inferred]**. Used for car bodies
+(`model.BMF`), collision meshes (`collision.BMF`), wipers, rain drops, driver body parts,
+and all track geometry. Reader semantics ported from RallyTrophy.exe 0x4af950 (MAIN loop),
+0x4b0cd0 (HIERARCHY), 0x4b0920 (TRACK), 0x4b0e90 (MESH), 0x4b13c0 (MODEL),
+0x4b2290/0x4b2330 (VERTEXLIST/POLYLIST), 0x4b1af0/0x4b1ec0 (BATCH/BATCH2). Open questions §6.
 
 ### 3.3 Track binary formats (in `Tracks/trackN/data.bzf`)
 
@@ -204,19 +237,19 @@ opponents presumably come from `settings.bzf` `cpuNN.ini` (to be confirmed, open
 
 ## 5. Parser
 
-`tools/bzf_parse.py` (stdlib only):
+`../Rally-Trophy-Rust/tools/bzf_parse.py` (stdlib only):
 
 ```
-python3 tools/bzf_parse.py list   <file.bzf>           # list entries
-python3 tools/bzf_parse.py extract <file.bzf> <outdir> # decrypt + unpack all entries
-python3 tools/bzf_parse.py dump   <file.bzf> <name>    # print one entry
+python3 ../Rally-Trophy-Rust/tools/bzf_parse.py list   <file.bzf>           # list entries
+python3 ../Rally-Trophy-Rust/tools/bzf_parse.py extract <file.bzf> <outdir> # decrypt + unpack all entries
+python3 ../Rally-Trophy-Rust/tools/bzf_parse.py dump   <file.bzf> <name>    # print one entry
 ```
 
 Extracted files retain the 43-byte copyright prefix (strip with `tail -c +44`); the parser enforces
 the `unpacked_size + 43` and zlib-integrity checks. It can also be imported (`parse_headers`,
 `extract_entry`, `KEY`) for further tooling. Validated over all 52 archives / 2933 entries.
 
-**Rust port:** `crates/rt-assets/src/bzf.rs` (`rt_assets::bzf`, `flate2`/`miniz_oxide` for zlib)
+**Rust port:** `../Rally-Trophy-Rust/crates/rt-assets/src/bzf.rs` (`rt_assets::bzf`, `flate2`/`miniz_oxide` for zlib)
 with the same semantics, plus `rally-trophy bzf list|extract|dump`. Verified 2026-10-22:
 identical listing output for all 52 archives and byte-identical extracted payloads
 against the Python reference.

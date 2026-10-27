@@ -70,3 +70,20 @@ The relocation-copy helper stops on the unresolved `std::_Xlen` symbol, so
 it does not produce copies of these methods. Object comparison and the
 independent relocation audit provide the checks here. Runtime execution
 was not tested.
+
+## Replay-menu setup
+
+Local `objcmp` observations for `ReplayMenu::Setup` (`0x44ba30`): both bodies
+are 452 bytes, with eight differing bytes confined to stack operands. Relative
+to ESP after the language-call argument is popped, the target uses `+0x20`
+for the shared y/y2 coordinate slot and `+0x18` for the inline string-assignment
+pointer. The candidate swaps those slots. A named nonvolatile text pointer,
+an early declaration of y with delayed assignment, and an early declaration
+of y2 with delayed assignment each emitted the same eight-difference body.
+All three probes were reverted. This is compiler-output evidence, not a claim
+about the original source declarations.
+
+Reusing one y variable for both coordinates increased the difference to 14
+bytes and moved several other frame slots. Calling `assign` directly, with
+either implicit or explicit `strlen`, emitted the original eight-difference
+candidate. These local compiler probes were reverted.

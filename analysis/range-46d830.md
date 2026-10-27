@@ -174,6 +174,10 @@ Same culling front-end as `CarLight::Render` (this position vs camera, near/far)
 | 0x2c | Stage* | owner (ctor arg 2); `owner + 0x884 + i*4` is a table of 32 texture handles |
 
 ### Update 0x46fc10
+Binary evidence: REA dossier `ev_098aeda40f3866cc5d46de6aa9df644e5a1638f8a9cce76a6f260f691961b0eb` (Ghidra 12.1.3, shipped executable digest `cc1718e21a83b7422cfd2b304a9fe43e4f6a6e7550389d9f20bf30530f19ec8d`). The observed body is 428 bytes (`0x46fc10-0x46fdbb` inclusive); assembly confirms the clock-time store, tick-based texture selection, two Vec2 helper chains, and a vertex loop using a 16-bit count, 8-byte saved-UV stride, and 0x2c-byte vertex stride. The pseudocode is decompiler output and is used as a behavior reference, not as original source.
+
+Matcher probes on 2026-10-27 leave the tracked candidate unchanged: baseline 424 bytes / 290 differing bytes; direct initialization of `uv1` only, 409 / 291; a volatile clock read, 420 / 278; a 16-bit local count, 431 / 229; both latter changes, 427 / 268. None matches, and the volatile form is diagnostic only. Focused tracked-file result remains 5/5 marked functions exact, one `NONMATCHING`, with no diffs or compile failures.
+
 `stamp = clock+0x24`; `t = clock16 = (int)([0x56b0d0] & 0xffff)`; frame `f = (int)(t * [+8] * 1/2048) & 31`; `mesh->material->texture ([[+0x28]]+4) = *(owner+0x884 + f*4)`. Then `d1 = Vec2(+0x14) * t / 65536.0` and `d2 = Vec2(+0x1c) * t / 65536.0` (out-of-line Vec2 helpers 0x46fe20 / 0x46fe50 from the next file; 0x47800000 = 65536.0f), and for each vertex `i` (loop count `ushort [mesh+0xc]`, stride 0x2c, pointers advanced by 8 in the saved array): `uv1 = saved[i] * [+0x0c] - d1`, `uv2 = saved[i] * [+0x10] - d2`, then `vertex.u = uv1.x`, `vertex.v = uv1.y`, `vertex.u2 = uv2.x + 0.5`, `vertex.v2 = uv2.y + 0.5` (0.5 = 0x4e138c). (The (uv2 + 0.5) offsets, the second texture layer.)
 
 ## 8. Table of all functions

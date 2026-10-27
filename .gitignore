@@ -5,7 +5,6 @@
 /build/
 /toolchain/
 /.venv/
-/decomp/.venv/
 /reccmp-user.yml
 /analysis/scratches/
 /analysis/COORDINATION.md

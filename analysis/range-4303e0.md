@@ -66,6 +66,7 @@ Convention column follows `functions.csv`; fastcall functions with a `this` poin
 | 0x430cf0 | 436 | fastcall; SEH 0x4d7b37 | Create five TextRenderer resources (0x150 each) from named assets, attach to fields +0x1390b8..c8. Called from 0x430b30 and 0x434585. |
 | 0x430eb0 | 171 | fastcall; leaf | Release the five TextRenderers and clear their pointers. Called 0x430789, 0x430ca0, 0x4349eb. |
 | 0x430f60 | 3300 | fastcall; SEH 0x4d7c08, FPU | **Build Game UI/resource state**: initialize renderer/UI objects, load menu layout/config, populate label arrays, dimensions and sound sample settings. Called during startup/return to menu (0x430b3e, 0x430c99, 0x4339ac, 0x434593, etc.). |
+
 | 0x431c50 | 741 | fastcall; leaf | **Release Game UI/resource state**: virtual-release active embedded screens, delete transient UI/render resources, destroy per-screen objects and clear pointers/vectors. Called 0x430790/0x430c99 and race transitions 0x433933/0x4348d8. |
 | 0x431f40 | 2190 | fastcall; SEH 0x4d7cf8 | **Create/configure rendering and UI resources**: allocates effect/UI objects, sets graphics properties, stores resources under +0x1390d4 onward. Called during setup 0x430b37 and 0x43458c. |
 | 0x4327d0 | 522 | fastcall; leaf | Exact GameView teardown: disposes wrappers/rectangles, stops and releases four sound sources, releases two screens, unloads service-menu textures. |
@@ -94,6 +95,8 @@ Convention column follows `functions.csv`; fastcall functions with a `this` poin
 | 0x4359f0 | 368 | stdcall; SEH 0x4d801e | UI draw callback variant 4; same shape as 0x4355a0. |
 | 0x435b60 | 313 | stdcall; frame not SEH | `MenuGame::FUN_00435b60` (known header): GameView drawing helper taking rect/id parameters; invoked by menu screen drawing paths. |
 | 0x435ca0 | 313 | stdcall; frame not SEH | Parallel drawing helper to 0x435b60 (different resource/coordinate variant); address is used by neighboring menu components. |
+
+`0x435b60` uses width `DAT_0056aea8 * 48.0`, starts its repeated row at `((float)a * 42.0 + 214.0) * DAT_0056aeac`, then advances by `DAT_0056aeac * 42.0`. Callback `0x435880` is selected when `c == 0`, otherwise `0x4355a0`. If `d != 0`, the optional footer calls `0x4355a0` when `e == 0` and `0x435710` when `e != 0`; `f == -1.0` selects a 604.0 height. These are observations from Ghidra assembly and pseudocode for Evidence `ev_52cfb517b00277ed4ad562293fd1eaa405d0a82a8d5a0d9b376aad3cd944d373`; pseudocode is behavioral reference, not source. The 313-byte naked instruction transcription now matches all 13 object relocations.
 | 0x435de0 | 368 | stdcall; frame not SEH | `MenuGame::FUN_00435de0(float,float)` known header; Game drawing/layout helper. |
 | 0x435f50 | 368 | stdcall; frame not SEH | `MenuGame::FUN_00435f50(float,float)` known header; paired drawing/layout helper. |
 | 0x4360c0 | 395 | thiscall; SEH 0x4d80de, FPU | `GameView::FUN_004360c0(float,float,float,float,int)` (known header): draws car icon in UI. |
@@ -107,6 +110,8 @@ Convention column follows `functions.csv`; fastcall functions with a `this` poin
 | 0x437e20 | 66 | stdcall; leaf | Small final callback/thunk used by adjacent UI/resource machinery; no direct callsite recovered. |
 
 `GameView::FUN_00432b30` at `0x432b30` is byte-exact in `src/unk_4303e0.cpp`. Plain PE disassembly observation: EDI holds `this`; the active-stream branch requires the current ID at `+0x139214` to differ from -1 and the second stack argument to be nonzero, then records the timer, sets transition state 1, and stores the first argument at `+0x139218`. Otherwise it closes the stream, indexes the 16-byte stream-name table by the first argument, opens and starts that stream, computes `(global*127)/100`, stores the selected ID and clears transition state, substitutes the alternate volume for IDs 0, 2, or 3, calls SetStreamVolume, and saves the volume. Focused matcher: 27/27 marked functions match in this file (23 existing NONMATCHING).
+
+Evidence `ev_06558af5896aec6fcef4ea896093b00a26135b492d3fd6efa75dd992ed90834d` records the 3,300-byte target. Focused matcher baseline is 28/28 marked functions compiled/matched (23 existing NONMATCHING); `objcmp` reports 3,301 built bytes and 580 differing bytes outside relocations. In particular, target loads `this` from `[esp+0x28]` into EBP at 0x43133d, while VC6 uses EBX; the one-byte size excess is accompanied by register-schedule changes through the body. Moving the four line-sprite style stores before or interleaved with their texture uploads worsened the diff (827 bytes / 3,340 bytes) and was reverted. No narrow source-order fix found; EH layout stayed intact.
 
 ## Vtables, compiler output, and missing symbols
 
@@ -138,3 +143,5 @@ Group by coherent source work; all probably belong in one eventual Game TU. Larg
 | G16 secondary modal confirmation | 0x437770 | 1,352 | One worker; parallel modal loop |
 | G17 tail callbacks | 0x436ed0, 0x437040, 0x437cc0, 0x437e20 | 1,250 | Small table-driven UI/resource helpers |
 
+
+For `G17_437cc0` (`0x437cc0`), evidence `ev_ffa5ae54c7b2a5043751751123119198e41d1828b59971966932852c498ab50a` shows the 351-byte target. Moving the `vf35` material call after the temporary arrays and vertex/UV stores increased the compiled body from 348 to 357 bytes and raised differing bytes from 235 to 244; the source order was restored. The call-order trial alone does not explain the broad schedule mismatch.

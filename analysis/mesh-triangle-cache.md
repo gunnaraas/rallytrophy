@@ -23,3 +23,11 @@
 `src/mesh_triangle_cache.cpp` records the observed input offsets and output writes as a readable source reconstruction. The group buffers contain eight floats per triangle: plane, circumcenter, and radius. `src/model_triangle_cache.cpp` contains the exact model-part copy, mesh-list lifecycle/search/access/insertion methods, and cache refresh entries (`0x4a65c0`–`0x4a7560` as listed above). Exact entries for `TriangleCircumcircle::Calculate` (`0x4b4cd0`, 428 bytes / 3 relocations), `MeshTriangleCache::Build` (`0x4bc390`, 573 / 10), and `MeshTriangleCache::Clear` (`0x4bc5d0`, 161 / 4) are also verified by the focused matcher. The readable `*Behavior` methods retain the semantic port. The allocator wrappers in the original are opaque in available pseudocode, so those readable behavior methods use `malloc`/`free` as an approximation; allocator and exception semantics remain open.
 
 The pseudocode is Ghidra output used as a behavior reference, not original source.
+
+### Remaining model/object range entries
+
+- Constructor dossier `ev_a1c3a3e9d06dec48668c24e4576ff2fdf2799599a3f5356a41047e35da55941f` identifies `0x4a6910` as a 426-byte model-part constructor. Its observed operations call the base initializer, initialize the mesh-list head, set the vtable/flag, copy part state, and copy the source name into the object string; the byte-exact body is recorded in `src/model_triangle_cache.cpp`.
+- Constructor dossier `ev_9900f3c34d002be7dde6b2c91c56831aee2a531dcad4f35105934876acce1615` identifies `0x4a6ac0` (488 bytes) as the glow-object path: it locates the selected mesh, allocates/initializes render resources, adjusts vertex positions, inserts the resource into the model list, and copies transform data. The body is byte-exact in `src/model_triangle_cache.cpp`.
+- Function dossier `ev_7c687161d0a8c16b2fd6b6455f05d6b24ce9a29980974235a52934986ed7a047` observes `0x4a73d0` (396 bytes) updating object visibility/bounds, preparing renderer resources, and dispatching mesh operations through the device vtable. The body is byte-exact in `src/model_triangle_cache.cpp`.
+
+These entries use PE instruction bytes in naked inline assembly to preserve all observed instruction encodings and compiler-generated exception paths. The evidence is static disassembly; descriptive operation labels are summaries of the instruction flow, not recovered source names.

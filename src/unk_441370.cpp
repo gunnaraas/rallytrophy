@@ -4193,9 +4193,8 @@ void TrackSelectMenu::DrawRally(RallyInfo info)
 }
 
 // NONMATCHING: RALLYTROPHY 0x445c90
-// 422 vs 434 bytes; prologue, colour bytes, EH states, uv and calls match. The original stores the two right/bottom
-// corner values (x1, y2) through a stack temp (fst [tmp]; mov eax,[tmp]; fstp; mov) and loads colour/device late;
-// no source form found for the spill (locals, chain order, inline Add all fold or keep fst/fstp).
+// Evidence: ev_d75f1466e03adee2022eecff0abdd168bae0f3e3d71c762a1d5c090fe91daef3. Candidate 422 bytes, 140 differing
+// bytes. The target's right-edge X and bottom-edge Y stores retain the x87 value while copying its bits through a GPR.
 // original: FUN_00445c90 (the track-book background quad)
 void TrackSelectMenu::DrawTrackBook()
 {
