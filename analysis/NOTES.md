@@ -173,6 +173,7 @@ Distilled from the per-loop history; "(A: X)" means `NOTES-archive.md`, section 
 - `ObjectList<T>` (sound.h): out-of-line RemoveNode 0x414490, inlined AddTail (A: Sound system T_56b0b0). Bitfield clears: separate statements, not `&=` masks (A: Sound system, iteration 2).
 - A thiscall that never reads `this` stays a member (A: Derived race modes).
 - **Misc.** Any `__asm` forces an ebp frame and memory homes; `rdtsc` needs `_emit`; `far`/`small`/`big` are reserved or macros (A: Sound system, iteration 2; Derived race modes).
+- **Inline asm helpers.** `inline` functions whose body is `__asm` are still inlined; their pointer arguments land in ebp slots that the asm reloads (`mov ecx,[ebp-x]`). That is the shape of the x87 transform/cross blocks (0x4150b0, 0x41b270, 0x41c540): write them as inline functions, not macros with block locals. Act on vector fields directly (`rec->dir -= ...`), not through a pointer local, or VC6 forwards the stored components instead of reloading them like the original.
 - Ghidra pseudocode may run past a `throw`: take boundaries from the inventory (A: Loop 13; Loop 15).
 - Separate a declaration from its assignment for store-order mismatches (A: Loop 13); member-initializer vs body assignment changes vptr store order (A: Loop 14).
 - Config accessors: unsigned index, `size()` bound, direct `m_entries[i]` (A: Loop 15).
