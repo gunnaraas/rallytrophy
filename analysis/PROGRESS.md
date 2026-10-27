@@ -6,7 +6,7 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Status
 
-- Marker inventory: 1800/2084 byte-exact (86.37%); 2084/2084 functions written (100.00%), from `tools/progress.py`.
+- Marker inventory: 1801/2084 byte-exact (86.42%); 2084/2084 functions written (100.00%), from `tools/progress.py`.
 - Game code: about 1,690 functions in `0x401000`–`0x4bcfc6`
 
 ## Queue
@@ -31,6 +31,8 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 
 ## Log
+
+- 2026-10-27 (Codex, game-mode layout `0x4270c0`): Exact 1,286-byte C++ match / 67 relocations. Literal-construction string and geometry twins plus explicit vector insertion boundaries recover the target frame and call policy. Verified 11 aliases / 27 call targets; focused 8 exact / 1 NONMATCHING. Evidence: `docs/analysis/game-mode-layout.md`.
 
 - 2026-10-27 (Codex, graphics-menu layout `0x42aee0`): Exact 5,014-byte C++ match / 251 relocations. Pinned final two vector insertions and retained the range-assignment helper boundary. Verified 11 aliases / 64 call targets; focused 11 exact / 1 NONMATCHING. Evidence: `docs/analysis/graphics-menu-layout.md`.
 

@@ -28,6 +28,121 @@ static float H1b_backY = 610.0f;       // 0x4e153c
 
 
 // ---- from group draft H1c ----
+struct H1c_Point {
+    H1c_Point(const H1c_Point& other);   // 0x424300
+    ~H1c_Point() {}
+    float x, y;
+};
+class H1c_Rect {
+public:
+    H1c_Rect(H1c_Point topLeft, HudPoint bottomRight);   // 0x4390a0
+    float f[5];
+};
+
+class H1c_String {
+public:
+    H1c_String(const char* s, const std::allocator<char>& al = std::allocator<char>()) : alloc(al)
+    {
+        Tidy(false);
+        unsigned int n = strlen(s);
+        if (Grow(n, true)) {
+            memcpy(ptr, s, n);
+            Eos(n);
+        }
+    }
+    ~H1c_String() { Free(true); }
+    static unsigned char& Refcnt(const char* u) { return ((unsigned char*)u)[-1]; }
+    void Free(bool built)              // std::string::_Tidy, expanded inline
+    {
+        if (!built || ptr == 0) {
+        } else if (Refcnt(ptr) == 0 || Refcnt(ptr) == 255) {
+            alloc.deallocate(ptr - 1, reserve + 2);
+        } else {
+            --Refcnt(ptr);
+        }
+        ptr = 0, len = 0, reserve = 0;
+    }
+    void Tidy(bool built);             // 0x402700
+    bool Grow(unsigned int n, bool trim); // 0x402980
+    void Eos(unsigned int n);          // 0x402960
+    const char* c_str() const { return ptr ? ptr : ""; }
+    std::allocator<char> alloc;
+    char* ptr;
+    unsigned int len;
+    unsigned int reserve;
+};
+#pragma comment(linker, "/alternatename:?Tidy@H1c_String@@QAEX_N@Z=?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z")
+#pragma comment(linker, "/alternatename:?Grow@H1c_String@@QAE_NI_N@Z=?_Grow@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAE_NI_N@Z")
+#pragma comment(linker, "/alternatename:?Eos@H1c_String@@QAEXI@Z=?_Eos@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEXI@Z")
+
+#pragma comment(linker, "/alternatename:??0H1c_Point@@QAE@ABU0@@Z=?Assign@Pair@@QAEPAU1@PBU1@@Z")
+#pragma comment(linker, "/alternatename:??0H1c_Rect@@QAE@UH1c_Point@@VHudPoint@@@Z=??0A_Rect@@QAE@VHudPoint@@0@Z")
+
+struct H1c_RectVector {
+    std::allocator<UIRect*> alloc;
+    UIRect** first;
+    UIRect** last;
+    UIRect** end;
+    void Insert(UIRect** pos, unsigned int n, UIRect* const& value); // 0x4bc680
+    void InsertOne(UIRect** pos, UIRect* const& value) { Insert(pos, 1, value); }
+    void PushBack(UIRect* const& value) { InsertOne(last, value); }
+    unsigned int Size() const { return first == 0 ? 0 : last - first; }
+    unsigned int SizeCall() const; // 0x414460
+    UIRect** Ucopy(UIRect* const* f, UIRect* const* l, UIRect** d); // 0x424320
+    void Ufill(UIRect** d, unsigned int n, UIRect* const& value); // 0x424350
+    void Destroy(UIRect** f, UIRect** l); // 0x403130
+    static void Construct(UIRect** p, UIRect* const& value); // 0x403140
+    UIRect** CopyInline(UIRect* const* from, UIRect* const* finish, UIRect** out)
+    {
+        for (; from != finish; ++out, ++from)
+            Construct(out, *from);
+        return out;
+    }
+    void FillInline(UIRect** out, unsigned int count, UIRect* const& value)
+    {
+        for (; 0 < count; --count, ++out)
+            Construct(out, value);
+    }
+    void PushBackExpanded(UIRect* const& value)
+    {
+        UIRect** pos = last;
+        if ((unsigned int)(end - last) < 1) {
+            unsigned int count = SizeCall() + (1 < Size() ? SizeCall() : 1);
+            UIRect** storage = alloc.allocate(count, (void*)0);
+            UIRect** out = Ucopy(first, pos, storage);
+            Ufill(out, 1, value);
+            Ucopy(pos, last, out + 1);
+            Destroy(first, last);
+            alloc.deallocate(first, end - first);
+            end = storage + count;
+            last = storage + SizeCall() + 1;
+            first = storage;
+        } else if ((unsigned int)(last - pos) < 1) {
+            Ucopy(pos, last, pos + 1);
+            Ufill(last, 1 - (last - pos), value);
+            for (UIRect** from = pos; from != last; ++from)
+                *from = value;
+            last += 1;
+        } else {
+            Ucopy(last - 1, last, last);
+            UIRect** to = last;
+            UIRect** from = last - 1;
+            while (pos != from)
+                *--to = *--from;
+            for (from = pos; from != pos + 1; ++from)
+                *from = value;
+            last += 1;
+        }
+    }
+};
+#pragma comment(linker, "/alternatename:?Insert@H1c_RectVector@@QAEXPAPAVUIRect@@IABQAV2@@Z=?insert@?$vector@PAXV?$allocator@PAX@std@@@std@@QAEXPAPAXIABQAX@Z")
+#pragma comment(linker, "/alternatename:?SizeCall@H1c_RectVector@@QBEIXZ=?size@?$vector@PAXV?$allocator@PAX@std@@@std@@QBEIXZ")
+#pragma comment(linker, "/alternatename:?Ucopy@H1c_RectVector@@QAEPAPAVUIRect@@PBQAV2@0PAPAV2@@Z=?_Ucopy@?$vector@PAXV?$allocator@PAX@std@@@std@@IAEPAPAXPBQAX0PAPAX@Z")
+#pragma comment(linker, "/alternatename:?Ufill@H1c_RectVector@@QAEXPAPAVUIRect@@IABQAV2@@Z=?_Ufill@?$vector@PAXV?$allocator@PAX@std@@@std@@IAEXPAPAXIABQAX@Z")
+#pragma comment(linker, "/alternatename:?Destroy@H1c_RectVector@@QAEXPAPAVUIRect@@0@Z=?_Destroy@?$vector@PAXV?$allocator@PAX@std@@@std@@IAEXPAPAX0@Z")
+#pragma comment(linker, "/alternatename:?Construct@H1c_RectVector@@SAXPAPAVUIRect@@ABQAV2@@Z=?_Construct@std@@YAXPAPAXABQAX@Z")
+typedef char H1c_RectVectorLayoutCheck[sizeof(H1c_RectVector) == sizeof(std::vector<UIRect*>) ? 1 : -1];
+
 extern ConfigKey DAT_004f69b0[];
 
 // FUNCTION: RALLYTROPHY 0x4266c0
@@ -246,32 +361,32 @@ int GameScreen2DD4::Frame()
     return r;
 }
 
-// NONMATCHING: RALLYTROPHY 0x4270c0
-// Loads the five game-mode hit-test rectangles from gamemodemenu.ini; inline vector growth/register allocation still differs.
+/* FUNCTION: RALLYTROPHY 0x4270c0 */
+// Exact 1286-byte match / 67 relocations. Five insertions use explicit helper boundaries.
+// Local comparison and call audit: docs/analysis/game-mode-layout.md.
 void GameScreen2DD4::LoadLayout()
 {
     Config config;
     config.Define(DAT_004f69b0, 10);
-    std::string filename;
-    filename = "data/menu/gamemodemenu.ini";
+    H1c_String filename("data/menu/gamemodemenu.ini");
     config.Load(filename.c_str(), 1, 0, 0);
 
     UIRect* rect;
-    rect = new UIRect(*(HudPoint*)&config.GetVector2("ChampionshipText_UpperLeft"),
+    rect = (UIRect*)new H1c_Rect(*(const H1c_Point*)&config.GetVector2("ChampionshipText_UpperLeft"),
                       *(HudPoint*)&config.GetVector2("ChampionshipText_LowerRight"));
-    m_items.insert(m_items.end(), rect);
-    rect = new UIRect(*(HudPoint*)&config.GetVector2("SingleRaceText_UpperLeft"),
+    ((H1c_RectVector*)&m_items)->PushBack(rect);
+    rect = (UIRect*)new H1c_Rect(*(const H1c_Point*)&config.GetVector2("SingleRaceText_UpperLeft"),
                       *(HudPoint*)&config.GetVector2("SingleRaceText_LowerRight"));
-    m_items.insert(m_items.end(), rect);
-    rect = new UIRect(*(HudPoint*)&config.GetVector2("SingleStageText_UpperLeft"),
+    ((H1c_RectVector*)&m_items)->PushBack(rect);
+    rect = (UIRect*)new H1c_Rect(*(const H1c_Point*)&config.GetVector2("SingleStageText_UpperLeft"),
                       *(HudPoint*)&config.GetVector2("SingleStageText_LowerRight"));
-    m_items.insert(m_items.end(), rect);
-    rect = new UIRect(*(HudPoint*)&config.GetVector2("TimeTrialText_UpperLeft"),
+    ((H1c_RectVector*)&m_items)->PushBack(rect);
+    rect = (UIRect*)new H1c_Rect(*(const H1c_Point*)&config.GetVector2("TimeTrialText_UpperLeft"),
                       *(HudPoint*)&config.GetVector2("TimeTrialText_LowerRight"));
-    m_items.insert(m_items.end(), rect);
-    rect = new UIRect(*(HudPoint*)&config.GetVector2("BackText_UpperLeft"),
+    ((H1c_RectVector*)&m_items)->PushBack(rect);
+    rect = (UIRect*)new H1c_Rect(*(const H1c_Point*)&config.GetVector2("BackText_UpperLeft"),
                       *(HudPoint*)&config.GetVector2("BackText_LowerRight"));
-    m_items.insert(m_items.end(), rect);
+    ((H1c_RectVector*)&m_items)->PushBackExpanded(rect);
 }
 
 // FUNCTION: RALLYTROPHY 0x4275d0
