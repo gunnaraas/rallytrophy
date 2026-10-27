@@ -6,7 +6,7 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Status
 
-- Marker inventory: 1799/2084 byte-exact (86.32%); 2084/2084 functions written (100.00%), from `tools/progress.py`.
+- Marker inventory: 1800/2084 byte-exact (86.37%); 2084/2084 functions written (100.00%), from `tools/progress.py`.
 - Game code: about 1,690 functions in `0x401000`–`0x4bcfc6`
 
 ## Queue
@@ -31,6 +31,8 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 
 ## Log
+
+- 2026-10-27 (Codex, graphics-menu layout `0x42aee0`): Exact 5,014-byte C++ match / 251 relocations. Pinned final two vector insertions and retained the range-assignment helper boundary. Verified 11 aliases / 64 call targets; focused 11 exact / 1 NONMATCHING. Evidence: `docs/analysis/graphics-menu-layout.md`.
 
 - 2026-10-27 (Codex, `RaceOptionsMenu::LoadLayout` `0x440890`): Exact 2,722-byte C++ match with 138 relocations. The final insertion now expands size and the real pointer-destruction loop, preserving the target's old-first spill. Verified 11 aliases and 35 PE call targets; focused 9 exact / 1 NONMATCHING. Evidence: `docs/analysis/race-options-layout.md`.
 - 2026-10-27 (Codex, `G10_GameView::LoadMainLayout` `0x434e00`): Exact 1,572-byte C++ match with 81 relocations. Six insert calls and the seventh expanded insertion now use the target's inline prefix / out-of-line fill and suffix-copy policy. Verified 11 aliases and 31 PE call destinations; focused 43 exact / 8 NONMATCHING. Evidence: `docs/analysis/main-menu-layout.md`.

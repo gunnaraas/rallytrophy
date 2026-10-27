@@ -74,6 +74,128 @@ public:
     unsigned int reserve;
 };
 
+#pragma comment(linker, "/alternatename:?Tidy@H3c_String@@QAEX_N@Z=?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z")
+#pragma comment(linker, "/alternatename:?Grow@H3c_String@@QAE_NI_N@Z=?_Grow@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAE_NI_N@Z")
+#pragma comment(linker, "/alternatename:?Eos@H3c_String@@QAEXI@Z=?_Eos@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEXI@Z")
+#pragma comment(linker, "/alternatename:??0H3c_Point@@QAE@ABU0@@Z=?Assign@Pair@@QAEPAU1@PBU1@@Z")
+#pragma comment(linker, "/alternatename:??0H3c_Rect@@QAE@UH3c_Point@@VHudPoint@@@Z=??0A_Rect@@QAE@VHudPoint@@0@Z")
+// VC6 vector layout with each call/inline boundary pinned to the target loader.
+struct H3c_RectVector {
+    std::allocator<UIRect*> alloc;
+    UIRect** first;
+    UIRect** last;
+    UIRect** end;
+    void Insert(UIRect** pos, unsigned int n, UIRect* const& value); // 0x4bc680
+    void InsertOne(UIRect** pos, UIRect* const& value) { Insert(pos, 1, value); }
+    void PushBack(UIRect* const& value) { InsertOne(last, value); }
+    unsigned int Size() const { return first == 0 ? 0 : last - first; }
+    unsigned int SizeCall() const; // 0x414460
+    UIRect** Ucopy(UIRect* const* f, UIRect* const* l, UIRect** d); // 0x424320
+    void Ufill(UIRect** d, unsigned int n, UIRect* const& value); // 0x424350
+    void Destroy(UIRect** f, UIRect** l); // 0x403130
+    static void Construct(UIRect** p, UIRect* const& value); // 0x403140
+    UIRect** CopyInline(UIRect* const* from, UIRect* const* finish, UIRect** out)
+    {
+        for (; from != finish; ++out, ++from)
+            Construct(out, *from);
+        return out;
+    }
+    void FillInline(UIRect** out, unsigned int count, UIRect* const& value)
+    {
+        for (; 0 < count; --count, ++out)
+            Construct(out, value);
+    }
+    void PushBackExpanded(UIRect* const& value)
+    {
+        UIRect** pos = last;
+        if ((unsigned int)(end - last) < 1) {
+            unsigned int count = Size() + (1 < Size() ? Size() : 1);
+            UIRect** storage = alloc.allocate(count, (void*)0);
+            UIRect** out = CopyInline(first, pos, storage);
+            FillInline(out, 1, value);
+            Ucopy(pos, last, out + 1);
+            Destroy(first, last);
+            alloc.deallocate(first, end - first);
+            end = storage + count;
+            last = storage + SizeCall() + 1;
+            first = storage;
+        } else if ((unsigned int)(last - pos) < 1) {
+            Ucopy(pos, last, pos + 1);
+            Ufill(last, 1 - (last - pos), value);
+            for (UIRect** from = pos; from != last; ++from)
+                *from = value;
+            last += 1;
+        } else {
+            Ucopy(last - 1, last, last);
+            UIRect** to = last;
+            UIRect** from = last - 1;
+            while (pos != from)
+                *--to = *--from;
+            for (from = pos; from != pos + 1; ++from)
+                *from = value;
+            last += 1;
+        }
+    }
+    UIRect** CopyDeep(UIRect* const* from, UIRect* const* finish, UIRect** out)
+    {
+        for (; from != finish; ++out, ++from)
+            alloc.construct(out, *from);
+        return out;
+    }
+    void FillDeep(UIRect** out, unsigned int count, UIRect* const& value)
+    {
+        for (; 0 < count; --count, ++out)
+            alloc.construct(out, value);
+    }
+    void DestroyInline(UIRect** from, UIRect** finish)
+    {
+        for (; from != finish; ++from)
+            alloc.destroy(from);
+    }
+    // Keep the range operation separate, as std::fill is in the original header.
+    static void AssignRange(UIRect** from, UIRect** finish, UIRect* const& value)
+    {
+        for (; from != finish; ++from)
+            *from = value;
+    }
+    void PushBackFinal(UIRect* const& value)
+    {
+        UIRect** pos = last;
+        if ((unsigned int)(end - last) < 1) {
+            unsigned int count = Size() + (1 < Size() ? Size() : 1);
+            UIRect** storage = alloc.allocate(count, (void*)0);
+            UIRect** out = CopyDeep(first, pos, storage);
+            FillDeep(out, 1, value);
+            CopyInline(pos, last, out + 1);
+            DestroyInline(first, last);
+            alloc.deallocate(first, end - first);
+            end = storage + count;
+            last = storage + Size() + 1;
+            first = storage;
+        } else if ((unsigned int)(last - pos) < 1) {
+            CopyDeep(pos, last, pos + 1);
+            FillInline(last, 1 - (last - pos), value);
+            AssignRange(pos, last, value);
+            last += 1;
+        } else {
+            CopyInline(last - 1, last, last);
+            UIRect** to = last;
+            UIRect** from = last - 1;
+            while (pos != from)
+                *--to = *--from;
+            AssignRange(pos, pos + 1, value);
+            last += 1;
+        }
+    }
+};
+#pragma comment(linker, "/alternatename:?Insert@H3c_RectVector@@QAEXPAPAVUIRect@@IABQAV2@@Z=?insert@?$vector@PAXV?$allocator@PAX@std@@@std@@QAEXPAPAXIABQAX@Z")
+#pragma comment(linker, "/alternatename:?SizeCall@H3c_RectVector@@QBEIXZ=?size@?$vector@PAXV?$allocator@PAX@std@@@std@@QBEIXZ")
+#pragma comment(linker, "/alternatename:?Ucopy@H3c_RectVector@@QAEPAPAVUIRect@@PBQAV2@0PAPAV2@@Z=?_Ucopy@?$vector@PAXV?$allocator@PAX@std@@@std@@IAEPAPAXPBQAX0PAPAX@Z")
+#pragma comment(linker, "/alternatename:?Ufill@H3c_RectVector@@QAEXPAPAVUIRect@@IABQAV2@@Z=?_Ufill@?$vector@PAXV?$allocator@PAX@std@@@std@@IAEXPAPAXIABQAX@Z")
+#pragma comment(linker, "/alternatename:?Destroy@H3c_RectVector@@QAEXPAPAVUIRect@@0@Z=?_Destroy@?$vector@PAXV?$allocator@PAX@std@@@std@@IAEXPAPAX0@Z")
+#pragma comment(linker, "/alternatename:?Construct@H3c_RectVector@@SAXPAPAVUIRect@@ABQAV2@@Z=?_Construct@std@@YAXPAPAXABQAX@Z")
+typedef char H3c_RectVectorLayoutCheck[sizeof(H3c_RectVector) == sizeof(std::vector<UIRect*>) ? 1 : -1];
+
 extern ConfigKey DAT_004f6e18[];
 
 // Inline-budget ballast (as B3_Nop in unk_43f9e0.cpp): VC6 spends its inline budget from the last call site
@@ -84,6 +206,18 @@ static inline int H3c_Nop(int a) { return a + 1; }
         rect = (UIRect*)new H3c_Rect(*(const H3c_Point*)&config.GetVector2(ul), \
                                      *(const HudPoint*)&config.GetVector2(lr)); \
         m_items.push_back(rect); \
+    } while (0)
+
+#define H3c_ADD_PENULTIMATE(ul, lr) \
+    do { \
+        rect = (UIRect*)new H3c_Rect(*(const H3c_Point*)&config.GetVector2(ul), *(const HudPoint*)&config.GetVector2(lr)); \
+        ((H3c_RectVector*)&m_items)->PushBackExpanded(rect); \
+    } while (0)
+
+#define H3c_ADD_FINAL(ul, lr) \
+    do { \
+        rect = (UIRect*)new H3c_Rect(*(const H3c_Point*)&config.GetVector2(ul), *(const HudPoint*)&config.GetVector2(lr)); \
+        ((H3c_RectVector*)&m_items)->PushBackFinal(rect); \
     } while (0)
 
 // FUNCTION: RALLYTROPHY 0x4295c0
@@ -472,9 +606,9 @@ int MenuScreen2A8::Frame()
     return r;
 }
 
-// NONMATCHING: RALLYTROPHY 0x42aee0
-// 5031 vs 5014 bytes, 763 differing: config/string setup, all 25 rect blocks and the first 22 out-of-line inserts plus
-// the 23rd/24th push_back expansions match; the last two push_back expansions inline _Ucopy/_Construct differently.
+/* FUNCTION: RALLYTROPHY 0x42aee0 */
+// Exact 5014-byte match / 251 relocations. Final two insertion helper boundaries are explicit.
+// Local comparison and call audit: docs/analysis/graphics-menu-layout.md.
 // original: FUN_0042aee0 (thiscall; graphics menu layout loader, called from 0x42a330)
 void MenuScreen2A8::LoadLayout()
 {
@@ -508,8 +642,8 @@ void MenuScreen2A8::LoadLayout()
     H3c_Nop(1);
     H3c_ADD("ShadowDetailArrow2_UpperLeft", "ShadowDetailArrow2_LowerRight");
     H3c_Nop(1);
-    H3c_ADD("OpponentDetailArrow1_UpperLeft", "OpponentDetailArrow1_LowerRight");
-    H3c_ADD("OpponentDetailArrow2_UpperLeft", "OpponentDetailArrow2_LowerRight");
+    H3c_ADD_PENULTIMATE("OpponentDetailArrow1_UpperLeft", "OpponentDetailArrow1_LowerRight");
+    H3c_ADD_FINAL("OpponentDetailArrow2_UpperLeft", "OpponentDetailArrow2_LowerRight");
 }
 
 // FUNCTION: RALLYTROPHY 0x42c280
