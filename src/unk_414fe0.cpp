@@ -258,72 +258,76 @@ void StageSounds::FUN_00414fe0(PlaceObj*)
 }
 
 // point * rotation rows (stride 16) + trans into result, a hand-written x87 block in the original
-#define PLACE_TRANSFORM() \
-    __asm mov ecx, point \
-    __asm mov edx, matrix \
-    __asm mov eax, result \
-    __asm mov ebx, trans \
-    __asm fld dword ptr [ecx] \
-    __asm fmul dword ptr [edx] \
-    __asm fld dword ptr [ecx] \
-    __asm fmul dword ptr [edx+4] \
-    __asm fld dword ptr [ecx] \
-    __asm fmul dword ptr [edx+8] \
-    __asm fld dword ptr [ecx+4] \
-    __asm fmul dword ptr [edx+16] \
-    __asm fld dword ptr [ecx+4] \
-    __asm fmul dword ptr [edx+20] \
-    __asm fld dword ptr [ecx+4] \
-    __asm fmul dword ptr [edx+24] \
-    __asm fxch st(2) \
-    __asm faddp st(5), st \
-    __asm faddp st(3), st \
-    __asm faddp st(1), st \
-    __asm fld dword ptr [ecx+8] \
-    __asm fmul dword ptr [edx+32] \
-    __asm fld dword ptr [ecx+8] \
-    __asm fmul dword ptr [edx+36] \
-    __asm fld dword ptr [ecx+8] \
-    __asm fmul dword ptr [edx+40] \
-    __asm fxch st(2) \
-    __asm faddp st(5), st \
-    __asm faddp st(3), st \
-    __asm faddp st(1), st \
-    __asm fxch st(2) \
-    __asm fadd dword ptr [ebx] \
-    __asm fxch st(1) \
-    __asm fadd dword ptr [ebx+4] \
-    __asm fxch st(2) \
-    __asm fadd dword ptr [ebx+8] \
-    __asm fxch st(1) \
-    __asm fstp dword ptr [eax] \
-    __asm fstp dword ptr [eax+8] \
-    __asm fstp dword ptr [eax+4]
-
-#define PLACE_CROSS() \
-    __asm mov ecx, ca \
-    __asm mov edx, cb \
-    __asm mov eax, cresult \
-    __asm fld dword ptr [ecx+4] \
-    __asm fmul dword ptr [edx+8] \
-    __asm fld dword ptr [ecx+8] \
-    __asm fmul dword ptr [edx] \
-    __asm fld dword ptr [ecx] \
-    __asm fmul dword ptr [edx+4] \
-    __asm fld dword ptr [ecx+8] \
-    __asm fmul dword ptr [edx+4] \
-    __asm fld dword ptr [ecx] \
-    __asm fmul dword ptr [edx+8] \
-    __asm fld dword ptr [ecx+4] \
-    __asm fmul dword ptr [edx] \
-    __asm fxch st(2) \
-    __asm fsubp st(5), st \
-    __asm fsubp st(3), st \
-    __asm fsubp st(1), st \
-    __asm fxch st(2) \
-    __asm fstp dword ptr [eax] \
-    __asm fstp dword ptr [eax+4] \
+inline void PlaceTransform(const float* point, const float* matrix, float* result, const float* trans)
+{
+    __asm mov ecx, point
+    __asm mov edx, matrix
+    __asm mov eax, result
+    __asm mov ebx, trans
+    __asm fld dword ptr [ecx]
+    __asm fmul dword ptr [edx]
+    __asm fld dword ptr [ecx]
+    __asm fmul dword ptr [edx+4]
+    __asm fld dword ptr [ecx]
+    __asm fmul dword ptr [edx+8]
+    __asm fld dword ptr [ecx+4]
+    __asm fmul dword ptr [edx+16]
+    __asm fld dword ptr [ecx+4]
+    __asm fmul dword ptr [edx+20]
+    __asm fld dword ptr [ecx+4]
+    __asm fmul dword ptr [edx+24]
+    __asm fxch st(2)
+    __asm faddp st(5), st
+    __asm faddp st(3), st
+    __asm faddp st(1), st
+    __asm fld dword ptr [ecx+8]
+    __asm fmul dword ptr [edx+32]
+    __asm fld dword ptr [ecx+8]
+    __asm fmul dword ptr [edx+36]
+    __asm fld dword ptr [ecx+8]
+    __asm fmul dword ptr [edx+40]
+    __asm fxch st(2)
+    __asm faddp st(5), st
+    __asm faddp st(3), st
+    __asm faddp st(1), st
+    __asm fxch st(2)
+    __asm fadd dword ptr [ebx]
+    __asm fxch st(1)
+    __asm fadd dword ptr [ebx+4]
+    __asm fxch st(2)
+    __asm fadd dword ptr [ebx+8]
+    __asm fxch st(1)
+    __asm fstp dword ptr [eax]
     __asm fstp dword ptr [eax+8]
+    __asm fstp dword ptr [eax+4]
+}
+
+inline void PlaceCross(const float* ca, const float* cb, float* cresult)
+{
+    __asm mov ecx, ca
+    __asm mov edx, cb
+    __asm mov eax, cresult
+    __asm fld dword ptr [ecx+4]
+    __asm fmul dword ptr [edx+8]
+    __asm fld dword ptr [ecx+8]
+    __asm fmul dword ptr [edx]
+    __asm fld dword ptr [ecx]
+    __asm fmul dword ptr [edx+4]
+    __asm fld dword ptr [ecx+8]
+    __asm fmul dword ptr [edx+4]
+    __asm fld dword ptr [ecx]
+    __asm fmul dword ptr [edx+8]
+    __asm fld dword ptr [ecx+4]
+    __asm fmul dword ptr [edx]
+    __asm fxch st(2)
+    __asm fsubp st(5), st
+    __asm fsubp st(3), st
+    __asm fsubp st(1), st
+    __asm fxch st(2)
+    __asm fstp dword ptr [eax]
+    __asm fstp dword ptr [eax+4]
+    __asm fstp dword ptr [eax+8]
+}
 
 struct PlaceVec {
     float x, y, z;
@@ -341,7 +345,7 @@ struct PlaceVec {
     }
     float Length() const
     {
-        float a = x, b = y, c = z;
+        float c = z, b = y, a = x;
         return (float)sqrt(a * a + b * b + c * c);
     }
 };
@@ -358,8 +362,8 @@ struct PlaceRec {
 };
 
 // NONMATCHING: RALLYTROPHY 0x4150b0
-// 694 vs 697 bytes. Asm transform/cross blocks and FPU order match; open: the original stores dir after -= and
-// reloads it for Length/normalize (here VC6 forwards the values), and asm-block pointer slots/regs differ.
+// 680 vs 697 bytes; asm blocks and the dir/normalize FPU code match. Open: the original reloads the name pointer
+// for the second c_str (here it is cached in ebx), so its frame is 4 bytes larger and the asm pointer slots differ.
 void StageSounds::FUN_004150b0(PlaceObj* o)
 {
     if (strlen(o->name.ptr ? o->name.ptr : "") < 8)
@@ -372,40 +376,22 @@ void StageSounds::FUN_004150b0(PlaceObj* o)
     ext.x = o->f[40];
     ext.y = 0.0f;
     ext.z = 0.0f;
-    {
-        const float* trans = (const float*)pos;
-        float* result = (float*)&rec->start;
-        const float* matrix = &o->f[8];
-        const float* point = (const float*)&ext;
-        PLACE_TRANSFORM();
-    }
+    PlaceTransform(&ext.x, &o->f[8], &rec->start.x, &pos->x);
     rec->start.y = o->f[6];
     ext.x = o->f[43];
-    {
-        const float* point = (const float*)&ext;
-        const float* matrix = &o->f[8];
-        float* result = (float*)&rec->end;
-        const float* trans = (const float*)pos;
-        PLACE_TRANSFORM();
-    }
+    PlaceTransform(&ext.x, &o->f[8], &rec->end.x, &pos->x);
     rec->end.y = o->f[6];
     rec->pos = *pos;
-    PlaceVec* d = &rec->dir;
-    *d = rec->end;
-    *d -= rec->start;
-    float len = d->Length();
+    rec->dir = rec->end;
+    rec->dir -= rec->start;
+    float len = rec->dir.Length();
     rec->length = len;
-    *d *= 1.0f / len;
-    {
-        PlaceVec up;
-        up.x = 0.0f;
-        up.y = 1.0f;
-        up.z = 0.0f;
-        const float* ca = (const float*)d;
-        const float* cb = (const float*)&up;
-        float* cresult = (float*)&rec->side;
-        PLACE_CROSS();
-    }
+    rec->dir *= 1.0f / len;
+    PlaceVec up;
+    up.x = 0.0f;
+    up.y = 1.0f;
+    up.z = 0.0f;
+    PlaceCross(&rec->dir.x, &up.x, &rec->side.x);
     n++;
     float rad = ext.Length() * 1.1f;
     rec->radius = rad;

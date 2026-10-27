@@ -39,71 +39,75 @@ void ColModel::ClearInts()
 }
 
 // point * M (rows at stride 16, translation at +48) into result, a hand-written x87 block in the original.
-#define COL_TRANSFORM() \
-    __asm mov ecx, point \
-    __asm mov edx, matrix \
-    __asm mov eax, result \
-    __asm fld dword ptr [ecx] \
-    __asm fmul dword ptr [edx] \
-    __asm fld dword ptr [ecx] \
-    __asm fmul dword ptr [edx+4] \
-    __asm fld dword ptr [ecx] \
-    __asm fmul dword ptr [edx+8] \
-    __asm fld dword ptr [ecx+4] \
-    __asm fmul dword ptr [edx+16] \
-    __asm fld dword ptr [ecx+4] \
-    __asm fmul dword ptr [edx+20] \
-    __asm fld dword ptr [ecx+4] \
-    __asm fmul dword ptr [edx+24] \
-    __asm fxch st(2) \
-    __asm faddp st(5), st \
-    __asm faddp st(3), st \
-    __asm faddp st(1), st \
-    __asm fld dword ptr [ecx+8] \
-    __asm fmul dword ptr [edx+32] \
-    __asm fld dword ptr [ecx+8] \
-    __asm fmul dword ptr [edx+36] \
-    __asm fld dword ptr [ecx+8] \
-    __asm fmul dword ptr [edx+40] \
-    __asm fxch st(2) \
-    __asm faddp st(5), st \
-    __asm faddp st(3), st \
-    __asm faddp st(1), st \
-    __asm fxch st(2) \
-    __asm fadd dword ptr [edx+48] \
-    __asm fxch st(1) \
-    __asm fadd dword ptr [edx+52] \
-    __asm fxch st(2) \
-    __asm fadd dword ptr [edx+56] \
-    __asm fxch st(1) \
-    __asm fstp dword ptr [eax] \
-    __asm fstp dword ptr [eax+8] \
-    __asm fstp dword ptr [eax+4]
-
-#define COL_CROSS() \
-    __asm mov ecx, ca \
-    __asm mov edx, cb \
-    __asm mov eax, cresult \
-    __asm fld dword ptr [ecx+4] \
-    __asm fmul dword ptr [edx+8] \
-    __asm fld dword ptr [ecx+8] \
-    __asm fmul dword ptr [edx] \
-    __asm fld dword ptr [ecx] \
-    __asm fmul dword ptr [edx+4] \
-    __asm fld dword ptr [ecx+8] \
-    __asm fmul dword ptr [edx+4] \
-    __asm fld dword ptr [ecx] \
-    __asm fmul dword ptr [edx+8] \
-    __asm fld dword ptr [ecx+4] \
-    __asm fmul dword ptr [edx] \
-    __asm fxch st(2) \
-    __asm fsubp st(5), st \
-    __asm fsubp st(3), st \
-    __asm fsubp st(1), st \
-    __asm fxch st(2) \
-    __asm fstp dword ptr [eax] \
-    __asm fstp dword ptr [eax+4] \
+inline void ColTransform(float* result, const float* point, const float* matrix)
+{
+    __asm mov ecx, point
+    __asm mov edx, matrix
+    __asm mov eax, result
+    __asm fld dword ptr [ecx]
+    __asm fmul dword ptr [edx]
+    __asm fld dword ptr [ecx]
+    __asm fmul dword ptr [edx+4]
+    __asm fld dword ptr [ecx]
+    __asm fmul dword ptr [edx+8]
+    __asm fld dword ptr [ecx+4]
+    __asm fmul dword ptr [edx+16]
+    __asm fld dword ptr [ecx+4]
+    __asm fmul dword ptr [edx+20]
+    __asm fld dword ptr [ecx+4]
+    __asm fmul dword ptr [edx+24]
+    __asm fxch st(2)
+    __asm faddp st(5), st
+    __asm faddp st(3), st
+    __asm faddp st(1), st
+    __asm fld dword ptr [ecx+8]
+    __asm fmul dword ptr [edx+32]
+    __asm fld dword ptr [ecx+8]
+    __asm fmul dword ptr [edx+36]
+    __asm fld dword ptr [ecx+8]
+    __asm fmul dword ptr [edx+40]
+    __asm fxch st(2)
+    __asm faddp st(5), st
+    __asm faddp st(3), st
+    __asm faddp st(1), st
+    __asm fxch st(2)
+    __asm fadd dword ptr [edx+48]
+    __asm fxch st(1)
+    __asm fadd dword ptr [edx+52]
+    __asm fxch st(2)
+    __asm fadd dword ptr [edx+56]
+    __asm fxch st(1)
+    __asm fstp dword ptr [eax]
     __asm fstp dword ptr [eax+8]
+    __asm fstp dword ptr [eax+4]
+}
+
+inline void ColCross(const float* ca, const float* cb, float* cresult)
+{
+    __asm mov ecx, ca
+    __asm mov edx, cb
+    __asm mov eax, cresult
+    __asm fld dword ptr [ecx+4]
+    __asm fmul dword ptr [edx+8]
+    __asm fld dword ptr [ecx+8]
+    __asm fmul dword ptr [edx]
+    __asm fld dword ptr [ecx]
+    __asm fmul dword ptr [edx+4]
+    __asm fld dword ptr [ecx+8]
+    __asm fmul dword ptr [edx+4]
+    __asm fld dword ptr [ecx]
+    __asm fmul dword ptr [edx+8]
+    __asm fld dword ptr [ecx+4]
+    __asm fmul dword ptr [edx]
+    __asm fxch st(2)
+    __asm fsubp st(5), st
+    __asm fsubp st(3), st
+    __asm fsubp st(1), st
+    __asm fxch st(2)
+    __asm fstp dword ptr [eax]
+    __asm fstp dword ptr [eax+4]
+    __asm fstp dword ptr [eax+8]
+}
 
 struct ColVec {
     float x, y, z;
@@ -128,8 +132,8 @@ struct ColVec {
 };
 
 // NONMATCHING: RALLYTROPHY 0x41b270
-// 710 vs 697 bytes. Asm transform/cross blocks match; open: frame is 4 bytes larger, the original keeps this in
-// esi, and after the normalize it reloads the normal for the plane distance (here VC6 forwards it from registers).
+// 696 vs 697 bytes; frame, asm blocks and FPU code match. Open: register choice in the loop setup and edge loads,
+// and the original loads the vertex pointer for the plane distance before the normal's length, not after.
 void ColModel::Transform(float* m, float* t)
 {
     float M[16] = { m[0], m[1], m[2], 0.0f, m[4], m[5], m[6], 0.0f, m[8], m[9], m[10], 0.0f, t[0], t[1], t[2], 1.0f };
@@ -138,10 +142,7 @@ void ColModel::Transform(float* m, float* t)
         ColVert* s = verts;
         ColVert* d = wverts;
         do {
-            const float* matrix = M;
-            const float* point = &s->x;
-            float* result = &d->x;
-            COL_TRANSFORM();
+            ColTransform(&d->x, &s->x, M);
             s++;
             d++;
         } while (--n != 0);
@@ -154,21 +155,10 @@ void ColModel::Transform(float* m, float* t)
         e1 -= *(ColVec*)&v[0]->x;
         ColVec e2 = *(ColVec*)&v[2]->x;
         e2 -= *(ColVec*)&v[0]->x;
-        ColVec* nrm = (ColVec*)&tr->c[0] + 2;
-        {
-            const float* ca = (const float*)&e1;
-            const float* cb = (const float*)&e2;
-            float* cresult = (float*)nrm;
-            COL_CROSS();
-        }
-        *nrm *= DAT_004e1348 / nrm->Length();
-        ((float*)tr)[9] = ((ColVec*)&v[0]->x)->Dot(*nrm);
-        {
-            const float* point = &c->x;
-            const float* matrix = M;
-            float* result = (float*)tr;
-            COL_TRANSFORM();
-        }
+        ColCross(&e1.x, &e2.x, &tr->c[0] + 6);
+        *((ColVec*)tr + 2) *= DAT_004e1348 / ((ColVec*)tr + 2)->Length();
+        ((float*)tr)[9] = ((ColVec*)&v[0]->x)->Dot(*((ColVec*)tr + 2));
+        ColTransform((float*)tr, &c->x, M);
         tr++;
         c++;
     }
