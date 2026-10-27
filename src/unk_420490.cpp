@@ -633,30 +633,30 @@ extern char DAT_005014c8;
 extern int DAT_004f6150[];
 
 // NONMATCHING: RALLYTROPHY 0x421e30
-// NONMATCHING: mask selection schedules its global loads differently (367 vs 364 bytes)
+// NONMATCHING: 365 vs 364 bytes; target loads 0x501458 before 0x5014cc and keeps the mask in edx (tried ternary, nested-if, cached 0x501454)
 void StageScreen::Start(DWORD mask, int a, int b)
 {
     unk238 = a;
     unk248 = b;
     Setup((MenuGame*)mask);
     int i = 0;
-    mask = DAT_005014cc;
-    if (DAT_00501458 != 0) {
-        mask = DAT_005014d0;
+    DWORD sel = DAT_005014cc;
+    if (DAT_00501458 != 0 && DAT_00501454 == 0) {
+        sel = DAT_005014d0;
     }
-    if (DAT_00501454 == 0) {
+    if (DAT_00501454 != 0) {
+        sel &= DAT_005014e0[DAT_00501320];
+    } else {
         DWORD m;
-        if (DAT_00501464 == 3) {
-            m = DAT_005014d8;
+        if (DAT_00501464 != 3) {
+            m = DAT_005014d4[DAT_0050132c];
+        } else {
             if (DAT_005014c8 != 0) {
                 goto done;
             }
-        } else {
-            m = DAT_005014d4[DAT_0050132c];
+            m = DAT_005014d8;
         }
-        mask = mask & m;
-    } else {
-        mask = DAT_005014cc & DAT_005014e0[DAT_00501320];
+        sel &= m;
     }
 done:
     unk124[1] = 0;
@@ -672,17 +672,14 @@ done:
                     k--;
                 } while (k != 0);
             }
-            if ((mask & bit) == 0) {
-                if (car == 0 || car == 2 || car == 4 || car == 6 || car == 8 || car == 10 || car == 12 ||
-                    car == 14 || car == 16 || car == 18 || car == 20) {
-                    list[unk124[1]].car = car;
-                    list[unk124[1]].flag = 0;
-                    goto next;
-                }
-            } else {
+            if ((sel & bit) != 0) {
                 list[unk124[1]].car = car;
                 list[unk124[1]].flag = 1;
-next:
+                unk124[1]++;
+            } else if (car == 0 || car == 2 || car == 4 || car == 6 || car == 8 || car == 10 || car == 12 ||
+                       car == 14 || car == 16 || car == 18 || car == 20) {
+                list[unk124[1]].car = car;
+                list[unk124[1]].flag = 0;
                 unk124[1]++;
             }
             i++;
