@@ -329,7 +329,7 @@ entry,size,note
 0x43d760,12,MenuManager module end: atexit(0x402c90) registration
 0x439140,25,module-end STL initializer guard
 0x439160,12,module-end STL atexit registration
-0x439310,1408,MenuScreenA48::Setup (vtable slot 1; missing from functions.csv)
+0x439310,1401,MenuScreenA48::Setup (vtable slot 1; missing from functions.csv)
 0x43a360,25,MenuScreenA48 module end: guard-bit initialiser of the STL header statics (_$E)
 0x43a380,12,MenuScreenA48 module end: atexit(0x402c90) registration
 0x43c560,25,Screen1378 module end: guard-bit initializer for STL header statics (_$E)

@@ -54,6 +54,7 @@ matching maps, compiler notes, and the active work queue are under
   [race-options layout](analysis/race-options-layout.md),
   [graphics-menu layout](analysis/graphics-menu-layout.md),
   [game-mode layout](analysis/game-mode-layout.md),
+  [network-options setup](analysis/network-options-setup.md),
   [modal confirmation](analysis/modal-confirmation.md),
   [modal result loop](analysis/modal-result-loop.md),
   [player-name menu setup](analysis/player-name-setup.md),

@@ -43,43 +43,70 @@ MenuScreenA48::~MenuScreenA48()
     Release();
 }
 
-// NONMATCHING: RALLYTROPHY 0x439310
-// Recovered label resources and layout fields; VC6 string inlining/scheduling has not been matched yet.
+struct NS_String {
+    int alloc;
+    char* ptr;
+    unsigned int len, res;
+    void AssignCall(const char* s, unsigned int n); // 0x404ba0
+    bool Grow(unsigned int n, bool trim); // 0x402980
+    void Eos(unsigned int n); // 0x402960
+    void AssignA(const char* s) { AssignCall(s, strlen(s)); }
+    void AssignB(const char* s)
+    {
+        unsigned int n = strlen(s);
+        if (Grow(n, true)) {
+            std::char_traits<char>::copy(ptr, s, n);
+            Eos(n);
+        }
+    }
+};
+#pragma comment(linker, "/alternatename:?AssignCall@NS_String@@QAEXPBDI@Z=?assign@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@QAEAAV12@PBDI@Z")
+#pragma comment(linker, "/alternatename:?Grow@NS_String@@QAE_NI_N@Z=?_Grow@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAE_NI_N@Z")
+#pragma comment(linker, "/alternatename:?Eos@NS_String@@QAEXI@Z=?_Eos@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEXI@Z")
+#define NS_TEXT(text) (*(NS_String*)&(text))
+static float NS_X = 54.0f;
+static float NS_Y = 262.0f;
+static float NS_Step = 42.0f;
+static float NS_BackY = 610.0f;
+
+/* FUNCTION: RALLYTROPHY 0x439310 */
+// Exact 1401-byte match / 64 relocations. First four assigns remain calls.
+// Operand audit: docs/analysis/network-options-setup.md.
 void MenuScreenA48::Setup(MenuGame* game)
 {
     if (m_state) return;
     float sx = DAT_0056b0ac->GetWidth() * 0.0009765625f;
     float sy = DAT_0056b0ac->GetHeight() * 0.0013020834f;
-    items[0].text = FUN_00405380(0x119);
-    items[1].text = FUN_00405380(0x11a);
-    items[2].text = FUN_00405380(0x11c);
-    items[3].text = FUN_00405380(0x11b);
-    items[4].text = FUN_00405380(0x18);
-    onOff[0].text = FUN_00405380(2);
-    onOff[1].text = FUN_00405380(1);
-    four[0].text = FUN_00405380(9);
-    four[1].text = FUN_00405380(10);
-    four[2].text = FUN_00405380(11);
-    four[3].text = FUN_00405380(0x26);
-    seven[0].text = FUN_00405380(0x28);
-    seven[1].text = "0.5s";
-    seven[2].text = "1.0s";
-    seven[3].text = "1.5s";
-    seven[4].text = "2.0s";
-    seven[5].text = "2.5s";
-    seven[6].text = "3.0s";
-    Begin(game);
-    float x = 54.0f * sx;
-    float y = 262.0f * sy;
-    float step = 42.0f * sy;
+    NS_TEXT(items[0].text).AssignA(FUN_00405380(0x119));
+    NS_TEXT(items[1].text).AssignA(FUN_00405380(0x11a));
+    NS_TEXT(items[2].text).AssignA(FUN_00405380(0x11c));
+    NS_TEXT(items[3].text).AssignA(FUN_00405380(0x11b));
+    NS_TEXT(items[4].text).AssignB(FUN_00405380(0x18));
+    NS_TEXT(onOff[0].text).AssignB(FUN_00405380(2));
+    NS_TEXT(onOff[1].text).AssignB(FUN_00405380(1));
+    NS_TEXT(four[0].text).AssignB(FUN_00405380(9));
+    NS_TEXT(four[1].text).AssignB(FUN_00405380(10));
+    NS_TEXT(four[2].text).AssignB(FUN_00405380(11));
+    NS_TEXT(four[3].text).AssignB(FUN_00405380(0x26));
+    NS_TEXT(seven[0].text).AssignB(FUN_00405380(0x28));
+    NS_TEXT(seven[1].text).AssignB("0.5s");
+    NS_TEXT(seven[2].text).AssignB("1.0s");
+    NS_TEXT(seven[3].text).AssignB("1.5s");
+    NS_TEXT(seven[4].text).AssignB("2.0s");
+    NS_TEXT(seven[5].text).AssignB("2.5s");
+    NS_TEXT(seven[6].text).AssignB("3.0s");
+    float y = NS_Y * sy;
+    float x = NS_X * sx;
+    float step = NS_Step * sy;
     for (int i = 0; i < 5; ++i) {
         items[i].unk20 = -1;
         items[i].x = x;
         items[i].y = y;
         y += step;
     }
-    items[4].y = 610.0f * sy;
-    DrawSetup();
+    Begin(game);
+    items[4].y = NS_BackY * sy;
+    BuildRects();
 }
 
 // FUNCTION: RALLYTROPHY 0x439890
