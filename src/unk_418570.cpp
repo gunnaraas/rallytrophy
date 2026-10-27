@@ -316,9 +316,61 @@ bool TriNode::Build(TriMesh* m)
      !((t)->v[((s) >> 10) & 3]->z < mn[2]) && (t)->v[((s) >> 8) & 3]->z <= mx[2] && \
      !((t)->v[((s) >> 6) & 3]->y < mn[1]) && (t)->v[((s) & 0x30) >> 4]->y <= mx[1])
 
+// std::vector<Tri*> as Walk uses it: push_back expands VC6's insert(end(), 1, x) inline, with _Construct,
+// _Ucopy, _Ufill, _Destroy and size() left as calls (0x403140, 0x424320, 0x424350, 0x403130, 0x414460).
+struct HitVec {
+    char alloc;
+    Tri** first;
+    Tri** last;
+    Tri** end;
+    unsigned int Size() const { return first == 0 ? 0 : last - first; }
+    unsigned int SizeCall() const;                     // 0x414460
+    Tri** Ucopy(Tri** f, Tri** l, Tri** d);            // 0x424320
+    void Ufill(Tri** d, unsigned int n, Tri* const& x); // 0x424350
+    void Destroy(Tri** f, Tri** l);                    // 0x403130
+    void PushBack(Tri* const& x)
+    {
+        Tri** P = last;
+        if ((unsigned int)(end - last) < 1) {
+            unsigned int N = Size() + (1 < Size() ? Size() : 1);
+            int An = (int)N;
+            if (An < 0)
+                An = 0;
+            Tri** S = (Tri**)operator new(An * sizeof(Tri*));
+            Tri** Q = S;
+            for (Tri** F = first; F != P; ++Q, ++F)
+                ConstructPtr(Q, *F);
+            ConstructPtr(Q, x);
+            Ucopy(P, last, Q + 1);
+            Destroy(first, last);
+            operator delete(first);
+            end = S + N;
+            last = S + SizeCall() + 1;
+            first = S;
+        } else if ((unsigned int)(last - P) < 1) {
+            Ucopy(P, last, P + 1);
+            Ufill(last, 1 - (last - P), x);
+            for (Tri** F = P; F != last; ++F)
+                *F = x;
+            last += 1;
+        } else {
+            Ucopy(last - 1, last, last);
+            Tri** B = last;
+            Tri** E = last - 1;
+            while (E != P)
+                *--B = *--E;
+            for (Tri** F = P; F != P + 1; ++F)
+                *F = x;
+            last += 1;
+        }
+    }
+    static void ConstructPtr(Tri** p, Tri* const& v);  // 0x403140 (std::_Construct, cdecl)
+};
+
 // NONMATCHING: RALLYTROPHY 0x418760
-// reason: structure matches through the node tests; leaf loop keeps count/tri ptr in different stack slots/regs
-// reason: first draft; unchecked against original
+// 774 vs 773 bytes; node tests, the leaf test order (id before sel) and the HitVec push_back expansion follow the
+// target. Open: the leaf count is spilled before the ebx/ebp pushes ([esp+0xc] vs the target's [esp+0x14]),
+// the tri pointer is stored to its push_back slot earlier, and one fill-loop compare has swapped operands.
 void TriCollector::Walk(TriNode* n)
 {
     while (n->mn[0] <= mx[0]) {
@@ -332,10 +384,11 @@ void TriCollector::Walk(TriNode* n)
             if (c > 0) {
                 short* ip = n->idx;
                 do {
-                    Tri* t = &DAT_00508500[*ip];
-                    int s = t->sel;
-                    if (t->id < limit && IN_BOX(t, s)) {
-                        hits.push_back(t);
+                    if (DAT_00508500[*ip].id < limit) {
+                        Tri* t = &DAT_00508500[*ip];
+                        int s = t->sel;
+                        if (IN_BOX(t, s))
+                            { Tri* hit = t; ((HitVec*)&hits)->PushBack(hit); }
                     }
                     ip++;
                 } while (--c != 0);
