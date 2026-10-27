@@ -512,10 +512,9 @@ int PlayerNameMenu::Run()
 
 // Module end: guard-bit initialiser of the STL header statics and its atexit registration.
 
-// NONMATCHING: RALLYTROPHY 0x43ee70
-// 1415 vs 1415 bytes, instruction-identical; only stack-slot numbers differ (34 bytes): the original shares one slot
-// between the loop counter's fild temp and the (i + 1) temp ('fild [T]; mov [T],ebp; fild [T]') and keeps `this` at
-// +0x1c / T at +0x18; mine gives (i + 1) its own temp (hoisted store) and swaps `this`/T.
+// FUNCTION: RALLYTROPHY 0x43ee70
+// Evidence: ev_da7ed8b81af567d9496d671ab8bdb1d8721ec075f7a0c69f6cf4463f594c899a.
+// Reuse the row counter for arrow rectangles to reproduce the original temporary slots.
 // original: FUN_0043ee70 (builds the hit rectangles: 6 name rows, Continue, Back, 2 arrow rects per row)
 void PlayerNameMenu::BuildRects()
 {
@@ -547,21 +546,21 @@ void PlayerNameMenu::BuildRects()
     b.y = A3_BACKY + 42.0f;
     rect = (UIRect*)new A3_Rect(a, b);
     m_items.push_back(rect);
-    for (int j = 0; j < rowCount; j++) {
+    for (i = 0; i < rowCount; i++) {
         b.x = A3_ARROWX + 32.0f;
         a.x = A3_ARROWX;
-        a.y = j * A3_PITCH + top;
-        b.y = (j + 1) * A3_PITCH + top;
+        a.y = i * A3_PITCH + top;
+        b.y = (i + 1) * A3_PITCH + top;
         rect = (UIRect*)new A3_Rect(a, b);
-        if (j >= rowCount)
+        if (i >= rowCount)
             rect->enabled = 0;
         m_items.push_back(rect);
         a.x = A3_ARROWX + 96.0f;
         b.x = A3_ARROWX + 128.0f;
-        a.y = j * A3_PITCH + top;
-        b.y = (j + 1) * A3_PITCH + top;
+        a.y = i * A3_PITCH + top;
+        b.y = (i + 1) * A3_PITCH + top;
         rect = (UIRect*)new A3_Rect(a, b);
-        if (j >= rowCount)
+        if (i >= rowCount)
             rect->enabled = 0;
         std::vector<UIRect*>& v = m_items;
         v.insert(v.end(), rect);

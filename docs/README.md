@@ -38,6 +38,7 @@ matching maps, compiler notes, and the active work queue are under
   [menu toggles](analysis/menu-toggle.md),
   [menu volume](analysis/menu-volume.md),
   [player-name plate drawing](analysis/player-name-plate.md),
+  [player-name hit rectangles](analysis/player-name-build-rects.md),
   [service-menu geometry](analysis/service-menu-pages.md), and
   [menu setup lifetimes](analysis/menu-setup-lifetimes.md).
 - [Networking session](analysis/networking-session.md),

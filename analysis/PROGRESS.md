@@ -6,7 +6,7 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Status
 
-- Marker inventory: 1780/2084 byte-exact (85.44%); 2084/2084 functions written (100.00%), from `tools/progress.py`.
+- Marker inventory: 1781/2084 byte-exact (85.46%); 2084/2084 functions written (100.00%), from `tools/progress.py`.
 - Game code: about 1,690 functions in `0x401000`–`0x4bcfc6`
 
 ## Queue
@@ -31,6 +31,9 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 
 ## Log
+
+- 2026-10-26 (Codex, `PlayerNameMenu::BuildRects` `0x43ee70`): Reusing the row counter matches the 1,415-byte body; independent COFF/PE relocation and 12-state EH audits passed. Evidence: `../docs/analysis/player-name-build-rects.md`.
+  Focused: 14/14 exact-marked functions, 2 NONMATCHING; full: 1,781/1,781 exact, 303 NONMATCHING, no diffs or compile failures.
 
 - 2026-10-26 (Codex, `ServiceMenu::BuildRects` `0x44afd0`): Reusing and resetting the loop counter matches the 1,331-byte body and all 61 relocations; independent EH/relocation audit passed. Evidence: `../docs/analysis/service-menu-pages.md`.
   Focused: 16/16 exact, 6 NONMATCHING; full: 1,780/1,780 exact, 304 NONMATCHING, no diffs or compile failures.
