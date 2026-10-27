@@ -23,6 +23,7 @@ static const float H5a_BACKY = 610.0f;   // back text y
 static const float H5a_COLX = 485.0f;    // slot column x
 static const float H5a_ROWY = 260.0f;    // slot rows y
 static const float H5a_PITCH = 42.0f;    // row pitch
+static const float H5a_BACKEDGE = 652.0f;
 
 
 // ---- from group draft H5b ----
@@ -292,37 +293,44 @@ int GameScreen24FC::Frame()
     return r;
 }
 
-// NONMATCHING: RALLYTROPHY 0x42f360
-// Rectangle construction and vector insertion are recovered; exact temporary layout and x87 expression order differ.
+struct H5f_Point {
+    H5f_Point() {}
+    H5f_Point(const H5f_Point& other); // 0x424300
+    ~H5f_Point() {}
+    float x, y;
+};
+class H5f_Rect {
+public:
+    H5f_Rect(H5f_Point topLeft, HudPoint bottomRight); // 0x4390a0
+    float data[5];
+};
+// FUNCTION: RALLYTROPHY 0x42f360
+// Evidence ev_29ac5b3fcfa6d3278d544d70d3f65371422aa2801be1541ea692ba9cf25081b4; exact 593-byte match.
 void GameScreen24FC::BuildRects()
 {
-    float top = 0.0f;
-    float left = 0.0f;
-    float bottom = 0.0f;
-    float right = 0.0f;
-    int i;
-    for (i = 0; i != 10; ++i) {
-        // The first two rectangles frame the list; the remaining eight are row hit areas.
-        if (i == 0) {
-            left = 54.0f;
-            top = 242.0f;
-            right = 474.0f;
-            bottom = 504.0f;
-        } else if (i == 1) {
-            left = 54.0f;
-            top = 484.0f;
-            right = 600.0f;
-            bottom = 652.0f;
-        } else {
-            left = 485.0f;
-            right = 527.0f;
-            top = 430.0f + (float)(i - 2) * 42.0f;
-            bottom = top + 42.0f;
-        }
-        HudPoint a, b;
-        a.x = left; a.y = top;
-        b.x = right; b.y = bottom;
-        UIRect* rect = new UIRect(a, b);
+    float top;
+    UIRect* rect;
+    H5f_Point a;
+    HudPoint b;
+    top = H5a_TOP - 20.0f;
+    b.x = H5a_LEFT + 420.0f;
+    a.x = H5a_LEFT;
+    a.y = top;
+    b.y = H5a_TOP + top;
+    rect = (UIRect*)new H5f_Rect(a, b);
+    m_items.push_back(rect);
+    b.x = H5a_LEFT + 546.0f;
+    a.x = H5a_LEFT;
+    a.y = H5a_BACKEDGE - 168.0f;
+    b.y = H5a_BACKEDGE + H5a_PITCH;
+    rect = (UIRect*)new H5f_Rect(a, b);
+    m_items.push_back(rect);
+    for (int i = 0; i < 8; i++) {
+        b.x = H5a_COLX + H5a_PITCH;
+        a.x = H5a_COLX;
+        a.y = i * H5a_PITCH + top;
+        b.y = (i + 1) * H5a_PITCH + top;
+        rect = (UIRect*)new H5f_Rect(a, b);
         m_items.push_back(rect);
     }
 }
