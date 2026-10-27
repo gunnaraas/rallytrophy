@@ -3,6 +3,7 @@
 #ifndef UNK_40C280_H
 #define UNK_40C280_H
 #include <memory>
+#include <vector>
 
 struct StagePair { int a, b; };            // 8-byte element copied by 0x40c430 / 0x40c470 / 0x40c4a0
 
@@ -32,12 +33,14 @@ struct StageVecs5 {
 };
 
 // The stage loader object: base vectors at 0x0c, own vectors at 0x60..0xa0 (ctor 0x40c520, dtor 0x40c5e0).
+// The head at 0x00 has an empty dtor (EH state 0); the own vectors are real std::vector<int> (no unwind states).
+struct StageHead { BYTE b[0xc]; ~StageHead() {} };
 class StageLoader {
 public:
-    BYTE unk0[0xc];
+    StageHead unk0;
     StageVecs5 base;                       // 0x0c
     BYTE unk5c[4];
-    StageIntVec w0, w1, w2, w3, w4;      // 0x60, 0x70, 0x80, 0x90, 0xa0
+    std::vector<int> w0, w1, w2, w3, w4;     // 0x60, 0x70, 0x80, 0x90, 0xa0
     StageLoader();                         // 0x40c520
     ~StageLoader();                        // 0x40c5e0
 };

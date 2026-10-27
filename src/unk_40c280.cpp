@@ -488,12 +488,12 @@ void __cdecl StageConstructPair(StagePair* p, const StagePair& v)
     new (p) StagePair(v);
 }
 
-// NONMATCHING: RALLYTROPHY 0x40c520 (original has SEH state 0 for the base member and the allocator temp on the stack; EH not reproduced)
+// FUNCTION: RALLYTROPHY 0x40c520
 StageLoader::StageLoader()
 {
 }
 
-// NONMATCHING: RALLYTROPHY 0x40c5e0 (original registers only the base vectors for unwinding; member states differ)
+// FUNCTION: RALLYTROPHY 0x40c5e0
 StageLoader::~StageLoader()
 {
 }
