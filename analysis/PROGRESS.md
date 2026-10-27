@@ -6,7 +6,7 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Status
 
-- Marker inventory: 1802/2084 byte-exact (86.47%); 2084/2084 functions written (100.00%), from `tools/progress.py`.
+- Marker inventory: 1804/2084 byte-exact (86.56%); 2084/2084 functions written (100.00%), from `tools/progress.py`.
 - Game code: about 1,690 functions in `0x401000`–`0x4bcfc6`
 
 ## Queue
@@ -31,6 +31,10 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 
 ## Log
+
+- 2026-10-27 (Codex, lobby hit-box layout `0x43afa0`): Exact 557-byte C++ match / 34 relocations. Replaced the provisional scaled loop with three fixed rectangles. Verified three aliases, 12 calls and 18 float references. Evidence: `docs/analysis/lobby-hit-boxes.md`.
+
+- 2026-10-27 (Codex, network-options rectangles `0x43a080`): Exact 727-byte C++ match / 38 relocations. Corrected seven-box geometry and used literals to preserve scalar operand order. Verified three aliases, 16 calls and 18 float references. Evidence: `docs/analysis/network-options-rects.md`.
 
 - 2026-10-27 (Codex, network-options setup `0x439310`): Exact 1,401-byte C++ match / 64 relocations. Pinned four assign calls, corrected coordinate order and game/state placement, and replaced unresolved DrawSetup with BuildRects. Audited all 45 calls / 19 data operands and three aliases; focused seven exact / two NONMATCHING. Evidence: `docs/analysis/network-options-setup.md`.
 

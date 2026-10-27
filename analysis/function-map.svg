@@ -2,7 +2,7 @@
 <title>Rally Trophy per-function decompilation map</title>
 <rect width="1600" height="1120" rx="8" fill="#0d1117"/>
 <text x="20" y="30" font-size="18" font-weight="600" fill="#e6edf3">Every game function, sized by code bytes and branch complexity</text>
-<text x="20" y="53" fill="#8b949e">1,802 byte-exact · 282 written but not byte-exact · 0 unwritten. Tile area = bytes × (1 + log₂(1 + branch points)); hover for details.</text>
+<text x="20" y="53" fill="#8b949e">1,804 byte-exact · 280 written but not byte-exact · 0 unwritten. Tile area = bytes × (1 + log₂(1 + branch points)); hover for details.</text>
 <g transform="translate(20,72)" fill="#e6edf3">
 <rect width="12" height="12" fill="#3fb950"/><text x="18" y="11">byte-exact</text>
 <rect x="118" width="12" height="12" fill="#e3b341"/><text x="136" y="11">written, not exact</text>
@@ -534,7 +534,7 @@
 <rect x="198.55" y="410.18" width="101.59" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00439310 · MenuScreenA48::Setup (vtable slot 1; missing from functions.csv) · MenuScreenA48 · 1,401 code bytes · complexity 17 (16 branch points) · byte-exact</title></rect>
 <rect x="301.14" y="410.18" width="1.85" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00439890 · FUN_00439890 · MenuScreenA48 · 66 code bytes · complexity 4 (3 branch points) · byte-exact</title></rect>
 <rect x="303.99" y="410.18" width="172.07" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x004398e0 · FUN_004398e0 · MenuScreenA48 · 1,913 code bytes · complexity 39 (38 branch points) · written, not exact</title></rect>
-<rect x="477.06" y="410.18" width="36.51" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x0043a080 · FUN_0043a080 · MenuScreenA48 · 727 code bytes · complexity 6 (5 branch points) · written, not exact</title></rect>
+<rect x="477.06" y="410.18" width="36.51" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0043a080 · FUN_0043a080 · MenuScreenA48 · 727 code bytes · complexity 6 (5 branch points) · byte-exact</title></rect>
 <rect x="514.57" y="410.18" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0043a360 · MenuScreenA48 module end: guard-bit initialiser of the STL header statics (_$E) · MenuScreenA48 · 25 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>
 <rect x="515.29" y="410.18" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0043a380 · MenuScreenA48 module end: atexit(0x402c90) registration · MenuScreenA48 · 12 code bytes · complexity 1 (0 branch points) · byte-exact</title></rect>
 <rect x="515.46" y="410.18" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0043a3c0 · FUN_0043a3c0 · Lobby screen · 92 code bytes · complexity 1 (0 branch points) · byte-exact</title></rect>
@@ -545,7 +545,7 @@
 <rect x="547.30" y="410.18" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0043a6b0 · FUN_0043a6b0 · Lobby screen · 40 code bytes · complexity 1 (0 branch points) · byte-exact</title></rect>
 <rect x="547.87" y="410.18" width="159.43" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x0043a6e0 · FUN_0043a6e0 · Lobby screen · 1,685 code bytes · complexity 49 (48 branch points) · written, not exact</title></rect>
 <rect x="708.30" y="410.18" width="6.66" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x0043ad80 · FUN_0043ad80 · Lobby screen · 532 code bytes · complexity 1 (0 branch points) · written, not exact</title></rect>
-<rect x="715.96" y="410.18" width="23.05" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x0043afa0 · FUN_0043afa0 · Lobby screen · 557 code bytes · complexity 4 (3 branch points) · written, not exact</title></rect>
+<rect x="715.96" y="410.18" width="23.05" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0043afa0 · FUN_0043afa0 · Lobby screen · 557 code bytes · complexity 4 (3 branch points) · byte-exact</title></rect>
 <rect x="740.01" y="410.18" width="528.82" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x0043b1d0 · FUN_0043b1d0 · Lobby screen · 5,003 code bytes · complexity 82 (81 branch points) · written, not exact</title></rect>
 <rect x="1269.83" y="410.18" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0043c560 · Screen1378 module end: guard-bit initializer for STL header statics (_$E) · Lobby screen · 25 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>
 <rect x="1270.55" y="410.18" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0043c580 · Screen1378 module end: atexit(0x402c90) registration · Lobby screen · 12 code bytes · complexity 1 (0 branch points) · byte-exact</title></rect>

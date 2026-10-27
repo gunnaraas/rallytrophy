@@ -25,7 +25,37 @@ static float B2_COLW = 400.0f;     // 0x4e171c
 
 
 // ---- from group draft Z4 ----
-struct B3Point { B3Point(float px, float py) : x(px), y(py) {} ~B3Point() {} float x, y; };
+
+
+
+struct NR_Point {
+    NR_Point() {}
+    NR_Point(const NR_Point& other);
+    ~NR_Point() {}
+    float x, y;
+};
+class NR_Rect {
+public:
+    NR_Rect(NR_Point upper, HudPoint lower);
+    float fields[5];
+};
+struct NR_Vec {
+    std::allocator<UIRect*> alloc;
+    UIRect** first;
+    UIRect** last;
+    UIRect** end;
+    void Insert(UIRect** pos, unsigned int n, UIRect* const& value);
+    void InsertOne(UIRect** pos, UIRect* const& value) { Insert(pos, 1, value); }
+    void PushBack(UIRect* const& value) { InsertOne(last, value); }
+};
+#pragma comment(linker, "/alternatename:??0NR_Point@@QAE@ABU0@@Z=?Assign@Pair@@QAEPAU1@PBU1@@Z")
+#pragma comment(linker, "/alternatename:??0NR_Rect@@QAE@UNR_Point@@VHudPoint@@@Z=??0A_Rect@@QAE@VHudPoint@@0@Z")
+#pragma comment(linker, "/alternatename:?Insert@NR_Vec@@QAEXPAPAVUIRect@@IABQAV2@@Z=?insert@?$vector@PAXV?$allocator@PAX@std@@@std@@QAEXPAPAXIABQAX@Z")
+typedef char NR_VectorLayoutCheck[sizeof(NR_Vec) == sizeof(std::vector<UIRect*>) ? 1 : -1];
+static float NR_Y = 262.0f;
+static float NR_Margin = 10.0f;
+static float NR_X = 54.0f;
+static float NR_Step = 42.0f;
 
 // FUNCTION: RALLYTROPHY 0x439170
 MenuScreenA48::MenuScreenA48()
@@ -42,6 +72,7 @@ MenuScreenA48::~MenuScreenA48()
 {
     Release();
 }
+
 
 struct NS_String {
     int alloc;
@@ -288,26 +319,40 @@ int MenuScreenA48::Frame()
     return r;
 }
 
-// NONMATCHING: RALLYTROPHY 0x43a080
-// Rebuilds four repeated row hit boxes and three fixed hit boxes. The inferred literal geometry and temporary layout do not match yet.
+/* FUNCTION: RALLYTROPHY 0x43a080 */
+// Exact 727-byte match / 38 relocations; all 16 calls and 18 float operands audited.
+// Evidence: docs/analysis/network-options-rects.md.
 void MenuScreenA48::BuildRects()
 {
-    float y = 1.0f - 0.0f;
-    int i = 0;
-    for (; i < 4; ++i) {
-        float x = 1.0f + 0.25f;
-        float rowY = 1.0f + (float)(i + 1) * 0.1f;
-        UIRect* r = new UIRect(*(HudPoint*)&B3Point(x, rowY), *(HudPoint*)&B3Point(x + y, rowY + 0.1f));
-        m_items.push_back(r);
+    NR_Point top, bottom;
+    float y = NR_Y - NR_Margin;
+    UIRect* r;
+    for (int i = 0; i < 4; ++i) {
+        top.x = NR_X;
+        bottom.x = NR_X + 960.0f;
+        top.y = y + (float)i * NR_Step;
+        bottom.y = y + (float)(i + 1) * NR_Step;
+        r = (UIRect*)new NR_Rect(top, *(HudPoint*)&bottom);
+        ((NR_Vec*)&m_items)->PushBack(r);
     }
-    UIRect* r = new UIRect(*(HudPoint*)&B3Point(1.0f, 777.0f), *(HudPoint*)&B3Point(500.0f, 777.1f));
-    m_items.push_back(r);
-    UIRect* r2 = new UIRect(*(HudPoint*)&B3Point(1.0f, 1.0f), *(HudPoint*)&B3Point(607.0f, 1.0f));
-    m_items.push_back(r2);
-    UIRect* r3 = new UIRect(*(HudPoint*)&B3Point(500.0f, 900.0f), *(HudPoint*)&B3Point(950.0f, 1.0f));
-    m_items.push_back(r3);
-    UIRect* r4 = new UIRect(*(HudPoint*)&B3Point(950.0f, 900.0f), *(HudPoint*)&B3Point(1.0f, 1.0f));
-    m_items.push_back(r4);
+    top.x = NR_X;
+    top.y = 607.0f;
+    bottom.x = NR_X + 420.0f;
+    bottom.y = NR_Step * 607.0f;
+    r = (UIRect*)new NR_Rect(top, *(HudPoint*)&bottom);
+    ((NR_Vec*)&m_items)->PushBack(r);
+    top.x = 500.0f;
+    bottom.x = 550.0f;
+    top.y = NR_Y;
+    bottom.y = NR_Y + 221.0f;
+    r = (UIRect*)new NR_Rect(top, *(HudPoint*)&bottom);
+    ((NR_Vec*)&m_items)->PushBack(r);
+    top.x = 900.0f;
+    bottom.x = 950.0f;
+    top.y = NR_Y;
+    bottom.y = NR_Y + 221.0f;
+    r = (UIRect*)new NR_Rect(top, *(HudPoint*)&bottom);
+    ((NR_Vec*)&m_items)->PushBack(r);
 }
 
 // FUNCTION: RALLYTROPHY 0x43a360

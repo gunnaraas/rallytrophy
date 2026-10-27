@@ -363,23 +363,62 @@ void Screen1378::BuildRects()
     m_items.push_back(r);
 }
 
-// NONMATCHING: RALLYTROPHY 0x43afa0
-// Builds three selectable rectangles using the screen's Sprite/layout state; positions
-// below are provisional pending the exact coordinate constants and draw-state sequence.
+struct LL_Point {
+    LL_Point() {}
+    LL_Point(const LL_Point& other);
+    ~LL_Point() {}
+    float x, y;
+};
+class LL_Rect {
+public:
+    LL_Rect(LL_Point upper, HudPoint lower);
+    float fields[5];
+};
+struct LL_Vec {
+    std::allocator<UIRect*> alloc;
+    UIRect** first;
+    UIRect** last;
+    UIRect** end;
+    void Insert(UIRect** pos, unsigned int n, UIRect* const& value);
+    void InsertOne(UIRect** pos, UIRect* const& value) { Insert(pos, 1, value); }
+    void PushBack(UIRect* const& value) { InsertOne(last, value); }
+};
+#pragma comment(linker, "/alternatename:??0LL_Point@@QAE@ABU0@@Z=?Assign@Pair@@QAEPAU1@PBU1@@Z")
+#pragma comment(linker, "/alternatename:??0LL_Rect@@QAE@ULL_Point@@VHudPoint@@@Z=??0A_Rect@@QAE@VHudPoint@@0@Z")
+#pragma comment(linker, "/alternatename:?Insert@LL_Vec@@QAEXPAPAVUIRect@@IABQAV2@@Z=?insert@?$vector@PAXV?$allocator@PAX@std@@@std@@QAEXPAPAXIABQAX@Z")
+typedef char LL_VectorLayoutCheck[sizeof(LL_Vec) == sizeof(std::vector<UIRect*>) ? 1 : -1];
+static float LL_Y = 262.0f;
+static float LL_Margin = 20.0f;
+static float LL_X = 54.0f;
+static float LL_Step = 42.0f;
+static float LL_BackY = 610.0f;
+static float LL_BackMargin = 10.0f;
+
+/* FUNCTION: RALLYTROPHY 0x43afa0 */
+// Exact 557-byte match / 34 relocations; 12 calls and 18 float operands audited.
+// Evidence: docs/analysis/lobby-hit-boxes.md.
 void Screen1378::Layout()
 {
-    float x = DAT_0056aea8 * 54.0f;
-    float y = DAT_0056aeac * 262.0f;
-    float row = DAT_0056aeac * 42.0f;
-    for (int i = 0; i < 3; ++i) {
-        UIRect* r = new UIRect(HudPoint(), HudPoint());
-        r->left = x;
-        r->top = y + row * i;
-        r->right = DAT_0056aea8 * 970.0f;
-        r->bottom = r->top + DAT_0056aeac * 32.0f;
-        r->enabled = 1;
-        m_items.push_back(r);
-    }
+    LL_Point top, bottom;
+    float y = LL_Y - LL_Margin;
+    top.x = LL_X;
+    top.y = y;
+    bottom.x = LL_X + 420.0f;
+    bottom.y = LL_Step + y;
+    UIRect* r = (UIRect*)new LL_Rect(top, *(HudPoint*)&bottom);
+    ((LL_Vec*)&m_items)->PushBack(r);
+    top.x = LL_X;
+    bottom.x = LL_X + 420.0f;
+    top.y = LL_Step + y;
+    bottom.y = (LL_Step + LL_Step) + y;
+    r = (UIRect*)new LL_Rect(top, *(HudPoint*)&bottom);
+    ((LL_Vec*)&m_items)->PushBack(r);
+    top.x = LL_X;
+    bottom.x = LL_X + 200.0f;
+    top.y = LL_BackY - LL_BackMargin;
+    bottom.y = LL_BackY + 42.0f;
+    r = (UIRect*)new LL_Rect(top, *(HudPoint*)&bottom);
+    ((LL_Vec*)&m_items)->PushBack(r);
 }
 
 // NONMATCHING: RALLYTROPHY 0x43b1d0

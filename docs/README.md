@@ -55,6 +55,8 @@ matching maps, compiler notes, and the active work queue are under
   [graphics-menu layout](analysis/graphics-menu-layout.md),
   [game-mode layout](analysis/game-mode-layout.md),
   [network-options setup](analysis/network-options-setup.md),
+  [network-options rectangles](analysis/network-options-rects.md),
+  [lobby hit boxes](analysis/lobby-hit-boxes.md),
   [modal confirmation](analysis/modal-confirmation.md),
   [modal result loop](analysis/modal-result-loop.md),
   [player-name menu setup](analysis/player-name-setup.md),
