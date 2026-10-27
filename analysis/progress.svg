@@ -180,8 +180,7 @@
 <rect x="396.2" y="120" width="5.7" height="36" fill="#e3b341"/>
 <rect x="402.0" y="120" width="6.7" height="36" fill="#3fb950"/>
 <rect x="408.7" y="120" width="3.3" height="36" fill="#e3b341"/>
-<rect x="412.1" y="120" width="4.1" height="36" fill="#e3b341"/>
-<rect x="416.2" y="120" width="2.1" height="36" fill="#3fb950"/>
+<rect x="412.1" y="120" width="6.3" height="36" fill="#3fb950"/>
 <rect x="418.3" y="120" width="7.1" height="36" fill="#e3b341"/>
 <rect x="425.4" y="120" width="4.8" height="36" fill="#3fb950"/>
 <rect x="430.2" y="120" width="7.9" height="36" fill="#e3b341"/>
@@ -803,9 +802,9 @@
 <text x="1018" y="656" fill="#e6edf3">51% exact / 100% written</text>
 <text x="260" y="682" text-anchor="end" fill="#e6edf3">18. Race options screen</text>
 <rect x="270" y="668" width="740" height="18" rx="2" fill="#484f58"/>
-<rect x="270" y="668" width="173.1" height="18" fill="#3fb950"/>
-<rect x="443.1" y="668" width="566.9" height="18" fill="#e3b341"/>
-<text x="1018" y="682" fill="#e6edf3">23% exact / 100% written</text>
+<rect x="270" y="668" width="486.3" height="18" fill="#3fb950"/>
+<rect x="756.3" y="668" width="253.7" height="18" fill="#e3b341"/>
+<text x="1018" y="682" fill="#e6edf3">66% exact / 100% written</text>
 <text x="260" y="708" text-anchor="end" fill="#e6edf3">19. Track-selection screen</text>
 <rect x="270" y="694" width="740" height="18" rx="2" fill="#484f58"/>
 <rect x="270" y="694" width="335.6" height="18" fill="#3fb950"/>

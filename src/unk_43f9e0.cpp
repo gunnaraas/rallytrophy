@@ -70,14 +70,95 @@ public:
     unsigned int len;
     unsigned int reserve;
 };
+#pragma comment(linker, "/alternatename:?Tidy@B3_String@@QAEX_N@Z=?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z")
+#pragma comment(linker, "/alternatename:?Grow@B3_String@@QAE_NI_N@Z=?_Grow@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAE_NI_N@Z")
+#pragma comment(linker, "/alternatename:?Eos@B3_String@@QAEXI@Z=?_Eos@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEXI@Z")
+#pragma comment(linker, "/alternatename:??0B3_Point@@QAE@ABU0@@Z=?Assign@Pair@@QAEPAU1@PBU1@@Z")
+#pragma comment(linker, "/alternatename:??0B3_Rect@@QAE@UB3_Point@@VHudPoint@@@Z=??0A_Rect@@QAE@VHudPoint@@0@Z")
+// VC6 vector layout with each call/inline boundary pinned to the target loader.
+struct B3_RectVector {
+    std::allocator<UIRect*> alloc;
+    UIRect** first;
+    UIRect** last;
+    UIRect** end;
+    void Insert(UIRect** pos, unsigned int n, UIRect* const& value); // 0x4bc680
+    void InsertOne(UIRect** pos, UIRect* const& value) { Insert(pos, 1, value); }
+    void PushBack(UIRect* const& value) { InsertOne(last, value); }
+    unsigned int Size() const { return first == 0 ? 0 : last - first; }
+    unsigned int SizeCall() const; // 0x414460
+    UIRect** Ucopy(UIRect* const* f, UIRect* const* l, UIRect** d); // 0x424320
+    void Ufill(UIRect** d, unsigned int n, UIRect* const& value); // 0x424350
+    void Destroy(UIRect** f, UIRect** l); // 0x403130
+    static void Construct(UIRect** p, UIRect* const& value); // 0x403140
+    UIRect** CopyInline(UIRect* const* from, UIRect* const* finish, UIRect** out)
+    {
+        for (; from != finish; ++out, ++from)
+            Construct(out, *from);
+        return out;
+    }
+    void FillInline(UIRect** out, unsigned int count, UIRect* const& value)
+    {
+        for (; 0 < count; --count, ++out)
+            Construct(out, value);
+    }
+    void DestroyInline(UIRect** from, UIRect** finish)
+    {
+        for (; from != finish; ++from)
+            alloc.destroy(from);
+    }
+    void PushBackExpanded(UIRect* const& value)
+    {
+        UIRect** pos = last;
+        if ((unsigned int)(end - last) < 1) {
+            unsigned int count = Size() + (1 < Size() ? Size() : 1);
+            UIRect** storage = alloc.allocate(count, (void*)0);
+            UIRect** out = CopyInline(first, pos, storage);
+            FillInline(out, 1, value);
+            CopyInline(pos, last, out + 1);
+            DestroyInline(first, last);
+            alloc.deallocate(first, end - first);
+            end = storage + count;
+            last = storage + Size() + 1;
+            first = storage;
+        } else if ((unsigned int)(last - pos) < 1) {
+            Ucopy(pos, last, pos + 1);
+            Ufill(last, 1 - (last - pos), value);
+            for (UIRect** from = pos; from != last; ++from)
+                *from = value;
+            last += 1;
+        } else {
+            Ucopy(last - 1, last, last);
+            UIRect** to = last;
+            UIRect** from = last - 1;
+            while (pos != from)
+                *--to = *--from;
+            for (from = pos; from != pos + 1; ++from)
+                *from = value;
+            last += 1;
+        }
+    }
+};
+#pragma comment(linker, "/alternatename:?Insert@B3_RectVector@@QAEXPAPAVUIRect@@IABQAV2@@Z=?insert@?$vector@PAXV?$allocator@PAX@std@@@std@@QAEXPAPAXIABQAX@Z")
+#pragma comment(linker, "/alternatename:?SizeCall@B3_RectVector@@QBEIXZ=?size@?$vector@PAXV?$allocator@PAX@std@@@std@@QBEIXZ")
+#pragma comment(linker, "/alternatename:?Ucopy@B3_RectVector@@QAEPAPAVUIRect@@PBQAV2@0PAPAV2@@Z=?_Ucopy@?$vector@PAXV?$allocator@PAX@std@@@std@@IAEPAPAXPBQAX0PAPAX@Z")
+#pragma comment(linker, "/alternatename:?Ufill@B3_RectVector@@QAEXPAPAVUIRect@@IABQAV2@@Z=?_Ufill@?$vector@PAXV?$allocator@PAX@std@@@std@@IAEXPAPAXIABQAX@Z")
+#pragma comment(linker, "/alternatename:?Destroy@B3_RectVector@@QAEXPAPAVUIRect@@0@Z=?_Destroy@?$vector@PAXV?$allocator@PAX@std@@@std@@IAEXPAPAX0@Z")
+#pragma comment(linker, "/alternatename:?Construct@B3_RectVector@@SAXPAPAVUIRect@@ABQAV2@@Z=?_Construct@std@@YAXPAPAXABQAX@Z")
+typedef char B3_RectVectorLayoutCheck[sizeof(B3_RectVector) == sizeof(std::vector<UIRect*>) ? 1 : -1];
 #define B3_ADD(ul, lr) \
     do { \
         rect = (UIRect*)new B3_Rect(*(const B3_Point*)&config.GetVector2(ul), *(const HudPoint*)&config.GetVector2(lr)); \
         m_items.push_back(rect); \
     } while (0)
 
-// Inline-budget ballast: spends the same VC6 inline-expansion budget as whatever the original keeps before its 13th
-// push (the first 11 vector::insert calls stay out of line, the 12th and 13th expand).
+#define B3_ADD_LAST(ul, lr) \
+    do { \
+        rect = (UIRect*)new B3_Rect(*(const B3_Point*)&config.GetVector2(ul), *(const HudPoint*)&config.GetVector2(lr)); \
+        ((B3_RectVector*)&m_items)->PushBackExpanded(rect); \
+    } while (0)
+
+// Retain the existing inline-budget balance for the matching first twelve blocks;
+// the final insertion's helper boundaries are controlled explicitly above.
 static inline int B3_Nop(int a) { return a + 1; }
 
 // FUNCTION: RALLYTROPHY 0x43f9e0
@@ -340,9 +421,9 @@ int RaceOptionsMenu::Frame()
     return r;
 }
 
-// NONMATCHING: RALLYTROPHY 0x440890
-// 2703 vs 2722 bytes, 257 differing: all 13 rect blocks, the string setup and the 12th push_back expansion match; the
-// 13th push_back is expanded one inline-budget unit less than the original (vector::size() stays a call there).
+/* FUNCTION: RALLYTROPHY 0x440890 */
+// Exact 2722-byte match / 138 relocations. Final insertion uses inline size and pointer destruction.
+// Local comparison and operand audit: docs/analysis/race-options-layout.md.
 // original: FUN_00440890 (thiscall; RaceOptionsMenu layout loader)
 void RaceOptionsMenu::LoadLayout()
 {
@@ -364,7 +445,7 @@ void RaceOptionsMenu::LoadLayout()
     B3_ADD("WildlifeArrow2_UpperLeft", "WildlifeArrow2_LowerRight");
     B3_ADD("PaceNotesArrow1_UpperLeft", "PaceNotesArrow1_LowerRight");
     B3_Nop(1);
-    B3_ADD("PaceNotesArrow2_UpperLeft", "PaceNotesArrow2_LowerRight");
+    B3_ADD_LAST("PaceNotesArrow2_UpperLeft", "PaceNotesArrow2_LowerRight");
 }
 
 // FUNCTION: RALLYTROPHY 0x441340

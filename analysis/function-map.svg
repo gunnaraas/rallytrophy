@@ -2,7 +2,7 @@
 <title>Rally Trophy per-function decompilation map</title>
 <rect width="1600" height="1120" rx="8" fill="#0d1117"/>
 <text x="20" y="30" font-size="18" font-weight="600" fill="#e6edf3">Every game function, sized by code bytes and branch complexity</text>
-<text x="20" y="53" fill="#8b949e">1,798 byte-exact · 286 written but not byte-exact · 0 unwritten. Tile area = bytes × (1 + log₂(1 + branch points)); hover for details.</text>
+<text x="20" y="53" fill="#8b949e">1,799 byte-exact · 285 written but not byte-exact · 0 unwritten. Tile area = bytes × (1 + log₂(1 + branch points)); hover for details.</text>
 <g transform="translate(20,72)" fill="#e6edf3">
 <rect width="12" height="12" fill="#3fb950"/><text x="18" y="11">byte-exact</text>
 <rect x="118" width="12" height="12" fill="#e3b341"/><text x="136" y="11">written, not exact</text>
@@ -583,7 +583,7 @@
 <rect x="704.77" y="440.00" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0043ff80 · FUN_0043ff80 · Race options screen · 21 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>
 <rect x="705.30" y="440.00" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0043ffa0 · FUN_0043ffa0 · Race options screen · 41 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>
 <rect x="706.34" y="440.00" width="178.79" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x0043ffd0 · FUN_0043ffd0 · Race options screen · 2,205 code bytes · complexity 44 (43 branch points) · written, not exact</title></rect>
-<rect x="886.12" y="440.00" width="224.21" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x00440890 · FUN_00440890 · Race options screen · 2,722 code bytes · complexity 47 (46 branch points) · written, not exact</title></rect>
+<rect x="886.12" y="440.00" width="224.21" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00440890 · FUN_00440890 · Race options screen · 2,722 code bytes · complexity 47 (46 branch points) · byte-exact</title></rect>
 <rect x="1111.33" y="440.00" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00441340 · RaceOptionsMenu module end: guard-bit initialiser of the STL header statics (_$E) · Race options screen · 25 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>
 <rect x="1111.96" y="440.00" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00441360 · RaceOptionsMenu module end: atexit(0x402c90) registration · Race options screen · 12 code bytes · complexity 1 (0 branch points) · byte-exact</title></rect>
 <rect x="1112.12" y="440.00" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00441370 · TrackSelectMenu static initialiser wrapper (CRT table entry) · Track-selection screen · 10 code bytes · complexity 1 (0 branch points) · byte-exact</title></rect>

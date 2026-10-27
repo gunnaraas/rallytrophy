@@ -51,6 +51,7 @@ matching maps, compiler notes, and the active work queue are under
   [sound-menu layout](analysis/sound-menu-layout.md),
   [track-menu layout](analysis/track-menu-layout.md),
   [main-menu layout](analysis/main-menu-layout.md),
+  [race-options layout](analysis/race-options-layout.md),
   [modal confirmation](analysis/modal-confirmation.md),
   [modal result loop](analysis/modal-result-loop.md),
   [player-name menu setup](analysis/player-name-setup.md),
