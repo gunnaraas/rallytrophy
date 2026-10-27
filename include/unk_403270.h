@@ -14,7 +14,14 @@ public:
 class SpriteA {                                       // ctor 0x4a8580, dtor 0x4a86d0 (+0 = resource)
 public:
     Res403* res;
-    int pad[0x26];
+    int unk04[5];
+    int blendSrc, blendDst;                           // +0x18, +0x1c
+    int wrapU, wrapV;                                 // +0x20, +0x24
+    int unk28[6];
+    float colorB[4];                                  // +0x40
+    int unk50[4];
+    float colorA[4];                                  // +0x60
+    int unk70[11];
     int f9c;
     int tail[0xd];                                    // 0xd4 bytes in all
     SpriteA();
@@ -26,6 +33,7 @@ public:
     ~SpriteB();
     void SetBlend(int a, int b);                      // 0x4a9280
     void Draw(void* device, int unused);              // 0x4a92c0
+    int data[0x12];                                   // 0x48 bytes in all
 };
 
 // The loading-screen object (size 0x34): ctor 0x403270, dtor 0x403380, init 0x4033f0, draw 0x403890.

@@ -50,6 +50,74 @@ static __forceinline int RoundF(float v)
 typedef void Inst_403ba0();
 template class std::basic_string<char>;
 
+// The path string as the original builds it (VC6 std::string layout): the constructor calls the out-of-line
+// _Tidy (0x402700) and the destructor is _Tidy(true) expanded inline. Each append/assign site is pinned either
+// out of line (0x403ba0) or expanded around _Grow (0x402980) and _Eos (0x402960), as the target has them.
+class PathText {
+public:
+    PathText(const std::allocator<char>& al = std::allocator<char>()) : alloc(al) { Tidy(false); }
+    PathText(const char* s, const std::allocator<char>& al = std::allocator<char>()) : alloc(al)
+    {
+        Tidy(false);
+        size_t n = strlen(s);
+        if (Grow(n, true)) {
+            memcpy(ptr, s, n);
+            Eos(n);
+        }
+    }
+    ~PathText() { Free(true); }
+    unsigned char& Refcnt(const char* u) { return ((unsigned char*)u)[-1]; }
+    void Free(bool built)              // std::string::_Tidy, expanded inline
+    {
+        if (!built || ptr == 0) {
+        } else if (Refcnt(ptr) == 0 || Refcnt(ptr) == 255) {
+            alloc.deallocate(ptr - 1, reserve + 2);
+        } else {
+            --Refcnt(ptr);
+        }
+        ptr = 0, len = 0, reserve = 0;
+    }
+    void Tidy(bool built);             // 0x402700
+    bool Grow(size_t n, bool trim);    // 0x402980
+    void Eos(size_t n);                // 0x402960
+    void Append(const char* s, size_t n); // 0x403ba0
+    void AppendCall(const char* s) { Append(s, strlen(s)); }
+    void AssignGrow(const char* s)     // assign with _Grow and _Eos out of line
+    {
+        size_t n = strlen(s);
+        if (Grow(n, true)) {
+            memcpy(ptr, s, n);
+            Eos(n);
+        }
+    }
+    void AssignInline(const char* s)   // assign with _Eos expanded
+    {
+        size_t n = strlen(s);
+        if (Grow(n, true)) {
+            memcpy(ptr, s, n);
+            len = n, ptr[n] = 0;
+        }
+    }
+    void AppendInline(const char* s)   // append expanded around _Grow and _Eos
+    {
+        size_t n = strlen(s);
+        if (std::string::npos - len <= n)
+            std::_Xlen();
+        if (0 < n) {
+            size_t m = len + n;
+            if (Grow(m, false)) {
+                std::char_traits<char>::copy(ptr + len, s, n);
+                Eos(m);
+            }
+        }
+    }
+    const char* c_str() const { return ptr ? ptr : ""; }
+    std::allocator<char> alloc;
+    char* ptr;
+    size_t len;
+    size_t reserve;
+};
+
 // FUNCTION: RALLYTROPHY 0x403270
 LoadScreen::LoadScreen()
 {
@@ -103,40 +171,38 @@ void* LoadScreen::Self()
 }
 
 // NONMATCHING: RALLYTROPHY 0x4033f0
-// Allocation sizes, SpriteB ctor arguments and the default-construct-then-assign path match the target.
-// Open: the target calls append(const char*, size_t) 0x403ba0 out of line for the first two appends but
-// inlines the next two (keeping _Eos 0x402960 out of line); `+=`, append(s) and append(s, n) all inline
-// differently here. The q[8]/q[9] stores are also scheduled earlier than in the target.
+// Same size; only the scheduling of the wrapU/wrapV stores differs (the target interleaves them with the
+// colour stores). Statement order, loops, unrolled stores and typed fields all emit the same order here.
 void LoadScreen::Init(int level)
 {
     _itoa(level, DAT_005070b8, 10);
-    std::string path;
-    path = "data/menu/LoadingT";
-    path.append(DAT_005070b8);
-    path.append(".tga");
+    PathText path;
+    path.AssignGrow("data/menu/LoadingT");
+    path.AppendCall(DAT_005070b8);
+    path.AppendCall(".tga");
     back = new SpriteB(DAT_0056b0ac, path.c_str(), 1, 1);
-    path = "data/menu/LoadingT";
-    path += DAT_005070b8;
-    path += "C.tga";
+    path.AssignInline("data/menu/LoadingT");
+    path.AppendInline(DAT_005070b8);
+    path.AppendInline("C.tga");
     front = new SpriteB(DAT_0056b0ac, path.c_str(), 1, 1);
     front->SetBlend(5, 6);
     quad = new SpriteA;
     quad->res = new Res403("data/menu/loadpattern.tga", 0x841, 1);
     quad->res->Load(DAT_0056b0ac);
-    int* q = (int*)quad;
-    q[0x27] = 2;
-    q[6] = 5;
-    q[7] = 6;
-    q[8] = 2;
-    ((float*)q)[0x18] = 1.0f;
-    ((float*)q)[0x19] = 1.0f;
-    ((float*)q)[0x1a] = 1.0f;
-    ((float*)q)[0x1b] = 1.0f;
-    q[9] = 2;
-    ((float*)q)[0x10] = 1.0f;
-    ((float*)q)[0x11] = 1.0f;
-    ((float*)q)[0x12] = 1.0f;
-    ((float*)q)[0x13] = 1.0f;
+    SpriteA* q = quad;
+    q->f9c = 2;
+    q->blendSrc = 5;
+    q->blendDst = 6;
+    q->wrapU = 2;
+    q->colorA[0] = 1.0f;
+    q->colorA[1] = 1.0f;
+    q->colorA[2] = 1.0f;
+    q->colorA[3] = 1.0f;
+    q->wrapV = 2;
+    q->colorB[0] = 1.0f;
+    q->colorB[1] = 1.0f;
+    q->colorB[2] = 1.0f;
+    q->colorB[3] = 1.0f;
 }
 
 struct Col403 {                                      // packed ARGB colour with an empty destructor
@@ -269,82 +335,82 @@ struct GhostLog { void Read(ReplayFile* f); };        // car body +0x1bed0, 0x40
 class CarBody { public: void FUN_0046be50(int mode); };
 
 // NONMATCHING: RALLYTROPHY 0x403ca0
-// Calling convention (thiscall on the header, bool result), object sizes, constructor arguments and the helper
-// calls follow the target. Open: the target calls _Tidy 0x402700, _Eos 0x402960 and append 0x403ba0 out of
-// line where this file inlines them (same problem as LoadScreen::Init), which also shifts the frame.
+// Calling convention (thiscall on the header, bool result), object sizes, constructor arguments, the PathText
+// string calls and block order follow the target. Open: the frame is 4 bytes smaller, so `this` lands in ebx
+// instead of ebp; and the target destroys the string in the shared failure exit with an out-of-line
+// _Tidy(true) call (here expanded inline).
 bool ReplayHeader::Load(int index)
 {
-    std::string name;
-    name = "savegame/replay";
+    PathText name("savegame/replay");
     char num[2];                                      // the target reserves only two bytes for _itoa
     _itoa(index, num, 10);
-    name += num;
-    name += ".dat";
-    if (!FileExists(name.c_str()))
-        return false;
-    ReplayFile* f = new ReplayFile(name.c_str(), 0x81);
-    int magic2, magic1;
-    f->Read(&magic1, 4);
-    f->Read(&magic2, 4);
-    if (magic1 != 0x198bf3ae || magic2 != 0x20020109) {
+    name.AppendCall(num);
+    name.AppendCall(".dat");
+    if (FileExists(name.c_str())) {
+        ReplayFile* f = new ReplayFile(name.c_str(), 0x81);
+        int magic2, magic1;
+        f->Read(&magic1, 4);
+        f->Read(&magic2, 4);
+        if (magic1 == 0x198bf3ae && magic2 == 0x20020109) {
+            f->Read(this, 0x70);
+            DAT_0050132c = *(int*)(raw + 0x2c);
+            DAT_00501464 = *(int*)(raw + 0x30);
+            DAT_00501458 = raw[0x6e];
+            DAT_00501468 = *(int*)(raw + 0x34);
+            DAT_0050145c = raw[0x6c];
+            NetRace* race = DAT_00501450;
+            race->unk28 = *(int*)(raw + 0x24);
+            race->unk2c = *(int*)(raw + 0x28);
+            int cars = *(int*)(raw + 0x68) + 1;
+            for (int i = 0; i < cars; i++) {
+                ReplayCar* car = i == 0 ? new ReplayCar(1, 0) : new ReplayCar("dummy");
+                CarRecord r;
+                int j;
+                f->Read(&r, 0x1d4);
+                car->ReadSetup(&r);
+                car->unk20 = r.a20;
+                car->unk1a20 = r.a2c;
+                for (j = 0; j < 90; j++)
+                    car->blk[j] = r.blk[j];
+                car->unk24 = r.a24;
+                car->unk2c = r.a28;
+                for (j = 0; j < 10; j++)
+                    car->blk2[j] = r.blk2[j];
+                car->unk1a50 = r.a1c0;
+                car->unk1a58 = r.a1c4;
+                car->id = r.id;
+                car->unk1a6c = r.a1cc;
+                car->Finish();
+                race->FUN_00485f60(car);
+                BYTE* body = car->body;
+                GhostTrack* g = (GhostTrack*)(body + 0x1c874);
+                g->Reset();
+                f->Read(g, 0x8c);
+                if (g->count[0]) {
+                    g->data[0] = (int*)PoolAlloc(g->count[0] * 4);
+                    f->Read(g->data[0], g->count[0] * 4);
+                }
+                if (g->count[1]) {
+                    g->data[1] = (int*)PoolAlloc(g->count[1] * 4);
+                    f->Read(g->data[1], g->count[1] * 4);
+                }
+                if (g->count[2]) {
+                    g->data[2] = (int*)PoolAlloc(g->count[2] * 4);
+                    f->Read(g->data[2], g->count[2] * 4);
+                }
+                ((CarBody*)body)->FUN_0046be50(2);
+                int has;
+                f->Read(&has, 4);
+                if (has)
+                    ((GhostLog*)(body + 0x1bed0))->Read(f);
+            }
+            race->FUN_0048f600(f);
+            f->Close();
+            delete f;
+            return true;
+        }
         f->Close();
         delete f;
-        return false;
     }
-    f->Read(this, 0x70);
-    DAT_0050132c = *(int*)(raw + 0x2c);
-    DAT_00501464 = *(int*)(raw + 0x30);
-    DAT_00501458 = raw[0x6e];
-    DAT_00501468 = *(int*)(raw + 0x34);
-    DAT_0050145c = raw[0x6c];
-    NetRace* race = DAT_00501450;
-    race->unk28 = *(int*)(raw + 0x24);
-    race->unk2c = *(int*)(raw + 0x28);
-    int cars = *(int*)(raw + 0x68) + 1;
-    for (int i = 0; i < cars; i++) {
-        ReplayCar* car = i == 0 ? new ReplayCar(1, 0) : new ReplayCar("dummy");
-        CarRecord r;
-        int j;
-        f->Read(&r, 0x1d4);
-        car->ReadSetup(&r);
-        car->unk20 = r.a20;
-        car->unk1a20 = r.a2c;
-        for (j = 0; j < 90; j++)
-            car->blk[j] = r.blk[j];
-        car->unk24 = r.a24;
-        car->unk2c = r.a28;
-        for (j = 0; j < 10; j++)
-            car->blk2[j] = r.blk2[j];
-        car->unk1a50 = r.a1c0;
-        car->unk1a58 = r.a1c4;
-        car->id = r.id;
-        car->unk1a6c = r.a1cc;
-        car->Finish();
-        race->FUN_00485f60(car);
-        BYTE* body = car->body;
-        GhostTrack* g = (GhostTrack*)(body + 0x1c874);
-        g->Reset();
-        f->Read(g, 0x8c);
-        if (g->count[0]) {
-            g->data[0] = (int*)PoolAlloc(g->count[0] * 4);
-            f->Read(g->data[0], g->count[0] * 4);
-        }
-        if (g->count[1]) {
-            g->data[1] = (int*)PoolAlloc(g->count[1] * 4);
-            f->Read(g->data[1], g->count[1] * 4);
-        }
-        if (g->count[2]) {
-            g->data[2] = (int*)PoolAlloc(g->count[2] * 4);
-            f->Read(g->data[2], g->count[2] * 4);
-        }
-        ((CarBody*)body)->FUN_0046be50(2);
-        int has;
-        f->Read(&has, 4);
-        if (has)
-            ((GhostLog*)(body + 0x1bed0))->Read(f);
-    }
-    race->FUN_0048f600(f);
-    f->Close();
-    delete f;
-    return true;
+    return false;
 }
