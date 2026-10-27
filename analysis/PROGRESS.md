@@ -6,7 +6,7 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Status
 
-- Marker inventory: 1781/2084 byte-exact (85.46%); 2084/2084 functions written (100.00%), from `tools/progress.py`.
+- Marker inventory: 1782/2084 byte-exact (85.51%); 2084/2084 functions written (100.00%), from `tools/progress.py`.
 - Game code: about 1,690 functions in `0x401000`–`0x4bcfc6`
 
 ## Queue
@@ -31,6 +31,9 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 
 ## Log
+
+- 2026-10-26 (Codex, `RaceOptionsMenu::Setup` `0x43fba0`): A volatile sentinel store reproduces the target instruction order; the 989-byte body, nine absolute relocations, 30 call targets, and no-EH layout were independently audited. Evidence: `../docs/analysis/menu-setup-lifetimes.md`.
+  Focused: 7/7 exact-marked RaceOptions functions; full: 1,782/1,782 exact, 302 NONMATCHING, no diffs or compile failures.
 
 - 2026-10-26 (Codex, `PlayerNameMenu::BuildRects` `0x43ee70`): Reusing the row counter matches the 1,415-byte body; independent COFF/PE relocation and 12-state EH audits passed. Evidence: `../docs/analysis/player-name-build-rects.md`.
   Focused: 14/14 exact-marked functions, 2 NONMATCHING; full: 1,781/1,781 exact, 303 NONMATCHING, no diffs or compile failures.

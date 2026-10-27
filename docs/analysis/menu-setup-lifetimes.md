@@ -4,6 +4,7 @@
 |---|---|---|
 | `GameScreen24FC::Setup` | `0x42ea30` | 525 |
 | `SlotMenu::Setup` | `0x44eb60` | 525 |
+| `RaceOptionsMenu::Setup` | `0x43fba0` | 989 |
 
 REA raw-byte evidence covers each entry through its following function:
 `ev_770eda4b60286cc6c214e118b921ed6fb5aefc20b39f35b4307f40cb67f601e4`
@@ -46,6 +47,24 @@ Thus the body is 525 bytes, not the 528-byte span recorded previously in
 525-byte/three-NOP layout and was already recorded correctly. The SlotMenu
 size correction excludes alignment padding; no instructions are omitted.
 The evidence above and independent local PE disassembly confirm this.
+
+## Race-options setup
+
+REA raw-byte evidence for `RaceOptionsMenu::Setup` (`0x43fba0`) covers the
+989-byte body: `ev_661facc1a875ec8b1093b9b1f68ce6eea90333c45f5b7b898d8fc7b7becb3766`.
+The entry has no Ghidra function dossier; the map and decoded bytes are local
+PE observations. The original stores the `-1` sentinel before loading the
+x-coordinate into the label field. A small inline helper uses a volatile
+sentinel store to keep VC6 in that order. This is a compiler observation, not
+a claim about the original source spelling.
+
+Independent COFF/PE audit confirms nine absolute relocations at the target
+base-relocation sites and 30 direct calls with matching destinations: ten
+language lookups, ten `basic_string::_Grow` calls, nine `_Eos` calls, and the
+final `LoadLayout` call. There is no EH table or local cleanup metadata. These
+are local object and PE observations. The focused check passes all seven
+exact-marked functions in the RaceOptions module, with its `Frame` and
+`LoadLayout` entries still `NONMATCHING`.
 
 The relocation-copy helper stops on the unresolved `std::_Xlen` symbol, so
 it does not produce copies of these methods. Object comparison and the

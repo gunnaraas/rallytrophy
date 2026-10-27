@@ -102,9 +102,16 @@ static float B1_step = 42.0f;          // 0x4e1820
 static float B1_textX = 54.0f;         // 0x4e1824
 static float B1_backY = 610.0f;        // 0x4e1838
 
-// NONMATCHING: RALLYTROPHY 0x43fba0
-// Same size (989) and everything matches except one scheduling swap in the SetPos loop: the original stores
-// unk20 = -1 before `fld st(1)`, mine after it (7 differing bytes; SetPos/loop-shape variants tried).
+static inline void SetRaceOptionPos(MenuLabel& item, float x, float y)
+{
+    *(volatile int*)&item.unk20 = -1;
+    item.SetX(x);
+    item.SetY(y);
+}
+
+// FUNCTION: RALLYTROPHY 0x43fba0
+// Evidence: ev_661facc1a875ec8b1093b9b1f68ce6eea90333c45f5b7b898d8fc7b7becb3766.
+// A volatile sentinel store preserves the target order before the x-coordinate load.
 void RaceOptionsMenu::Setup(MenuGame* game)
 {
     if (m_state) {
@@ -129,7 +136,7 @@ void RaceOptionsMenu::Setup(MenuGame* game)
     float x = B1_textX * xs;
     float step = B1_step * ys;
     for (int i = 0; i < 5; i++) {
-        items[i].SetPos(x, y);
+        SetRaceOptionPos(items[i], x, y);
         y += step;
     }
     Begin(game);
