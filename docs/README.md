@@ -43,6 +43,7 @@ matching maps, compiler notes, and the active work queue are under
   [player-name hit rectangles](analysis/player-name-build-rects.md),
   [service-menu geometry](analysis/service-menu-pages.md), and
   [menu setup lifetimes](analysis/menu-setup-lifetimes.md).
+- [Car-model cache constructor](analysis/car-model-cache-constructor.md).
 - [Networking session](analysis/networking-session.md),
   [configuration validation](analysis/config-validation.md),
   [language parsing](analysis/language-parser.md), and
