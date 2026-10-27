@@ -158,9 +158,7 @@
 <rect x="320.9" y="120" width="6.8" height="36" fill="#3fb950"/>
 <rect x="327.8" y="120" width="5.2" height="36" fill="#e3b341"/>
 <rect x="333.1" y="120" width="2.8" height="36" fill="#e3b341"/>
-<rect x="335.9" y="120" width="4.2" height="36" fill="#3fb950"/>
-<rect x="340.1" y="120" width="2.4" height="36" fill="#e3b341"/>
-<rect x="342.5" y="120" width="5.4" height="36" fill="#3fb950"/>
+<rect x="335.9" y="120" width="12.1" height="36" fill="#3fb950"/>
 <rect x="347.9" y="120" width="2.4" height="36" fill="#e3b341"/>
 <rect x="350.4" y="120" width="3.6" height="36" fill="#3fb950"/>
 <rect x="354.0" y="120" width="4.1" height="36" fill="#e3b341"/>
@@ -772,9 +770,9 @@
 <text x="1018" y="474" fill="#e6edf3">100% exact / 100% written</text>
 <text x="260" y="500" text-anchor="end" fill="#e6edf3">11. Game object</text>
 <rect x="270" y="486" width="740" height="18" rx="2" fill="#484f58"/>
-<rect x="270" y="486" width="376.7" height="18" fill="#3fb950"/>
-<rect x="646.7" y="486" width="363.3" height="18" fill="#e3b341"/>
-<text x="1018" y="500" fill="#e6edf3">51% exact / 100% written</text>
+<rect x="270" y="486" width="414.2" height="18" fill="#3fb950"/>
+<rect x="684.2" y="486" width="325.8" height="18" fill="#e3b341"/>
+<text x="1018" y="500" fill="#e6edf3">56% exact / 100% written</text>
 <text x="260" y="526" text-anchor="end" fill="#e6edf3">12. MenuScreen base</text>
 <rect x="270" y="512" width="740" height="18" rx="2" fill="#484f58"/>
 <rect x="270" y="512" width="740.0" height="18" fill="#3fb950"/>

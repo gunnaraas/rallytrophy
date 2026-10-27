@@ -2621,16 +2621,91 @@ public:
     unsigned int reserve;
 };
 
+#pragma comment(linker, "/alternatename:?Tidy@G10_String@@QAEX_N@Z=?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z")
+#pragma comment(linker, "/alternatename:?Grow@G10_String@@QAE_NI_N@Z=?_Grow@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAE_NI_N@Z")
+#pragma comment(linker, "/alternatename:?Eos@G10_String@@QAEXI@Z=?_Eos@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEXI@Z")
+#pragma comment(linker, "/alternatename:??0G10_Point@@QAE@ABU0@@Z=?Assign@Pair@@QAEPAU1@PBU1@@Z")
+#pragma comment(linker, "/alternatename:??0G10_Rect@@QAE@UG10_Point@@VHudPoint@@@Z=??0A_Rect@@QAE@VHudPoint@@0@Z")
+// VC6 vector layout with each call/inline boundary pinned to the target loader.
+struct G10_RectVector {
+    std::allocator<UIRect*> alloc;
+    UIRect** first;
+    UIRect** last;
+    UIRect** end;
+    void Insert(UIRect** pos, unsigned int n, UIRect* const& value); // 0x4bc680
+    void InsertOne(UIRect** pos, UIRect* const& value) { Insert(pos, 1, value); }
+    void PushBack(UIRect* const& value) { InsertOne(last, value); }
+    unsigned int Size() const { return first == 0 ? 0 : last - first; }
+    unsigned int SizeCall() const; // 0x414460
+    UIRect** Ucopy(UIRect* const* f, UIRect* const* l, UIRect** d); // 0x424320
+    void Ufill(UIRect** d, unsigned int n, UIRect* const& value); // 0x424350
+    void Destroy(UIRect** f, UIRect** l); // 0x403130
+    static void Construct(UIRect** p, UIRect* const& value); // 0x403140
+    UIRect** CopyInline(UIRect* const* from, UIRect* const* finish, UIRect** out)
+    {
+        for (; from != finish; ++out, ++from)
+            Construct(out, *from);
+        return out;
+    }
+    void FillInline(UIRect** out, unsigned int count, UIRect* const& value)
+    {
+        for (; 0 < count; --count, ++out)
+            Construct(out, value);
+    }
+    void PushBackExpanded(UIRect* const& value)
+    {
+        UIRect** pos = last;
+        if ((unsigned int)(end - last) < 1) {
+            unsigned int count = Size() + (1 < Size() ? Size() : 1);
+            UIRect** storage = alloc.allocate(count, (void*)0);
+            UIRect** out = CopyInline(first, pos, storage);
+            Ufill(out, 1, value);
+            Ucopy(pos, last, out + 1);
+            Destroy(first, last);
+            alloc.deallocate(first, end - first);
+            end = storage + count;
+            last = storage + SizeCall() + 1;
+            first = storage;
+        } else if ((unsigned int)(last - pos) < 1) {
+            Ucopy(pos, last, pos + 1);
+            Ufill(last, 1 - (last - pos), value);
+            for (UIRect** from = pos; from != last; ++from)
+                *from = value;
+            last += 1;
+        } else {
+            Ucopy(last - 1, last, last);
+            UIRect** to = last;
+            UIRect** from = last - 1;
+            while (pos != from)
+                *--to = *--from;
+            for (from = pos; from != pos + 1; ++from)
+                *from = value;
+            last += 1;
+        }
+    }
+};
+#pragma comment(linker, "/alternatename:?Insert@G10_RectVector@@QAEXPAPAVUIRect@@IABQAV2@@Z=?insert@?$vector@PAXV?$allocator@PAX@std@@@std@@QAEXPAPAXIABQAX@Z")
+#pragma comment(linker, "/alternatename:?SizeCall@G10_RectVector@@QBEIXZ=?size@?$vector@PAXV?$allocator@PAX@std@@@std@@QBEIXZ")
+#pragma comment(linker, "/alternatename:?Ucopy@G10_RectVector@@QAEPAPAVUIRect@@PBQAV2@0PAPAV2@@Z=?_Ucopy@?$vector@PAXV?$allocator@PAX@std@@@std@@IAEPAPAXPBQAX0PAPAX@Z")
+#pragma comment(linker, "/alternatename:?Ufill@G10_RectVector@@QAEXPAPAVUIRect@@IABQAV2@@Z=?_Ufill@?$vector@PAXV?$allocator@PAX@std@@@std@@IAEXPAPAXIABQAX@Z")
+#pragma comment(linker, "/alternatename:?Destroy@G10_RectVector@@QAEXPAPAVUIRect@@0@Z=?_Destroy@?$vector@PAXV?$allocator@PAX@std@@@std@@IAEXPAPAX0@Z")
+#pragma comment(linker, "/alternatename:?Construct@G10_RectVector@@SAXPAPAVUIRect@@ABQAV2@@Z=?_Construct@std@@YAXPAPAXABQAX@Z")
+typedef char G10_RectVectorLayoutCheck[sizeof(G10_RectVector) == sizeof(std::vector<UIRect*>) ? 1 : -1];
 #define G10_ADD(ul, lr) \
     do { \
         rect = (UIRect*)new G10_Rect(*(const G10_Point*)&config.GetVector2(ul), *(const HudPoint*)&config.GetVector2(lr)); \
-        m_items.push_back(rect); \
+        ((G10_RectVector*)&m_items)->PushBack(rect); \
+    } while (0)
+#define G10_ADD_LAST(ul, lr) \
+    do { \
+        rect = (UIRect*)new G10_Rect(*(const G10_Point*)&config.GetVector2(ul), *(const HudPoint*)&config.GetVector2(lr)); \
+        ((G10_RectVector*)&m_items)->PushBackExpanded(rect); \
     } while (0)
 extern ConfigKey DAT_004f7618[];   // mainmenu.ini key table (14 keys)
 
-// NONMATCHING: RALLYTROPHY 0x434e00
-// 1553 vs 1572 bytes. Everything up to the 7th push_back matches (prologue, 7 key pairs, EH states). The last vector insert is
-// expanded but its _Ucopy loop stays a call (original inlines it): one inline-budget unit too much, as in SoundMenu::LoadLayout.
+/* FUNCTION: RALLYTROPHY 0x434e00 */
+// Exact 1572-byte match / 81 relocations. G10_RectVector pins six insert calls and the final inline prefix copy.
+// Local comparison and operand audit: docs/analysis/main-menu-layout.md.
 // original: FUN_00434e00 (thiscall; Game main-menu layout loader)
 void G10_GameView::LoadMainLayout()
 {
@@ -2645,7 +2720,7 @@ void G10_GameView::LoadMainLayout()
     G10_ADD("OptionsText_UpperLeft", "OptionsText_LowerRight");
     G10_ADD("HighScoreText_UpperLeft", "HighScoreText_LowerRight");
     G10_ADD("ReplayText_UpperLeft", "ReplayText_LowerRight");
-    G10_ADD("QuitText_UpperLeft", "QuitText_LowerRight");
+    G10_ADD_LAST("QuitText_UpperLeft", "QuitText_LowerRight");
 }
 
 // ---- Group G11 (draft GB) ----

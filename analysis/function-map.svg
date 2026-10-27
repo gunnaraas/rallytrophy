@@ -2,7 +2,7 @@
 <title>Rally Trophy per-function decompilation map</title>
 <rect width="1600" height="1120" rx="8" fill="#0d1117"/>
 <text x="20" y="30" font-size="18" font-weight="600" fill="#e6edf3">Every game function, sized by code bytes and branch complexity</text>
-<text x="20" y="53" fill="#8b949e">1,797 byte-exact · 287 written but not byte-exact · 0 unwritten. Tile area = bytes × (1 + log₂(1 + branch points)); hover for details.</text>
+<text x="20" y="53" fill="#8b949e">1,798 byte-exact · 286 written but not byte-exact · 0 unwritten. Tile area = bytes × (1 + log₂(1 + branch points)); hover for details.</text>
 <g transform="translate(20,72)" fill="#e6edf3">
 <rect width="12" height="12" fill="#3fb950"/><text x="18" y="11">byte-exact</text>
 <rect x="118" width="12" height="12" fill="#e3b341"/><text x="136" y="11">written, not exact</text>
@@ -443,7 +443,7 @@
 <rect x="820.42" y="380.36" width="15.25" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00434ba0 · FUN_00434ba0 · Game object · 557 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>
 <rect x="836.67" y="380.36" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00434dd0 · FUN_00434dd0 · Game object · 18 code bytes · complexity 1 (0 branch points) · byte-exact</title></rect>
 <rect x="836.93" y="380.36" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00434df0 · FUN_00434df0 · Game object · 16 code bytes · complexity 1 (0 branch points) · byte-exact</title></rect>
-<rect x="837.16" y="380.36" width="130.93" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x00434e00 · FUN_00434e00 · Game object · 1,572 code bytes · complexity 27 (26 branch points) · written, not exact</title></rect>
+<rect x="837.16" y="380.36" width="130.93" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00434e00 · FUN_00434e00 · Game object · 1,572 code bytes · complexity 27 (26 branch points) · byte-exact</title></rect>
 <rect x="969.09" y="380.36" width="4.31" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00435430 · FUN_00435430 · Game object · 364 code bytes · complexity 1 (0 branch points) · byte-exact</title></rect>
 <rect x="974.40" y="380.36" width="4.37" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x004355a0 · FUN_004355a0 · Game object · 368 code bytes · complexity 1 (0 branch points) · byte-exact</title></rect>
 <rect x="979.76" y="380.36" width="4.37" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00435710 · FUN_00435710 · Game object · 368 code bytes · complexity 1 (0 branch points) · byte-exact</title></rect>
