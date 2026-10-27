@@ -99,18 +99,23 @@ void* LoadScreen::Self()
     return this;
 }
 
-// NONMATCHING: RALLYTROPHY 0x4033f0 (draft, not yet compared)
+// NONMATCHING: RALLYTROPHY 0x4033f0
+// Allocation sizes, SpriteB ctor arguments and the default-construct-then-assign path match the target.
+// Open: the target calls append(const char*, size_t) 0x403ba0 out of line for the first two appends but
+// inlines the next two (keeping _Eos 0x402960 out of line); `+=`, append(s) and append(s, n) all inline
+// differently here. The q[8]/q[9] stores are also scheduled earlier than in the target.
 void LoadScreen::Init(int level)
 {
     _itoa(level, DAT_005070b8, 10);
-    std::string path = "data/menu/LoadingT";
-    path += DAT_005070b8;
-    path.append(".tga", 4);
-    back = new SpriteB(path.c_str());
+    std::string path;
     path = "data/menu/LoadingT";
-    path.append(DAT_005070b8, strlen(DAT_005070b8));
-    path.append("C.tga", 5);
-    front = new SpriteB(path.c_str());
+    path.append(DAT_005070b8);
+    path.append(".tga");
+    back = new SpriteB(DAT_0056b0ac, path.c_str(), 1, 1);
+    path = "data/menu/LoadingT";
+    path += DAT_005070b8;
+    path += "C.tga";
+    front = new SpriteB(DAT_0056b0ac, path.c_str(), 1, 1);
     front->SetBlend(5, 6);
     quad = new SpriteA;
     quad->res = new Res403("data/menu/loadpattern.tga", 0x841, 1);
@@ -120,11 +125,15 @@ void LoadScreen::Init(int level)
     q[6] = 5;
     q[7] = 6;
     q[8] = 2;
+    ((float*)q)[0x18] = 1.0f;
+    ((float*)q)[0x19] = 1.0f;
+    ((float*)q)[0x1a] = 1.0f;
+    ((float*)q)[0x1b] = 1.0f;
     q[9] = 2;
-    for (int i = 0; i < 4; i++) {
-        ((float*)q)[0x18 + i] = 1.0f;
-        ((float*)q)[0x10 + i] = 1.0f;
-    }
+    ((float*)q)[0x10] = 1.0f;
+    ((float*)q)[0x11] = 1.0f;
+    ((float*)q)[0x12] = 1.0f;
+    ((float*)q)[0x13] = 1.0f;
 }
 
 struct Col403 {                                      // packed ARGB colour with an empty destructor

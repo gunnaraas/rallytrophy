@@ -8,6 +8,7 @@ public:
     virtual ~Res403();
     Res403(const char* path, int flags, int mode);   // 0x4a8030
     void Load(void* device);                          // 0x4a8350
+    int data[0x19];                                   // 0x68 bytes in all
 };
 // Small quad objects used by the loading screen.
 class SpriteA {                                       // ctor 0x4a8580, dtor 0x4a86d0 (+0 = resource)
@@ -15,12 +16,13 @@ public:
     Res403* res;
     int pad[0x26];
     int f9c;
+    int tail[0xd];                                    // 0xd4 bytes in all
     SpriteA();
     ~SpriteA();
 };
 class SpriteB {                                       // ctor 0x4a8ae0, dtor 0x4a8bb0
 public:
-    SpriteB(const char* texture);
+    SpriteB(void* device, const char* texture, int a, int b);
     ~SpriteB();
     void SetBlend(int a, int b);                      // 0x4a9280
     void Draw(void* device, int unused);              // 0x4a92c0
