@@ -53,9 +53,8 @@ CarEmitterB::~CarEmitterB()
 {
 }
 
-// NONMATCHING: RALLYTROPHY 0x479250
-// 564 bytes, identical except that `xor ebx,ebx` (re-zeroing the register constant) sits before
-// the final `fstp [age]` in the original and after it here (5 bytes differ; no source form moved it).
+// FUNCTION: RALLYTROPHY 0x479250
+// Exact 564-byte match; target evidence: ev_800fbf6b258e5b69ddabeac3f9e79bd350789cf724f68c1239eec27da32c2333.
 // Ages, moves, damps and fades the particles; keeps their bounding box.
 void CarEmitterB::Update(float dt)
 {
@@ -113,7 +112,7 @@ void CarEmitterB::Update(float dt)
             ((BYTE*)&p->color)[3] = (BYTE)FloatToInt(alpha * 255.0f);
             p->next = particles;
             particles = p;
-            p->age = (dt + dt) + p->age;
+            p->age += dt + dt;
         } else {
             p->next = DAT_0056ae90.head;
             DAT_0056ae90.head = p;
