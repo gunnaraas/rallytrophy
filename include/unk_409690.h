@@ -53,11 +53,14 @@ public:
 };
 
 // 0x54-byte scene transform block (ctor 0x40a680): a position, an identity 4x4 matrix and two spare fields.
+// Both unwind through the shared empty dtor 0x402c90.
+struct XformVec { float v[3]; XformVec() {} ~XformVec() {} };
+struct XformMat { float m[4][4]; XformMat() {} ~XformMat() {} };
 class SceneXform {
 public:
-    SceneXform(int unused); // 0x40a680
-    float pos[3];           // 0x00 (first dword is written, [1], [2] are written)
-    float m[4][4];          // 0x0c
+    SceneXform();           // 0x40a680
+    XformVec pos;           // 0x00
+    XformMat m;             // 0x0c
     int unk4c;              // 0x4c
     int unk50;              // 0x50
 };

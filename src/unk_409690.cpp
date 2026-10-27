@@ -345,25 +345,22 @@ void BinkVideo::Render(RenderDevice* device)
 extern std::vector<void*> DAT_00508298; // shared free list, reserved to 0x200 entries on first use
 
 // NONMATCHING: RALLYTROPHY 0x40a680
-// reason: original ctor has an EH frame (unwind state) and different store order; member list/vector reserve is faithful
-SceneXform::SceneXform(int)
+// 300/300 bytes, 28 differ: the target stores pos.x before the diagonal and sets EH state 1 after pos.z/pos.y;
+// here the zero stores of pos sink below the state store. Both members unwind through the empty dtor 0x402c90.
+// Tried: setting x/diagonal in the member ctors (splits the state stores), pos store chains, 0.0f literals.
+SceneXform::SceneXform()
 {
-    pos[0] = 0;
-    m[3][3] = 1.0f;
-    m[2][2] = 1.0f;
-    m[1][1] = 1.0f;
-    m[0][0] = 1.0f;
-    pos[2] = 0;
-    pos[1] = 0;
+    pos.v[0] = 0;
+    m.m[0][0] = m.m[1][1] = m.m[2][2] = m.m[3][3] = 1.0f;
+    pos.v[2] = 0;
+    pos.v[1] = 0;
     unk50 = 0;
-    m[0][1] = 0; m[0][2] = 0; m[0][3] = 0;
-    m[1][0] = 0; m[1][2] = 0; m[1][3] = 0;
-    m[2][0] = 0; m[2][1] = 0; m[2][3] = 0;
-    m[3][0] = 0; m[3][1] = 0; m[3][2] = 0;
+    m.m[0][3] = 0; m.m[0][2] = 0; m.m[0][1] = 0;
+    m.m[1][3] = 0; m.m[1][2] = 0; m.m[1][0] = 0;
+    m.m[2][3] = 0; m.m[2][1] = 0; m.m[2][0] = 0;
+    m.m[3][2] = 0; m.m[3][1] = 0; m.m[3][0] = 0;
     unk4c = 0;
-    if (DAT_00508298.capacity() < 0x200) {
-        DAT_00508298.reserve(0x200);
-    }
+    DAT_00508298.reserve(0x200);
 }
 
 // FUNCTION: RALLYTROPHY 0x4096e0
