@@ -6,7 +6,7 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Status
 
-- Marker inventory: 1766/2084 byte-exact (84.74%); 2084/2084 functions written (100.00%), from `tools/progress.py`.
+- Marker inventory: 1780/2084 byte-exact (85.44%); 2084/2084 functions written (100.00%), from `tools/progress.py`.
 - Game code: about 1,690 functions in `0x401000`–`0x4bcfc6`
 
 ## Queue
@@ -31,6 +31,9 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 
 ## Log
+
+- 2026-10-26 (Codex, `ServiceMenu::BuildRects` `0x44afd0`): Reusing and resetting the loop counter matches the 1,331-byte body and all 61 relocations; independent EH/relocation audit passed. Evidence: `../docs/analysis/service-menu-pages.md`.
+  Focused: 16/16 exact, 6 NONMATCHING; full: 1,780/1,780 exact, 304 NONMATCHING, no diffs or compile failures.
 - 2026-10-26 (Codex, MenuGame audio update `0x432c00`): Matched the 516-byte body and 22 relocations; transcribed the transition, indexed stream-frame selection, fade-volume math, and four channel updates. Evidence: `../docs/analysis/menu-row-drawing.md`.
   Focused: 42/42 marked functions match, 9 NONMATCHING; full: 1,766/1,766 exact, 318 NONMATCHING, no diffs or compile failures.
 

@@ -1376,9 +1376,9 @@ void ServiceMenu::DrawContinuePage()
     ((RaceDeviceSlots*)DAT_0056b0ac)->DrawQuad((Vec2*)pos, (Vec2*)uv, white, 1.0f, 1.0f);
 }
 
-// NONMATCHING: RALLYTROPHY 0x44afd0
-// Same size and instructions; only the stack slots of the loop counter, the tab shift and the top value differ
-// (original: i 0x14, shift 0x18, top 0x1c; built: shift 0x14, top 0x18, i 0x1c). Declaration order does not move them.
+// FUNCTION: RALLYTROPHY 0x44afd0
+// Evidence: ev_8d4506e624020115e9343d63b221610b94babd90b3c05083705beb2b24128ca2.
+// Reuse one counter and reset it before n += 7 to preserve target slots and scheduling.
 void ServiceMenu::BuildRects()
 {
     float top;
@@ -1413,20 +1413,21 @@ void ServiceMenu::BuildRects()
     m_items.push_back(rect);
     n++;
     unk119c = n;
+    i = 0;
     n += 7;
-    for (int j = 0; j < 7; j++) {
+    for (; i < 7; i++) {
         b.x = SMD_ROWX + 240.0f;
         a.x = SMD_ROWX;
-        a.y = j * SMD_PITCH + top;
-        b.y = (j + 1) * SMD_PITCH + top;
+        a.y = i * SMD_PITCH + top;
+        b.y = (i + 1) * SMD_PITCH + top;
         rect = (UIRect*)new SMD_Rect(a, b);
         m_items.push_back(rect);
     }
     unk1198 = n;
-    for (int k = 0; k < 5; k++) {
-        a.x = k * 80.8f + SMD_TUNEX;
+    for (i = 0; i < 5; i++) {
+        a.x = i * 80.8f + SMD_TUNEX;
         a.y = SMD_TUNEY;
-        b.x = (k + 1) * 80.8f + SMD_TUNEX;
+        b.x = (i + 1) * 80.8f + SMD_TUNEX;
         b.y = SMD_TUNEY + 32.0f;
         rect = (UIRect*)new SMD_Rect(a, b);
         std::vector<UIRect*>& v = m_items;
