@@ -142,9 +142,9 @@ float CarEmitterB::Spawn(int type, float scale, float age, Car* car, CarBody* bo
     return 0.0f;
 }
 
-// NONMATCHING: RALLYTROPHY 0x479530
-// 1216 bytes, same size and layout; 7 bytes differ: the two `size * sin` products (second and third
-// quad vectors) load the table operand first here (`fld [sin]; fmul [size]`), the original size first.
+// FUNCTION: RALLYTROPHY 0x479530
+// Evidence: ev_5b4d48f9ab52efad57ec064c262bdb82f9becfd1de97d3481bb7a5c1be9901b1
+// Separate size locals for the sine products preserve the original x87 operand order.
 // Draws every visible live particle as a rotated camera-facing quad.
 void CarEmitterB::Render(RenderDevice* device, Camera* camera)
 {
@@ -182,8 +182,10 @@ void CarEmitterB::Render(RenderDevice* device, Camera* camera)
             Vec3 a, b;
             int idx = FloatToInt(p->rotation) & 0x3ff;
             a = *right * (p->size * DAT_00561ec0[idx].cos);
-            a += *up * (p->size * DAT_00561ec0[idx].sin);
-            b = *right * -(p->size * DAT_00561ec0[idx].sin);
+            float sineSizeA = p->size;
+            a += *up * (sineSizeA * DAT_00561ec0[idx].sin);
+            float sineSizeB = p->size;
+            b = *right * -(sineSizeB * DAT_00561ec0[idx].sin);
             b += *up * (p->size * DAT_00561ec0[idx].cos);
             Vec3 c, d;
             c.x = a.x + b.x;

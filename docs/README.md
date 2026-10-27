@@ -32,7 +32,8 @@ matching maps, compiler notes, and the active work queue are under
   [suspension setters](analysis/car-suspension-setter.md),
   [drivetrain gear selection](analysis/drivetrain-select-gear.md),
   [skid-mark rendering](analysis/skid-render.md),
-  [car rain setup](analysis/car-rain-setup.md), and
+  [car rain setup](analysis/car-rain-setup.md),
+  [particle emitter rendering](analysis/car-emitter-b-render.md), and
   [exhaust smoke](analysis/exhaust-smoke-emission.md).
 - [Menu drawing](analysis/menu-row-drawing.md),
   [menu toggles](analysis/menu-toggle.md),
