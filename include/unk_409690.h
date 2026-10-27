@@ -19,7 +19,6 @@ public:
 };
 class NamedDerived : public NamedBase {
 public:
-    virtual ~NamedDerived();
     int m_unk14[2];     // 0x14
     std::string m_str2; // 0x1c
     int m_unk2c;

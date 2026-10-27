@@ -176,6 +176,7 @@ Distilled from the per-loop history; "(A: X)" means `NOTES-archive.md`, section 
 - **Inline asm helpers.** `inline` functions whose body is `__asm` are still inlined; their pointer arguments land in ebp slots that the asm reloads (`mov ecx,[ebp-x]`). That is the shape of the x87 transform/cross blocks (0x4150b0, 0x41b270, 0x41c540): write them as inline functions, not macros with block locals. Act on vector fields directly (`rec->dir -= ...`), not through a pointer local, or VC6 forwards the stored components instead of reloading them like the original.
 - Ghidra pseudocode may run past a `throw`: take boundaries from the inventory (A: Loop 13; Loop 15).
 - Separate a declaration from its assignment for store-order mismatches (A: Loop 13); member-initializer vs body assignment changes vptr store order (A: Loop 14).
+- An empty user-declared derived dtor stores the derived vptr first; if the target skips that store, drop the dtor so VC6 generates it (e.g. `NamedDerived` 0x409720).
 - Config accessors: unsigned index, `size()` bound, direct `m_entries[i]` (A: Loop 15).
 
 - A this-adjusting forwarder (`add ecx,N; call f; ret 4`) is a plain member calling the embedded object's method; no asm needed (MenuManager 0x43cb50).

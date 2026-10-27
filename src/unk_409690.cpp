@@ -10,11 +10,10 @@ NamedHolder::~NamedHolder()
 {
 }
 
-// NONMATCHING: RALLYTROPHY 0x409720
-// reason: compiler emits an extra early vptr store before the inlined member/base string tidy
-NamedDerived::~NamedDerived()
-{
-}
+// FUNCTION: RALLYTROPHY 0x409720
+// SYMBOL: ??1NamedDerived@@UAE@XZ
+// Compiler-generated: no user dtor, so VC6 skips the derived vptr store.
+NamedDerived* NewNamedDerived() { return new NamedDerived; } // forces the vtable/dtor emission
 
 typedef int (__stdcall *BinkFn1)(void*);
 typedef int (__stdcall *BinkFn2)(void*, void*);
