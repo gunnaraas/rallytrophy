@@ -6,7 +6,7 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Status
 
-- Marker inventory: 1796/2084 byte-exact (86.18%); 2084/2084 functions written (100.00%), from `tools/progress.py`.
+- Marker inventory: 1797/2084 byte-exact (86.23%); 2084/2084 functions written (100.00%), from `tools/progress.py`.
 - Game code: about 1,690 functions in `0x401000`–`0x4bcfc6`
 
 ## Queue
@@ -32,6 +32,7 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Log
 
+- 2026-10-27 (Codex, `TrackSelectMenu::BuildRects` `0x4451c0`): Exact 1,700-byte C++ match with 89 relocations. A vector twin keeps the first seven insertions as calls and expands the eighth, with its allocation-tail copy out of line. Verified 11 aliases and 34 PE call destinations; focused 22 exact / 3 NONMATCHING. Evidence: `docs/analysis/track-menu-layout.md`.
 - 2026-10-27 (Codex, `SoundMenu::LoadLayout` `0x451c10`): Exact 1,848-byte match with 97 relocations. An intermediate insertion wrapper fixed pointer-store timing (169→15 diffs), comparison order reduced that to 14, and VC6 allocator methods fixed the final registers. Verified all 11 string/geometry/vector aliases; focused: 7 exact, 2 NONMATCHING. Evidence: `docs/analysis/sound-menu-layout.md`.
 - 2026-10-27 (Codex, `SoundMenu::LoadLayout` `0x451c10`): Applied the PathText/HitVec stand-in pattern to vector insertion: first eight calls stay out of line, ninth expands with the target helper boundaries. Improved 2,133/1,848 bytes and 1,578 differences to 1,848/1,848 and 169; verified six helper aliases and call counts. Focused: 6 exact, 3 NONMATCHING; findings in `docs/analysis/sound-menu-layout.md`.
 - 2026-10-27 (Claude, `TriCollector::Walk` `0x418760`): Added a `HitVec` twin whose `PushBack` writes out VC6's insert(end(), 1, x) with `_Construct`/`_Ucopy`/`_Ufill`/`_Destroy`/`size()` as calls (0x403140/0x424320/0x424350/0x403130/0x414460), as the target has them; tested `id` before reading `sel`. 801/773 bytes, 596 diffs → 774/773, 548 diffs. `insert(end(), t)` and direct `InsN` were worse.

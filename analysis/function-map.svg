@@ -2,7 +2,7 @@
 <title>Rally Trophy per-function decompilation map</title>
 <rect width="1600" height="1120" rx="8" fill="#0d1117"/>
 <text x="20" y="30" font-size="18" font-weight="600" fill="#e6edf3">Every game function, sized by code bytes and branch complexity</text>
-<text x="20" y="53" fill="#8b949e">1,796 byte-exact · 288 written but not byte-exact · 0 unwritten. Tile area = bytes × (1 + log₂(1 + branch points)); hover for details.</text>
+<text x="20" y="53" fill="#8b949e">1,797 byte-exact · 287 written but not byte-exact · 0 unwritten. Tile area = bytes × (1 + log₂(1 + branch points)); hover for details.</text>
 <g transform="translate(20,72)" fill="#e6edf3">
 <rect width="12" height="12" fill="#3fb950"/><text x="18" y="11">byte-exact</text>
 <rect x="118" width="12" height="12" fill="#e3b341"/><text x="136" y="11">written, not exact</text>
@@ -606,7 +606,7 @@
 <rect x="269.08" y="469.82" width="537.94" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x00443790 · FUN_00443790 · Track-selection screen · 5,277 code bytes · complexity 111 (110 branch points) · written, not exact</title></rect>
 <rect x="808.02" y="469.82" width="75.00" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00444c40 · FUN_00444c40 · Track-selection screen · 1,160 code bytes · complexity 16 (15 branch points) · byte-exact</title></rect>
 <rect x="884.02" y="469.82" width="4.50" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x004450e0 · FUN_004450e0 · Track-selection screen · 210 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>
-<rect x="889.52" y="469.82" width="128.36" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x004451c0 · FUN_004451c0 · Track-selection screen · 1,700 code bytes · complexity 28 (27 branch points) · written, not exact</title></rect>
+<rect x="889.52" y="469.82" width="128.36" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x004451c0 · FUN_004451c0 · Track-selection screen · 1,700 code bytes · complexity 28 (27 branch points) · byte-exact</title></rect>
 <rect x="1018.88" y="469.82" width="63.79" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00445870 · FUN_00445870 · Track-selection screen · 1,052 code bytes · complexity 13 (12 branch points) · byte-exact</title></rect>
 <rect x="1083.67" y="469.82" width="4.69" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x00445c90 · FUN_00445c90 · Track-selection screen · 434 code bytes · complexity 1 (0 branch points) · written, not exact</title></rect>
 <rect x="1089.36" y="469.82" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00445e50 · TrackSelectMenu module end: guard-bit initialiser of the STL header statics (_$E) · Track-selection screen · 25 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>
