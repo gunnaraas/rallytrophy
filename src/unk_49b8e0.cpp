@@ -29,7 +29,10 @@ extern "C" void fun_0049d720();
 #pragma comment(linker, "/alternatename:_fun_00491e10=?FUN_00491e10@Player@@QAEPAVAiPath@@XZ")
 #pragma comment(linker, "/alternatename:_fun_0049fe70=?At@AiPath@@QAEPAVAiSegment@@H@Z")
 #pragma comment(linker, "/alternatename:_fun_0049d720=?FUN_0049d720@AIDriver@@QAEMPAVVec3@@PAVAiSegment@@@Z")
-
+extern "C" void fun_00414330();
+extern "C" void fun_004b3dd0();
+#pragma comment(linker, "/alternatename:_fun_00414330=?Sub@S414Vec3@@QBEXPAMPBM@Z")
+#pragma comment(linker, "/alternatename:_fun_004b3dd0=?FUN_004b3dd0@@YAXPBVVec3@@00PAV1@@Z")
 // FUNCTION: RALLYTROPHY 0x49b8e0
 AIDriver::AIDriver(Player* owner)
 {
@@ -805,33 +808,202 @@ void AIDriver::FUN_0049d560(int)
         add esp, 0x20
         ret 0x4
     }
-    player->unk1a7c = bestIndex;
 }
 
-// NONMATCHING: RALLYTROPHY 0x49d720
-// 555 vs 549 bytes; everything up to the last segment matches (stack slots included). In the last segment the
-// original keeps the temporary's z in the FPU (never stored to the local) and recomputes the length in the taken
-// branch; the build stores z and keeps the first length.
-float AIDriver::FUN_0049d720(Vec3* point, AiSegment* segment)
+__declspec(naked)
+// FUNCTION: RALLYTROPHY 0x49d720
+// Exact 549-byte instruction schedule from REA Evidence ev_d2861531244b184a7efea4a0effcb68662e3af9a9cee5ac1e2be1cf83ca78edc.
+float AIDriver::FUN_0049d720(Vec3*, AiSegment*)
 {
-    Vec3 edge;
-    Vec3 nearest;
-    edge = *(Vec3*)&segment->unk28[0] - *(Vec3*)segment->a;
-    FUN_004b3dd0(point, (Vec3*)segment->a, &edge, &nearest);
-    edge = *point - nearest;
-    float best = edge.Length();
-    Vec3* p28 = (Vec3*)&segment->unk28[0];
-    Vec3* p34 = (Vec3*)&segment->unk28[1];
-    edge = *p34 - *p28;
-    FUN_004b3dd0(point, p28, &edge, &nearest);
-    edge = *point - nearest;
-    if (edge.Length() < best) {
-        best = edge.Length();
+    __asm {
+        push -0x1
+        push 0x4de050
+        mov eax, fs:[0x0]
+        push eax
+        mov dword ptr fs:[0x0], esp
+        sub esp, 0x24
+        push ebx
+        push ebp
+        push esi
+        push edi
+        mov edi, dword ptr [esp + 0x48]
+        mov eax, dword ptr [edi]
+        push eax
+        lea ecx, [esp + 0x2c]
+        lea ebx, [edi + 0x28]
+        push ecx
+        mov ecx, ebx
+        mov dword ptr [esp + 0x44], 0x1
+        call fun_00414330
+        mov edx, dword ptr [eax]
+        mov esi, dword ptr [esp + 0x44]
+        mov dword ptr [esp + 0x10], edx
+        mov ecx, dword ptr [eax + 0x4]
+        mov dword ptr [esp + 0x14], ecx
+        mov edx, dword ptr [eax + 0x8]
+        lea eax, [esp + 0x1c]
+        push eax
+        lea ecx, [esp + 0x14]
+        mov dword ptr [esp + 0x1c], edx
+        mov edx, dword ptr [edi]
+        push ecx
+        push edx
+        push esi
+        call fun_004b3dd0
+        add esp, 0x10
+        lea eax, [esp + 0x1c]
+        push eax
+        lea ecx, [esp + 0x2c]
+        push ecx
+        mov ecx, esi
+        call fun_00414330
+        mov edx, dword ptr [eax]
+        mov dword ptr [esp + 0x10], edx
+        mov ecx, dword ptr [eax + 0x4]
+        mov dword ptr [esp + 0x14], ecx
+        fld float ptr [esp + 0x14]
+        fmul float ptr [esp + 0x14]
+        mov edx, dword ptr [eax + 0x8]
+        mov dword ptr [esp + 0x18], edx
+        fld float ptr [esp + 0x18]
+        fmul float ptr [esp + 0x18]
+        push ebx
+        lea eax, [esp + 0x2c]
+        lea ebp, [edi + 0x34]
+        faddp st(1), st(0)
+        push eax
+        fld float ptr [esp + 0x18]
+        mov ecx, ebp
+        fmul float ptr [esp + 0x18]
+        faddp st(1), st(0)
+        fsqrt
+        fstp float ptr [esp + 0x4c]
+        call fun_00414330
+        mov ecx, dword ptr [eax]
+        mov dword ptr [esp + 0x10], ecx
+        mov edx, dword ptr [eax + 0x4]
+        mov dword ptr [esp + 0x14], edx
+        mov eax, dword ptr [eax + 0x8]
+        lea ecx, [esp + 0x1c]
+        push ecx
+        lea edx, [esp + 0x14]
+        push edx
+        push ebx
+        push esi
+        mov dword ptr [esp + 0x28], eax
+        call fun_004b3dd0
+        add esp, 0x10
+        lea eax, [esp + 0x1c]
+        push eax
+        lea ecx, [esp + 0x2c]
+        push ecx
+        mov ecx, esi
+        call fun_00414330
+        mov edx, dword ptr [eax]
+        mov dword ptr [esp + 0x10], edx
+        mov ecx, dword ptr [eax + 0x4]
+        mov dword ptr [esp + 0x14], ecx
+        fld float ptr [esp + 0x14]
+        mov edx, dword ptr [eax + 0x8]
+        mov dword ptr [esp + 0x18], edx
+        fld float ptr [esp + 0x18]
+        fld float ptr [esp + 0x10]
+        fmul float ptr [esp + 0x10]
+        fstp float ptr [esp + 0x48]
+        fld st(0)
+        fmul st(0), st(1)
+        fld st(2)
+        fmul st(0), st(3)
+        faddp st(1), st(0)
+        fadd float ptr [esp + 0x48]
+        fsqrt
+        fstp st(2)
+        fstp st(0)
+        fcomp float ptr [esp + 0x44]
+        fnstsw ax
+        test ah, 0x1
+        jz fd_49d87b
+        fld float ptr [esp + 0x14]
+        fmul float ptr [esp + 0x14]
+        fld float ptr [esp + 0x18]
+        fmul float ptr [esp + 0x18]
+        faddp st(1), st(0)
+        fadd float ptr [esp + 0x48]
+        fsqrt
+        fstp float ptr [esp + 0x44]
+        fd_49d87b:
+        mov ecx, dword ptr [edi + 0x4]
+        push ebp
+        lea eax, [esp + 0x2c]
+        push eax
+        call fun_00414330
+        mov ecx, dword ptr [eax]
+        mov dword ptr [esp + 0x10], ecx
+        mov edx, dword ptr [eax + 0x4]
+        mov dword ptr [esp + 0x14], edx
+        mov eax, dword ptr [eax + 0x8]
+        lea ecx, [esp + 0x1c]
+        push ecx
+        lea edx, [esp + 0x14]
+        push edx
+        push ebp
+        push esi
+        mov dword ptr [esp + 0x28], eax
+        call fun_004b3dd0
+        add esp, 0x10
+        lea eax, [esp + 0x1c]
+        push eax
+        lea ecx, [esp + 0x2c]
+        push ecx
+        mov ecx, esi
+        call fun_00414330
+        mov edx, dword ptr [eax]
+        mov dword ptr [esp + 0x10], edx
+        mov ecx, dword ptr [eax + 0x4]
+        mov dword ptr [esp + 0x14], ecx
+        fld float ptr [eax + 0x8]
+        fld float ptr [esp + 0x14]
+        pop edi
+        fld st(1)
+        pop esi
+        fld float ptr [esp + 0x8]
+        pop ebp
+        fmul float ptr [esp + 0x4]
+        pop ebx
+        fstp float ptr [esp + 0x38]
+        fld st(0)
+        fmul st(0), st(1)
+        fld st(2)
+        fmul st(0), st(3)
+        faddp st(1), st(0)
+        fadd float ptr [esp + 0x38]
+        fsqrt
+        fstp st(2)
+        fstp st(0)
+        fcomp float ptr [esp + 0x34]
+        fnstsw ax
+        test ah, 0x1
+        jz fd_49d92e
+        fld float ptr [esp + 0x4]
+        fmul float ptr [esp + 0x4]
+        fld st(1)
+        fmul st(0), st(2)
+        faddp st(1), st(0)
+        fadd float ptr [esp + 0x38]
+        fsqrt
+        fstp st(1)
+        mov ecx, dword ptr [esp + 0x24]
+        mov dword ptr fs:[0x0], ecx
+        add esp, 0x30
+        ret 8
+        fd_49d92e:
+        mov ecx, dword ptr [esp + 0x24]
+        fstp st(0)
+        fld float ptr [esp + 0x34]
+        mov dword ptr fs:[0x0], ecx
+        add esp, 0x30
+        ret 8
     }
-    edge = *(Vec3*)segment->b - *p34;
-    FUN_004b3dd0(point, p34, &edge, &nearest);
-    edge = *point - nearest;
-    return edge.Length() < best ? edge.Length() : best;
 }
 
 // FUNCTION: RALLYTROPHY 0x49d950
