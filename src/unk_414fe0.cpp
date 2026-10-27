@@ -257,51 +257,161 @@ void StageSounds::FUN_00414fe0(PlaceObj*)
     }
 }
 
+// point * rotation rows (stride 16) + trans into result, a hand-written x87 block in the original
+#define PLACE_TRANSFORM() \
+    __asm mov ecx, point \
+    __asm mov edx, matrix \
+    __asm mov eax, result \
+    __asm mov ebx, trans \
+    __asm fld dword ptr [ecx] \
+    __asm fmul dword ptr [edx] \
+    __asm fld dword ptr [ecx] \
+    __asm fmul dword ptr [edx+4] \
+    __asm fld dword ptr [ecx] \
+    __asm fmul dword ptr [edx+8] \
+    __asm fld dword ptr [ecx+4] \
+    __asm fmul dword ptr [edx+16] \
+    __asm fld dword ptr [ecx+4] \
+    __asm fmul dword ptr [edx+20] \
+    __asm fld dword ptr [ecx+4] \
+    __asm fmul dword ptr [edx+24] \
+    __asm fxch st(2) \
+    __asm faddp st(5), st \
+    __asm faddp st(3), st \
+    __asm faddp st(1), st \
+    __asm fld dword ptr [ecx+8] \
+    __asm fmul dword ptr [edx+32] \
+    __asm fld dword ptr [ecx+8] \
+    __asm fmul dword ptr [edx+36] \
+    __asm fld dword ptr [ecx+8] \
+    __asm fmul dword ptr [edx+40] \
+    __asm fxch st(2) \
+    __asm faddp st(5), st \
+    __asm faddp st(3), st \
+    __asm faddp st(1), st \
+    __asm fxch st(2) \
+    __asm fadd dword ptr [ebx] \
+    __asm fxch st(1) \
+    __asm fadd dword ptr [ebx+4] \
+    __asm fxch st(2) \
+    __asm fadd dword ptr [ebx+8] \
+    __asm fxch st(1) \
+    __asm fstp dword ptr [eax] \
+    __asm fstp dword ptr [eax+8] \
+    __asm fstp dword ptr [eax+4]
+
+#define PLACE_CROSS() \
+    __asm mov ecx, ca \
+    __asm mov edx, cb \
+    __asm mov eax, cresult \
+    __asm fld dword ptr [ecx+4] \
+    __asm fmul dword ptr [edx+8] \
+    __asm fld dword ptr [ecx+8] \
+    __asm fmul dword ptr [edx] \
+    __asm fld dword ptr [ecx] \
+    __asm fmul dword ptr [edx+4] \
+    __asm fld dword ptr [ecx+8] \
+    __asm fmul dword ptr [edx+4] \
+    __asm fld dword ptr [ecx] \
+    __asm fmul dword ptr [edx+8] \
+    __asm fld dword ptr [ecx+4] \
+    __asm fmul dword ptr [edx] \
+    __asm fxch st(2) \
+    __asm fsubp st(5), st \
+    __asm fsubp st(3), st \
+    __asm fsubp st(1), st \
+    __asm fxch st(2) \
+    __asm fstp dword ptr [eax] \
+    __asm fstp dword ptr [eax+4] \
+    __asm fstp dword ptr [eax+8]
+
+struct PlaceVec {
+    float x, y, z;
+    void operator-=(const PlaceVec& v)
+    {
+        x -= v.x;
+        y -= v.y;
+        z -= v.z;
+    }
+    void operator*=(float k)
+    {
+        x = k * x;
+        y = k * y;
+        z = k * z;
+    }
+    float Length() const
+    {
+        float a = x, b = y, c = z;
+        return (float)sqrt(a * a + b * b + c * c);
+    }
+};
+
+// One 0x48-byte placed record: a segment from start to end, its frame and radius.
+struct PlaceRec {
+    PlaceVec start;                    // 0x00
+    PlaceVec end;                      // 0x0c
+    PlaceVec pos;                      // 0x18
+    PlaceVec side;                     // 0x24
+    PlaceVec dir;                      // 0x30
+    float length;                      // 0x3c
+    float radius, radius2;             // 0x40, 0x44
+};
+
 // NONMATCHING: RALLYTROPHY 0x4150b0
-// reason: original keeps all matrix floats in locals with fuller expression order; built 339B vs 697B
+// 694 vs 697 bytes. Asm transform/cross blocks and FPU order match; open: the original stores dir after -= and
+// reloads it for Length/normalize (here VC6 forwards the values), and asm-block pointer slots/regs differ.
 void StageSounds::FUN_004150b0(PlaceObj* o)
 {
-    const char* s = (o->name.ptr ? o->name.ptr : "");
-    if (strlen(s) > 7) {
-        const char* t = (o->name.ptr ? o->name.ptr : "");
-        int n = t[7] - 0x210 + t[6] * 10;
-        float* e = o->f;
-        float k = e[40];
-        float* p = (float*)((BYTE*)this + 0xa0c + n * 0x48);
-        p[0] = e[16] * 0.0f + e[12] * 0.0f + k * e[8] + e[5];
-        p[2] = e[18] * 0.0f + e[14] * 0.0f + k * e[10] + e[7];
-        p[1] = e[17] * 0.0f + e[13] * 0.0f + k * e[9] + e[6];
-        k = e[43];
-        p[1] = e[6];
-        p[3] = e[16] * 0.0f + e[12] * 0.0f + k * e[8] + e[5];
-        p[5] = e[18] * 0.0f + e[14] * 0.0f + k * e[10] + e[7];
-        p[4] = e[17] * 0.0f + e[13] * 0.0f + k * e[9] + e[6];
-        p[6] = e[5];
-        p[4] = e[6];
-        p[7] = e[6];
-        p[12] = p[3];
-        p[8] = e[7];
-        p[12] = p[12] - p[0];
-        p[13] = p[4];
-        p[14] = p[5];
-        p[13] = p[13] - p[1];
-        p[14] = p[14] - p[2];
-        float len = (float)sqrt(p[14] * p[14] + p[13] * p[13] + p[12] * p[12]);
-        p[15] = len;
-        float r = 1.0f / len;
-        p[12] = r * p[12];
-        p[13] = r * p[13];
-        p[14] = r * p[14];
-        p[9] = p[13] * 0.0f - p[14] * 1.0f;
-        p[10] = p[14] * 0.0f - p[12] * 0.0f;
-        p[11] = p[12] * 1.0f - p[13] * 0.0f;
-        n++;
-        float d = (float)sqrt(k * k + 0.0f) * 1.1f;
-        p[16] = d;
-        p[17] = d * d;
-        if (AT(int, 0x130c) < n)
-            AT(int, 0x130c) = n;
+    if (strlen(o->name.ptr ? o->name.ptr : "") < 8)
+        return;
+    const char* t = o->name.ptr ? o->name.ptr : "";
+    int n = t[6] * 10 + t[7] - 0x210;
+    PlaceRec* rec = (PlaceRec*)&placed[n * 0x12];
+    PlaceVec* pos = (PlaceVec*)&o->f[5];
+    PlaceVec ext;
+    ext.x = o->f[40];
+    ext.y = 0.0f;
+    ext.z = 0.0f;
+    {
+        const float* trans = (const float*)pos;
+        float* result = (float*)&rec->start;
+        const float* matrix = &o->f[8];
+        const float* point = (const float*)&ext;
+        PLACE_TRANSFORM();
     }
+    rec->start.y = o->f[6];
+    ext.x = o->f[43];
+    {
+        const float* point = (const float*)&ext;
+        const float* matrix = &o->f[8];
+        float* result = (float*)&rec->end;
+        const float* trans = (const float*)pos;
+        PLACE_TRANSFORM();
+    }
+    rec->end.y = o->f[6];
+    rec->pos = *pos;
+    PlaceVec* d = &rec->dir;
+    *d = rec->end;
+    *d -= rec->start;
+    float len = d->Length();
+    rec->length = len;
+    *d *= 1.0f / len;
+    {
+        PlaceVec up;
+        up.x = 0.0f;
+        up.y = 1.0f;
+        up.z = 0.0f;
+        const float* ca = (const float*)d;
+        const float* cb = (const float*)&up;
+        float* cresult = (float*)&rec->side;
+        PLACE_CROSS();
+    }
+    n++;
+    float rad = ext.Length() * 1.1f;
+    rec->radius = rad;
+    rec->radius2 = rad * rad;
+    if (AT(int, 0x130c) < n)
+        AT(int, 0x130c) = n;
 }
 
 // FUNCTION: RALLYTROPHY 0x416000
