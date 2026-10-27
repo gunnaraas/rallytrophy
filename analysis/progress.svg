@@ -217,8 +217,7 @@
 <rect x="513.7" y="120" width="1.5" height="36" fill="#e3b341"/>
 <rect x="515.3" y="120" width="0.6" height="36" fill="#3fb950"/>
 <rect x="515.3" y="120" width="2.9" height="36" fill="#e3b341"/>
-<rect x="518.3" y="120" width="2.8" height="36" fill="#e3b341"/>
-<rect x="521.1" y="120" width="1.4" height="36" fill="#3fb950"/>
+<rect x="518.3" y="120" width="4.2" height="36" fill="#3fb950"/>
 <rect x="522.5" y="120" width="1.6" height="36" fill="#e3b341"/>
 <rect x="524.0" y="120" width="0.6" height="36" fill="#3fb950"/>
 <rect x="524.1" y="120" width="13.0" height="36" fill="#e3b341"/>
@@ -838,9 +837,9 @@
 <text x="1018" y="812" fill="#e6edf3">56% exact / 100% written</text>
 <text x="260" y="838" text-anchor="end" fill="#e6edf3">24. Sound menu</text>
 <rect x="270" y="824" width="740" height="18" rx="2" fill="#484f58"/>
-<rect x="270" y="824" width="60.0" height="18" fill="#3fb950"/>
-<rect x="330.0" y="824" width="680.0" height="18" fill="#e3b341"/>
-<text x="1018" y="838" fill="#e6edf3">8% exact / 100% written</text>
+<rect x="270" y="824" width="323.4" height="18" fill="#3fb950"/>
+<rect x="593.4" y="824" width="416.6" height="18" fill="#e3b341"/>
+<text x="1018" y="838" fill="#e6edf3">44% exact / 100% written</text>
 <text x="260" y="864" text-anchor="end" fill="#e6edf3">25. Bonus unlocks</text>
 <rect x="270" y="850" width="740" height="18" rx="2" fill="#484f58"/>
 <rect x="270" y="850" width="740.0" height="18" fill="#3fb950"/>

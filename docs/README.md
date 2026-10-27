@@ -48,6 +48,7 @@ matching maps, compiler notes, and the active work queue are under
 - [Menu drawing](analysis/menu-row-drawing.md),
   [menu toggles](analysis/menu-toggle.md),
   [menu volume](analysis/menu-volume.md),
+  [sound-menu layout](analysis/sound-menu-layout.md),
   [modal confirmation](analysis/modal-confirmation.md),
   [modal result loop](analysis/modal-result-loop.md),
   [player-name menu setup](analysis/player-name-setup.md),

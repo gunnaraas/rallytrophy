@@ -6,7 +6,7 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Status
 
-- Marker inventory: 1794/2084 byte-exact (86.08%); 2084/2084 functions written (100.00%), from `tools/progress.py`.
+- Marker inventory: 1796/2084 byte-exact (86.18%); 2084/2084 functions written (100.00%), from `tools/progress.py`.
 - Game code: about 1,690 functions in `0x401000`–`0x4bcfc6`
 
 ## Queue
@@ -32,6 +32,8 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Log
 
+- 2026-10-27 (Codex, `SoundMenu::LoadLayout` `0x451c10`): Exact 1,848-byte match with 97 relocations. An intermediate insertion wrapper fixed pointer-store timing (169→15 diffs), comparison order reduced that to 14, and VC6 allocator methods fixed the final registers. Verified all 11 string/geometry/vector aliases; focused: 7 exact, 2 NONMATCHING. Evidence: `docs/analysis/sound-menu-layout.md`.
+- 2026-10-27 (Codex, `SoundMenu::LoadLayout` `0x451c10`): Applied the PathText/HitVec stand-in pattern to vector insertion: first eight calls stay out of line, ninth expands with the target helper boundaries. Improved 2,133/1,848 bytes and 1,578 differences to 1,848/1,848 and 169; verified six helper aliases and call counts. Focused: 6 exact, 3 NONMATCHING; findings in `docs/analysis/sound-menu-layout.md`.
 - 2026-10-27 (Claude, `TriCollector::Walk` `0x418760`): Added a `HitVec` twin whose `PushBack` writes out VC6's insert(end(), 1, x) with `_Construct`/`_Ucopy`/`_Ufill`/`_Destroy`/`size()` as calls (0x403140/0x424320/0x424350/0x403130/0x414460), as the target has them; tested `id` before reading `sel`. 801/773 bytes, 596 diffs → 774/773, 548 diffs. `insert(end(), t)` and direct `InsN` were worse.
 - 2026-10-27 (Claude, `LoadScreen::Init` `0x4033f0` / `ReplayHeader::Load` `0x403ca0`): A file-local `PathText` string twin (pattern of `LapText`, NOTES.md string notes) pins each append/assign site out of line or expanded as the target has it. Init: 966/886 bytes, 572 diffs → 886/886, 31 diffs (only wrapU/wrapV store scheduling left); also `SpriteB` is 0x48 bytes. Load: nested success/failure blocks, 1293→1133/1117 bytes, 950→589 diffs; open: 4-byte smaller frame (`this` in ebx, not ebp) and the shared out-of-line `_Tidy(true)` failure exit. Moving the explicit `basic_string` instantiation to the end of the file changed nothing.
 - 2026-10-27 (Claude, replay loader `0x403ca0`): Rewrote from the target disassembly as `bool ReplayHeader::Load(int)` (thiscall, `ret 4`, returns `al`). Corrected `ReplayCar` ctors (`0x4909b0(1, 0)`, `0x490b90("dummy")`), the no-argument `Finish` `0x491130`, the thiscall race/body helpers, the 0x1d4-byte record layout and the 0x4078/0x1a88 allocation sizes. Still NONMATCHING: std::string helpers are inlined here but called out of line in the target. No callers in `src/` yet.
