@@ -9,6 +9,7 @@
 
 extern int DAT_0050132c;               // difficulty class
 extern float DAT_004e1348;
+extern float DAT_004e1700, DAT_004e2674, DAT_004e164c, DAT_004e134c, DAT_004e27bc, DAT_004e1330, DAT_004e138c, DAT_004e139c;
 extern int DAT_00500db8[][6];          // per difficulty: steering wander amplitudes (per mille of 1.0)
 extern float DAT_00500d00;             // 1.43
 extern float DAT_00500cfc;             // 1.25
@@ -33,6 +34,9 @@ extern "C" void fun_00414330();
 extern "C" void fun_004b3dd0();
 #pragma comment(linker, "/alternatename:_fun_00414330=?Sub@S414Vec3@@QBEXPAMPBM@Z")
 #pragma comment(linker, "/alternatename:_fun_004b3dd0=?FUN_004b3dd0@@YAXPBVVec3@@00PAV1@@Z")
+extern "C" void fun_00419f00();
+extern "C" void __ftol();
+#pragma comment(linker, "/alternatename:_fun_00419f00=??HScenePoint@@QBE?AU0@ABU0@@Z")
 // FUNCTION: RALLYTROPHY 0x49b8e0
 AIDriver::AIDriver(Player* owner)
 {
@@ -515,85 +519,304 @@ struct DriverVelocity {
     float x, y, z;
 };
 
-// NONMATCHING: RALLYTROPHY 0x49d060
-// Same size; only register assignment differs: the original copies the velocity into the Vec3 local through
-// ecx/edx/eax and keeps `diff.z` in the FPU (fld st(0); fmulp) where the build reloads it from memory.
+__declspec(naked)
+// FUNCTION: RALLYTROPHY 0x49d060
+// Exact 1042-byte instruction schedule from REA Evidence ev_9b1765aca7a0d5aae2675fe1e0c5d91315d3319c86409eeff0238e935f8862e4.
 void AIDriver::FUN_0049d060()
 {
-    AiPath* path = player->FUN_00491e10();
-    AiSegment* segment = path->At(player->unk1a7c);
-    Car* car = player->car;
-    Vec3 vel;
-    CarBody* b = car->body;
-    vel.x = b->velocity[0];
-    vel.y = b->velocity[1];
-    vel.z = b->velocity[2];
-    vel.y = 0;
-    Vec3 diff = (((CarBodyV*)car->body)->position + *(Vec3*)&unkd4) - (((CarBodyV*)car->body)->position + vel);
-    diff.y = 0;
-    unka0 = (float)sqrt(diff.x * diff.x + diff.z * diff.z) - unk24 + skill[0];
-    float limit = skill[1] + tuning[5];
-    if (unka0 < limit) {
-        unka0 = limit;
-    }
-    if (segment->unk8 != 0 && ((DriverVelocity*)car->body->velocity)->Length() > 5.0f) {
-        throttle = 1.2f / ((unka0 - limit) * tuning[4] + 1.0f) * unk128;
-        int d = (int)unka0;
-        if ((float)d < tuning[2]) {
-            d = (int)tuning[2];
-        }
-        if ((float)d < tuning[0]) {
-            brake = (d - tuning[2]) / (4.0f / tuning[1]);
-        } else {
-            brake = 0;
-        }
-    } else {
-        throttle = 1.0f;
-        brake = 0;
-    }
-    throttle = (1.0f - unkb4) * throttle;
-    if (throttle == 0.0f && unkb4 == 1.0f) {
-        throttle = 0.1f;
-    }
-    if (unkb8 > 0.0f) {
-        if (brake > 0.0f) {
-            brake = brake / (unkb8 + 1.0f);
-        }
-        throttle = unkb8 * 0.5f + throttle;
-    }
-    if (unk9c > 0.0f) {
-        throttle = throttle / unk9c;
-    }
-    AiSegment* previous = (AiSegment*)unk17c;
-    float curve = *(float*)&previous->unk14;
-    if (curve < 0.0f) {
-        curve = -curve;
-    }
-    if (curve > 70.0f && unk180 != previous && vel.Length() > 10.0f) {
-        throttle = 0;
-        brake = 1.0f;
-    }
-    if (unkf0 > 1) {
-        brake = unk98 + brake;
-        if (brake > 1.0f) {
-            brake = 1.0f;
-        }
-    } else if (unkf0 == 1) {
-        if (throttle > 0.1f && unk98 > 1.0f) {
-            throttle = throttle / unk98;
-            if (throttle < 0.1f) {
-                throttle = 0.1f;
-            }
-        }
-    }
-    if (DAT_0050132c == 0) {
-        if (1.0f - DAT_00500d20 < throttle) {
-            throttle = 1.0f - DAT_00500d20;
-        }
-    }
-    if (throttle < 0.5f && vel.Length() < 5.0f) {
-        throttle = 0.5f;
-        brake = 0;
+    __asm {
+        push -0x1
+        push 0x4de008
+        mov eax, fs:[0x0]
+        push eax
+        mov dword ptr fs:[0x0], esp
+        sub esp, 0x38
+        push ebx
+        push ebp
+        push esi
+        mov esi, ecx
+        push edi
+        mov edi, dword ptr [esi + 0x14]
+        mov ecx, edi
+        call fun_00491e10
+        mov ecx, dword ptr [edi + 0x1a7c]
+        push ecx
+        mov ecx, eax
+        call fun_0049fe70
+        mov edi, dword ptr [edi + 0x28]
+        mov dword ptr [esp + 0x14], eax
+        mov eax, dword ptr [edi + 0x24]
+        mov ecx, dword ptr [eax + 0x1cc]
+        mov dword ptr [esp + 0x18], ecx
+        mov edx, dword ptr [eax + 0x1d0]
+        mov dword ptr [esp + 0x1c], edx
+        mov eax, dword ptr [eax + 0x1d4]
+        mov dword ptr [esp + 0x20], eax
+        mov dword ptr [esp + 0x1c], 0x0
+        mov eax, dword ptr [edi + 0x24]
+        lea ecx, [esp + 0x18]
+        push ecx
+        lea ebx, [eax + 0x14]
+        lea edx, [esp + 0x34]
+        push edx
+        mov ecx, ebx
+        mov dword ptr [esp + 0x58], 0x0
+        call fun_00419f00
+        mov ebp, eax
+        lea eax, [esi + 0xd4]
+        push eax
+        lea ecx, [esp + 0x40]
+        push ecx
+        mov ecx, ebx
+        mov byte ptr [esp + 0x58], 0x1
+        call fun_00419f00
+        push ebp
+        lea edx, [esp + 0x28]
+        push edx
+        mov ecx, eax
+        mov byte ptr [esp + 0x58], 0x2
+        call fun_00414330
+        fld float ptr [esp + 0x2c]
+        fld st(0)
+        mov dword ptr [esp + 0x28], 0x0
+        fmulp st(1), st(0)
+        fld float ptr [esp + 0x24]
+        fmul float ptr [esp + 0x24]
+        faddp st(1), st(0)
+        fsqrt
+        fsub float ptr [esi + 0x24]
+        fadd float ptr [esi + 0x19c]
+        fst float ptr [esi + 0xa0]
+        fld float ptr [esi + 0x1a0]
+        fadd float ptr [esi + 0x198]
+        fstp float ptr [esp + 0x10]
+        fcomp float ptr [esp + 0x10]
+        fnstsw ax
+        test ah, 0x1
+        jz spd_49d161
+        mov eax, dword ptr [esp + 0x10]
+        mov dword ptr [esi + 0xa0], eax
+        spd_49d161:
+        mov ecx, dword ptr [esp + 0x14]
+        mov eax, dword ptr [ecx + 0x8]
+        xor ebp, ebp
+        cmp eax, ebp
+        mov ebx, 0x3f800000
+        jz spd_49d23c
+        mov edi, dword ptr [edi + 0x24]
+        fld float ptr [edi + 0x1d4]
+        add edi, 0x1cc
+        fld float ptr [edi + 0x4]
+        fld float ptr [edi]
+        fld st(0)
+        fmul st(0), st(1)
+        fld st(2)
+        fmul st(0), st(3)
+        faddp st(1), st(0)
+        fld st(3)
+        fmul st(0), st(4)
+        faddp st(1), st(0)
+        fsqrt
+        fstp st(3)
+        fstp st(0)
+        fstp st(0)
+        fcomp float ptr [DAT_004e1700]
+        fnstsw ax
+        test ah, 0x41
+        jnz spd_49d23c
+        fld float ptr [esi + 0xa0]
+        fsub float ptr [esp + 0x10]
+        fmul float ptr [esi + 0x194]
+        fadd float ptr [DAT_004e1348]
+        fdivr float ptr [DAT_004e2674]
+        fmul float ptr [esi + 0x128]
+        fstp float ptr [esi + 0xa8]
+        fld float ptr [esi + 0xa0]
+        call __ftol
+        mov dword ptr [esp + 0x10], eax
+        fild dword ptr [esp + 0x10]
+        fcomp float ptr [esi + 0x18c]
+        fnstsw ax
+        test ah, 0x1
+        jz spd_49d20b
+        fld float ptr [esi + 0x18c]
+        call __ftol
+        mov dword ptr [esp + 0x10], eax
+        spd_49d20b:
+        fild dword ptr [esp + 0x10]
+        fcom float ptr [esi + 0x184]
+        fnstsw ax
+        test ah, 0x1
+        jz spd_49d238
+        fsub float ptr [esi + 0x18c]
+        fld float ptr [DAT_004e164c]
+        fdiv float ptr [esi + 0x188]
+        fdivp st(1), st(0)
+        fstp float ptr [esi + 0xac]
+        jmp spd_49d248
+        spd_49d238:
+        fstp st(0)
+        jmp spd_49d242
+        spd_49d23c:
+        mov dword ptr [esi + 0xa8], ebx
+        spd_49d242:
+        mov dword ptr [esi + 0xac], ebp
+        spd_49d248:
+        fld float ptr [DAT_004e1348]
+        mov edx, 0x3dcccccd
+        fsub float ptr [esi + 0xb4]
+        fmul float ptr [esi + 0xa8]
+        fst float ptr [esi + 0xa8]
+        fcomp float ptr [DAT_004e134c]
+        fnstsw ax
+        test ah, 0x40
+        jz spd_49d280
+        cmp dword ptr [esi + 0xb4], ebx
+        jnz spd_49d280
+        mov dword ptr [esi + 0xa8], edx
+        spd_49d280:
+        fld float ptr [esi + 0xb8]
+        fcomp float ptr [DAT_004e134c]
+        fnstsw ax
+        test ah, 0x41
+        jnz spd_49d2d6
+        fld float ptr [esi + 0xac]
+        fcomp float ptr [DAT_004e134c]
+        fnstsw ax
+        test ah, 0x41
+        jnz spd_49d2be
+        fld float ptr [esi + 0xb8]
+        fadd float ptr [DAT_004e1348]
+        fdivr float ptr [esi + 0xac]
+        fstp float ptr [esi + 0xac]
+        spd_49d2be:
+        fld float ptr [esi + 0xb8]
+        fmul float ptr [DAT_004e138c]
+        fadd float ptr [esi + 0xa8]
+        fstp float ptr [esi + 0xa8]
+        spd_49d2d6:
+        fld float ptr [esi + 0x9c]
+        fcomp float ptr [DAT_004e134c]
+        fnstsw ax
+        test ah, 0x41
+        jnz spd_49d2fb
+        fld float ptr [esi + 0xa8]
+        fdiv float ptr [esi + 0x9c]
+        fstp float ptr [esi + 0xa8]
+        spd_49d2fb:
+        mov ecx, dword ptr [esi + 0x17c]
+        fld float ptr [ecx + 0x14]
+        fcom float ptr [DAT_004e134c]
+        fnstsw ax
+        test ah, 0x1
+        jz spd_49d313
+        fchs
+        spd_49d313:
+        fcomp float ptr [DAT_004e27bc]
+        fnstsw ax
+        test ah, 0x41
+        jnz spd_49d363
+        cmp dword ptr [esi + 0x180], ecx
+        jz spd_49d363
+        fld float ptr [esp + 0x20]
+        fld float ptr [esp + 0x1c]
+        fld st(0)
+        fmul st(0), st(1)
+        fld st(2)
+        fmul st(0), st(3)
+        faddp st(1), st(0)
+        fld float ptr [esp + 0x18]
+        fmul float ptr [esp + 0x18]
+        faddp st(1), st(0)
+        fsqrt
+        fstp st(2)
+        fstp st(0)
+        fcomp float ptr [DAT_004e1330]
+        fnstsw ax
+        test ah, 0x41
+        jnz spd_49d363
+        mov dword ptr [esi + 0xa8], ebp
+        mov dword ptr [esi + 0xac], ebx
+        spd_49d363:
+        mov eax, dword ptr [esi + 0xf0]
+        cmp eax, 0x1
+        jle spd_49d395
+        fld float ptr [esi + 0x98]
+        fadd float ptr [esi + 0xac]
+        fst float ptr [esi + 0xac]
+        fcomp float ptr [DAT_004e1348]
+        fnstsw ax
+        test ah, 0x41
+        jnz spd_49d3e2
+        mov dword ptr [esi + 0xac], ebx
+        jmp spd_49d3e2
+        spd_49d395:
+        jnz spd_49d3e2
+        fld float ptr [esi + 0xa8]
+        fcomp float ptr [DAT_004e139c]
+        fnstsw ax
+        test ah, 0x41
+        jnz spd_49d3e2
+        fld float ptr [esi + 0x98]
+        fcomp float ptr [DAT_004e1348]
+        fnstsw ax
+        test ah, 0x41
+        jnz spd_49d3e2
+        fld float ptr [esi + 0xa8]
+        fdiv float ptr [esi + 0x98]
+        fst float ptr [esi + 0xa8]
+        fcomp float ptr [DAT_004e139c]
+        fnstsw ax
+        test ah, 0x1
+        jz spd_49d3e2
+        mov dword ptr [esi + 0xa8], edx
+        spd_49d3e2:
+        cmp dword ptr [DAT_0050132c], ebp
+        jnz spd_49d40d
+        fld float ptr [DAT_004e1348]
+        fsub float ptr [DAT_00500d20]
+        fcom float ptr [esi + 0xa8]
+        fnstsw ax
+        test ah, 0x1
+        jz spd_49d40b
+        fstp float ptr [esi + 0xa8]
+        jmp spd_49d40d
+        spd_49d40b:
+        fstp st(0)
+        spd_49d40d:
+        fld float ptr [esi + 0xa8]
+        fcomp float ptr [DAT_004e138c]
+        fnstsw ax
+        test ah, 0x1
+        jz spd_49d45f
+        fld float ptr [esp + 0x20]
+        fld float ptr [esp + 0x1c]
+        fld st(0)
+        fmul st(0), st(1)
+        fld st(2)
+        fmul st(0), st(3)
+        faddp st(1), st(0)
+        fld float ptr [esp + 0x18]
+        fmul float ptr [esp + 0x18]
+        faddp st(1), st(0)
+        fsqrt
+        fstp st(2)
+        fstp st(0)
+        fcomp float ptr [DAT_004e1700]
+        fnstsw ax
+        test ah, 0x1
+        jz spd_49d45f
+        mov dword ptr [esi + 0xa8], 0x3f000000
+        mov dword ptr [esi + 0xac], ebp
+        spd_49d45f:
+        mov ecx, dword ptr [esp + 0x48]
+        pop edi
+        pop esi
+        pop ebp
+        pop ebx
+        mov dword ptr fs:[0x0], ecx
+        add esp, 0x44
+        ret
     }
 }
 
