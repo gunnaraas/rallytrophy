@@ -4,6 +4,9 @@
 #include "scene_object.h"
 
 // ShadowCaster hierarchy (SceneNode + 0x54 bytes, vtables 0x4e2a28 / 0x4e2a4c / 0x4e2a70).
+struct ShadowDt0 { ~ShadowDt0() {} };
+struct ShadowDt1 { ~ShadowDt1() {} };
+struct ShadowDt2 { ~ShadowDt2() {} };
 class ShadowObject : public SceneNode {
 public:
     ShadowObject();                    // original: FUN_004ba440
@@ -14,6 +17,7 @@ public:
     float f138[4];                     // 0x138
     float f148[4];                     // 0x148
     float f158, f15c, f160, f164, f168, f16c, f170, f174;
+    ShadowDt0 d0; ShadowDt1 d1; ShadowDt2 d2;   // empty-destructor members: reproduce the original EH state 3
 };
 class ShadowObjectB : public ShadowObject {
 public:

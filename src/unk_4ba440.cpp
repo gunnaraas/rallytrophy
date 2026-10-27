@@ -139,8 +139,8 @@ struct P3 { float x, y, z; P3 operator*(float s) const; }; // 0x40b0c0
 extern float DAT_004e134c;
 extern float DAT_004e1348;
 
-// NONMATCHING: RALLYTROPHY 0x4ba440
-// Original sets the EH state to 3 after the base ctor (ours 0); the source of states 0-2 is unknown.
+// FUNCTION: RALLYTROPHY 0x4ba440
+// Three empty-destructor members (header) reproduce the original EH state 3 after the base constructor.
 ShadowObject::ShadowObject()
 {
     type = 2;
