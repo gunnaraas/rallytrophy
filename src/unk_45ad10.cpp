@@ -15,6 +15,17 @@
 #include <string.h>
 #include <stddef.h>
 
+struct StagePointCopy {
+    float x, y, z;
+    StagePointCopy(const Vec3& source)
+    {
+        *(int*)&y = *(const int*)&source.y;
+        x = source.x;
+        z = source.z;
+    }
+    ~StagePointCopy() {}
+};
+
 // ---- W3 helpers ----
 extern float DAT_004e1c28;
 extern "C" void fun_004569e0();
@@ -1220,9 +1231,9 @@ void Car::FUN_0045b2c0(void* camera, int time, int dt)
     }
 }
 
-// NONMATCHING: RALLYTROPHY 0x45b390
-// 4 bytes short: the original stores the z difference of the stage-point test back to its local
-// (`fst [esp+0x1c]` after the last fsub); no source form found that reproduces that store.
+// FUNCTION: RALLYTROPHY 0x45b390
+// StagePointCopy preserves the target's integer y-copy before the x87 x-load. The explicit z
+// delta store reproduces its stack spill. Evidence: `ev_482eda42dbfbd7e19e133ac34ae46d58a20274d24bb34531c85f16e68882584a`.
 void Car::FUN_0045b390()
 {
     W4_CarView* v = (W4_CarView*)this;
@@ -1262,9 +1273,12 @@ void Car::FUN_0045b390()
     Checkpoint* cp = stage->FUN_00414dc0((Vec3*)position, 0);
     if (cp) {
         {
-            Vec3 d(cp->position);
-            d -= *(Vec3*)position;
-            if (d.x * d.x + d.y * d.y + d.z * d.z < 100.0f) {
+            StagePointCopy d(cp->position);
+            d.x -= position->x;
+            d.y -= position->y;
+            float dz = d.z - position->z;
+            *(volatile float*)&d.z = dz;
+            if (d.x * d.x + d.y * d.y + dz * dz < 100.0f) {
                 v->stageSlice = cp->index;
                 v->stageDistance = *(float*)((BYTE*)stage + 0xa00) - cp->distance;
             }

@@ -29,6 +29,7 @@ matching maps, compiler notes, and the active work queue are under
   [view objects](analysis/view-object.md), and
   [HUD geometry](analysis/hud-geometry.md).
 - [Car visibility](analysis/car-cockpit-visibility.md),
+  [stage-point distance check](analysis/car-stage-point-distance.md),
   [suspension setters](analysis/car-suspension-setter.md),
   [drivetrain gear selection](analysis/drivetrain-select-gear.md),
   [skid-mark rendering](analysis/skid-render.md),

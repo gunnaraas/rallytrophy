@@ -6,7 +6,7 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Status
 
-- Marker inventory: 1792/2084 byte-exact (85.99%); 2084/2084 functions written (100.00%), from `tools/progress.py`.
+- Marker inventory: 1793/2084 byte-exact (86.04%); 2084/2084 functions written (100.00%), from `tools/progress.py`.
 - Game code: about 1,690 functions in `0x401000`–`0x4bcfc6`
 
 ## Queue
@@ -32,6 +32,7 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Log
 
+- 2026-10-27 (Codex, `Car::FUN_0045b390` `0x45b390`): Matched the stage-point distance check at 1,380 bytes / 25 relocations by reproducing the integer y-copy, x87 x-load order, and z spill. Evidence: `docs/analysis/car-stage-point-distance.md` (`ev_482eda42dbfbd7e19e133ac34ae46d58a20274d24bb34531c85f16e68882584a`). Focused: 9/9 exact, 5 NONMATCHING; full: 1,793/1,793 exact, 291 NONMATCHING, no diffs or compile failures.
 - 2026-10-27 (Codex, `CarEmitterB::Render` `0x479530`): Separate size locals for the two sine products reproduce the target x87 operand order; exact 1,216-byte match with 27 relocations. Evidence: `docs/analysis/car-emitter-b-render.md` (`ev_5b4d48f9ab52efad57ec064c262bdb82f9becfd1de97d3481bb7a5c1be9901b1`). Focused: 8/8 exact, 5 NONMATCHING; full: 1,792/1,792 exact, 292 NONMATCHING, no diffs or compile failures.
 
 - 2026-10-26 (Codex, `RaceOptionsMenu::Setup` `0x43fba0`): A volatile sentinel store reproduces the target instruction order; the 989-byte body, nine absolute relocations, 30 call targets, and no-EH layout were independently audited. Evidence: `../docs/analysis/menu-setup-lifetimes.md`.
