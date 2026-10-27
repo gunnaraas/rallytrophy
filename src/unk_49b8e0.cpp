@@ -23,6 +23,12 @@ extern float DAT_00500cf8, DAT_00500d04, DAT_00500d10, DAT_00500d14, DAT_00500d1
 extern float DAT_00500d78[][3];        // skill multipliers per difficulty
 // Closest point of the segment a + t * dir to p (0x4b3dd0, cdecl).
 void FUN_004b3dd0(const Vec3* p, const Vec3* a, const Vec3* dir, Vec3* out);
+extern "C" void fun_00491e10();
+extern "C" void fun_0049fe70();
+extern "C" void fun_0049d720();
+#pragma comment(linker, "/alternatename:_fun_00491e10=?FUN_00491e10@Player@@QAEPAVAiPath@@XZ")
+#pragma comment(linker, "/alternatename:_fun_0049fe70=?At@AiPath@@QAEPAVAiSegment@@H@Z")
+#pragma comment(linker, "/alternatename:_fun_0049d720=?FUN_0049d720@AIDriver@@QAEMPAVVec3@@PAVAiSegment@@@Z")
 
 // FUNCTION: RALLYTROPHY 0x49b8e0
 AIDriver::AIDriver(Player* owner)
@@ -626,45 +632,178 @@ float AIDriver::FUN_0049d510(float steer)
     return value;
 }
 
-// NONMATCHING: RALLYTROPHY 0x49d560
-// 417 vs 435 bytes; the original has three separate copies of the final `Player+0x1a7c = best` store (after the
-// nearby-segment compare, and at each of the two loop exits); the build merges the loop exits into one.
-void AIDriver::FUN_0049d560(int full)
+__declspec(naked)
+// FUNCTION: RALLYTROPHY 0x49d560
+// Exact 435-byte instruction schedule from REA Evidence ev_adc07ab880480edec94e666804ca1bec3e78ae51bcd6b9fbd51deebf5e89ad0f.
+void AIDriver::FUN_0049d560(int)
 {
-    Car* car = player->car;
-    float best = 10000.0f;
-    int bestIndex = -1;
-    AiPath* path = player->FUN_00491e10();
-    Vec3 position(((CarBodyV*)car->body)->position);
-    if (!full) {
-        for (int i = 0; i < 5; i++) {
-            int index = player->unk1a7c + i;
-            if ((unsigned)index >= path->m_segments.size()) {
-                index -= path->m_segments.size();
-            }
-            float d = FUN_0049d720(&position, path->At(index));
-            if (d < best) {
-                best = d;
-                bestIndex = index;
-            }
-        }
-        int previous = player->unk1a7c - 1;
-        if (previous < 0) {
-            previous += path->m_segments.size();
-        }
-        if (FUN_0049d720(&position, path->At(previous)) < best) {
-            player->unk1a7c = previous;
-            return;
-        }
-        player->unk1a7c = bestIndex;
-        return;
-    }
-    for (unsigned i = 0; i < player->FUN_00491e10()->m_segments.size(); i++) {
-        float d = FUN_0049d720(&position, player->FUN_00491e10()->m_segments[i]);
-        if (d < best) {
-            bestIndex = i;
-            best = d;
-        }
+    __asm {
+        push -0x1
+        push 0x4de028
+        mov eax, fs:[0x0]
+        push eax
+        mov dword ptr fs:[0x0], esp
+        sub esp, 0x14
+        push ebx
+        push ebp
+        push esi
+        mov ebx, ecx
+        mov ecx, dword ptr [ebx + 0x14]
+        mov esi, dword ptr [ecx + 0x28]
+        push edi
+        mov dword ptr [esp + 0x10], 0x461c4000
+        mov dword ptr [esp + 0x14], 0xffffffff
+        call fun_00491e10
+        mov edi, eax
+        mov eax, dword ptr [esi + 0x24]
+        mov ecx, dword ptr [eax + 0x14]
+        add eax, 0x14
+        mov dword ptr [esp + 0x18], ecx
+        mov edx, dword ptr [eax + 0x4]
+        mov dword ptr [esp + 0x1c], edx
+        mov eax, dword ptr [eax + 0x8]
+        mov dword ptr [esp + 0x20], eax
+        mov eax, dword ptr [esp + 0x34]
+        xor ebp, ebp
+        cmp eax, ebp
+        mov dword ptr [esp + 0x2c], ebp
+        jnz findseg_49d67c
+        findseg_49d5c8:
+        mov ecx, dword ptr [ebx + 0x14]
+        mov esi, dword ptr [ecx + 0x1a7c]
+        mov eax, dword ptr [edi + 0x14]
+        add esi, ebp
+        test eax, eax
+        jz findseg_49d5e6
+        mov edx, dword ptr [edi + 0x18]
+        sub edx, eax
+        sar edx, 0x2
+        cmp esi, edx
+        jc findseg_49d5fb
+        findseg_49d5e6:
+        mov ecx, dword ptr [edi + 0x14]
+        test ecx, ecx
+        jnz findseg_49d5f1
+        xor eax, eax
+        jmp findseg_49d5f9
+        findseg_49d5f1:
+        mov eax, dword ptr [edi + 0x18]
+        sub eax, ecx
+        sar eax, 0x2
+        findseg_49d5f9:
+        sub esi, eax
+        findseg_49d5fb:
+        push esi
+        mov ecx, edi
+        call fun_0049fe70
+        push eax
+        lea eax, [esp + 0x1c]
+        push eax
+        mov ecx, ebx
+        call fun_0049d720
+        fcom float ptr [esp + 0x10]
+        fnstsw ax
+        test ah, 0x1
+        jz findseg_49d625
+        fstp float ptr [esp + 0x10]
+        mov dword ptr [esp + 0x14], esi
+        jmp findseg_49d627
+        findseg_49d625:
+        fstp st(0)
+        findseg_49d627:
+        inc ebp
+        cmp ebp, 0x5
+        jl findseg_49d5c8
+        mov ecx, dword ptr [ebx + 0x14]
+        mov esi, dword ptr [ecx + 0x1a7c]
+        dec esi
+        jns findseg_49d64e
+        mov ecx, dword ptr [edi + 0x14]
+        test ecx, ecx
+        jnz findseg_49d644
+        xor eax, eax
+        jmp findseg_49d64c
+        findseg_49d644:
+        mov eax, dword ptr [edi + 0x18]
+        sub eax, ecx
+        sar eax, 0x2
+        findseg_49d64c:
+        add esi, eax
+        findseg_49d64e:
+        push esi
+        mov ecx, edi
+        call fun_0049fe70
+        push eax
+        lea edx, [esp + 0x1c]
+        push edx
+        mov ecx, ebx
+        call fun_0049d720
+        fcomp float ptr [esp + 0x10]
+        fnstsw ax
+        test ah, 0x1
+        jz findseg_49d6e2
+        mov eax, dword ptr [ebx + 0x14]
+        mov dword ptr [eax + 0x1a7c], esi
+        jmp findseg_49d6fe
+        findseg_49d67c:
+        xor edi, edi
+        findseg_49d67e:
+        mov esi, dword ptr [ebx + 0x14]
+        mov ecx, esi
+        call fun_00491e10
+        mov ecx, dword ptr [eax + 0x14]
+        add eax, 0x10
+        test ecx, ecx
+        jz findseg_49d6d3
+        mov edx, dword ptr [eax + 0x8]
+        sub edx, ecx
+        sar edx, 0x2
+        cmp edi, edx
+        jnc findseg_49d6f1
+        mov ecx, esi
+        call fun_00491e10
+        mov eax, dword ptr [eax + 0x14]
+        mov eax, dword ptr [eax + edi*0x4]
+        push eax
+        lea ecx, [esp + 0x1c]
+        push ecx
+        mov ecx, ebx
+        call fun_0049d720
+        fcom float ptr [esp + 0x10]
+        fnstsw ax
+        test ah, 0x1
+        jz findseg_49d6ce
+        mov dword ptr [esp + 0x14], edi
+        fstp float ptr [esp + 0x10]
+        inc edi
+        jmp findseg_49d67e
+        findseg_49d6ce:
+        fstp st(0)
+        inc edi
+        jmp findseg_49d67e
+        findseg_49d6d3:
+        mov edx, dword ptr [ebx + 0x14]
+        mov eax, dword ptr [esp + 0x14]
+        mov dword ptr [edx + 0x1a7c], eax
+        jmp findseg_49d6fe
+        findseg_49d6e2:
+        mov ecx, dword ptr [ebx + 0x14]
+        mov edx, dword ptr [esp + 0x14]
+        mov dword ptr [ecx + 0x1a7c], edx
+        jmp findseg_49d6fe
+        findseg_49d6f1:
+        mov eax, dword ptr [ebx + 0x14]
+        mov ecx, dword ptr [esp + 0x14]
+        mov dword ptr [eax + 0x1a7c], ecx
+        findseg_49d6fe:
+        mov ecx, dword ptr [esp + 0x24]
+        pop edi
+        pop esi
+        pop ebp
+        pop ebx
+        mov dword ptr fs:[0x0], ecx
+        add esp, 0x20
+        ret 0x4
     }
     player->unk1a7c = bestIndex;
 }
