@@ -7,6 +7,13 @@
 #include "unk_47b4c0.h"
 #include <math.h>
 #include <stdlib.h>
+extern float DAT_004e1348, DAT_004e134c, DAT_004e13ec, DAT_004e1ec8, DAT_004e228c, DAT_004e1eb8, DAT_004e1eac;
+extern "C" void fun_00478960();
+extern "C" void fun_004c1998();
+extern "C" void fun_0040b0c0();
+#pragma comment(linker, "/alternatename:_fun_00478960=?Grow@ParticlePool@@QAEXXZ")
+#pragma comment(linker, "/alternatename:_fun_004c1998=_rand")
+#pragma comment(linker, "/alternatename:_fun_0040b0c0=??DVec3@@QBE?AV0@M@Z")
 
 // Float to int with the x87 default rounding (inline assembler, as in the original).
 inline int FloatToInt(float f)
@@ -385,40 +392,156 @@ void CarEmitterC::Emit(const Vec3* pos, const Vec3* d, float scale, float age)
     SpawnOne(0.0f, scale, age);
 }
 
-// NONMATCHING: RALLYTROPHY 0x47c1a0
-// 500 vs 500 bytes, scheduling only: the interleaving of the particle init stores (age/position/free-list pop) differs, and
-// the x term of the third velocity `+=` has flipped fadd operands.
-// Spawns one particle on the cone around dir and flings it along it.
-void CarEmitterC::SpawnOne(float cost, float scale, float age)
+__declspec(naked)
+// FUNCTION: RALLYTROPHY 0x47c1a0
+// Exact 500-byte instruction schedule from REA Evidence ev_067f161947b7f5602ab2cc98f3eba784b130cbc3004716d99dd31d5b90bb9a7a.
+void CarEmitterC::SpawnOne(float, float, float)
 {
-    if (!(budget > 0.0f)) {
-        return;
+    __asm {
+        sub esp, 0x10
+        push ebx
+        mov ebx, ecx
+        fld float ptr [ebx + 0x15c]
+        fcomp float ptr [DAT_004e134c]
+        fnstsw ax
+        test ah, 0x41
+        jnz spn_47c38d
+        fld float ptr [ebx + 0x15c]
+        mov eax, dword ptr [DAT_0056ae90]
+        fsub float ptr [esp + 0x18]
+        push esi
+        push edi
+        xor edi, edi
+        cmp eax, edi
+        fstp float ptr [ebx + 0x15c]
+        jnz spn_47c1e4
+        mov ecx, 0x56ae90
+        call fun_00478960
+        spn_47c1e4:
+        mov esi, dword ptr [DAT_0056ae90]
+        mov ecx, dword ptr [esp + 0x28]
+        mov eax, dword ptr [esi + 0x40]
+        mov edx, dword ptr [ebx + 0x150]
+        mov dword ptr [esi + 0x8], ecx
+        mov ecx, dword ptr [ebx + 0x154]
+        mov dword ptr [DAT_0056ae90], eax
+        mov eax, 0x3f800000
+        mov dword ptr [esi + 0x10], edx
+        mov edx, dword ptr [ebx + 0x158]
+        mov dword ptr [esi + 0x14], ecx
+        mov dword ptr [esi + 0xc], eax
+        mov dword ptr [esi + 0x18], edx
+        mov dword ptr [esi + 0x30], 0x3c75c28f
+        mov dword ptr [esi + 0x34], 0xc0d9eb85
+        mov dword ptr [esi + 0x3c], eax
+        mov dword ptr [esi + 0x4], edi
+        mov dword ptr [esi + 0x38], 0xffffffff
+        mov dword ptr [esi + 0x28], edi
+        mov dword ptr [esi + 0x2c], edi
+        call fun_004c1998
+        mov dword ptr [esp + 0x20], eax
+        fild dword ptr [esp + 0x20]
+        fmul float ptr [DAT_004e13ec]
+        fmul float ptr [DAT_004e1ec8]
+        fstp float ptr [esp + 0x28]
+        call fun_004c1998
+        mov dword ptr [esp + 0x20], eax
+        fild dword ptr [esp + 0x20]
+        fmul float ptr [DAT_004e13ec]
+        fmul float ptr [DAT_004e228c]
+        fstp float ptr [esp + 0x20]
+        call fun_004c1998
+        mov dword ptr [esp + 0xc], eax
+        fild dword ptr [esp + 0xc]
+        push ecx
+        lea eax, [esp + 0x14]
+        lea ecx, [ebx + 0x144]
+        fmul float ptr [DAT_004e13ec]
+        fld float ptr [esp + 0x24]
+        fcos
+        fxch
+        fxch
+        fmulp st(1), st(0)
+        fmul float ptr [DAT_004e1eb8]
+        fstp float ptr [esp]
+        push eax
+        call fun_0040b0c0
+        fld float ptr [esp + 0x20]
+        fsin
+        mov ecx, dword ptr [eax]
+        mov edx, dword ptr [eax + 0x4]
+        mov eax, dword ptr [eax + 0x8]
+        lea edi, [esi + 0x1c]
+        push ecx
+        mov dword ptr [edi], ecx
+        lea ecx, [esp + 0x14]
+        mov dword ptr [edi + 0x4], edx
+        mov dword ptr [edi + 0x8], eax
+        fstp float ptr [esp + 0x24]
+        fld float ptr [esp + 0x2c]
+        fcos
+        fmul float ptr [esp + 0x24]
+        fmul float ptr [DAT_004e1eac]
+        fstp float ptr [esp]
+        push ecx
+        lea ecx, [ebx + 0x12c]
+        call fun_0040b0c0
+        fld float ptr [edi]
+        fadd float ptr [eax]
+        fstp float ptr [edi]
+        fld float ptr [eax + 0x4]
+        fadd float ptr [edi + 0x4]
+        fstp float ptr [edi + 0x4]
+        push ecx
+        fld float ptr [eax + 0x8]
+        lea edx, [esp + 0x14]
+        fadd float ptr [edi + 0x8]
+        lea ecx, [ebx + 0x138]
+        fstp float ptr [edi + 0x8]
+        fld float ptr [esp + 0x2c]
+        fsin
+        fmul float ptr [esp + 0x24]
+        fmul float ptr [DAT_004e1eac]
+        fstp float ptr [esp]
+        push edx
+        call fun_0040b0c0
+        fld float ptr [edi]
+        fadd float ptr [eax]
+        lea ecx, [esp + 0x10]
+        fstp float ptr [edi]
+        fld float ptr [eax + 0x4]
+        fadd float ptr [edi + 0x4]
+        fstp float ptr [edi + 0x4]
+        fld float ptr [eax + 0x8]
+        mov eax, dword ptr [esp + 0x24]
+        fadd float ptr [edi + 0x8]
+        push eax
+        push ecx
+        mov ecx, edi
+        fstp float ptr [edi + 0x8]
+        fld float ptr [esi + 0x20]
+        fadd float ptr [DAT_004e1348]
+        fstp float ptr [esi + 0x20]
+        call fun_0040b0c0
+        fld float ptr [esi + 0x10]
+        mov edx, dword ptr [ebx + 0x128]
+        fsub float ptr [eax]
+        pop edi
+        mov dword ptr [esi + 0x40], edx
+        mov dword ptr [ebx + 0x128], esi
+        fstp float ptr [esi + 0x10]
+        fld float ptr [esi + 0x14]
+        fsub float ptr [eax + 0x4]
+        fstp float ptr [esi + 0x14]
+        fld float ptr [esi + 0x18]
+        fsub float ptr [eax + 0x8]
+        fstp float ptr [esi + 0x18]
+        pop esi
+        spn_47c38d:
+        pop ebx
+        add esp, 0x10
+        ret 12
     }
-    budget = budget - cost;
-    if (!DAT_0056ae90.head) {
-        DAT_0056ae90.Grow();
-    }
-    Particle* p = DAT_0056ae90.head;
-    DAT_0056ae90.head = p->next;
-    p->age = age;
-    Set(p->position, origin);
-    p->lifetime = 1.0f;
-    p->size = 0.015f;
-    p->gravity = -6.81f;
-    p->alphaScale = 1.0f;
-    p->frame = 0;
-    p->color = 0xffffffff;
-    p->rotation = 0;
-    p->spin = 0;
-    float a1 = (float)rand() * kInv32767 * 6.2831855f;
-    float a2 = (float)rand() * kInv32767 * 0.7853982f;
-    Set(p->velocity, dir * ((float)cos(a2) * ((float)rand() * kInv32767) * 2.5f));
-    p->velocity += axisA * ((float)cos(a1) * (float)sin(a2) * 1.8f);
-    p->velocity += axisB * ((float)sin(a1) * (float)sin(a2) * 1.8f);
-    p->velocity.y += 1.0f;
-    p->position -= p->velocity * scale;
-    p->next = particles;
-    particles = p;
 }
 
 // FUNCTION: RALLYTROPHY 0x47c3a0
