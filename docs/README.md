@@ -44,6 +44,7 @@ matching maps, compiler notes, and the active work queue are under
   [service-menu geometry](analysis/service-menu-pages.md), and
   [menu setup lifetimes](analysis/menu-setup-lifetimes.md).
 - [Car-model cache constructor](analysis/car-model-cache-constructor.md).
+- [Scene-entry destructor thunk](analysis/scene-entry-destructor-thunk.md).
 - [Networking session](analysis/networking-session.md),
   [configuration validation](analysis/config-validation.md),
   [language parsing](analysis/language-parser.md), and

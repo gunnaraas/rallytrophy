@@ -15,9 +15,9 @@ _Updated 2026-10-27 by `tools/progress.py` (game code `0x401000`–`0x4bcfc6`)._
 
 | | Functions | Code bytes |
 |---|---|---|
-| Byte-exact | 1785 / 2084 (85.65%) | 300,109 / 742,273 (40.43%) |
+| Byte-exact | 1786 / 2084 (85.70%) | 300,114 / 742,273 (40.43%) |
 | Written, not yet exact | 291 | 437,617 |
-| Written in total | 2076 / 2084 (99.62%) | 737,726 / 742,273 (99.39%) |
+| Written in total | 2077 / 2084 (99.66%) | 737,731 / 742,273 (99.39%) |
 
 ```
 exact   ████████████░░░░░░░░░░░░░░░░░░ 40.43% of code bytes
@@ -129,7 +129,7 @@ Progress by module (ranges in `analysis/modules.csv`):
 | Renderer plugin loader | `0x4bbdf0`–`0x4bc210` | 5 / 5 / 5 | 100.0% | 100.0% | `████████████` |
 | Command line | `0x4bc210`–`0x4bc360` | 3 / 3 / 3 | 100.0% | 100.0% | `████████████` |
 | Draw queue and vector helpers | `0x4bc360`–`0x4bcfc7` | 9 / 10 / 10 | 81.2% | 100.0% | `████████████` |
-| Outside mapped modules |  | 52 / 52 / 60 | 68.3% | 68.3% | `████████░░░░` |
+| Outside mapped modules |  | 53 / 53 / 60 | 68.3% | 68.3% | `████████░░░░` |
 <!-- progress:end -->
 
 `// FUNCTION:` marks a function that has passed the byte matcher;

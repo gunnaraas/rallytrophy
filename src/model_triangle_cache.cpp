@@ -30,6 +30,21 @@ extern "C" void fun_004bd000();
 extern "C" void fun_004c1276();
 extern "C" void fun_004bc390();
 
+extern "C" void RT_SceneEntryDtor4a66a0();
+#pragma comment(linker, "/alternatename:_RT_SceneEntryDtor4a66a0=??1SceneEntry@@QAE@XZ")
+
+/* FUNCTION: RALLYTROPHY 0x4a66a0 */
+// SYMBOL: _FUN_004a66a0
+// PE observation: this five-byte thunk jumps directly to SceneEntry::~SceneEntry.
+extern "C" {
+__declspec(naked) void FUN_004a66a0()
+{
+    __asm {
+        jmp RT_SceneEntryDtor4a66a0
+    }
+}
+}
+
 __declspec(naked)
 // FUNCTION: RALLYTROPHY 0x4a6d30
 // original: ModelObject::FUN_004a6d30
