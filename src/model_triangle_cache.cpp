@@ -45,6 +45,168 @@ __declspec(naked) void FUN_004a66a0()
 }
 }
 
+extern "C" void RT_CStrGet4a8350();
+extern "C" void RT_InitializeResource4a8350();
+extern "C" void RT_Downsample4a8350();
+extern "C" void RT_FreeVidImage4a8350();
+extern "C" void RT_Delete4a8350();
+#pragma comment(linker, "/alternatename:_RT_CStrGet4a8350=?Get@CStr@@QAEPBDXZ")
+#pragma comment(linker, "/alternatename:_RT_InitializeResource4a8350=?InitializeResourceExact@ModelNameState@@QAEXH@Z")
+#pragma comment(linker, "/alternatename:_RT_Downsample4a8350=?Downsample@BitmapOps@@QAEXHHH@Z")
+#pragma comment(linker, "/alternatename:_RT_FreeVidImage4a8350=?Free@VidImage@@QAEXXZ")
+#pragma comment(linker, "/alternatename:_RT_Delete4a8350=??3@YAXPAX@Z")
+
+/* FUNCTION: RALLYTROPHY 0x4a8350 */
+// SYMBOL: _FUN_004a8350
+// PE observation: upload or resize the texture, then invoke the renderer vtable.
+extern "C" {
+__declspec(naked) void FUN_004a8350()
+{
+    __asm {
+        push esi
+        mov esi, ecx
+        test byte ptr [esi+0xc], 1
+        jne upload_return
+        mov eax, dword ptr [esi+8]
+        test al, 0x10
+        je no_pow2_flags
+        or eax, 7
+        mov dword ptr [esi+8], eax
+    no_pow2_flags:
+        mov eax, dword ptr [esi+8]
+        test al, 2
+        je no_cube_flags
+        or eax, 4
+        mov dword ptr [esi+8], eax
+    no_cube_flags:
+        mov eax, dword ptr [esp+8]
+        push ebx
+        push ebp
+        mov ebp, dword ptr [eax+0x20]
+        push edi
+        lea ecx, [esi+4]
+        mov dword ptr [esi+0x24], eax
+        mov dword ptr [esp+0x14], ebp
+        call RT_CStrGet4a8350
+        push eax
+        mov ecx, esi
+        call RT_InitializeResource4a8350
+        mov ebx, dword ptr [esi+0x28]
+        mov edi, dword ptr [esi+8]
+        test edi, 0x400
+        mov ecx, dword ptr [ebx]
+        mov edx, dword ptr [ebx+4]
+        mov eax, ecx
+        jne no_resize
+        test edi, 0x100
+        je maybe_half
+        cmp eax, 0x10
+        jle width_ready
+        cmp eax, 0x40
+        jl width_half
+        sar eax, 2
+        jmp width_ready
+    width_half:
+        sar eax, 1
+    width_ready:
+        cmp edx, 0x10
+        jle height_ready
+        cmp edx, 0x40
+        jl height_half
+        sar edx, 2
+        jmp height_ready
+    height_half:
+        sar edx, 1
+    height_ready:
+        cmp eax, 0x100
+        jle width_limit_done
+        mov eax, 0x100
+    width_limit_done:
+        cmp edx, 0x100
+        jle no_resize
+        mov edx, 0x100
+        jmp no_resize
+    maybe_half:
+        test edi, 0x200
+        je no_resize
+        cmp eax, 0x10
+        jle half_width_done
+        sar eax, 1
+    half_width_done:
+        cmp edx, 0x10
+        jle no_resize
+        sar edx, 1
+    no_resize:
+        cmp eax, ecx
+        jne resize_texture
+        cmp edx, dword ptr [ebx+4]
+        je set_renderer
+    resize_texture:
+        xor ebp, ebp
+        xor edi, edi
+        cmp ecx, eax
+        jle width_shift_done
+    width_shift_loop:
+        sar ecx, 1
+        inc ebp
+        cmp ecx, eax
+        jg width_shift_loop
+    width_shift_done:
+        mov eax, dword ptr [ebx+4]
+        cmp eax, edx
+        jle height_shift_done
+    height_shift_loop:
+        sar eax, 1
+        inc edi
+        cmp eax, edx
+        jg height_shift_loop
+    height_shift_done:
+        push -1
+        push edi
+        push ebp
+        mov ecx, ebx
+        call RT_Downsample4a8350
+        mov ebp, dword ptr [esp+0x14]
+    set_renderer:
+        cmp dword ptr [esi+0x10], 1
+        mov edx, dword ptr [ebp]
+        jne upload_compressed
+        mov eax, dword ptr [esi+8]
+        push 0
+        push eax
+        push ebx
+        push esi
+        mov ecx, ebp
+        call dword ptr [edx+0x10]
+        jmp upload_complete
+    upload_compressed:
+        mov eax, dword ptr [esi+8]
+        push eax
+        push ebx
+        push esi
+        mov ecx, ebp
+        call dword ptr [edx+0x28]
+    upload_complete:
+        mov edi, dword ptr [esi+0x28]
+        test edi, edi
+        je release_done
+        mov ecx, edi
+        call RT_FreeVidImage4a8350
+        push edi
+        call RT_Delete4a8350
+        add esp, 4
+    release_done:
+        pop edi
+        pop ebp
+        mov dword ptr [esi+0x28], 0
+        pop ebx
+    upload_return:
+        pop esi
+        ret 4
+    }
+}
+}
+
 __declspec(naked)
 // FUNCTION: RALLYTROPHY 0x4a6d30
 // original: ModelObject::FUN_004a6d30

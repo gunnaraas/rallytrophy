@@ -15,13 +15,13 @@ _Updated 2026-10-27 by `tools/progress.py` (game code `0x401000`–`0x4bcfc6`)._
 
 | | Functions | Code bytes |
 |---|---|---|
-| Byte-exact | 1786 / 2084 (85.70%) | 300,114 / 742,273 (40.43%) |
+| Byte-exact | 1787 / 2084 (85.75%) | 300,423 / 742,273 (40.47%) |
 | Written, not yet exact | 291 | 437,617 |
-| Written in total | 2077 / 2084 (99.66%) | 737,731 / 742,273 (99.39%) |
+| Written in total | 2078 / 2084 (99.71%) | 738,040 / 742,273 (99.43%) |
 
 ```
-exact   ████████████░░░░░░░░░░░░░░░░░░ 40.43% of code bytes
-written ██████████████████████████████ 99.39% of code bytes
+exact   ████████████░░░░░░░░░░░░░░░░░░ 40.47% of code bytes
+written ██████████████████████████████ 99.43% of code bytes
 ```
 
 ![Decompilation progress](progress.svg)
@@ -129,7 +129,7 @@ Progress by module (ranges in `analysis/modules.csv`):
 | Renderer plugin loader | `0x4bbdf0`–`0x4bc210` | 5 / 5 / 5 | 100.0% | 100.0% | `████████████` |
 | Command line | `0x4bc210`–`0x4bc360` | 3 / 3 / 3 | 100.0% | 100.0% | `████████████` |
 | Draw queue and vector helpers | `0x4bc360`–`0x4bcfc7` | 9 / 10 / 10 | 81.2% | 100.0% | `████████████` |
-| Outside mapped modules |  | 53 / 53 / 60 | 68.3% | 68.3% | `████████░░░░` |
+| Outside mapped modules |  | 54 / 54 / 60 | 70.5% | 70.5% | `████████░░░░` |
 <!-- progress:end -->
 
 `// FUNCTION:` marks a function that has passed the byte matcher;

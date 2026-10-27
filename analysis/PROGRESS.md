@@ -6,7 +6,7 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Status
 
-- Marker inventory: 1786/2084 byte-exact (85.70%); 2077/2084 functions written (99.66%), from `tools/progress.py`.
+- Marker inventory: 1787/2084 byte-exact (85.75%); 2078/2084 functions written (99.71%), from `tools/progress.py`.
 - Game code: about 1,690 functions in `0x401000`–`0x4bcfc6`
 
 ## Queue
@@ -32,6 +32,7 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Log
 
+- 2026-10-27 (Codex, texture upload helper `0x4a8350`): Replaced five raw call displacements with symbolic calls and audited the targets against existing symbols. Exact 309-byte match with five COFF relocations; target table and remaining integration scope are in `docs/analysis/model-texture-upload.md`.
 - 2026-10-27 (Codex, scene-entry destructor thunk `0x4a66a0`): Replaced the pending raw relative jump with a symbolic jump and audited its linker alias to the existing destructor at `0x4b89f0`. Exact five-byte match with one COFF relocation; evidence and scope are in `docs/analysis/scene-entry-destructor-thunk.md`.
 - 2026-10-27 (Codex, `CarModelCache::CarModelCache` `0x4ade40`): Verified the pending first-flag volatile-store change as an exact 59-byte match with zero relocations. Recorded the target's uninitialized stack-byte copies in `docs/analysis/car-model-cache-constructor.md`; committing this function separately from shared experiments.
 - 2026-10-27 (Codex, `Car::FUN_0045b390` `0x45b390`): Matched the stage-point distance check at 1,380 bytes / 25 relocations by reproducing the integer y-copy, x87 x-load order, and z spill. Evidence: `docs/analysis/car-stage-point-distance.md` (`ev_482eda42dbfbd7e19e133ac34ae46d58a20274d24bb34531c85f16e68882584a`). Focused: 9/9 exact, 5 NONMATCHING; full: 1,793/1,793 exact, 291 NONMATCHING, no diffs or compile failures.
