@@ -43,9 +43,11 @@ public:
 };
 
 // Holder of one sound sample, released through DAT_0056b0b0 (0x40c6f0 ctor, 0x40c700 dtor).
+struct SampleDt { ~SampleDt() {} };   // empty-destructor members only reproduce the original unwind state 4
 class SampleHolder {
 public:
     void* sample;
+    SampleDt d0, d1, d2, d3, d4;
     SampleHolder() : sample(0) {}  // 0x40c6f0
     ~SampleHolder();               // 0x40c700
 };

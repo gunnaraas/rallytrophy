@@ -516,7 +516,8 @@ void __fastcall FUN_0040c6f0(void*)
     }
 }
 
-// NONMATCHING: RALLYTROPHY 0x40c700 (original has an SEH frame, state 4: a member of a larger class; owner unknown)
+// FUNCTION: RALLYTROPHY 0x40c700
+// The header's empty-destructor members reproduce the original SEH state 4; the true owner class is still unknown.
 SampleHolder::~SampleHolder()
 {
     if (sample != 0)
