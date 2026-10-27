@@ -23,7 +23,7 @@ public:
     SpriteB(const char* texture);
     ~SpriteB();
     void SetBlend(int a, int b);                      // 0x4a9280
-    void Draw(void* device);                          // 0x4a92c0
+    void Draw(void* device, int unused);              // 0x4a92c0
 };
 
 // The loading-screen object (size 0x34): ctor 0x403270, dtor 0x403380, init 0x4033f0, draw 0x403890.

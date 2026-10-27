@@ -11,8 +11,26 @@ extern char DAT_005070b8[];                   // scratch buffer filled by _itoa
 extern float DAT_005070d8, DAT_005070dc;
 extern int (*DAT_0059b2f8)();                 // Bink/clock import slot: millisecond counter
 extern int DAT_0050132c, DAT_00501464, DAT_00501458, DAT_00501468, DAT_0050145c;
-extern void* DAT_00501450;                    // NetRace-like singleton
+class NetRace {                               // see include/unk_481390.h
+public:
+    BYTE pad[0x24];
+    BYTE* session;                            // +0x24: progress percent at +0x17ec
+    void SendByte(BYTE value);                // 0x483040
+};
+extern NetRace* DAT_00501450;
+class TextRenderer {                          // see include/unk_481390.h
+public:
+    BYTE unk0[0x1c];
+    float scaleX, scaleY;                     // 0x1c, 0x20
+    BYTE unk24[0xfc];
+    int color;                                // 0x120
+    void Print(RenderDevice* device, float x, float y, const char* text, int flags, float sx, float sy); // 0x4a97a0
+};
 extern Game* DAT_0056b0c8;
+class GameView {                              // the game object seen as its view; see include/unk_481390.h
+public:
+    void FUN_00432c00();                      // 0x432c00: per-frame update
+};
 extern void* __cdecl PoolAlloc(unsigned int bytes);   // 0x4c1276 (operator new)
 
 static __forceinline int RoundF(float v)
@@ -109,47 +127,58 @@ void LoadScreen::Init(int level)
     }
 }
 
+struct Col403 {                                      // packed ARGB colour with an empty destructor
+    DWORD argb;
+    Col403(DWORD c) : argb(c) {}
+    ~Col403() {}
+};
+
 struct Pt403 {
     float x, y;
     Pt403();
     ~Pt403();
 };
 
-// NONMATCHING: RALLYTROPHY 0x403890 (draft, not yet compared)
+// FUNCTION: RALLYTROPHY 0x403890
 void LoadScreen::Draw(float t)
 {
     int now = DAT_0059b2f8();
-    if ((unsigned)(now - lastDraw) > 0x27 || t >= 1.0f) {
+    if ((unsigned)(now - lastDraw) >= 0x28 || t >= 1.0f) {
         if ((unsigned)(now - lastLevel) > 0x96) {
             if (DAT_00501454) {
-                float f = t * 50.0f;
-                int v = mode == 0 ? (int)RoundF(f) : (int)RoundF(f) + 0x32;
+                int v = mode == 0 ? RoundF(t * 50.0f) : RoundF(t * 50.0f) + 0x32;
                 if (v < 0)
                     v = 0;
                 else if (v > 100)
                     v = 100;
-                *(int*)(*(int*)((char*)DAT_00501450 + 0x24) + 0x17ec) = v;
-                extern void FUN_00483040(int);
-                FUN_00483040(v);
+                *(int*)(DAT_00501450->session + 0x17ec) = v;
+                DAT_00501450->SendByte((BYTE)v);
             }
             lastLevel = now;
         }
-        extern void FUN_00432c00(Game*);
-        FUN_00432c00(DAT_0056b0c8);
+        ((GameView*)DAT_0056b0c8)->FUN_00432c00();
         lastDraw = now;
         if ((char)DAT_0056b0ac->m_active) {
             Pt403 pos[4];
             Pt403 uv[4];
+            Col403 white(0xffffffff);
             float sx = DAT_0056b0ac->GetWidth() * 0.0009765625f;
             float sy = DAT_0056b0ac->GetHeight() * 0.0013020833721384406f;
-            pos[0].x = 0;       pos[0].y = 687.0f;
-            pos[1].x = t * 1024.0f; pos[1].y = 687.0f;
-            pos[2].x = t * 1024.0f; pos[2].y = 719.0f;
-            pos[3].x = 0;       pos[3].y = 719.0f;
-            uv[0].x = 0;  uv[0].y = 0;
-            uv[1].x = t;  uv[1].y = 0;
-            uv[2].x = t;  uv[2].y = 1.0f;
-            uv[3].x = 0;  uv[3].y = 1.0f;
+            uv[2].x = t;
+            uv[1].x = t;
+            pos[0].x = 0;
+            pos[3].x = 0;
+            pos[1].y = 687.0f;
+            pos[0].y = 687.0f;
+            pos[3].y = 719.0f;
+            pos[2].y = 719.0f;
+            uv[1].y = 0;
+            uv[0].y = 0;
+            uv[3].y = 1.0f;
+            uv[2].y = 1.0f;
+            uv[3].x = 0;
+            pos[1].x = pos[2].x = t * 1024.0f;
+            uv[0].x = 0;
             for (int i = 0; i < 4; i++) {
                 pos[i].x *= sx;
                 pos[i].y *= sy;
@@ -158,17 +187,16 @@ void LoadScreen::Draw(float t)
                 DAT_0056b0ac->SetRenderState(5, 0);
                 DAT_0056b0ac->vf42(8);
                 DAT_0056b0ac->vf38(0);
-                back->Draw(DAT_0056b0ac);
+                back->Draw(DAT_0056b0ac, 0);
                 ((float*)front)[0xf] = t * scale + offset;
-                front->Draw(DAT_0056b0ac);
+                front->Draw(DAT_0056b0ac, 0);
                 DAT_0056b0ac->vf35((Sprite*)quad);
-                DAT_0056b0ac->vf66((HudPoint*)pos, (HudPoint*)uv, 0xffffffff, 1.0f, 1.0f);
-                ((int*)font)[0x48] = -1;
-                ((float*)font)[7] = sx;
-                ((float*)font)[8] = sy;
-                extern void FUN_004a97a0(void*, RenderDevice*, unsigned int, float, const char*);
-                FUN_004a97a0(font, DAT_0056b0ac, (unsigned int)(DAT_005070d8 * sx), DAT_005070dc * sy,
-                             text.c_str());
+                DAT_0056b0ac->vf66((HudPoint*)pos, (HudPoint*)uv, white.argb, 1.0f, 1.0f);
+                TextRenderer* tr = (TextRenderer*)font;
+                tr->color = white.argb;
+                tr->scaleX = sx;
+                tr->scaleY = sy;
+                tr->Print(DAT_0056b0ac, DAT_005070d8 * sx, DAT_005070dc * sy, text.c_str(), 0, 1.0f, 1.0f);
                 DAT_0056b0ac->EndScene();
                 DAT_0056b0ac->Present();
             }

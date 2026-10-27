@@ -21,9 +21,7 @@
 <rect x="33.2" y="120" width="0.6" height="36" fill="#3fb950"/>
 <rect x="33.3" y="120" width="0.6" height="36" fill="#3fb950"/>
 <rect x="33.9" y="120" width="1.3" height="36" fill="#e3b341"/>
-<rect x="35.2" y="120" width="0.6" height="36" fill="#3fb950"/>
-<rect x="35.6" y="120" width="1.2" height="36" fill="#e3b341"/>
-<rect x="36.8" y="120" width="0.6" height="36" fill="#3fb950"/>
+<rect x="35.2" y="120" width="1.9" height="36" fill="#3fb950"/>
 <rect x="37.2" y="120" width="0.6" height="36" fill="#3fb950"/>
 <rect x="37.2" y="120" width="2.4" height="36" fill="#e3b341"/>
 <rect x="39.6" y="120" width="3.7" height="36" fill="#3fb950"/>
@@ -729,9 +727,9 @@
 <text x="20" y="210" font-size="16" font-weight="600" fill="#e6edf3">Progress by module (share of code bytes)</text>
 <text x="260" y="240" text-anchor="end" fill="#e6edf3">1. Startup helpers</text>
 <rect x="270" y="226" width="740" height="18" rx="2" fill="#484f58"/>
-<rect x="270" y="226" width="415.6" height="18" fill="#3fb950"/>
-<rect x="685.6" y="226" width="324.4" height="18" fill="#e3b341"/>
-<text x="1018" y="240" fill="#e6edf3">56% exact / 100% written</text>
+<rect x="270" y="226" width="455.5" height="18" fill="#3fb950"/>
+<rect x="725.5" y="226" width="284.5" height="18" fill="#e3b341"/>
+<text x="1018" y="240" fill="#e6edf3">62% exact / 100% written</text>
 <text x="260" y="266" text-anchor="end" fill="#e6edf3">2. Language / text table</text>
 <rect x="270" y="252" width="740" height="18" rx="2" fill="#484f58"/>
 <rect x="270" y="252" width="740.0" height="18" fill="#3fb950"/>

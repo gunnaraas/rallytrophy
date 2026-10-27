@@ -2,7 +2,7 @@
 <title>Rally Trophy per-function decompilation map</title>
 <rect width="1600" height="1120" rx="8" fill="#0d1117"/>
 <text x="20" y="30" font-size="18" font-weight="600" fill="#e6edf3">Every game function, sized by code bytes and branch complexity</text>
-<text x="20" y="53" fill="#8b949e">1,794 byte-exact · 290 written but not byte-exact · 0 unwritten. Tile area = bytes × (1 + log₂(1 + branch points)); hover for details.</text>
+<text x="20" y="53" fill="#8b949e">1,795 byte-exact · 289 written but not byte-exact · 0 unwritten. Tile area = bytes × (1 + log₂(1 + branch points)); hover for details.</text>
 <g transform="translate(20,72)" fill="#e6edf3">
 <rect width="12" height="12" fill="#3fb950"/><text x="18" y="11">byte-exact</text>
 <rect x="118" width="12" height="12" fill="#e3b341"/><text x="136" y="11">written, not exact</text>
@@ -59,7 +59,7 @@
 <rect x="521.06" y="112.00" width="62.21" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x004033f0 · FUN_004033f0 · Startup helpers · 886 code bytes · complexity 18 (17 branch points) · written, not exact</title></rect>
 <rect x="584.27" y="112.00" width="4.49" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00403770 · FUN_00403770 · Startup helpers · 111 code bytes · complexity 6 (5 branch points) · byte-exact</title></rect>
 <rect x="589.76" y="112.00" width="8.49" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x004037e0 · FUN_004037e0 · Startup helpers · 165 code bytes · complexity 9 (8 branch points) · byte-exact</title></rect>
-<rect x="599.25" y="112.00" width="48.42" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x00403890 · FUN_00403890 · Startup helpers · 781 code bytes · complexity 12 (11 branch points) · written, not exact</title></rect>
+<rect x="599.25" y="112.00" width="48.42" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00403890 · FUN_00403890 · Startup helpers · 781 code bytes · complexity 12 (11 branch points) · byte-exact</title></rect>
 <rect x="648.67" y="112.00" width="10.14" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00403ba0 · FUN_00403ba0 · Startup helpers · 181 code bytes · complexity 11 (10 branch points) · byte-exact</title></rect>
 <rect x="659.81" y="112.00" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00403c90 · FUN_00403c90 · Startup helpers · 3 code bytes · complexity 1 (0 branch points) · byte-exact</title></rect>
 <rect x="659.85" y="112.00" width="85.09" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x00403ca0 · FUN_00403ca0 · Startup helpers · 1,117 code bytes · complexity 24 (23 branch points) · written, not exact</title></rect>
