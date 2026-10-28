@@ -321,8 +321,7 @@ void Car::FUN_004691e0(int cockpit)
 }
 
 // NONMATCHING: RALLYTROPHY 0x4693a0
-// Same size (543); only the register assignment differs (original: list1 in edx, list2 in esi,
-// the constants 1/2 in edi/ebp) and with it the schedule of the first stores.
+// Same size (543); restore branch and damaged-loop stores follow the target order. 18 register-assignment bytes remain.
 void Car::FUN_004693a0(int mode)
 {
     CarModelView* v = (CarModelView*)this;
@@ -338,7 +337,7 @@ void Car::FUN_004693a0(int mode)
             m->quad40.b = 1.0f;
             m->quad40.c = 1.0f;
             m->quad40.d = 0;
-            m->unk9c = 2;
+            *(volatile int*)&m->unk9c = 2;
             m->unk24 = 2;
             ModelMaterial* o = b->data;
             m->quad60.a = 0;
@@ -373,8 +372,8 @@ void Car::FUN_004693a0(int mode)
         ModelNode* a = v->nodes1;
         ModelNode* b = v->nodes2;
         while (a && b) {
-            ModelMaterial* o = b->data;
             ModelMaterial* m = a->data;
+            ModelMaterial* o = b->data;
             m->unk38 = o->unk38;
             m->quad40 = o->quad40;
             m->quad60 = o->quad60;

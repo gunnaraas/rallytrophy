@@ -132,8 +132,9 @@ struct ColVec {
 };
 
 // NONMATCHING: RALLYTROPHY 0x41b270
-// 696 vs 697 bytes; frame, asm blocks and FPU code match. Open: register choice in the loop setup and edge loads,
-// and the original loads the vertex pointer for the plane distance before the normal's length, not after.
+// A named plane vertex and reversed Dot receiver reduce the best candidate from 696/434 to 698/322 bytes/differences;
+// the Dot expression now loads vertex components before multiplying by the normal, as in the target. Remaining
+// differences are mostly frame and register allocation; pointer and loop-counter register hints did not change output.
 void ColModel::Transform(float* m, float* t)
 {
     float M[16] = { m[0], m[1], m[2], 0.0f, m[4], m[5], m[6], 0.0f, m[8], m[9], m[10], 0.0f, t[0], t[1], t[2], 1.0f };
@@ -151,13 +152,14 @@ void ColModel::Transform(float* m, float* t)
     ColLocal* c = centers;
     for (int i = nTris; i != 0; i--) {
         ColVert** v = (ColVert**)((char*)tr + 0x28);
+        ColVert* const v0 = v[0];
         ColVec e1 = *(ColVec*)&v[1]->x;
-        e1 -= *(ColVec*)&v[0]->x;
+        e1 -= *(ColVec*)&v0->x;
         ColVec e2 = *(ColVec*)&v[2]->x;
-        e2 -= *(ColVec*)&v[0]->x;
+        e2 -= *(ColVec*)&v0->x;
         ColCross(&e1.x, &e2.x, &tr->c[0] + 6);
         *((ColVec*)tr + 2) *= DAT_004e1348 / ((ColVec*)tr + 2)->Length();
-        ((float*)tr)[9] = ((ColVec*)&v[0]->x)->Dot(*((ColVec*)tr + 2));
+        ((float*)tr)[9] = (*((ColVec*)tr + 2)).Dot(*(ColVec*)&v0->x);
         ColTransform((float*)tr, &c->x, M);
         tr++;
         c++;
@@ -193,7 +195,7 @@ void ColModel::FreeVerts()
     }
 
 // NONMATCHING: RALLYTROPHY 0x41b590
-// reason: original keeps the running max in a stack slot loaded separately from the min (FPU scheduling differs)
+// Current candidate is 385 bytes vs. 412; entry loads, frame setup and axis-selection code still differ substantially.
 void ColModel::ComputeSel()
 {
     int n = nTris;
