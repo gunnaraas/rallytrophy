@@ -13,12 +13,6 @@
 extern "C" void __fastcall FUN_00485400(void* host); // T_56b0b8::FUN_00485400 (thiscall)
 
 // ---- from group draft Z3 ----
-class B2_Unit {
-public:
-    B2_Unit() { x = 1.0f; y = 1.0f; }
-    ~B2_Unit() {}
-    volatile float x, y;
-};
 static float B2_titleX = 54.0f;    // 0x4e1714 (plain static: the original multiplies const * scale)
 static float B2_titleY = 142.0f;   // 0x4e1718
 static float B2_COLW = 400.0f;     // 0x4e171c
@@ -154,8 +148,8 @@ int MenuScreenA48::Run(MenuGame* game, NetRace* session)
 }
 
 // NONMATCHING: RALLYTROPHY 0x4398e0
-// Same size (1913 + tables), 264 bytes differ: VC6 puts the GetScale copy and the (1, 1) object in swapped frame slots
-// (0x44/0x4c vs original 0x4c/0x44) and hoists the object's stores out of the loop; Print loads x before y (original y first).
+// Same size (1948 bytes with tables), 218 bytes differ. Loading row text before explicit volatile HudPoint stores improves
+// the 224-byte candidate; GetScale and (1,1) still use swapped slots (0x44/0x4c vs target 0x4c/0x44), with case scheduling open.
 // original: FUN_004398e0 (thiscall; MenuScreenA48::Frame)
 int MenuScreenA48::Frame()
 {
@@ -280,10 +274,13 @@ int MenuScreenA48::Frame()
             for (int i = 0; i < 5; i++) {
                 int selected = (i == m_selected);
                 Color col;
-                B2_Unit one;
+                HudPoint one;
                 col.value = selected ? DAT_00508c0c : DAT_00508c04;
                 text->color = col.value;
-                text->Print(DAT_0056b0ac, items[i].x, items[i].y, items[i].text.c_str(), 0, 1.0f, 1.0f);
+                const char* labelText = items[i].text.c_str();
+                *(volatile float*)&one.x = 1.0f;
+                *(volatile float*)&one.y = 1.0f;
+                text->Print(DAT_0056b0ac, items[i].x, items[i].y, labelText, 0, 1.0f, 1.0f);
                 HudPoint pos;
                 pos.x = 520.0f * DAT_0056aea8;
                 pos.y = items[i].y;

@@ -12,13 +12,6 @@
 #include <vector>
 
 
-// ---- from group draft X6 ----
-class B2_Unit {
-public:
-    B2_Unit() { x = 1.0f; y = 1.0f; }
-    ~B2_Unit() {}
-    float x, y;
-};
 static float B2_COLW = 400.0f;   // value column width (0x4e1834; plain static: the original multiplies const * scale)
 
 // ---- from group draft X7 ----
@@ -250,9 +243,8 @@ int RaceOptionsMenu::Run(MenuGame* game, NetRace* net_)
 // Module end: guard-bit initialiser of the STL header statics and its atexit registration.
 
 // NONMATCHING: RALLYTROPHY 0x43ffd0
-// Same size (2240 with tables), 226 bytes differ: VC6 hoists the dead (1, 1) object's stores out of the draw loop (original
-// keeps them inside, same as SoundMenu::Frame), loads Print's x before y (original y first) and so rotates the registers in
-// the four DrawToggle case bodies. Input handling, mouse hit-test chain and both jump tables match.
+// Same size (2240 with tables), 219 bytes differ. Volatile writes to a local HudPoint plus an early row-text pointer
+// improve the prior 226-byte diff; target (1,1) slots and DrawToggle registers still differ. Input and jump tables match.
 int RaceOptionsMenu::Frame()
 {
     int done = 0;
@@ -382,10 +374,13 @@ int RaceOptionsMenu::Frame()
             for (int i = 0; i < 5; i++) {
                 int selected = (i == m_selected);
                 Color col;
-                B2_Unit one;
+                HudPoint one;
                 col.value = selected ? DAT_00508c0c : DAT_00508c04;
                 text->color = col.value;
-                text->Print(DAT_0056b0ac, items[i].x, items[i].y, items[i].text.c_str(), 0, 1.0f, 1.0f);
+                const char* labelText = items[i].text.c_str();
+                *(volatile float*)&one.x = 1.0f;
+                *(volatile float*)&one.y = 1.0f;
+                text->Print(DAT_0056b0ac, items[i].x, items[i].y, labelText, 0, 1.0f, 1.0f);
                 HudPoint pos;
                 pos.x = 520.0f * DAT_0056aea8;
                 pos.y = items[i].y;

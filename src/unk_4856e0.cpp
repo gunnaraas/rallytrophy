@@ -355,7 +355,8 @@ void RaceMode::DrawSetup(int a, ViewPoint* view)
 }
 
 // NONMATCHING: RALLYTROPHY 0x488c70
-// Same ghost-fade distance math difference as DrawSetup (0x488aa0).
+// Volatile x-square plus repeated y/z sums improves the candidate from 446/150 to 450/131 bytes/differences;
+// distSq, split accumulation, or reversing the range comparison leaves the same 450/131 candidate.
 // DrawSetup, skipping one car.
 void RaceMode::DrawSetupExcept(int a, ViewPoint* view, Car* skip)
 {
@@ -383,9 +384,9 @@ void RaceMode::DrawSetupExcept(int a, ViewPoint* view, Car* skip)
             Vec3* pos = (Vec3*)car->body->unk14;
             d -= *pos;
             double range = DAT_005012f8 * 1.5;
-            float xx = d.x * d.x;
-            float distSq = d.y * d.y + d.z * d.z + xx;
-            if (distSq < range * range && distSq > 100.0f) {
+            volatile float xx = d.x * d.x;
+            if (d.y * d.y + d.z * d.z + xx < range * range &&
+                d.y * d.y + d.z * d.z + xx > 100.0f) {
                 car->FUN_004695c0(((float)(int)sqrt(d.y * d.y + d.z * d.z + xx) - 10.0f) * 0.02f);
                 m_ghostVisible = 1;
                 car->FUN_00468c70(a);
@@ -3043,8 +3044,9 @@ void RaceMode::LoadReplay()
 // NONMATCHING: RALLYTROPHY 0x48e1f0
 // 712 vs 708 bytes; frame, string layout, EH states and calls all match. Only the header fill differs: the
 // original copies unk2c and the five car values one at a time through eax (no load hoisted over a store;
-// store of the last value after the magic), this build interleaves ecx/edx/eax and hoists the loads.
-// `#pragma optimize("a", off)` removes the hoisting but changes the register allocation elsewhere.
+// store of the last value after the magic), this build interleaves ecx/edx/eax and hoists the loads. Volatile
+// destination/source accesses and an explicit final-value temp loaded before the magic leave the 201-difference
+// candidate unchanged. `#pragma optimize("a", off)` removes the hoisting but changes the register allocation elsewhere.
 // Saves the ghost of a player: data/replay/replay<rally>_<stage>.ini holds the header (the car's
 // five setup values), .rep the recorded car data (Car 0x465550).
 void RaceMode::SaveReplay(Player* player)
