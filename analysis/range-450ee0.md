@@ -83,6 +83,10 @@ Both use `BinkVideo` (0xac bytes; rallytrophy.h: ctor 0x4097a0 `(name, RenderDev
 
 Decompile: one worker, 2 functions; 0x4526e0 first for the font/overlay field usage (Game+0x1390c0 / 0x1390c4 are two `Font` objects, `Game+0x1390c4` the larger one).
 
+`ShowCountryVideo` (`0x4526e0`) now matches exactly at 1,040 bytes / 78
+relocations. See [`docs/analysis/country-video-caption-order.md`](../docs/analysis/country-video-caption-order.md)
+for the coordinate-store scheduling probe.
+
 ## 4. F4: Car visuals and model loaders, 0x452b20 - 0x4563df
 
 All are `Car` members (`this` = Car). Offsets are from the Car layout of unk_45e480.h; new facts from this range are listed after the table.

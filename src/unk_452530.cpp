@@ -72,10 +72,9 @@ struct CaptionFont {
     void Print(RenderDevice* device, float x, float y, const char* text, int flags, float sx, float sy); // 0x4a97a0
 };
 
-// NONMATCHING: RALLYTROPHY 0x4526e0
-// Same size (1040), 21 bytes differ: the original issues the `push 0` of the first FUN_004b69f0(0) after the four
-// caption coordinate stores, VC6 hoists it above the first fsubr here (frame offsets shift by 4). Source variants tried: float
-// order, inline coordinates, loop forms. Empty inline-asm barrier disables frame-pointer omission and causes 558 diff bytes.
+// FUNCTION: RALLYTROPHY 0x4526e0
+// Exact 1,040-byte match / 78 relocations. A volatile store through y2's address keeps the final caption-coordinate
+// store ahead of the first FUN_004b69f0(0) argument push without changing y2's type or the function's frame.
 void GameView::ShowCountryVideo(int n)
 {
     char path[24] = "data/video/country1.bik";
@@ -103,7 +102,8 @@ void GameView::ShowCountryVideo(int n)
     float x1 = DAT_0056aea8 * 512.0f - smallFont->GetWidth(caption1, 0) * 0.5f;
     float y1 = DAT_0056aeac * 414.0f;
     float x2 = DAT_0056aea8 * 122.0f;
-    float y2 = DAT_0056aeac * 465.0f;
+    float y2;
+    *(volatile float*)&y2 = DAT_0056aeac * 465.0f;
     while (FUN_004b69f0(0) && !skip) {
         DAT_0056b0c8->FUN_00432c00();
         if (first) {

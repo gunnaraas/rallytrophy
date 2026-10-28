@@ -70,6 +70,7 @@ matching maps, compiler notes, and the active work queue are under
   [track-book quad drawing](analysis/trackbook-draw.md),
   [service-menu geometry](analysis/service-menu-pages.md), and
   [menu setup lifetimes](analysis/menu-setup-lifetimes.md).
+- [Country-video caption order](analysis/country-video-caption-order.md).
 - [AI path segment selection](analysis/ai-driver-find-segment.md).
 - [Car-model cache constructor](analysis/car-model-cache-constructor.md).
 - [Scene-entry destructor thunk](analysis/scene-entry-destructor-thunk.md).

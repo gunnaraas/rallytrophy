@@ -2,7 +2,7 @@
 <title>Rally Trophy per-function decompilation map</title>
 <rect width="1600" height="1120" rx="8" fill="#0d1117"/>
 <text x="20" y="30" font-size="18" font-weight="600" fill="#e6edf3">Every game function, sized by code bytes and branch complexity</text>
-<text x="20" y="53" fill="#8b949e">1,812 byte-exact · 272 written but not byte-exact · 0 unwritten. Tile area = bytes × (1 + log₂(1 + branch points)); hover for details.</text>
+<text x="20" y="53" fill="#8b949e">1,813 byte-exact · 271 written but not byte-exact · 0 unwritten. Tile area = bytes × (1 + log₂(1 + branch points)); hover for details.</text>
 <g transform="translate(20,72)" fill="#e6edf3">
 <rect width="12" height="12" fill="#3fb950"/><text x="18" y="11">byte-exact</text>
 <rect x="118" width="12" height="12" fill="#e3b341"/><text x="136" y="11">written, not exact</text>
@@ -682,7 +682,7 @@
 <rect x="206.51" y="559.27" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00452500 · bonus-unlock module end: guard-bit initialiser of the STL header statics (_$E) · Bonus unlocks · 25 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>
 <rect x="207.25" y="559.27" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00452520 · bonus-unlock module end: atexit(0x402c90) registration · Bonus unlocks · 12 code bytes · complexity 1 (0 branch points) · byte-exact</title></rect>
 <rect x="207.43" y="559.27" width="29.34" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00452530 · FUN_00452530 · Front-end videos · 423 code bytes · complexity 14 (13 branch points) · byte-exact</title></rect>
-<rect x="237.77" y="559.27" width="76.58" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x004526e0 · FUN_004526e0 · Front-end videos · 1,040 code bytes · complexity 16 (15 branch points) · written, not exact</title></rect>
+<rect x="237.77" y="559.27" width="76.58" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x004526e0 · FUN_004526e0 · Front-end videos · 1,040 code bytes · complexity 16 (15 branch points) · byte-exact</title></rect>
 <rect x="315.35" y="559.27" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00452af0 · front-end video module end: guard-bit initialiser of the STL header statics (_$E) · Front-end videos · 25 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>
 <rect x="316.10" y="559.27" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00452b10 · front-end video module end: atexit(0x402c90) registration · Front-end videos · 12 code bytes · complexity 1 (0 branch points) · byte-exact</title></rect>
 <rect x="316.28" y="559.27" width="12.38" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x00452b20 · FUN_00452b20 · Car animation and driver models · 897 code bytes · complexity 1 (0 branch points) · written, not exact</title></rect>
