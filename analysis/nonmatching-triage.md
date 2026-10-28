@@ -148,7 +148,7 @@ Instruction-multiset view: 34 functions are pure register/scheduling permutation
 | 0x46ea20 | src/unk_46e880.cpp | CarLight::Render | size | 1095 | 1124 | 626 | 45 | `sub    esp,0x3c` | `sub    esp,0x38` |  |
 | 0x46eec0 | src/unk_46eec0.cpp | CityLight::CityLight | size | 979 | 1044 | 746 | 33 | `mov    DWORD PTR [ebp+0x50],ecx` | `lea    esi,[ebp+0x50]` |  |
 | 0x46f360 | src/unk_46eec0.cpp | CityLight::Render | size | 1749 | 1767 | 1241 | 40 | `sub    esp,0x104` | `sub    esp,0x100` |  |
-| 0x46fc10 | src/unk_46fa80.cpp | WaterAnimator::Update | size | 424 | 428 | 290 | 11 | `sub    esp,0x48` | `sub    esp,0x40` | eh 0,2,3,5,7,8,7,9,5 vs 0,2,3,5,6,7,6,8,5 |
+| 0x46fc10 | src/unk_46fa80.cpp | WaterAnimator::Update | size | 431 | 428 | 229 | 17 | `sub    esp,0x48` | `sub    esp,0x40` | eh 0,2,3,5,7,8,7,9,5 vs 0,2,3,5,6,7,6,8,5 |
 | 0x4703c0 | src/unk_46fdf0.cpp | ParallelShadow::ParallelShadow | order+registers | 378 | 378 | 14 | 0 | `mov    ecx,DWORD PTR [edi+0x4]` | `add    esp,0x4` |  |
 | 0x470610 | src/unk_46fdf0.cpp | ParallelShadow::Create | order | 715 | 715 | 131 | 0 | `push   ebx` | `mov    DWORD PTR [esi+0x174],ebx` |  |
 | 0x470940 | src/unk_46fdf0.cpp | ParallelShadow::Prepare | size | 3490 | 3336 | 1483 | 228 | `sub    esp,0xbc` | `sub    esp,0xc0` | eh 3,4,5,4,3 vs 2,3,4,5,4,3 |

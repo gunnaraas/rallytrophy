@@ -57,8 +57,8 @@ WaterAnimator::~WaterAnimator()
 // original: FUN_0046fc10
 // NONMATCHING: RALLYTROPHY 0x46fc10
 // Evidence: ev_098aeda40f3866cc5d46de6aa9df644e5a1638f8a9cce76a6f260f691961b0eb. The 428-byte target's loop and helper calls are documented in analysis/range-46d830.md.
-// The current candidate is 424 bytes with 290 differing bytes outside relocations. The target keeps `this` in
-// edi, loads clock time before the tick count, and reads uv2.x from the subtraction result in eax.
+// A WORD-sized loop count lowers the candidate from 424/290 to 431/229 bytes/differences, matching the target's 16-bit
+// count load. The remaining mismatch includes a larger target frame, `this` in edi, and uv2.x read from the subtraction.
 void WaterAnimator::Update()
 {
     StageClock* clock = (StageClock*)DAT_0056b0ac;
@@ -69,7 +69,7 @@ void WaterAnimator::Update()
     Vec2 d1 = (velocity1 * (float)(DAT_0056b0d0 & 0xffff)) / 65536.0f;
     Vec2 d2 = (velocity2 * (float)(DAT_0056b0d0 & 0xffff)) / 65536.0f;
     EffectVertex* v = mesh->vertices;
-    int n = mesh->vertexCount;
+    unsigned short n = mesh->vertexCount;
     if (n > 0) {
         Vec2* s = saved;
         float k1 = scale.x;
