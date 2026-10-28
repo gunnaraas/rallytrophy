@@ -241,14 +241,15 @@ void Wheel::LoadModel(const char* name)
     tire.Name() = "tire mesh";
 }
 
+static inline float WrapAngle(float x) { return (float)fmod(x, 6.2831854820251465); }
+
 // NONMATCHING: RALLYTROPHY 0x46c550
-// Same instruction stream except two dead-looking stores: the original stores the new angle to [this+0x290] and to
-// the local `a` right after the add, before the fmod call; VC6 drops them here (all variants tried).
+// 352/352 bytes, 9 differ: the inline helper's parameter homing reproduces the pre-fmod stores; only the final
+// pair is swapped (target stores `a` before `angle`). Tried `a = ...; angle = a`, `angle = (a = ...)` (lose the homing).
 void Wheel::UpdateSpinMatrix(float dt)
 {
-    float a = dt * spin + angle;
-    angle = a;
-    angle = a = (float)fmod(a, 6.2831854820251465);
+    angle = dt * spin + angle;
+    float a = (angle = WrapAngle(angle));
     RawMatrix steerMatrix;
     RawMatrix spinMatrix;
     steerMatrix.SetIdentity();
