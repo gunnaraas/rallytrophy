@@ -177,6 +177,7 @@ Distilled from the per-loop history; "(A: X)" means `NOTES-archive.md`, section 
 - Ghidra pseudocode may run past a `throw`: take boundaries from the inventory (A: Loop 13; Loop 15).
 - Separate a declaration from its assignment for store-order mismatches (A: Loop 13); member-initializer vs body assignment changes vptr store order (A: Loop 14).
 - An empty user-declared derived dtor stores the derived vptr first; if the target skips that store, drop the dtor so VC6 generates it (e.g. `NamedDerived` 0x409720).
+- EH-state mismatches: an early state-0 store before a base/member ctor means a destructible (often empty-dtor) member precedes it; hand-rolled vector structs add per-member unwind states where real `std::vector` members add none (`StageLoader` 0x40c520/0x40c5e0, `SceneXform` 0x40a680).
 - Config accessors: unsigned index, `size()` bound, direct `m_entries[i]` (A: Loop 15).
 
 - A this-adjusting forwarder (`add ecx,N; call f; ret 4`) is a plain member calling the embedded object's method; no asm needed (MenuManager 0x43cb50).

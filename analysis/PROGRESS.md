@@ -6,7 +6,7 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Status
 
-- Marker inventory: 1805/2084 byte-exact (86.61%); 2084/2084 functions written (100.00%), from `tools/progress.py`.
+- Marker inventory: 1807/2084 byte-exact (86.71%); 2084/2084 functions written (100.00%), from `tools/progress.py`.
 - Game code: about 1,690 functions in `0x401000`–`0x4bcfc6`
 
 ## Queue
@@ -31,6 +31,8 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 
 ## Log
+
+- 2026-10-27 (Claude, `StageLoader` ctor `0x40c520` / dtor `0x40c5e0`): Both exact (181 / 212 bytes). An empty-dtor head member at 0x00 gives the early EH state 0, and the own vectors at 0x60..0xa0 are real `std::vector<int>` (hand-rolled vectors added per-member unwind states). `SceneXform` ctor `0x40a680` rebuilt as no-arg with destructible `pos`/`m` members (unwind via empty dtor 0x402c90) and plain `reserve(0x200)`: 263→300/300 bytes, 209→28 diffs; open: pos zero-store vs. EH-state-1 scheduling. `ColHolder` ctors `0x41b7f0`/`0x41b8c0`: body/volatile flag stores tried, no gain. Full matcher: 1807 exact / 277 NONMATCHING / 0 DIFF.
 
 - 2026-10-27 (Claude, `NamedDerived::~NamedDerived` `0x409720`): Exact 113-byte match. Dropped the empty user dtor so VC6 generates it without the early derived-vptr store; a `new NamedDerived` helper forces emission. `StageScreen::Start` `0x421e30` restructured to 365/364 bytes (loop aligned; mask load order open). `SceneEntry` ctor `0x4b8640` (cl/dl choice) and `StageLoader` ctor/dtor (EH states) tried, unchanged. Full matcher: 1805 exact / 279 NONMATCHING / 0 DIFF.
 
