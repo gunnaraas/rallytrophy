@@ -32,6 +32,34 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Log
 
+- 2026-10-28 (Codex, `Screen1378::Slot3` `0x43b1d0`): Ghidra assembly of the official PE shows both appends in the first row use out-of-line `std::string::append` at `0x403ba0` (`ev_d0320ad31102fdbe186138a6333006379715eb281e74b440e51f34d3f4d12b57`). Routing the first `": "` append through a declared-only call twin improves the candidate from 4,849/3,554 to 4,798/3,511 bytes/differences. Routing only the rally-name append out of line gives 4,789/3,526; routing both gives 4,755/3,585. Forcing `_Eos` at the first assignment alone gives 4,848/3,551, or 4,794/3,546 together with the first separator call. Applying the assignment `_Grow`/`_Eos` sequence to all six label assignments with the first separator call gives the current best at 4,779/3,483; the appended-value `_Grow`/`_Eos` helper probe regressed and was reverted. Focused file check: 8 marked, 4 exact, 4 NONMATCHING, no DIFF or compile failures.
+
+- 2026-10-28 (Codex, `ServiceMenu::DrawTune` `0x449860`): Replacing the unused `std::string` lifetime local with the existing layout-compatible `SMF_Str` stand-in worsens the body from 3040 bytes / 1700 differing bytes to 3112 / 1862. Reverted; focused service-menu matcher reports 16 marked, 6 NONMATCHING, no DIFF or compile failures.
+
+- 2026-10-28 (Codex, `LoadScreen::Init` `0x4033f0`): Reacquiring `quad` into a separate `tail` pointer after the volatile `wrapV` store and using it for the four `colorB` writes leaves the same 886-byte body and the same four differing bytes (`pop edi` / `wrapV` store order). Reverted the alias; focused `src/unk_403270.cpp` matcher: 7 exact, 2 NONMATCHING, no DIFF or compile failures.
+
+- 2026-10-28 (Codex, `CarParticles::SpawnCoreB` `0x47d500`): Reading `s_car` into a normal local through a volatile pointer lvalue changes 15→18 differing bytes (1125-byte body); making the local pointer volatile expands it to 1140 bytes / 477 differences. Restored direct `PCAR` reads.
+
+- 2026-10-28 (Codex, `CarParticles::SpawnCoreB` `0x47d500`): Deferring the free-list head store until after `local.x` is copied leaves the 1125-byte / 15-difference object unchanged; making only the X store volatile expands it to 52 differences. Reverted both ordering probes.
+
+- 2026-10-28 (Codex, `LoadScreen::Init` `0x4033f0`): Forced-inline helpers, direct `quad->wrapV`, volatile `colorA[3]`, and a reference alias all retain the 886-byte / 4-difference candidate. Moving `q` after `wrapU` or after the colorA stores regresses to 14 or 26 differences. Restored the original field-store form.
+
+- 2026-10-28 (Codex, `ExhaustSmoke::Render` `0x478220`): Pointer- and reference-based inline `PositionX` accessors (with and without split depth accumulation) produce 1144 bytes / 654 differences. Removed the accessor and restored the 1141-byte / 4-difference expression.
+
+- 2026-10-28 (Codex, `G3_Game::FUN_00430f60` `0x430f60`): Moving the unused-until-late `number[8]` declaration to function entry leaves the 3301-byte body at 580 differing bytes. Restored its original location; focused game-file check passed.
+
+- 2026-10-28 (Codex, `Car::FUN_0046a200` `0x46a200`): Directly initializing `Color` with `0xffffffff` instead of a `DWORD white` local keeps the 1424-byte body at 136 differing bytes. Restored the named local; focused gauge-file check passed.
+
+- 2026-10-28 (Codex, `CarRain::Render` `0x46e430`): Replacing the long-lived `body` alias with direct `&liveBody` expressions, including a scoped alias for only the initial copy, leaves 16 differing bytes in the 997-byte body while shifting the EAX/EDX mismatches. Restored the original alias form.
+
+- 2026-10-28 (Codex, `ReplayMenu::DrawField` `0x44c580`): Modeling the `0x5e8`-stride rally results as a typed entry array keeps the 2554-byte/13-difference body but changes the index to ESI and hoists the Game load. Removed the temporary type; retained the existing byte-offset expression.
+
+- 2026-10-28 (Codex, `GameScreen2DD4::Frame` `0x4267a0`): A volatile renderer pointer yields 2,335 bytes / 401 differences; computing `titleScaleY` before the color read or between that read and the stores yields 2,328 / 323 and 326; making only `scaleX` a direct expression yields 2,321 / 12. Restored the 2,321-byte / 3-difference form.
+
+- 2026-10-28 (Codex, `ReplayMenu::Setup` `0x44ba30`): Reversing the x/y declaration order without changing evaluation order leaves the 452-byte / 8-difference output unchanged. `SetY`, volatile-y, and label-pointer alias variants regress to 356–455 bytes / 49–332 differences. Restored direct field stores; focused check passed.
+
+- 2026-10-28 (Codex, `Wheel::Wheel` `0x46c2c0`): A `this` alias for either the post-`Reset` field group or only `normal` leaves the 317-byte / 27-difference output unchanged; moving the volatile `normal.y` store after the final radius store regresses to 83 differences. Restored original order; focused check passed.
+
 - 2026-10-28 (Codex, `Car::UpdateLampPoints` `0x452b20`): Replacing either driver-point assignment triple with `F_Set` regresses to 202/196 differences; volatile lamp0 p.y and lamp1 p.z expand the candidate to 903 bytes / 372 and 287 differences. Reverted to the 897-byte, 145-difference coordinate form.
 
 - 2026-10-28 (Codex, `Car::UpdateLampPoints` `0x452b20`): Volatile compound updates to p.x at both lamp points reduce 179→159 differences; also making lamp1 p.y volatile reduces to 146, and lamp0 p.z volatile reduces to 145. Making lamp0 p.y volatile or either p.z volatile at lamp1 regresses. Retained the best per-coordinate form; focused file check: 7 marked, 5 NONMATCHING, no DIFF or compile failures.
