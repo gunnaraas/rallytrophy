@@ -15,12 +15,12 @@ _Updated 2026-10-28 by `tools/progress.py` (game code `0x401000`–`0x4bcfc6`)._
 
 | | Functions | Code bytes |
 |---|---|---|
-| Byte-exact | 1821 / 2084 (87.38%) | 333,584 / 742,276 (44.94%) |
-| Written, not yet exact | 263 | 408,692 |
+| Byte-exact | 1822 / 2084 (87.43%) | 334,143 / 742,276 (45.02%) |
+| Written, not yet exact | 262 | 408,133 |
 | Written in total | 2084 / 2084 (100.00%) | 742,276 / 742,276 (100.00%) |
 
 ```
-exact   █████████████░░░░░░░░░░░░░░░░░ 44.94% of code bytes
+exact   ██████████████░░░░░░░░░░░░░░░░ 45.02% of code bytes
 written ██████████████████████████████ 100.00% of code bytes
 ```
 
@@ -107,7 +107,7 @@ Progress by module (ranges in `analysis/modules.csv`):
 | Record table (highscores) | `0x48fe20`–`0x490950` | 6 / 11 / 11 | 15.1% | 100.0% | `████████████` |
 | Player | `0x490950`–`0x491fb0` | 28 / 32 / 32 | 72.3% | 100.0% | `████████████` |
 | Race session | `0x491fb0`–`0x4952e0` | 10 / 14 / 14 | 11.9% | 100.0% | `████████████` |
-| Game controllers / DirectInput | `0x4952e0`–`0x498360` | 49 / 51 / 51 | 81.9% | 100.0% | `████████████` |
+| Game controllers / DirectInput | `0x4952e0`–`0x498360` | 50 / 51 / 51 | 86.7% | 100.0% | `████████████` |
 | Sound (Miles) | `0x498360`–`0x49b630` | 49 / 49 / 49 | 100.0% | 100.0% | `████████████` |
 | Sound sources | `0x49b630`–`0x49b8e0` | 12 / 12 / 12 | 100.0% | 100.0% | `████████████` |
 | AI driver | `0x49b8e0`–`0x49f910` | 23 / 28 / 28 | 28.4% | 100.0% | `████████████` |

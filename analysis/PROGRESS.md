@@ -6,7 +6,7 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Status
 
-- Marker inventory: 1821/2084 byte-exact (87.38%); 2084/2084 functions written (100.00%), from `tools/progress.py`.
+- Marker inventory: 1822/2084 byte-exact (87.43%); 2084/2084 functions written (100.00%), from `tools/progress.py`.
 - Game code: about 1,690 functions in `0x401000`–`0x4bcfc6`
 
 ## Queue
@@ -32,6 +32,7 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Log
 
+- 2026-10-28 (Kimi, DirectInput `MapDevice` `0x496460`): Matched 559 bytes / 26 relocations using DWORD device-type temporaries and explicit retry branches; Ghidra dossier Evidence `ev_e396ee688aa542db7f988dc37e601d2d80517cb5b7f8a884ee1109059f2aa816`. Focused check: 50/50 marked functions match, one existing NONMATCHING; full matcher: 1822/1822 exact (262 NONMATCHING).
 - 2026-10-28 (Codex, `StageGrid::FillCells` `0x40f390`): Sequentially accumulating `cellW²` then `cellH²` before `sqrt` changes the body 2,391/2,340 bytes and 2,153→2,154 diffs; reverted. The x87 target scheduling remains unmet; focused check compiles its NONMATCHING body without DIFF/failure.
 - 2026-10-28 (Codex, `StageSoundLoader::LoadSounds` `0x415370`): Using `ConfigVector2` references for both event vectors worsens 3,302/2,145 to 3,374/2,189; either alias alone yields 3,384/2,225 or 3,384/2,224. Reverted; focused check compiles its NONMATCHING body without DIFF/failure.
 - 2026-10-28 (Codex, `MenuManager::Frame` `0x43cc50`): A `register int zero = 0` used for both `Contains` tests is folded away; the candidate remains 1,365/1,362 bytes with 410 differences, including the same `test eax,eax` vs. target `cmp eax,ebp`. Reverted; focused file matcher: 10 marked, 9 exact, 1 NONMATCHING, no DIFF or compile failures.

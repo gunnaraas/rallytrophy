@@ -662,10 +662,8 @@ void T_56b0b4::ReleaseDevices(int unmap)
     m_devices.resize(0);
 }
 
-// NONMATCHING: RALLYTROPHY 0x496460
-// 558 vs 559 bytes. The original compares the device-type byte in memory
-// for the 0x19 check and reloads it for the cooperative level; this build
-// keeps it in a register. Tried a char local, BYTE casts and a byte pointer.
+// FUNCTION: RALLYTROPHY 0x496460
+// original: FUN_00496460
 // EnumDevicesBySemantics callback for Init (context = the T_56b0b4). Devices
 // already mapped to the user (flag 0x10) are set up at once; other usable
 // ones are remembered, and if the user ends up with no device the first
@@ -680,7 +678,8 @@ static BOOL __stdcall MapDevice(const DeviceInstance* instance, IDirectInputDevi
     }
     if (flags & 0x10) {
         DWORD level;
-        if ((char)instance->devType == 0x13 || (char)instance->devType == 0x12) {
+        DWORD type = instance->devType;
+        if ((char)type == 0x13 || (char)type == 0x12) {
             level = 6;
         } else {
             level = 5;
@@ -709,13 +708,18 @@ static BOOL __stdcall MapDevice(const DeviceInstance* instance, IDirectInputDevi
             for (i = 0; i < DAT_00569e60; i++) {
                 if (DAT_00569d90[i]) {
                     DWORD level;
-                    if ((char)DAT_00565510[i].devType == 0x13 || (char)DAT_00565510[i].devType == 0x12) {
+                    DWORD type = DAT_00565510[i].devType;
+                    if ((char)type == 0x13 || (char)type == 0x12) {
                         level = 6;
                     } else {
                         level = 5;
                     }
                     if (DAT_00569d90[i]->SetCooperativeLevel(DAT_0056b0cc, level) >= 0) {
-                        DAT_00569d90[i]->BuildActionMap(format, self->m_cursor, self->m_retry ? 4 : 0);
+                        if (!self->m_retry) {
+                            DAT_00569d90[i]->BuildActionMap(format, self->m_cursor, 0);
+                        } else {
+                            DAT_00569d90[i]->BuildActionMap(format, self->m_cursor, 4);
+                        }
                         if (DAT_00569d90[i]->SetActionMap(format, self->m_cursor, 0) >= 0) {
                             self->AddDevice(&DAT_00565510[i], DAT_00569d90[i], DAT_00569e68);
                             break;
