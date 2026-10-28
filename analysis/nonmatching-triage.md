@@ -163,7 +163,7 @@ Instruction-multiset view: 34 functions are pure register/scheduling permutation
 | 0x474c50 | src/unk_474c50.cpp | SnowFall::SnowFall | size | 730 | 824 | 682 | 70 | `sub    esp,0x8` | `push   ecx` |  |
 | 0x4751b0 | src/unk_474c50.cpp | SnowFall::Update | size | 1747 | 1741 | 748 | 36 | `push   edi` | `push   esi` |  |
 | 0x475eb0 | src/unk_4758b0.cpp | Sky::Update | size | 1437 | 1441 | 1047 | 22 | `push   esi` | `mov    ebx,DWORD PTR [ebp+0xc]` |  |
-| 0x4766d0 | src/unk_4766d0.cpp | WindowRain::WindowRain | size | 832 | 924 | 734 | 95 | `sub    esp,0x10` | `sub    esp,0x8` |  |
+| 0x4766d0 | src/unk_4766d0.cpp | WindowRain::WindowRain | size | 916 | 924 | 369 | 15 | `mov    DWORD PTR [edi+0x24],edx` | `add    esp,0x4` |  |
 | 0x476be0 | src/unk_4766d0.cpp | WindowRain::Init | size | 949 | 955 | 362 | 28 | `sub    esp,0x14` | `sub    esp,0x18` |  |
 | 0x477690 | src/unk_477370.cpp | WheelSpray::Render | order | 1227 | 1227 | 4 | 0 | `fadd   DWORD PTR [ebp-0x6c]` | `mov    eax,DWORD PTR [ebp-0x2c]` |  |
 | 0x478220 | src/unk_478020.cpp | ExhaustSmoke::Render | other | 1141 | 1141 | 4 | 4 | `fld    DWORD PTR [ebx]` | `fld    DWORD PTR [eax+0x8]` |  |

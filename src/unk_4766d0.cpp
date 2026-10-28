@@ -14,9 +14,8 @@ extern "C" void fun_004c1404();
 extern "C" void fun_004c1998();
 
 // NONMATCHING: RALLYTROPHY 0x4766d0
-// 832 vs 924 bytes. The original builds the vertex quads with six per-field induction pointers (one
-// 4-vertex block per drop, normals/colour/uv stored through them); a single indexed pointer gives
-// one base register and a shorter loop. &sprite is also kept in ebx and the mesh pointer in edi there.
+// 916 vs 924 bytes / 369 differing bytes. Continuous field streams, a guarded do/while, and delayed UV offsets
+// approach the target quad layout; FPU/store scheduling still differs.
 WindowRain::WindowRain(int count)
 {
     drops = 0;
@@ -32,8 +31,8 @@ WindowRain::WindowRain(int count)
     m->unk24 = 0;
     m->triangleCount = (WORD)(dropCount * 2);
     m->vertexCount = (WORD)(dropCount * 4);
-    m->owner = this;
-    WORD* ix = m->indices;
+    *(WindowRain* volatile*)&m->owner = this;
+    WORD* ix = *((WORD* volatile*)&m->indices);
     int i;
     for (i = 0; i < count; i++) {
         WORD v = (WORD)(i * 4);
@@ -44,45 +43,57 @@ WindowRain::WindowRain(int count)
         *ix++ = v + 2;
         *ix++ = v + 3;
     }
-    EffectVertex* vx = m->vertices;
-    for (i = 0; i < count; i++) {
-        float u0 = (float)(i & 3) * 0.0625f + 0.75f;
-        float v0 = (float)((i >> 2) & 3) * 0.0625f + 0.75f;
-        float u1 = u0 + 0.0624f;
-        float v1 = v0 + 0.0624f;
-        EffectVertex* q = &vx[i * 4];
-        q[0].normal.x = 0.0f;
-        q[0].normal.y = 0.0f;
-        q[0].normal.z = -1.0f;
-        q[0].color = 0xffffffff;
-        q[0].u = u0;
-        q[0].v = v0;
-        q[0].u2 = 0.0f;
-        q[0].v2 = 0.0f;
-        q[1].normal.x = 0.0f;
-        q[1].normal.y = 0.0f;
-        q[1].normal.z = -1.0f;
-        q[1].color = 0xffffffff;
-        q[1].u = u1;
-        q[1].v = v0;
-        q[1].u2 = 0.0f;
-        q[1].v2 = 0.0f;
-        q[2].normal.x = 0.0f;
-        q[2].normal.y = 0.0f;
-        q[2].normal.z = -1.0f;
-        q[2].color = 0xffffffff;
-        q[2].u = u1;
-        q[2].v = v1;
-        q[2].u2 = 0.0f;
-        q[2].v2 = 0.0f;
-        q[3].normal.x = 0.0f;
-        q[3].normal.y = 0.0f;
-        q[3].normal.z = -1.0f;
-        q[3].color = 0xffffffff;
-        q[3].u = u0;
-        q[3].v = v1;
-        q[3].u2 = 0.0f;
-        q[3].v2 = 0.0f;
+    i = 0;
+    if (count > 0) {
+        EffectVertex* vx = *((EffectVertex* volatile*)&m->vertices);
+        float* normal = &vx[0].normal.x;
+        volatile DWORD* color = &vx[0].color;
+        float* u = &vx[0].u;
+        float* v = &vx[0].v;
+        float* u2 = &vx[0].u2;
+        float* v2 = &vx[0].v2;
+        do {
+            float u0 = (float)(i & 3) * 0.0625f + 0.75f;
+            float v0 = (float)((i >> 2) & 3) * 0.0625f + 0.75f;
+            normal[0] = 0.0f;
+            normal[1] = 0.0f;
+            normal[2] = -1.0f;
+            *color = 0xffffffff;
+            *u2 = 0.0f;
+            *v2 = 0.0f;
+            *u = u0;
+            *v = v0;
+            normal += 11; color += 11; u += 11; v += 11; u2 += 11; v2 += 11;
+            float u1 = u0 + 0.0624f;
+            float v1 = v0 + 0.0624f;
+            normal[0] = 0.0f;
+            normal[1] = 0.0f;
+            normal[2] = -1.0f;
+            *color = 0xffffffff;
+            *u = u1;
+            *v = v0;
+            *u2 = 0.0f;
+            *v2 = 0.0f;
+            normal += 11; color += 11; u += 11; v += 11; u2 += 11; v2 += 11;
+            normal[0] = 0.0f;
+            normal[1] = 0.0f;
+            normal[2] = -1.0f;
+            *color = 0xffffffff;
+            *u = u1;
+            *v = v1;
+            *u2 = 0.0f;
+            *v2 = 0.0f;
+            normal += 11; color += 11; u += 11; v += 11; u2 += 11; v2 += 11;
+            normal[0] = 0.0f;
+            normal[1] = 0.0f;
+            normal[2] = -1.0f;
+            *color = 0xffffffff;
+            *u = u0;
+            *v = v1;
+            *u2 = 0.0f;
+            *v2 = 0.0f;
+            normal += 11; color += 11; u += 11; v += 11; u2 += 11; v2 += 11;
+        } while (++i < count);
     }
     sprite.unk18 = 5;
     sprite.unk1c = 6;
