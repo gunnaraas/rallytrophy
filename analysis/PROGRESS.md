@@ -32,6 +32,8 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Log
 
+- 2026-10-27 (Claude loop, `PropStage::Load` 0x416f30): 1145/928 → 1271/644 (bytes / differing bytes), call sequence and cleanup states now identical. The draft's loop was wrong: each record is two 12-byte reads, a checkpoint lookup at the scaled midpoint and, when found, the checkpoint index, flag 1 and the segment length (`sqrt(dz*dz + dx*dx)`) before the insert; the animal model is the real five-argument model-file constructor, `new AnimalObj` (0x20 bytes) with a thiscall `Init`, and the model's objects are deleted in a loop; path strings are out-of-line twins, `_itoa` uses the global buffer. Left: stack-slot layout.
+
 - 2026-10-27 (Claude loop, `BmfReader::BmfReader` 0x4af950): 56 → 29 differing bytes (1227/1227). The directory string is a one-class `(const char*)` constructor twin (`_Tidy` call, strlen, assign call, cleanup state after the assign) and the `textures`/`materials` stores follow the swapped source order. Left: the scheduler's interleave of the zero stores with the path-assign call setup.
 
 - 2026-10-27 (Claude loop, `Stage::Stage` 0x40c9b0): 8202/5694 → 8451/5770 with the call sequence now identical to the original (217 calls). The collision-mesh error paths call the empty logger (0x402c90) and the stage module's printf-style string replace (0x414550) through a `StMsg` twin, throw a `StLogicError` twin (exception("") out of line, message copied by assign); the degenerate-triangle log call was missing; the AI path is the fully expanded string flavour (`StPathFull`: inline assign with the buffer-sharing branch, `_Grow` inline around `_Copy`/`_Tidy`/`_Eos` calls, `_Nullstr` out of line).

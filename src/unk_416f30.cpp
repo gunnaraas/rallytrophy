@@ -2,19 +2,39 @@
 #include "unk_416f30.h"
 #include <string>
 #include <stdlib.h>
+#include <math.h>
 #include "rallytrophy.h"
 
 #define AT_(T, off) (*(T*)((char*)this + (off)))
 extern int DAT_00501454, DAT_00501458, DAT_0050131c;
+extern char DAT_00508440[];            // _itoa scratch buffer
 // Opaque stage-side helpers (not yet typed): checkpoint lookup 0x414dc0, ModelFile 0x4af950/0x4afe20,
 // animal object 0x401c10/0x401cf0 and its mesh list (0x4a6800).
-struct AnimalObj { int active; int pad[2]; BYTE* model; };
-struct ModelBlob { BYTE raw[0x80]; };
+struct ModelBlob;
+struct AnimalObj {                                                             // 0x20 bytes
+    AnimalObj();                                                               // 0x401c10
+    void Init(ModelBlob* m);                                                   // 0x401cf0
+    int active;
+    int pad[2];
+    BYTE* model;
+    BYTE pad10[0x10];
+};
+struct PropVirt { virtual ~PropVirt(); };                                      // scene object: slot 0 = deleting dtor
+struct PropObjVec {                                                            // vector<object*> layout, no destructor
+    int alloc;
+    PropVirt** first;
+    PropVirt** last;
+    PropVirt** end;
+    int Size() const { return first == 0 ? 0 : last - first; }
+};
+struct ModelBlob {                                                             // loaded .bmf (0x80 bytes)
+    ModelBlob(const char* path, const char* dir, void* cache, void* mats, int flag); // 0x4af950
+    ~ModelBlob();                                                              // 0x4afe20
+    BYTE raw[0x48];
+    PropObjVec objects;
+    BYTE tail[0x80 - 0x58];
+};
 void* __fastcall StageNearestCheckpoint(PropStage* st, const float* pos, int flag);   // 0x414dc0
-void __fastcall ModelBlobCtor(ModelBlob* m);                                          // 0x4af950
-void __fastcall ModelBlobDtor(ModelBlob* m);                                          // 0x4afe20
-AnimalObj* __fastcall AnimalObjCtor(AnimalObj* a);                                    // 0x401c10
-void __fastcall AnimalObjInit(AnimalObj* a, ModelBlob* m);                            // 0x401cf0
 unsigned char* __fastcall MeshAt(void* container, int i);                             // 0x4a6800
 
 extern int DAT_004f6048;
@@ -1074,18 +1094,43 @@ StageProp& StageProp::operator=(const StageProp& s)
     return *this;
 }
 
+// Path strings of PropStage::Load: assign (0x4024f0) and append (0x403ba0) out of line, destructor 0x430720.
+struct PropPath {
+    PropPath(const std::string& x) : alloc(*(const std::allocator<char>*)&x) { Tidy(false); Assign(x, 0, std::string::npos); }
+    ~PropPath() { ((std::string*)this)->~basic_string(); }
+    void Tidy(bool built);                                               // 0x402700
+    PropPath& Assign(const std::string& x, unsigned int pos, unsigned int n); // 0x4024f0
+    PropPath& Append(const char* s, unsigned int n);                     // 0x403ba0
+    PropPath& operator+=(const char* s) { return Append(s, strlen(s)); }
+    const char* c_str() const { return ptr == 0 ? "" : ptr; }
+    std::allocator<char> alloc;
+    char* ptr;
+    unsigned int len;
+    unsigned int res;
+};
+
+// Loop locals of PropStage::Load (both have empty destructors: cleanup states 2 and 3).
+struct LoadProp { float v[6]; float length; int checkpoint; int flag; ~LoadProp() {} };   // StageProp layout
+struct LoadVec3 { float x, y, z; ~LoadVec3() {} };
+struct LoadCheckpoint { BYTE pad[0x44]; int index; };
+extern float DAT_004e138c;                                                    // 0.5f
+
 // NONMATCHING: RALLYTROPHY 0x416f30
-// draft: string appends, File and ModelFile temporaries not byte-reproduced; loads data/stage<N>.apf props then models/animal_run.bmf.
+// 1271 vs 1270 bytes with the original's call sequence (35 calls) and cleanup states; the prop records are the
+// segment midpoint lookup + length (rewritten from the original). Left: stack-slot assignment (`path` sits 12
+// bytes lower, `magic`/`ver` swapped, the midpoint temporary is the lowest aggregate in the original).
+// Loads data/stage<N>.apf props, then models/animal_run.bmf.
 void PropStage::Load()
 {
     AT_(void*, 0x13a4) = 0;
     if (DAT_00501454 == 0 && DAT_00501458 == 0 && DAT_0050131c != 0) {
-        std::string path(AT_(std::string, 8));
+        PropPath path(AT_(std::string, 8));
         path += "data/stage";
-        char num[32];
-        path += _itoa(AT_(int, 4), num, 10);
+        path += _itoa(AT_(int, 4), DAT_00508440, 10);
         path += ".apf";
-        if (File::Exists(path.c_str())) {
+        if (!File::Exists(path.c_str()))
+            return;
+        {
             File f(path.c_str(), 0x81);
             int magic, ver, count;
             f.Read(&magic, 4);
@@ -1093,32 +1138,44 @@ void PropStage::Load()
             if (magic == 0x2122 && ver == 100) {
                 f.Read(&count, 4);
                 for (int i = 0; i < count; i++) {
-                    StageProp prop;
-                    float pos[3];
+                    LoadProp prop;                       // two 12-byte reads: segment start and end
                     f.Read(&prop, 0xc);
-                    f.Read(pos, 0xc);
-                    if (StageNearestCheckpoint(this, pos, 0))
-                        PROP_VEC(props)->Ins(props.end(), 1, prop);
+                    f.Read(&prop.v[3], 0xc);
+                    LoadVec3 mid;
+                    mid.x = (prop.v[0] + prop.v[3]) * DAT_004e138c;
+                    mid.y = (prop.v[1] + prop.v[4]) * DAT_004e138c;
+                    mid.z = (prop.v[2] + prop.v[5]) * DAT_004e138c;
+                    LoadCheckpoint* cp = (LoadCheckpoint*)StageNearestCheckpoint(this, &mid.x, 0);
+                    if (cp) {
+                        float dx = prop.v[3] - prop.v[0];
+                        float dz = prop.v[5] - prop.v[2];
+                        prop.checkpoint = cp->index;
+                        prop.flag = 1;
+                        prop.length = (float)sqrt(dz * dz + dx * dx);
+                        PROP_VEC(props)->Ins(props.end(), 1, *(const StageProp*)&prop);
+                    }
                 }
             }
             f.Close();
-            std::string model(AT_(std::string, 8));
+            PropPath model(AT_(std::string, 8));
             model += "models/animal_run.bmf";
-            std::string tex(AT_(std::string, 8));
+            PropPath tex(AT_(std::string, 8));
             tex += "textures/";
-            ModelBlob m;
-            ModelBlobCtor(&m);
-            AnimalObj* a = (AnimalObj*)operator new(0x40);
-            a = a ? AnimalObjCtor(a) : 0;
+            ModelBlob m(model.c_str(), tex.c_str(), &AT_(BYTE, 0xd4), &AT_(BYTE, 0x98), 0);
+            AnimalObj* a = new AnimalObj;
             AT_(AnimalObj*, 0x13a4) = a;
-            AnimalObjInit(a, &m);
+            a->Init(&m);
+            for (int k = 0; k < m.objects.Size(); k++) {
+                PropVirt* o = m.objects.first[k];
+                if (o)
+                    delete o;
+            }
             a->active = 1;
             *(int*)(a->model + 8) = 0x7f;
             BYTE* mesh = MeshAt(a->model + 0x124, 0);
             std::vector<int**>& parts = *(std::vector<int**>*)(mesh + 0x34);
             for (unsigned i = 0; parts.size() > 0 && i < parts.size(); i++)
                 *(unsigned*)((BYTE*)*parts[i] + 0x98) |= 4;
-            ModelBlobDtor(&m);
         }
     }
 }
