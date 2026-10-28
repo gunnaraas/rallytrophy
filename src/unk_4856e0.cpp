@@ -316,8 +316,8 @@ void RaceMode::SendStartTimes()
 extern float DAT_005012f8;             // draw distance for the ghost fade
 
 // NONMATCHING: RALLYTROPHY 0x488aa0
-// 440 vs 461 bytes: the ghost-fade distance math differs. The original spills only d.x*d.x to a float
-// temp and sums y*y+z*z+temp twice (compare and sqrt); this build CSEs the whole sum.
+// The target spills only d.x*d.x and recomputes y*y+z*z+temp for the compare and sqrt. A volatile x-square
+// with repeated source sums improves the candidate from 440/150 to 444/132 bytes/differences; y/z is still shared.
 // Per-car setup pass; also fades the ghost car with its distance to the view.
 void RaceMode::DrawSetup(int a, ViewPoint* view)
 {
@@ -345,9 +345,9 @@ void RaceMode::DrawSetup(int a, ViewPoint* view)
             Vec3* pos = (Vec3*)car->body->unk14;
             d -= *pos;
             double range = DAT_005012f8 * 1.5;
-            float xx = d.x * d.x;
-            float distSq = d.y * d.y + d.z * d.z + xx;
-            if (distSq < range * range && distSq > 100.0f) {
+            volatile float xx = d.x * d.x;
+            if (d.y * d.y + d.z * d.z + xx < range * range &&
+                d.y * d.y + d.z * d.z + xx > 100.0f) {
                 car->FUN_004695c0(((float)(int)sqrt(d.y * d.y + d.z * d.z + xx) - 10.0f) * 0.02f);
                 m_ghostVisible = 1;
                 car->FUN_00468c70(a);

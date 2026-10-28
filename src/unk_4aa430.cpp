@@ -597,7 +597,8 @@ int __cdecl FUN_004aac50(unsigned v)
 }
 
 // NONMATCHING: RALLYTROPHY 0x4aa9c0
-// VC6 drops the redundant second `n > 0` test the original keeps; 2 bytes short
+// VC6 drops the redundant second `n > 0` test the original keeps; 2 bytes short. Testing the member `glyphCount` there
+// expands to 510 bytes / 60 differences; making the two local guards sequential compiles to the baseline 506/73.
 void GlyphFont::Load(const char* name)
 {
     char path[256];
