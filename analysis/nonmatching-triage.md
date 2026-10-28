@@ -195,8 +195,8 @@ Instruction-multiset view: 34 functions are pure register/scheduling permutation
 | 0x4880f0 | src/unk_4856e0.cpp | RaceMode::FUN_004880f0 | size | 807 | 812 | 209 | 11 | `je     0x48832a` | `je     0x488325` |  |
 | 0x488690 | src/unk_4856e0.cpp | RaceMode::FUN_00488690 | size | 499 | 484 | 261 | 15 | `sub    esp,0x1c` | `sub    esp,0x20` |  |
 | 0x488880 | src/unk_4856e0.cpp | RaceMode::FUN_00488880 | size | 500 | 538 | 311 | 48 | `sub    esp,0x94` | `sub    esp,0x8c` |  |
-| 0x488aa0 | src/unk_4856e0.cpp | RaceMode::DrawSetup | size | 444 | 461 | 132 | 18 | `mov    ecx,DWORD PTR [esp+0x30]` | `mov    edx,DWORD PTR [esp+0x30]` |  |
-| 0x488c70 | src/unk_4856e0.cpp | RaceMode::DrawSetupExcept | size | 450 | 467 | 131 | 18 | `mov    ecx,DWORD PTR [esp+0x2c]` | `mov    edx,DWORD PTR [esp+0x2c]` |  |
+| 0x488aa0 | src/unk_4856e0.cpp | RaceMode::DrawSetup | size | 444 | 461 | 126 | 18 | `mov    ecx,DWORD PTR [esp+0x30]` | `mov    edx,DWORD PTR [esp+0x30]` |  |
+| 0x488c70 | src/unk_4856e0.cpp | RaceMode::DrawSetupExcept | size | 450 | 467 | 125 | 18 | `mov    ecx,DWORD PTR [esp+0x2c]` | `mov    edx,DWORD PTR [esp+0x2c]` |  |
 | 0x4890e0 | src/unk_4856e0.cpp | RaceMode::FUN_004890e0 | order | 540 | 540 | 8 | 0 | `add    esp,0x4` | `mov    edi,eax` |  |
 | 0x489300 | src/unk_4856e0.cpp | RaceMode::FUN_00489300 | size | 1644 | 1684 | 884 | 18 | `mov    DWORD PTR [esp+0x14],ebx` | `mov    DWORD PTR [esp+0x18],ebx` |  |
 | 0x48a070 | src/unk_4856e0.cpp | RaceMode::FUN_0048a070 | size | 2187 | 2203 | 1298 | 7 | `sub    esp,0xa0` | `sub    esp,0x8c` |  |

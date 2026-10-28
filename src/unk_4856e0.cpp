@@ -315,7 +315,9 @@ extern float DAT_005012f8;             // draw distance for the ghost fade
 
 // NONMATCHING: RALLYTROPHY 0x488aa0
 // The target spills only d.x*d.x and recomputes y*y+z*z+temp for the compare and sqrt. A volatile x-square
-// with repeated source sums improves the candidate from 440/150 to 444/132 bytes/differences; y/z is still shared.
+// with repeated source sums improves the candidate from 440/150 to 444/132 bytes/differences; reversing y/z in all
+// three sums follows the observed x87 order and reduces the remaining differences to 128. A local expiry snapshot
+// reproduces the target comparison direction and further reduces the residual to 126; y/z is still shared.
 // Per-car setup pass; also fades the ghost car with its distance to the view.
 void RaceMode::DrawSetup(int a, ViewPoint* view)
 {
@@ -338,15 +340,16 @@ void RaceMode::DrawSetup(int a, ViewPoint* view)
     m_ghostVisible = 0;
     if (m_ghost && unk40) {
         Car* car = m_ghost->car;
-        if (car->unk1bef4 > m_time) {
+        int expiry = car->unk1bef4;
+        if (m_time < expiry) {
             Vec3 d = view->position;
             Vec3* pos = (Vec3*)car->body->unk14;
             d -= *pos;
             double range = DAT_005012f8 * 1.5;
             volatile float xx = d.x * d.x;
-            if (d.y * d.y + d.z * d.z + xx < range * range &&
-                d.y * d.y + d.z * d.z + xx > 100.0f) {
-                car->FUN_004695c0(((float)(int)sqrt(d.y * d.y + d.z * d.z + xx) - 10.0f) * 0.02f);
+            if (d.z * d.z + d.y * d.y + xx < range * range &&
+                d.z * d.z + d.y * d.y + xx > 100.0f) {
+                car->FUN_004695c0(((float)(int)sqrt(d.z * d.z + d.y * d.y + xx) - 10.0f) * 0.02f);
                 m_ghostVisible = 1;
                 car->FUN_00468c70(a);
             }
@@ -356,7 +359,9 @@ void RaceMode::DrawSetup(int a, ViewPoint* view)
 
 // NONMATCHING: RALLYTROPHY 0x488c70
 // Volatile x-square plus repeated y/z sums improves the candidate from 446/150 to 450/131 bytes/differences;
-// distSq, split accumulation, or reversing the range comparison leaves the same 450/131 candidate.
+// distSq, split accumulation, or reversing the range comparison leaves that candidate unchanged. Reversing y/z in
+// all three sums follows the observed x87 order and reduces the remaining differences to 127. A local expiry
+// snapshot reproduces the target comparison direction and further reduces the residual to 125; y/z is still shared.
 // DrawSetup, skipping one car.
 void RaceMode::DrawSetupExcept(int a, ViewPoint* view, Car* skip)
 {
@@ -379,15 +384,16 @@ void RaceMode::DrawSetupExcept(int a, ViewPoint* view, Car* skip)
     m_ghostVisible = 0;
     if (m_ghost && unk40) {
         Car* car = m_ghost->car;
-        if (car->unk1bef4 > m_time) {
+        int expiry = car->unk1bef4;
+        if (m_time < expiry) {
             Vec3 d = view->position;
             Vec3* pos = (Vec3*)car->body->unk14;
             d -= *pos;
             double range = DAT_005012f8 * 1.5;
             volatile float xx = d.x * d.x;
-            if (d.y * d.y + d.z * d.z + xx < range * range &&
-                d.y * d.y + d.z * d.z + xx > 100.0f) {
-                car->FUN_004695c0(((float)(int)sqrt(d.y * d.y + d.z * d.z + xx) - 10.0f) * 0.02f);
+            if (d.z * d.z + d.y * d.y + xx < range * range &&
+                d.z * d.z + d.y * d.y + xx > 100.0f) {
+                car->FUN_004695c0(((float)(int)sqrt(d.z * d.z + d.y * d.y + xx) - 10.0f) * 0.02f);
                 m_ghostVisible = 1;
                 car->FUN_00468c70(a);
             }
