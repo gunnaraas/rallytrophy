@@ -200,6 +200,7 @@ Distilled from the per-loop history; "(A: X)" means `NOTES-archive.md`, section 
 - A string local whose cleanup state is stored *after* its first assign call was built by a `(const char*)` constructor of one class (`_Tidy(); assign(s, strlen(s))`); a derived twin (`BmfString : ModelRecordString`) with the same body adds a base-subobject state instead (BmfReader ctor).
 - Drafts "written from pseudocode" can be logically wrong where Ghidra lost structure: PropStage::Load's loop had read-and-insert where the original reads two points, looks up the midpoint's checkpoint and stores index/flag/length. Walk the original's call list against the source before tuning registers.
 - Model-file temporaries are constructed with the real five-argument constructor (path, dir, texture cache, material list, 0) and destroyed implicitly; give the opaque type declared-only ctor/dtor rather than wrapper calls (PropStage::Load).
+- Two `File` locals of sibling blocks overlap in VC6 unless one is at function scope; a second big local with its own slot after an `if (!Exists) return;` reproduces the original's two-slot frame (LoadSoundFiles: 0x812c = 2 × 0x4078 + scalars). A path string that is reassigned (`assign(name, 0, npos)`) for the next file is one local, not two.
 
 - A standalone out-of-line copy of a class's inline method (UIRect ctor 0x4390a0) is defined on a file-local layout twin with `// SYMBOL:`; don't make the shared inline definition out of line.
 

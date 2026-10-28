@@ -4,7 +4,55 @@
 #include <string.h>
 #include "unk_401cf0.h"
 
-// NONMATCHING: RALLYTROPHY 0x401cf0 (register allocation and throw-path layout differ: 1184 vs 1213 bytes)
+// Error-message string of MeshSetLoader::Load: constructed with _Tidy (0x402700) as a call and assign(s, n)
+// expanded (_Grow 0x402980 as a call, _Eos inline); appends expanded the same way with _Xlen (0x4bd00b).
+struct MsgStr {
+    MsgStr(const char* s, const std::allocator<char>& a = std::allocator<char>()) : alloc(a)
+    {
+        Tidy(false);
+        unsigned int n = strlen(s);
+        if (Grow(n, true)) {
+            memcpy(ptr, s, n);
+            ptr[len = n] = 0;
+        }
+    }
+    ~MsgStr();                                       // 0x430720
+    void Tidy(bool built);                           // 0x402700
+    bool Grow(unsigned int n, bool trim);            // 0x402980
+    MsgStr& operator+=(const char* s)
+    {
+        unsigned int m = strlen(s);
+        if (std::string::npos - len <= m) {
+            std::_Xlen();
+        }
+        unsigned int n;
+        if (0 < m && Grow(n = m + len, false)) {
+            memcpy(ptr + len, s, m);
+            ptr[len = n] = 0;
+        }
+        return *this;
+    }
+    std::allocator<char> alloc;
+    char* ptr;
+    unsigned int len;
+    unsigned int res;
+};
+struct MsgError : std::exception {                   // std::logic_error layout: exception("") + the string copy
+    MsgError(const MsgStr& s) : std::exception(""), str(s) {}
+    virtual ~MsgError();
+    struct Copy {
+        Copy(const MsgStr& x) : alloc(x.alloc) { ptr = 0; len = 0; res = 0; Assign(x, 0, std::string::npos); }
+        ~Copy();
+        Copy& Assign(const MsgStr& x, unsigned int pos, unsigned int n);   // 0x4024f0
+        std::allocator<char> alloc;
+        char* ptr;
+        unsigned int len, res;
+    } str;
+};
+// NONMATCHING: RALLYTROPHY 0x401cf0
+// 1186 vs 1213 bytes; the call sequence matches (20 calls) and the message string is a twin shaped like the
+// original (Tidy call, inline assign/append around _Grow). Left: register allocation (the original keeps `this`
+// in a slot and re-reads `frames` for every allocation) and the frame layout (0x48 vs 0x40).
 void MeshSetLoader::Load(MSModelFile* file)
 {
     frames = file->parts.size();
@@ -25,14 +73,11 @@ void MeshSetLoader::Load(MSModelFile* file)
         elems = el;
         if (count > 0) {
             MeshElem* q = el;
-            int n = count;
-            int fr = frames;
-            do {
-                q->a = (MeshVec*)new MV[fr];
-                q->b = (MeshVec*)new MV[fr];
+            for (int n = count; n != 0; n--) {
+                q->a = (MeshVec*)new MV[frames];
+                q->b = (MeshVec*)new MV[frames];
                 q++;
-                n--;
-            } while (n != 0);
+            }
         }
         MeshElem* e = el;
         for (i = 0; i < sl->subs.size(); i++) {
@@ -54,10 +99,10 @@ void MeshSetLoader::Load(MSModelFile* file)
             if (strnicmp(name, "frame", 5) == 0 && strlen(name) >= 7) {
                 int idx = name[5] * 10 + name[6] - 0x210;
                 if (idx < 0 || idx >= nf) {
-                    std::string msg("Invalid frame '");
+                    MsgStr msg("Invalid frame '");
                     msg += name;
                     msg += "'";
-                    throw std::logic_error(msg);
+                    throw MsgError(msg);
                 }
                 MSSubList* s = p->meshes.At(0);
                 MeshElem* d = el;

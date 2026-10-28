@@ -68,8 +68,10 @@ struct AVec {
 #define REC(i) ((float*)(F(0x13ac, int) + (i) * 0x24))
 
 // NONMATCHING: RALLYTROPHY 0x417540
-// 2234 vs 2332 bytes. The three cross products are the inline asm helper and dir/ov use vector ops like the
-// original; still short elsewhere (the record lerp and sphere setup) and the frame is 4 bytes larger.
+// 2234 vs 2332 bytes; the nine calls match. The original has nine empty-destructor Vec3 temporaries (cleanup
+// states 0-8 at ebp-0x44, -0x6c, -0x54, -0x8c, -0x38, -0x28, -0x78, -0x18, -0x60) where this build has two: the
+// float[3] locals (`up`, `dv`), the cross-product results, the record lerp and the sphere setup should be a Vec3
+// type with a destructor, declared in the original's order. The frame is 4 bytes larger.
 void Stage::FUN_00417540(Player* player, int time, int dt)
 {
     int car = *(int*)((BYTE*)player + 0x28);
