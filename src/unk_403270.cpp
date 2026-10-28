@@ -171,8 +171,8 @@ void* LoadScreen::Self()
 }
 
 // NONMATCHING: RALLYTROPHY 0x4033f0
-// Same size; only the scheduling of the wrapU/wrapV stores differs (the target interleaves them with the
-// colour stores). Statement order, loops, unrolled stores and typed fields all emit the same order here.
+// Same size; the final four-byte mismatch is the pop edi / wrapV store order. A volatile wrapV store keeps
+// it after the colorA stores, as in the target, but VC6 pops edi one instruction later.
 void LoadScreen::Init(int level)
 {
     _itoa(level, DAT_005070b8, 10);
@@ -198,7 +198,7 @@ void LoadScreen::Init(int level)
     q->colorA[1] = 1.0f;
     q->colorA[2] = 1.0f;
     q->colorA[3] = 1.0f;
-    q->wrapV = 2;
+    *(volatile int*)&q->wrapV = 2;
     q->colorB[0] = 1.0f;
     q->colorB[1] = 1.0f;
     q->colorB[2] = 1.0f;

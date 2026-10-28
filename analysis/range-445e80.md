@@ -112,3 +112,65 @@ Compiler-generated / not hand-written:
 - Jump tables at 0x44a408 and 0x44b8e8 (data in .text).
 - All `std::string`/`std::vector` work is out of line or an inline expansion of the same helpers as the neighbouring screens (0x402700/0x402ab0/0x402980/0x402960/0x403ba0/0x404ba0/0x4024f0, `rep movs` appends); no template instance bodies are defined in this file (no `vector<UIRect*>` instance: `insert` is 0x4bc680, `operator[]` 0x4242f0 come from other TUs).
 - Vec-ctor/dtor callbacks passed to `0x4c11f4`/`0x4c1116`: 0x4a8580 / 0x4a86d0 (Sprite), 0x404cd0 / 0x430720 (std::string), 0x490ad0 / 0x402c90 (HudPoint and empty dtor); none is defined in this file.
+
+## Init loop scheduling (`0x4470a0`)
+
+The target checks `count` before entering the stage loop, increments the
+`stageNo` parameter at `0x44723d`–`0x447240`, then computes the rally stage-name
+base. At the loop tail (`0x447b03`–`0x447b09`) it increments the parameter for
+the next iteration. The candidate currently keeps `stageNo` unchanged and uses
+`stageNo + 1 + i`; this leaves a 65-byte difference at equal 2,806-byte size
+(instruction-multiset delta 0). A probe that made `stageNo` an explicit loop
+induction variable, with the equivalent special-case check, regressed to
+2,796 bytes / 1,758 differing bytes / instruction delta 59. A second probe
+incrementing `stageNo` at the start of each body regressed to 2,783 bytes /
+1,752 differences / delta 61. Both were reverted. Splitting `stageNo + 1 + i`
+into `n = stageNo + 1; n += i;` emitted the same code as baseline. The
+target's current first mismatch is scheduling of the parameter increment
+before the stage-name-base calculation; neither equivalent loop rewrite
+reproduced it. These are plain PE/object observations, not REA Evidence IDs.
+
+A guarded single preincrement (`if (count > 0) { ++stageNo; ... }`) while
+retaining `i` in the body expressions emitted 2,802 bytes / 1,787 differing
+bytes / instruction delta 65 and was reverted. Moving the initialized text
+array before `double d` increased the mismatch to 103 bytes. Declaring it
+there without initialization and copying `"0.0 "` at the original point
+emitted baseline code; both buffer probes were reverted. These trials leave
+the baseline unchanged.
+
+The text-buffer lifetime is another frame-slot difference: target uses
+`ebp-0x24`, while the baseline candidate uses `ebp-0x18`; the `double`/`float`
+temporaries are correspondingly at `-0x1c/-0x14` in the target and
+`-0x24/-0x1c` in the candidate. Moving the uninitialized array to function
+scope and retaining `memcpy` at its original use point also emitted baseline
+code. Further work needs a source shape that changes the local slot while
+preserving initialization timing. The target local is a plain five-byte
+character array with no constructor, destructor, or EH state; its lexical
+scope cannot be recovered from these bytes. The available evidence supports
+no further declaration/lifetime probe, so this slot difference remains a
+compiler-allocation question.
+
+## Constructor store scheduling (`0x445e80`)
+
+The target stores `m_selected` at `0x446024`, then the 60-second values and
+vptr, followed by sprite float fields. It stores the four words at `+0x20`–
+`+0x2c` at `0x44608a`–`0x446093`, after the first three floats of the
+`+0x278` sprite and before its fourth float. The current source writes those
+four fields before all sprite macros. Moving them after the first two sprite
+macros produced 1,603 bytes / 480 differences / instruction delta 12; moving
+them after the first three produced 481 differences / delta 12. Making only
+`m_selected` volatile produced 471 differences / delta 12. Baseline is 1,603
+bytes / 469 differences / delta 12. All probes were reverted. These source
+reorderings did not reproduce the interleaved target stores or register
+allocation; no supported source change remains from these probes.
+
+## DrawInfo (`0x448f80`)
+
+Current candidate is 2,254 bytes versus the 2,261-byte target, with 436
+differing bytes and instruction-multiset delta 6. The false-branch target is
+`0x449707`; candidate control reaches `0x449701`, six bytes earlier. In the
+late text-width tail the target uses EBP where the candidate uses EDI, which
+agrees with the source comment's register-allocation diagnosis. The source
+already records roughly 20 loop-form, selection-flag, and `Color` probes.
+Read-only review found no new evidence-backed source change; further probing
+should wait for new evidence rather than repeat those variants.

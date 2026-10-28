@@ -22,5 +22,10 @@ the instruction comparison is from the focused matcher.
 Keeping a distinct row-y local while reusing x regressed the candidate to 153
 differing bytes, so the shared x/y form remains the closer trial.
 
+A single conditional return (`return closed ? sel : -1`) joined the cleanup
+paths but emitted a 1,309-byte body with 100 differing bytes. The target is
+1,346 bytes and contains both string-cleanup paths before its common epilogue,
+so the probe was reverted; the baseline remains the closer structural match.
+
 The relevant Ghidra pseudocode and complete function assembly are retained in
 evidence `ev_52ac0e6b37cf26dfb987932e5661da2825a53df478ebb153c8f7a851205d67fe`.

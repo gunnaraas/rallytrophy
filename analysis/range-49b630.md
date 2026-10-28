@@ -179,6 +179,31 @@ Same class as M2 (all use `this+0x14` = Player\*, `[this+8]` vector, obstacles a
 
 Decompile: split P-style but the module is small: **R1** 0x49fee0, 0x4a1390, 0x4a0e60 (3), **R2** 0x4a1050, 0x49ffa0 (2), **R3** 0x4a0420 (1, hard). The first three must use the Obstacle layout from M2; do them together with the P3 group so field names agree.
 
+### Avoidance steering source probe (`0x4a0420`)
+
+The baseline copied the six normalized velocity/axis components into scalar
+locals before the obstacle loops. Reading the normalized `Vec3Slot` fields
+directly in the projection dots leaves the candidate at 2,526/2,615 bytes and
+2,173 differing bytes, but lowers the instruction-multiset delta from 69 to 65.
+This is a local PE/object observation, not a claim that the function is closer
+byte-for-byte. The PE's FuncInfo (`0x4ed9b0`) has eight unwind states. Its
+cleanup entries show state 4 around the first obstacle-vector call, state 5
+around the side-classification subtraction, and states 6/7 before the two
+rotation-axis constructors. States 6/7 clean the same 12-byte slot; a separate
+branch-local `Vec3 up` in each rotation arm adds those states to the candidate.
+These are PE-byte observations; the identification of those objects as `up`
+vectors is an inference from their timing and 12-byte size.
+
+Current candidate: 2,546/2,615 bytes, 2,189 differing bytes, instruction-
+multiset delta 54, and frame `0xa4` vs target `0xb0`. The direct-vector-field
+form before the lifetime probe was 2,526/2,615 bytes, 2,173 differing bytes,
+delta 65. Fieldwise axis or velocity initialization gave 2,518 bytes / 2,188
+or 2,179 differences; reversing `dir`/`up` declaration order emitted identical
+bytes. A named rotation result gave 2,530 bytes / 2,177 differences without
+changing EH states. These probes were reverted. The current `Vec3 axis` type
+reduces instruction-multiset delta to 54 but raises the byte diff by 14; the
+frame and register schedule still need work.
+
 ## 5. M5: AiNode ctor, 0x4a14e0 - 0x4a152f
 
 | Addr | Size | What | Callers |

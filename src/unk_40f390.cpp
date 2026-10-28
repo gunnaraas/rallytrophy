@@ -21,21 +21,22 @@ static __forceinline int RoundF(float v)
 #define IV(p, o) (*(int*)((BYTE*)(p) + (o)))
 
 // NONMATCHING: RALLYTROPHY 0x40f390
-// reason: RoundF applied (EBP frame now from inline asm); built 2397 vs 2340 bytes, regalloc differs.
+// reason: RoundF applied (EBP frame now from inline asm); built 2391 vs 2340 bytes, 2153 differ, regalloc differs.
 void StageGrid::FillCells()
 {
     float invW = DAT_004e1348 / cellW;
-    float margin = DAT_004e13b4;
+    float margin = *(volatile float*)&DAT_004e13b4;
     int gy = 0, gx;
     float invH = DAT_004e1348 / cellH;
     float diag = (float)sqrt(cellW * cellW + cellH * cellH);
+    float rd;
     for (; gy < rows; gy++) {
         for (gx = 0; gx < cols; gx++) {
             BYTE* cell = cells + (cols * gy + gx) * 0xb0;
             unsigned int i;
             for (i = 0; IV(cell, 0x64) != 0 && i < (unsigned int)((IV(cell, 0x68) - IV(cell, 0x64)) >> 2); i++) {
                 int obj = IV(IV(IV(cell, 0x64) + i * 4, 0), 4);
-                float r = radius + FV(obj, 0xc4);
+                float r = *(volatile float*)&radius + FV(obj, 0xc4);
                 int nx = RoundF((r + diag) * invW);
                 int ny = RoundF((r + diag) * invH);
                 int x0 = gx - (nx + 1), x1 = nx + 1 + gx;
@@ -79,7 +80,7 @@ void StageGrid::FillCells()
                     if (cols < x1) x1 = cols;
                     if (y0 < 0) y0 = 0;
                     if (rows < y1) y1 = rows;
-                    float lim = diag * DAT_004e138c + r;
+                    float lim = *(volatile float*)&diag * DAT_004e138c + r;
                     lim = lim * lim;
                     Vec3Slot p;
                     p.x = FV(obj, 0xc0) * FV(obj, 0x40) + FV(obj, 0xbc) * FV(obj, 0x30) + FV(obj, 0xb8) * FV(obj, 0x20) + FV(obj, 0x14);
@@ -108,7 +109,7 @@ void StageGrid::FillCells()
                 if (cols < x1) x1 = cols;
                 if (y0 < 0) y0 = 0;
                 if (rows < y1) y1 = rows;
-                float lim = diag * DAT_004e138c + r;
+                float lim = *(volatile float*)&diag * DAT_004e138c + r;
                 lim = lim * lim;
                 int y, x;
                 for (y = y0; y < y1; y++)
@@ -121,16 +122,18 @@ void StageGrid::FillCells()
                     }
             }
             for (i = 0; IV(cell, 0x94) != 0 && i < (unsigned int)((IV(cell, 0x98) - IV(cell, 0x94)) >> 2); i++) {
+                rd = diag;
                 int obj = IV(IV(cell, 0x94), i * 4);
-                int nx = RoundF((diag + DAT_004e13d4) * invW);
-                int ny = RoundF((diag + DAT_004e13d4) * invH);
+                rd += DAT_004e13d4;
+                int nx = RoundF(rd * invW);
+                int ny = RoundF(rd * invH);
                 int x0 = gx - (nx + 1), x1 = nx + 1 + gx;
                 int y0 = gy - (ny + 1), y1 = gy + ny + 1;
                 if (x0 < 0) x0 = 0;
                 if (cols < x1) x1 = cols;
                 if (y0 < 0) y0 = 0;
                 if (rows < y1) y1 = rows;
-                float lim = diag * DAT_004e138c + DAT_004e13d4;
+                float lim = *(volatile float*)&diag * DAT_004e138c + DAT_004e13d4;
                 lim = lim * lim;
                 int y, x;
                 for (y = y0; y < y1; y++)
@@ -143,16 +146,18 @@ void StageGrid::FillCells()
                     }
             }
             for (i = 0; IV(cell, 0xa4) != 0 && i < (unsigned int)((IV(cell, 0xa8) - IV(cell, 0xa4)) >> 2); i++) {
+                rd = diag;
                 int obj = IV(IV(cell, 0xa4), i * 4);
-                int nx = RoundF((diag + DAT_004e13d0) * invW);
-                int ny = RoundF((diag + DAT_004e13d0) * invH);
+                rd += DAT_004e13d0;
+                int nx = RoundF(rd * invW);
+                int ny = RoundF(rd * invH);
                 int x0 = gx - (nx + 1), x1 = nx + 1 + gx;
                 int y0 = gy - (ny + 1), y1 = gy + ny + 1;
                 if (x0 < 0) x0 = 0;
                 if (cols < x1) x1 = cols;
                 if (y0 < 0) y0 = 0;
                 if (rows < y1) y1 = rows;
-                float lim = diag * DAT_004e138c + DAT_004e13d0;
+                float lim = *(volatile float*)&diag * DAT_004e138c + DAT_004e13d0;
                 lim = lim * lim;
                 int y, x;
                 for (y = y0; y < y1; y++)

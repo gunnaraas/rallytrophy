@@ -156,16 +156,17 @@ void AIDriver::FUN_0049ffa0()
 }
 
 // NONMATCHING: RALLYTROPHY 0x4a0420
-// 2526 vs 2615 bytes; logic complete (every call, constant and branch of the original). The prologue differs: the
-// original keeps the velocity/axis unit vectors in place (Vec3Slot copies with the x store elided, k in a stack
-// slot) and gives loop 1 the obstacle base in edi; the frame is 0xc bytes smaller and the register use differs.
+// Current: 2546/2615 bytes, 2189 differing bytes, instruction-multiset delta 54. The target frame is 0xb0 vs 0xa4.
+// Its unwind map arms separate cleanups for the argument/result Vec3 temporaries and the two branch-local rotation
+// axes. Branch-local Vec3 `up` gives candidate states 4/5/6/7; the exact frame/register schedule still differs.
+// Reading normalized vector fields directly reduced instruction-multiset delta 69->65 before the lifetime probes.
 void AIDriver::FUN_004a0420()
 {
     float best = 0.0f;
     float leftSum = 0.0f;
     float rightSum = 0.0f;
     unsigned int i = 0;
-    Vec3Slot dir, up;
+    Vec3 dir;
     int found = 0;
     float f;
     float dotV1, dotA1, dotV2, dotA2;
@@ -179,15 +180,12 @@ void AIDriver::FUN_004a0420()
     float k = 1.0f / len;
     vel.x = vel.x * k;
     vel.z = vel.z * k;
-    Vec3Slot axis = unkd4;
+    Vec3 axis(*(Vec3*)&unkd4);
     len = (float)sqrt(axis.x * axis.x + axis.z * axis.z + axis.y * axis.y);
     k = 1.0f / len;
     axis.x = axis.x * k;
     axis.y = axis.y * k;
     axis.z = axis.z * k;
-    float velX = vel.x, velY = vel.y, velZ = vel.z;
-    float axisX = axis.x, axisY = axis.y, axisZ = axis.z;
-
     for (i = 0; i < listeners.size(); i++) {
         Obstacle* o = &obstacles[i];
         if (o->valid) {
@@ -226,7 +224,7 @@ void AIDriver::FUN_004a0420()
         }
     }
 
-    dir = unkd4;
+    dir = *(Vec3*)&unkd4;
     dir.y = 0.0f;
     do {
         again = 0;
@@ -237,10 +235,11 @@ void AIDriver::FUN_004a0420()
             dir.y = 1.0f;
             dir.z = 0.0f;
         } else {
+            Vec3 up;
             up.x = 0.0f;
             up.y = 1.0f;
             up.z = 0.0f;
-            RotMatrix rot((Vec3*)&up, -leftSum);
+            RotMatrix rot(&up, -leftSum);
             *(Vec3*)&dir = ((Vec3*)&unkd4)->operator*(rot);
             dir.y = 0.0f;
         }
@@ -260,8 +259,8 @@ void AIDriver::FUN_004a0420()
             {
                 float inv = 1.0f / (float)sqrt(dir.x * dir.x + dir.z * dir.z + dir.y * dir.y);
                 float nx = inv * dir.x, ny = inv * dir.y, nz = inv * dir.z;
-                dotV1 = nx * velX + ny * velY + nz * velZ;
-                dotA1 = nx * axisX + nz * axisZ + ny * axisY;
+                dotV1 = nx * vel.x + ny * vel.y + nz * vel.z;
+                dotA1 = nx * axis.x + nz * axis.z + ny * axis.y;
             }
         select1:
             if (best2 <= f && !listeners[unk104]->local) {
@@ -285,7 +284,7 @@ void AIDriver::FUN_004a0420()
         again = more;
     } while (again);
 
-    dir = unkd4;
+    dir = *(Vec3*)&unkd4;
     dir.y = 0.0f;
     do {
         again = 0;
@@ -296,10 +295,11 @@ void AIDriver::FUN_004a0420()
             dir.y = 1.0f;
             dir.z = 0.0f;
         } else {
+            Vec3 up;
             up.x = 0.0f;
             up.y = 1.0f;
             up.z = 0.0f;
-            RotMatrix rot((Vec3*)&up, rightSum);
+            RotMatrix rot(&up, rightSum);
             *(Vec3*)&dir = ((Vec3*)&unkd4)->operator*(rot);
             dir.y = 0.0f;
         }
@@ -319,8 +319,8 @@ void AIDriver::FUN_004a0420()
             {
                 float inv = 1.0f / (float)sqrt(dir.x * dir.x + dir.z * dir.z + dir.y * dir.y);
                 float nx = inv * dir.x, ny = inv * dir.y, nz = inv * dir.z;
-                dotV2 = nx * velX + ny * velY + nz * velZ;
-                dotA2 = nx * axisX + nz * axisZ + ny * axisY;
+                dotV2 = nx * vel.x + ny * vel.y + nz * vel.z;
+                dotA2 = nx * axis.x + nz * axis.z + ny * axis.y;
             }
         select2:
             if (best2 <= f && !listeners[unk104]->local) {
