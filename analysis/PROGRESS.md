@@ -32,6 +32,10 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Log
 
+- 2026-10-27 (Claude loop, `ParallelShadow::ParallelShadow` `0x4703c0`): No gain. Struct-indexed `vertices[j]` loops grow to 396 bytes; `offset + ptr` operand order regresses 14→50 diffs. Target keeps the offset as SIB base (`[eax+ecx]`) for both arrays.
+
+- 2026-10-27 (Codex, lobby panels `0x43ad80`): Replaced local hit-box placeholder with the evidence-backed two-panel renderer. Retained 532-byte / 15-difference NONMATCHING body; geometry/material helper probes regressed and were rejected. Focused: eight exact / four NONMATCHING. Seven geometry constants independently checked against PE. Findings: `../docs/analysis/lobby-panels.md`.
+
 - 2026-10-27 (Claude loop, `Player::FUN_00491130` / `FUN_00491e20`): No gain. 0x491130: declaration order and the unk40==2 store order leave the 4-register permutation (36 diffs). 0x491e20: base-first declarations, a stepped target pointer with a runtime base offset, and operand swaps all regress from 42 diffs.
 
 - 2026-10-27 (Codex, skid-mark constructor `0x4741a0`): Retained explicit vertex byte cursor; constructor improves from 561/396 to 594/198 (built bytes/differing bytes), with initialization prefix agreeing through `0x474368` after relocation masking. String cleanup exits remain NONMATCHING. Focused module: 10/10 exact, 2 NONMATCHING. Evidence and rejected probes: `../docs/analysis/skid-mark-constructor.md`.
