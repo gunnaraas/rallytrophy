@@ -32,6 +32,8 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Log
 
+- 2026-10-27 (Claude loop, `Stage::Stage` 0x40c9b0): 10022/7433 → 8487/5808 (bytes / differing bytes). The constructor's strings are now StString twins with out-of-line assign (0x404ba0), append (0x403ba0), assign(str, pos, npos) (0x4024f0) and `_Tidy`; a `StQuery` member supplies the `mode = 0x11` store at 0x13e8; the track directory uses the first argument (`_itoa(a)`), a logic fix. Still NONMATCHING.
+
 - 2026-10-27 (Codex, `WheelSpray::Render` `0x477690`): A const-reference depth alias kept the 1,227-byte/four-difference output; a depth pointer produced 11 differences; a volatile atlas accumulator produced 1,239/314. A depth-bits local kept four differences, and a volatile base-U read regressed to 1,224/126. No source change retained; findings: `../docs/analysis/wheel-spray-render.md`.
 
 - 2026-10-27 (Claude, Stage layout): `Stage::~Stage` 0x40ebc0 exact (1975 bytes). New `include/stage.h` holds the full 0x2534-byte layout recovered from the constructor/destructor unwind maps (42 destructible members: string, vector/list twins, caches, sprites, sample-holder and string arrays, inlined StageScene); the destructor body only deletes the owned objects and the member destruction is compiler-generated. `Stage::Stage` 0x40c9b0 now constructs the members implicitly (still NONMATCHING, 9995/8656). Full matcher: 1810 exact / 274 NONMATCHING / 0 DIFF.

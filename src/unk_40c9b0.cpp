@@ -55,9 +55,9 @@ static const char* NameOf(void* p)    // object name (std::string at +0x114), ""
 }
 
 // NONMATCHING: RALLYTROPHY 0x40c9b0
-// 10022 vs 8656 bytes. The member construction now comes from the layout in stage.h and the cleanup-state
-// sequence starts like the original's (11, 12, 30, 31, ...); the body is still written from the pseudocode with
-// offset macros, so its frame (0x30c vs 0x258), temporaries and string handling are not reproduced yet.
+// 8487 vs 8656 bytes. Member construction comes from the layout in stage.h; the path strings are StString twins
+// (assign/append out of line, npos read from its static). Open: the 21 start-position stores are scheduled
+// differently (row/column/loop orders tried), later string temporaries and the frame layout (0x2fc vs 0x258).
 // original: FUN_0040c9b0
 Stage::Stage(int a, int b, int c, int d)
 {
@@ -65,45 +65,41 @@ Stage::Stage(int a, int b, int c, int d)
     unsigned int n;
 
     // Members with constructors are built by the compiler (see stage.h); only the plain fields are set up here.
-    AT(int, 0x13e8) = 0x11;
-    texCache.SetDetail(DAT_0050141c > 2 ? 2 : DAT_0050141c);
+    AT(StTexCache, 0xd4).SetDetail(DAT_0050141c > 2 ? 2 : DAT_0050141c);
 
     AT(int, 0x1364) = c;
     AT(int, 0x24d4) = 0; AT(int, 0x24d0) = 0;
-    for (i = 0x85c; i <= 0x880; i += 4)
-        AT(int, i) = 0;
+    AT(int, 0x85c) = 0; AT(int, 0x860) = 0; AT(int, 0x864) = 0; AT(int, 0x868) = 0; AT(int, 0x86c) = 0;
+    AT(int, 0x870) = 0; AT(int, 0x874) = 0; AT(int, 0x878) = 0; AT(int, 0x87c) = 0; AT(int, 0x880) = 0;
     AT(int, 0x13a4) = 0; AT(int, 0x13ec) = 0; AT(int, 0x13f0) = 0; AT(int, 0xa00) = 0;
     AT(int, 0xe8) = 1;
     AT(int, 0x0) = a;
     AT(int, 0x4) = b;
 
-    // track directory: data/tracks/track<N>/
-    _itoa(b, DAT_00508440, 10);
-    std::string& root = AT(std::string, 0x8);
-    root.assign("data/tracks/track");
-    root.append(DAT_00508440);
-    root.append("/");
+    // track directory: data/tracks/track<a>/ (the original pushes the first argument here)
+    _itoa(a, DAT_00508440, 10);
+    StString& root = name;
+    root = "data/tracks/track";
+    root += DAT_00508440;
+    root += "/";
     unsigned int fpcw = SaveSceneControlWord();
 
     // stage config: <root>data/stage<N>.txt
-    std::string cfg(root, 0, std::string::npos);
-    cfg.append("data/stage");
-    cfg.append(_itoa(AT(int, 0x4), DAT_00508440, 10));
-    cfg.append(".txt");
+    StString cfg(root, 0, std::string::npos);
+    cfg += "data/stage";
+    cfg += _itoa(stageCount, DAT_00508440, 10);
+    cfg += ".txt";
     RAW->LoadConfig(cfg.c_str());
 
     AT(float, 0x130) = DAT_005012f8 * DAT_004e13cc;
-    {   // start grid positions (7 starts)
-        static const float st[7][3] = {
-            { 0.0f, 5.0f, 3.0f }, { 1.5f, 5.0f, 3.0f }, { -1.5f, 5.0f, 1.0f }, { 1.5f, 5.0f, -1.0f },
-            { -1.5f, 5.0f, -3.0f }, { 1.5f, 5.0f, -5.0f }, { -1.5f, 5.0f, -7.0f }
-        };
-        for (i = 0; i < 7; i++) {
-            AT(float, 0x1310 + i * 12) = st[i][0];
-            AT(float, 0x1314 + i * 12) = st[i][1];
-            AT(float, 0x1318 + i * 12) = st[i][2];
-        }
-    }
+    // start grid positions (7 starts)
+    starts[0].position[0] = 0.0f;  starts[0].position[1] = 5.0f; starts[0].position[2] = 3.0f;
+    starts[1].position[0] = 1.5f;  starts[1].position[1] = 5.0f; starts[1].position[2] = 3.0f;
+    starts[2].position[0] = -1.5f; starts[2].position[1] = 5.0f; starts[2].position[2] = 1.0f;
+    starts[3].position[0] = 1.5f;  starts[3].position[1] = 5.0f; starts[3].position[2] = -1.0f;
+    starts[4].position[0] = -1.5f; starts[4].position[1] = 5.0f; starts[4].position[2] = -3.0f;
+    starts[5].position[0] = 1.5f;  starts[5].position[1] = 5.0f; starts[5].position[2] = -5.0f;
+    starts[6].position[0] = -1.5f; starts[6].position[1] = 5.0f; starts[6].position[2] = -7.0f;
     AT(int, 0x9e8) = 0; AT(int, 0xa04) = 0; AT(int, 0xa08) = 0; AT(int, 0x130c) = 0;
     AT(int, 0x6ac) = 0; AT(int, 0x6b0) = 0; AT(int, 0x9dc) = 0; AT(int, 0x9e0) = 0;
     AT(int, 0x18) = 0; AT(int, 0x9e4) = 0; AT(int, 0x1c) = 0;
@@ -113,45 +109,45 @@ Stage::Stage(int a, int b, int c, int d)
     // loading screen caption: "<name> - <text> <n>\n<text137>"
     LoadingLabel* label = (LoadingLabel*)AT(int, 0x1364);
     {
-        std::string line;
-        std::string text;
+        StString line;
+        StString text;
         BYTE* net = (BYTE*)DAT_00501450;
         int idx = IV(net, 0x28);
         char num[8];
-        text.append(FUN_00405380(idx + 0xb4));
-        text.append(" - ");
+        text += FUN_00405380(idx + 0xb4);
+        text += " - ";
         if (DAT_00501458 == 0) {
-            text.append(FUN_00405380(0x1a));
-            text.append(" ");
+            text += FUN_00405380(0x1a);
+            text += " ";
             _itoa(IV(net, 0x2c), num, 10);
         } else {
-            text.append(FUN_00405380(0x2a));
-            text.append(" ");
-            text.append(FUN_00405380(0x1b));
-            text.append(" ");
+            text += FUN_00405380(0x2a);
+            text += " ";
+            text += FUN_00405380(0x1b);
+            text += " ";
             _itoa(IV(net, 0x2c) - IV((BYTE*)DAT_0056b0c8, 0x3680 + idx * 0x5e8), num, 10);
         }
-        text.append(num);
-        text.append("\n");
-        line.assign(text, 0, std::string::npos);
-        line.append(FUN_00405380(0x137));
+        text += num;
+        text += "\n";
+        line.Assign(text, 0, std::string::npos);
+        line += FUN_00405380(0x137);
         label->SetText(line.c_str());
     }
 
     // model file names
-    std::string stageModel(root, 0, std::string::npos);
-    stageModel.append("models/stage");
-    stageModel.append(_itoa(AT(int, 0x4), DAT_00508440, 10));
-    stageModel.append(".bmf");
-    std::string texDir(root, 0, std::string::npos);
-    texDir.append("textures/");
+    StString stageModel(root, 0, std::string::npos);
+    stageModel += "models/stage";
+    stageModel += _itoa(stageCount, DAT_00508440, 10);
+    stageModel += ".bmf";
+    StString texDir(root, 0, std::string::npos);
+    texDir += "textures/";
 
     StModelFile mf1(stageModel.c_str(), texDir.c_str(), &AT(StTexCache, 0xd4), &AT(BYTE, 0x98), 0);
 
-    std::string skyModel(root, 0, std::string::npos);
-    skyModel.append("models/stage");
-    skyModel.append(_itoa(AT(int, 0x4), DAT_00508440, 10));
-    skyModel.append("sky.bmf");
+    StString skyModel(root, 0, std::string::npos);
+    skyModel += "models/stage";
+    skyModel += _itoa(stageCount, DAT_00508440, 10);
+    skyModel += "sky.bmf";
     StModelFile mf2(skyModel.c_str(), texDir.c_str(), &AT(StTexCache, 0xd4), &AT(BYTE, 0xc0), 0);
 
     // sky / sun from the sky model
@@ -385,10 +381,10 @@ Stage::Stage(int a, int b, int c, int d)
     }
 
     // collision model (c.bmf)
-    std::string colModel(root, 0, std::string::npos);
-    colModel.append("models/stage");
-    colModel.append(_itoa(AT(int, 0x4), DAT_00508440, 10));
-    colModel.append("c.bmf");
+    StString colModel(root, 0, std::string::npos);
+    colModel += "models/stage";
+    colModel += _itoa(stageCount, DAT_00508440, 10);
+    colModel += "c.bmf";
     StModelFile mf3(colModel.c_str(), texDir.c_str(), 0, &AT(BYTE, 0xac), 0);
 
     for (i = 0; i < (int)mf3.v48.size(); i++)
@@ -451,13 +447,13 @@ Stage::Stage(int a, int b, int c, int d)
         AT(StModelCache, 0xf4).Release(VEC(0x38)[n]);
     AT(StModelCache, 0xf4).Release(AT(void*, 0x18));
     RestoreSceneControlWord(fpcw);
-    RAW->SetTextures(&texDir);
+    RAW->SetTextures((const std::string*)&texDir);
     AT(StAiPath*, 0x1368) = new StAiPath;
     if (d != 0) {
-        std::string ai(root, 0, std::string::npos);
-        ai.append("data/stage");
-        ai.append(_itoa(AT(int, 0x4), DAT_00508440, 10));
-        ai.append(".ai");
+        StString ai(root, 0, std::string::npos);
+        ai += "data/stage";
+        ai += _itoa(stageCount, DAT_00508440, 10);
+        ai += ".ai";
         AT(StAiPath*, 0x1368)->Load(ai.c_str());
     }
     RAW->LoadAnimals();

@@ -7,6 +7,7 @@
 #define STAGE_FULL_LAYOUT
 #include <memory>
 #include <string>
+#include <string.h>
 #include <vector>
 #include "unk_481390.h"
 #include "rallytrophy.h"
@@ -37,11 +38,26 @@ struct StRecord48 { void Destroy(int flag); BYTE b[0x48]; };
 // Sound sample holder (0x2c bytes; ctor 0x40c6f0, dtor 0x40c700 = SampleHolder's).
 struct StSample { StSample() : sample(0) {} ~StSample(); void* sample; BYTE pad[0x28]; };
 
+// Collision query block: only its constructor (mode = 0x11) shows in Stage's constructor.
+struct StQuery {
+    StQuery() { mode = 0x11; }
+    BYTE pad[0x20];
+    int mode;                                     // +0x20 (Stage + 0x13e8)
+    int unk24, unk28;
+};
+
 // std::string layout whose destructor is the out-of-line _Tidy(true) (0x402700).
 struct StString {
     StString(const std::allocator<char>& a = std::allocator<char>()) : alloc(a) { Tidy(false); }
+    StString(const StString& x, unsigned int pos, unsigned int n) : alloc(x.alloc) { Tidy(false); Assign(x, pos, n); }
     ~StString() { Tidy(true); }
     void Tidy(bool built);                       // 0x402700, out of line in both directions
+    StString& Assign(const char* s, unsigned int n);                   // 0x404ba0
+    StString& Assign(const StString& x, unsigned int pos, unsigned int n); // 0x4024f0
+    StString& Append(const char* s, unsigned int n);                   // 0x403ba0
+    StString& operator=(const char* s) { return Assign(s, strlen(s)); }
+    StString& operator+=(const char* s) { return Append(s, strlen(s)); }
+    const char* c_str() const { return ptr == 0 ? "" : ptr; }
     std::allocator<char> alloc;
     char* ptr;
     unsigned int len;
@@ -195,7 +211,8 @@ public:
     SOwnedSet* owned13a4;                   // 0x13a4
     StRecVec<StRecord24> recs13a8;          // 0x13a8
     StPtrVecOut<void> ptrs13b8;             // 0x13b8
-    BYTE pad13c8[0x15f8 - 0x13c8];
+    StQuery query13c8;                      // 0x13c8: its constructor stores mode 0x11 at 0x13e8
+    BYTE pad13f4[0x15f8 - 0x13f4];
     StSoundSrc* sound15f8;                  // 0x15f8
     StSound88* sounds15fc;                  // 0x15fc
     int soundCount1600;                     // 0x1600
