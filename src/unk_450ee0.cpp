@@ -158,13 +158,13 @@ SoundMenu::~SoundMenu()
     Release();
 }
 
-// NONMATCHING: RALLYTROPHY 0x451040
-// The built body is 998 bytes; the target interval is 1008, with ten NOPs after ret 4. Comparing the bodies leaves
-// 21 differing bytes in x87 operand order and loop stack scheduling. Reversing products had no effect; volatile xs/ys
-// gave 76 body bytes, x-before-y 23, ys-before-xs 25, step/y/x order 30, volatile constant-address reads 53, and a
-// nonvolatile 262-address read 28. Pointer induction and register-qualified x/y/step leave the 21-byte body diff
-// unchanged; moving both x/step products into the loop also leaves it unchanged, while moving x alone there raises
-// the body diff to 64 bytes. Plain objcmp observations.
+// FUNCTION: RALLYTROPHY 0x451040
+// Mutable statics preserve the target's literal-first x87 loads for the row scale products. The ten NOPs after
+// the target ret 4 are alignment padding, outside the 998-byte function body.
+static float SMA_SetupListY = 262.0f;
+static float SMA_SetupListX = 54.0f;
+static float SMA_SetupStep = 42.0f;
+static float SMA_SetupBackY = 610.0f;
 void SoundMenu::Setup(MenuGame* game)
 {
     if (m_state) {
@@ -185,15 +185,15 @@ void SoundMenu::Setup(MenuGame* game)
     items[6].text = FUN_00405380(0x18);
     labels[0].text = FUN_00405380(2);
     labels[1].text = FUN_00405380(1);
-    float y = 262.0f * ys;
-    float x = 54.0f * xs;
-    float step = 42.0f * ys;
+    float y = SMA_SetupListY * ys;
+    float x = SMA_SetupListX * xs;
+    float step = SMA_SetupStep * ys;
     for (int i = 0; i < 7; i++) {
         items[i].SetPos(x, y);
         y += step;
     }
     Begin(game);
-    items[6].y = 610.0f * ys;
+    items[6].y = SMA_SetupBackY * ys;
     LoadLayout();
 }
 

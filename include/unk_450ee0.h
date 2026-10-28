@@ -31,7 +31,7 @@ public:
     ~MenuLabel() {}
     void SetY(float py) { y = py; }
     void SetX(float px) { x = px; }
-    void SetPos(float px, float py) { unk20 = -1; SetX(px); SetY(py); }
+    void SetPos(float px, float py) { *(volatile int*)&unk20 = -1; SetX(px); SetY(py); }
     std::string text;                  // 0x00
     float width;                       // 0x10: text width in pixels (set by the menu manager's Setup)
     float height;                      // 0x14: text line height

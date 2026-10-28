@@ -291,7 +291,7 @@ entry,size,note
 0x452520,12,bonus-unlock module end: atexit(0x402c90) registration
 0x452af0,25,front-end video module end: guard-bit initialiser of the STL header statics (_$E)
 0x452b10,12,front-end video module end: atexit(0x402c90) registration
-0x451040,1008,SoundMenu::Setup (vtable slot 1 of 0x4e1a7c; missing from functions.csv)
+0x451040,998,SoundMenu::Setup (vtable slot 1 of 0x4e1a7c; missing from functions.csv; ten following NOPs are alignment padding)
 0x452350,25,SoundMenu module end: guard-bit initialiser of the STL header statics (_$E)
 0x452370,12,SoundMenu module end: atexit(0x402c90) registration
 0x454cf0,1,atexit callback for the function static at 0x508c70 (empty Vec3 dtor)
