@@ -46,6 +46,14 @@ before the coordinate stores expands the body to 554 bytes / 177 differences.
 A plain local assigned after the first two coordinate stores moves the load
 too late, producing 25 differences. All variants were reverted.
 
+REA assembly evidence
+`ev_7719f66e0dbe92f74c0aca6d31cfa565f8e319c4fab93b323d8ac96852a1f77a` places
+the second `unk28` load between remaining coordinate stores. Testing a volatile
+material read after the second panel's x pair and before its y pair gives 24
+differences; a plain `Sprite*` alias at the same point gives 25. Both retain
+the 532-byte size and were reverted. These intermediate load placements do not
+match the target's register schedule.
+
 Local PE reads independently verified constants 47, 355, 896, 256, 512, 432,
 and 205 at `0x4e1784`, `0x4e1780`, `0x4e177c`, `0x4e14e0`, `0x4e14e8`,
 `0x4e1778`, and `0x4e1774`, respectively. Array constructor/destructor

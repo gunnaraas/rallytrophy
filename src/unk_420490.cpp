@@ -633,7 +633,9 @@ extern char DAT_005014c8;
 extern int DAT_004f6150[];
 
 // NONMATCHING: RALLYTROPHY 0x421e30
-// NONMATCHING: 365 vs 364 bytes; target loads 0x501458 before 0x5014cc and keeps the mask in edx (tried ternary, nested-if, cached 0x501454)
+// 365 vs 364 bytes, 230 differing bytes. Target assembly Evidence ev_a3f0f27b75ef6e88dbce2684f5a3cd4d41bc5620d3f3edfe7926bc80f165d91f
+// loads 0x501458 before 0x5014cc and keeps the mask in edx; volatile sequencing, a register sel hint, and their combination
+// did not improve it.
 void StageScreen::Start(DWORD mask, int a, int b)
 {
     unk238 = a;
@@ -719,8 +721,48 @@ static void SetItem(UiItem* it)
     it->f[7 - 2] = 6;
 }
 
+class StagePathText {
+public:
+    StagePathText(const std::allocator<char>& al = std::allocator<char>()) : alloc(al) { Tidy(false); }
+    ~StagePathText() { Free(true); }
+    unsigned char& Refcnt(const char* s) { return ((unsigned char*)s)[-1]; }
+    void Free(bool built)
+    {
+        if (!built || ptr == 0) {
+        } else if (Refcnt(ptr) == 0 || Refcnt(ptr) == 255) {
+            alloc.deallocate(ptr - 1, reserve + 2);
+        } else {
+            --Refcnt(ptr);
+        }
+        ptr = 0, len = 0, reserve = 0;
+    }
+    void Tidy(bool built);             // 0x402700
+    bool Grow(size_t n, bool trim);    // 0x402980
+    void Eos(size_t n);               // 0x402960
+    void Append(const char* s, size_t n); // 0x403ba0
+    void AssignString(const std::string& s, size_t pos, size_t n)
+    {
+        ((std::string*)this)->assign(s, pos, n);
+    }
+    void AssignGrow(const char* s)
+    {
+        size_t n = strlen(s);
+        if (Grow(n, true)) {
+            memcpy(ptr, s, n);
+            Eos(n);
+        }
+    }
+    void AppendCall(const char* s) { Append(s, strlen(s)); }
+    const char* c_str() const { return ptr ? ptr : ""; }
+    std::allocator<char> alloc;
+    char* ptr;
+    size_t len;
+    size_t reserve;
+};
+
 // NONMATCHING: RALLYTROPHY 0x420db0
-// NONMATCHING: inline std::string append/assign expansions and EH state numbers are approximated with string methods
+// StagePathText preserves the observed inline/out-of-line boundaries for the directory and info paths; other sites
+// and the function's full frame/EH schedule still differ.
 void StageScreen::LoadCars()
 {
     int n = count;
@@ -736,10 +778,12 @@ void StageScreen::LoadCars()
             char num[32];
             char buf[256];
             FUN_004c1902(num);
-            std::string dir("data/cars/car_");
-            dir.append(num);
-            std::string path(dir);
-            path.append("/info.ini");
+            StagePathText dir;
+            dir.AssignGrow("data/cars/car_");
+            dir.AppendCall(num);
+            StagePathText path;
+            path.AssignString(*(std::string*)&dir, 0, std::string::npos);
+            path.AppendCall("/info.ini");
             ini.Open(path.c_str(), 0xb);
 
 #define S(f) (*(std::string*)&e->f)
@@ -782,8 +826,8 @@ void StageScreen::LoadCars()
             S(d).assign(buf);
             S(d).append(DAT_004f647c);
 #undef S
-            UiItem* wire = MakeItem((dir + "/InfoPhotoWire.tga").c_str());
-            wire->tex[1] = (DWORD)FUN_004a8030(operator new(0x40), (dir + "/InfoPhotoFull.tga").c_str(), 0x841, 0);
+            UiItem* wire = MakeItem((*(std::string*)&dir + "/InfoPhotoWire.tga").c_str());
+            wire->tex[1] = (DWORD)FUN_004a8030(operator new(0x40), (*(std::string*)&dir + "/InfoPhotoFull.tga").c_str(), 0x841, 0);
             FUN_004a8350((void*)wire->tex[1], (int)DAT_0056b0ac);
             wire->f[0x10 - 2] = wire->f[0x11 - 2] = wire->f[0x12 - 2] = wire->f[0x13 - 2] = 0x3f800000;
             wire->f[0x18 - 2] = wire->f[0x19 - 2] = wire->f[0x1a - 2] = wire->f[0x1b - 2] = 0x3f800000;
@@ -795,7 +839,7 @@ void StageScreen::LoadCars()
             wire->f[0x26 - 2] = 0xf;
             wire->f[0x14 - 2] = wire->f[0x15 - 2] = wire->f[0x16 - 2] = wire->f[0x17 - 2] = 0;
             ((DWORD*)e)[0x28] = (DWORD)wire; // +0xa0 (h0)
-            UiItem* book = MakeItem((dir + "/carbook.tga").c_str());
+            UiItem* book = MakeItem((*(std::string*)&dir + "/carbook.tga").c_str());
             SetItem(book);
             ((DWORD*)e)[0x29] = (DWORD)book; // +0xa4 (h1)
         }
