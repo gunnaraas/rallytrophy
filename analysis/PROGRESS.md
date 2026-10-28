@@ -6,7 +6,7 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Status
 
-- Marker inventory: 1811/2084 byte-exact (86.90%); 2084/2084 functions written (100.00%), from `tools/progress.py`.
+- Marker inventory: 1812/2084 byte-exact (86.95%); 2084/2084 functions written (100.00%), from `tools/progress.py`.
 - Game code: about 1,690 functions in `0x401000`–`0x4bcfc6`
 
 ## Queue
@@ -32,11 +32,15 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Log
 
+- 2026-10-27 (Codex, `WheelSpray::Render` `0x477690`): A const-reference depth alias kept the 1,227-byte/four-difference output; a depth pointer produced 11 differences; a volatile atlas accumulator produced 1,239/314. A depth-bits local kept four differences, and a volatile base-U read regressed to 1,224/126. No source change retained; findings: `../docs/analysis/wheel-spray-render.md`.
+
+- 2026-10-27 (Claude, Stage layout): `Stage::~Stage` 0x40ebc0 exact (1975 bytes). New `include/stage.h` holds the full 0x2534-byte layout recovered from the constructor/destructor unwind maps (42 destructible members: string, vector/list twins, caches, sprites, sample-holder and string arrays, inlined StageScene); the destructor body only deletes the owned objects and the member destruction is compiler-generated. `Stage::Stage` 0x40c9b0 now constructs the members implicitly (still NONMATCHING, 9995/8656). Full matcher: 1810 exact / 274 NONMATCHING / 0 DIFF.
+
 - 2026-10-27 (Codex, `Wheel::UpdateSpinMatrix` `0x46c550`): A volatile pre-wrap angle store plus nested result assignment matches the target's final store order; exact 352-byte body with 10 relocation fields. Full matcher: 1,811 exact / 273 NONMATCHING / zero DIFF and compile failures. Disassembly observations and rejected forms: `../docs/analysis/wheel-spin-matrix.md`.
 
 - 2026-10-27 (Codex, `Car::LoadTiresIni` `0x4634e0`): Typed `TyreF3*` stores reproduce the final config-address scheduling move; exact 1,115-byte match with 62 relocation fields. Full matcher: 1,810 exact / 274 NONMATCHING / zero DIFF and compile failures. Evidence and rejected source forms: `../docs/analysis/tire-config-loader.md`.
 
-- 2026-10-27 (Codex, `T_56b0b4::Init` `0x495a60`): Literal `names += " "` reduces differences 1,167→1,160 and output size 1,533→1,500; function remains NONMATCHING. Focused DirectInput file: 49 exact / two NONMATCHING, zero failures. Prior `append(" ", 1)` was reverted. Evidence and source-form history: `../docs/analysis/input-initializers.md`.
+- 2026-10-27 (Codex, `T_56b0b4::Init` `0x495a60`): Literal `names += " "` reduces differences 1,167→1,160 and output size 1,533→1,500; function remains NONMATCHING. A global one-space-string probe emitted the same candidate; target/candidate stack reservation is 0x80/0x58. Focused DirectInput file: 49 exact / two NONMATCHING, zero failures. Prior `append(" ", 1)` was reverted. Evidence and source-form history: `../docs/analysis/input-initializers.md`.
 
 - 2026-10-27 (Claude, NONMATCHING triage sweep): New `tools/triage.py` writes `analysis/nonmatching-triage.md` (cause of first difference, byte counts, instruction-multiset delta, `ret N` and cleanup-state mismatches: 38 pure register/scheduling permutations, 5 wrong arities, 67 state-sequence mismatches); `tools/try_variants.py` now compiles variants in parallel and ranks them. Exact: `DrawContext::DrawContext` 0x4b7a40 (three empty-dtor members fill EH states 5-7) and `NetRace::~NetRace` 0x4815a0 (`resize(0)` shape with out-of-line erase). Arity fixed from `ret N`: `CullViews`, `ColBody::Collide`, `FUN_0041fc60` (unused trailing argument); 0x417ee0 rewritten as the out-of-line `vector<StageProp>::insert(pos, n, x)` twin (797/818). Full matcher: 1809 exact / 275 NONMATCHING / 0 DIFF.
 

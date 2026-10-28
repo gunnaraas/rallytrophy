@@ -8,8 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
-#include "unk_481390.h"
-#include "unk_40c9b0.h"
+#include "stage.h"
 #include "unk_414330.h"
 
 extern float DAT_005012f8, DAT_004e13cc, DAT_004e139c, DAT_004e13c8, DAT_004e1348, DAT_004e134c;
@@ -55,43 +54,19 @@ static const char* NameOf(void* p)    // object name (std::string at +0x114), ""
     return s ? s : "";
 }
 
-// NONMATCHING: RALLYTROPHY 0x40c9b0 (large loader, written from pseudocode; frame/regalloc/EH layout not verified)
+// NONMATCHING: RALLYTROPHY 0x40c9b0
+// 10022 vs 8656 bytes. The member construction now comes from the layout in stage.h and the cleanup-state
+// sequence starts like the original's (11, 12, 30, 31, ...); the body is still written from the pseudocode with
+// offset macros, so its frame (0x30c vs 0x258), temporaries and string handling are not reproduced yet.
 // original: FUN_0040c9b0
 Stage::Stage(int a, int b, int c, int d)
 {
     int i;
     unsigned int n;
 
-    new (&AT(std::string, 0x8)) std::string;
-    for (i = 0x28; i <= 0x88; i += 0x10)
-        new (&VEC(i)) std::vector<void*>;
-    AT(int, 0x98) = 0; AT(int, 0x9c) = 0; AT(int, 0xa0) = 0; AT(int, 0xa4) = 0; AT(int, 0xa8) = 0;
-    AT(int, 0xac) = 0; AT(int, 0xb0) = 0; AT(int, 0xb4) = 0; AT(int, 0xb8) = 0; AT(int, 0xbc) = 0;
-    AT(int, 0xc0) = 0; AT(int, 0xc4) = 0; AT(int, 200) = 0; AT(int, 0xcc) = 0; AT(int, 0xd0) = 0;
-    new (&AT(StTexCache, 0xd4)) StTexCache;
-    new (&AT(StModelCache, 0xf4)) StModelCache;
-    new (&VEC(0x134)) std::vector<void*>;
-    new (&VEC(0x144)) std::vector<void*>;
-    new (&VEC(0x154)) std::vector<void*>;
-    new (&AT(std::string, 0x21c)) std::string;
-    FUN_004c11f4_vec(&AT(BYTE, 0x38c), 8, 0x14, FUN_00490ad0, FUN_00402c90);
-    FUN_004c11f4_vec(&AT(BYTE, 0x65c), 0x10, 4, FUN_00490ad0, FUN_00402c90);
-    new (&AT(Sprite, 0x6b4)) Sprite;
-    new (&AT(Sprite, 0x788)) Sprite;
-    FUN_004c11f4_vec(&AT(BYTE, 0x908), 0xd4, 1, FUN_004a8580, FUN_004a86d0);
-    new (&VEC(0x9f0)) std::vector<void*>;
-    FUN_004c11f4_vec(&AT(BYTE, 0xa0c), 0x48, 0x20, FUN_00490ad0, FUN_00402c90);
-    FUN_004c11f4_vec(&AT(BYTE, 0x1310), 0xc, 7, FUN_00490ad0, FUN_00402c90);
-    new (&VEC(0x13a8)) std::vector<void*>;
-    new (&VEC(0x13b8)) std::vector<void*>;
+    // Members with constructors are built by the compiler (see stage.h); only the plain fields are set up here.
     AT(int, 0x13e8) = 0x11;
-    FUN_004c11f4_vec(&AT(BYTE, 0x1608), 0x2c, 0x10, FUN_0040c6f0, FUN_0040c700);
-    FUN_004c11f4_vec(&AT(BYTE, 0x18c8), 0x2c, 0x10, FUN_0040c6f0, FUN_0040c700);
-    FUN_004c11f4_vec(&AT(BYTE, 0x1b88), 0x2c, 0x10, FUN_0040c6f0, FUN_0040c700);
-    FUN_004c11f4_vec(&AT(BYTE, 0x1e48), 0x2c, 0x10, FUN_0040c6f0, FUN_0040c700);
-    FUN_004c11f4_vec(&AT(BYTE, 0x2108), 0x2c, 0x10, FUN_0040c6f0, FUN_0040c700);
-    FUN_004c11f4_vec(&AT(BYTE, 0x23c8), 0x10, 0x10, FUN_00404cd0, FUN_00430720);   // 16 std::string
-    AT(StTexCache, 0xd4).SetDetail(DAT_0050141c > 2 ? 2 : DAT_0050141c);
+    texCache.SetDetail(DAT_0050141c > 2 ? 2 : DAT_0050141c);
 
     AT(int, 0x1364) = c;
     AT(int, 0x24d4) = 0; AT(int, 0x24d0) = 0;

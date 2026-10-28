@@ -8,11 +8,13 @@
 class Sprite;
 struct StTexCache {                    // Stage+0xd4 (0x20 bytes)
     StTexCache();                      // 0x4aee00
+    ~StTexCache();                     // 0x4aee20
     void SetDetail(int level);         // 0x4aeec0
     BYTE d[0x20];
 };
 struct StModelCache {                  // Stage+0xf4 (0x3c bytes)
     StModelCache();                    // 0x4ade40
+    ~StModelCache();                   // 0x4ade80
     void Preload(std::vector<void*> objs); // 0x4ae070 (vector passed by value, callee pops)
     void Release(void* obj);           // 0x4ae0e0
     BYTE d[0x3c];

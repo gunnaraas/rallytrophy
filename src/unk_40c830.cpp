@@ -41,8 +41,18 @@ void Fun_0040c970()
 }
 
 // FUNCTION: RALLYTROPHY 0x40eb80
-// The ten empty-destructor members in the header reproduce the original unwind state 9 for the member at 0x7c.
-StageScene::~StageScene()
+// SYMBOL: ??1StageSceneOut@@QAE@XZ
+// Out-of-line copy of the inline StageScene destructor (the unwind thunks of Stage's constructor and destructor call
+// it); the ten empty-destructor members reproduce the original unwind state 9 for the member at 0x7c.
+class StageSceneOut {
+public:
+    ~StageSceneOut();
+    BYTE pad0[0x28 - 10];
+    SceneDt dt0, dt1, dt2, dt3, dt4, dt5, dt6, dt7, dt8, dt9;
+    BYTE pad28[0x7c - 0x28];
+    SceneObj7c obj7c;
+};
+StageSceneOut::~StageSceneOut()
 {
 }
 

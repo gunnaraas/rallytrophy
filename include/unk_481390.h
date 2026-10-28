@@ -429,6 +429,7 @@ struct Checkpoint {
     int index;                         // 0x44
 };
 
+#ifndef STAGE_FULL_LAYOUT   // the full layout is in stage.h (Stage TUs include it first)
 class Stage {
 public:
     Checkpoint* FUN_00414fb0(int index);
@@ -472,6 +473,7 @@ public:
     int unk24e4[10];                   // 0x24e4
     int unk250c[10];                   // 0x250c
 };
+#endif
 
 // An ARGB colour with an (empty) destructor; its unwind entry calls the
 // folded empty function at 0x402c90.

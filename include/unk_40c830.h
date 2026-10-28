@@ -35,18 +35,22 @@ struct SceneHandleOwner {
     int handle;                            // 0x50
 };
 
-class SceneObj7c {                         // 12-byte member at 0x7c destroyed by 0x40eb80 (Tidy = 0x402700)
+class SceneObj7c {                         // std::string at 0x7c: constructed and destroyed through the out-of-line _Tidy (0x402700)
 public:
+    SceneObj7c(const std::allocator<char>& a = std::allocator<char>()) : alloc(a) { Tidy(false); }
     ~SceneObj7c() { Tidy(true); }
     void Tidy(bool built);
-    BYTE data[12];
+    std::allocator<char> alloc;
+    char* ptr;
+    unsigned int len;
+    unsigned int res;
 };
 
 struct SceneDt { ~SceneDt() {} };          // empty destructor members: only shift the unwind state numbering
 
 class StageScene {
 public:
-    ~StageScene();                         // 0x40eb80 (destroys the member at 0x7c only)
+    ~StageScene() {}                       // inlined into Stage::~Stage; the out-of-line copy is 0x40eb80 (unk_40c830.cpp)
     void ScanEffects();                    // 0x410380
     void LoadEffect(int* p);               // 0x410720
     void CollectHandles(SceneStage* s, GrowArray* out); // 0x410f70
@@ -57,9 +61,10 @@ public:
     SceneVec<SceneHolder> vecA;            // 0x28
     SceneVec<SceneHolder> vecB;            // 0x38
     BYTE pad48[0x7c - 0x48];
-    SceneObj7c obj7c;                      // 0x7c
-    SceneVec<SceneHandleOwner> vecH;       // 0x88
-    BYTE pad98[0x164 - 0x98];
+    SceneObj7c obj7c;                      // 0x7c (16 bytes)
+    SceneHandleOwner** vecHfirst;          // 0x8c: handle-owner pointers (no allocator byte fits before them)
+    SceneHandleOwner** vecHlast;           // 0x90
+    BYTE pad94[0x164 - 0x94];
     float originX;                         // 0x164
     BYTE pad168[4];
     float originZ;                         // 0x16c
