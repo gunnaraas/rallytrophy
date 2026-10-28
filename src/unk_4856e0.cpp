@@ -66,10 +66,8 @@ public:
     int enabled;
 };
 
-// NONMATCHING: RALLYTROPHY 0x485bb0
-// Same size (456). Only the placement of `mov ecx, esi` (the `this` for LoadOverlays) differs: the original
-// emits it just before the last two stores, this build hoists it to the top of the store block. Moving any
-// single store did not change that. The std::string at 0x77c is a TextString (see the header).
+// FUNCTION: RALLYTROPHY 0x485bb0
+// A volatile unk40 store preserves the target's LoadOverlays receiver setup order; exact 456-byte match.
 RaceMode::RaceMode()
 {
     unk240 = 0;
@@ -90,7 +88,7 @@ RaceMode::RaceMode()
     m_bars = 0;
     m_cursor = 0;
     m_localPlayer = 0;
-    unk40 = 0;
+    *(volatile int*)&unk40 = 0;
     unk48 = 0;
     m_image = 0;
     LoadOverlays();

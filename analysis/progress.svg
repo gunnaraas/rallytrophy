@@ -326,9 +326,7 @@
 <rect x="807.7" y="120" width="2.6" height="36" fill="#e3b341"/>
 <rect x="810.3" y="120" width="0.9" height="36" fill="#3fb950"/>
 <rect x="811.2" y="120" width="0.7" height="36" fill="#e3b341"/>
-<rect x="812.0" y="120" width="0.6" height="36" fill="#3fb950"/>
-<rect x="812.5" y="120" width="0.6" height="36" fill="#e3b341"/>
-<rect x="813.1" y="120" width="0.6" height="36" fill="#3fb950"/>
+<rect x="812.0" y="120" width="1.4" height="36" fill="#3fb950"/>
 <rect x="813.4" y="120" width="1.9" height="36" fill="#e3b341"/>
 <rect x="815.3" y="120" width="5.7" height="36" fill="#3fb950"/>
 <rect x="821.0" y="120" width="1.1" height="36" fill="#e3b341"/>
@@ -341,9 +339,7 @@
 <rect x="833.9" y="120" width="4.3" height="36" fill="#3fb950"/>
 <rect x="838.3" y="120" width="0.6" height="36" fill="#3fb950"/>
 <rect x="838.4" y="120" width="0.6" height="36" fill="#3fb950"/>
-<rect x="838.5" y="120" width="0.6" height="36" fill="#3fb950"/>
-<rect x="839.0" y="120" width="0.7" height="36" fill="#e3b341"/>
-<rect x="839.7" y="120" width="1.8" height="36" fill="#3fb950"/>
+<rect x="838.5" y="120" width="3.0" height="36" fill="#3fb950"/>
 <rect x="841.6" y="120" width="1.3" height="36" fill="#e3b341"/>
 <rect x="842.8" y="120" width="4.7" height="36" fill="#3fb950"/>
 <rect x="847.6" y="120" width="2.2" height="36" fill="#e3b341"/>
@@ -1025,18 +1021,18 @@
 <text x="1018" y="1956" fill="#e6edf3">27% exact / 100% written</text>
 <text x="260" y="1982" text-anchor="end" fill="#e6edf3">68. Network race mode</text>
 <rect x="270" y="1968" width="740" height="18" rx="2" fill="#484f58"/>
-<rect x="270" y="1968" width="418.9" height="18" fill="#3fb950"/>
-<rect x="688.9" y="1968" width="321.1" height="18" fill="#e3b341"/>
-<text x="1018" y="1982" fill="#e6edf3">57% exact / 100% written</text>
+<rect x="270" y="1968" width="440.2" height="18" fill="#3fb950"/>
+<rect x="710.2" y="1968" width="299.8" height="18" fill="#e3b341"/>
+<text x="1018" y="1982" fill="#e6edf3">59% exact / 100% written</text>
 <text x="260" y="2008" text-anchor="end" fill="#e6edf3">69. Networking / DirectPlay</text>
 <rect x="270" y="1994" width="740" height="18" rx="2" fill="#484f58"/>
 <rect x="270" y="1994" width="740.0" height="18" fill="#3fb950"/>
 <text x="1018" y="2008" fill="#e6edf3">100% exact / 100% written</text>
 <text x="260" y="2034" text-anchor="end" fill="#e6edf3">70. Race-mode base class</text>
 <rect x="270" y="2020" width="740" height="18" rx="2" fill="#484f58"/>
-<rect x="270" y="2020" width="234.8" height="18" fill="#3fb950"/>
-<rect x="504.8" y="2020" width="505.2" height="18" fill="#e3b341"/>
-<text x="1018" y="2034" fill="#e6edf3">32% exact / 100% written</text>
+<rect x="270" y="2020" width="243.6" height="18" fill="#3fb950"/>
+<rect x="513.6" y="2020" width="496.4" height="18" fill="#e3b341"/>
+<text x="1018" y="2034" fill="#e6edf3">33% exact / 100% written</text>
 <text x="260" y="2060" text-anchor="end" fill="#e6edf3">71. Replay race mode</text>
 <rect x="270" y="2046" width="740" height="18" rx="2" fill="#484f58"/>
 <rect x="270" y="2046" width="740.0" height="18" fill="#3fb950"/>
