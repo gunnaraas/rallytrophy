@@ -365,6 +365,9 @@ public:
     Vec3(const Vec3& o) { x = o.x; y = o.y; z = o.z; }
     ~Vec3() {}
     float Length() const { return (float)sqrt(x * x + y * y + z * z); }
+    float X() const { return x; }
+    float Y() const { return y; }
+    float Z() const { return z; }
     Vec3 operator+(const Vec3& o) const; // 0x419f00 (out of line, hidden return pointer)
     Vec3 operator*(const struct RotMatrix& m) const; // 0x4b5850 (out of line, returns through a hidden pointer)
     Vec3 operator-(const Vec3& o) const; // 0x414330 (out of line, returns through a hidden pointer)

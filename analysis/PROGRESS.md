@@ -6,7 +6,7 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Status
 
-- Marker inventory: 1822/2084 byte-exact (87.43%); 2084/2084 functions written (100.00%), from `tools/progress.py`.
+- Marker inventory: 1823/2084 byte-exact (87.48%); 2084/2084 functions written (100.00%), from `tools/progress.py`.
 - Game code: about 1,690 functions in `0x401000`–`0x4bcfc6`
 
 ## Queue
@@ -32,6 +32,7 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Log
 
+- 2026-10-28 (Kimi, Car checkpoint update `0x4689b0`): Matched 532 bytes / 5 relocations; inline `Vec3::X/Y/Z` restored x87 residency, direct `v->passed` updates restored integer reloads, and `oldMax` restored the max-speed sequence. Dossier Evidence `ev_bca6b45978ecaccd3adeae83efb2159f89c69b15f3a6ee838c8f6fd0280954db`. Focused check: 8/8 marked functions match; full matcher: 1823/1823 exact (261 NONMATCHING).
 - 2026-10-28 (Kimi, DirectInput `MapDevice` `0x496460`): Matched 559 bytes / 26 relocations using DWORD device-type temporaries and explicit retry branches; Ghidra dossier Evidence `ev_e396ee688aa542db7f988dc37e601d2d80517cb5b7f8a884ee1109059f2aa816`. Focused check: 50/50 marked functions match, one existing NONMATCHING; full matcher: 1822/1822 exact (262 NONMATCHING).
 - 2026-10-28 (Codex, `StageGrid::FillCells` `0x40f390`): Sequentially accumulating `cellW²` then `cellH²` before `sqrt` changes the body 2,391/2,340 bytes and 2,153→2,154 diffs; reverted. The x87 target scheduling remains unmet; focused check compiles its NONMATCHING body without DIFF/failure.
 - 2026-10-28 (Codex, `StageSoundLoader::LoadSounds` `0x415370`): Using `ConfigVector2` references for both event vectors worsens 3,302/2,145 to 3,374/2,189; either alias alone yields 3,384/2,225 or 3,384/2,224. Reverted; focused check compiles its NONMATCHING body without DIFF/failure.

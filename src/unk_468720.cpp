@@ -93,9 +93,7 @@ void Car::FUN_00468980(int lap)
     FUN_0045cc30((StartPosition*)&cp->position, cp);
 }
 
-// NONMATCHING: RALLYTROPHY 0x4689b0
-// Right algorithm and operand order; the compiler keeps this/player/passed in registers where the
-// original reloads them after the times[] store, and the d/r vector FPU residency differs.
+// FUNCTION: RALLYTROPHY 0x4689b0
 void Car::FUN_004689b0(int ms)
 {
     RaceCar* v = (RaceCar*)this;
@@ -106,23 +104,23 @@ void Car::FUN_004689b0(int ms)
         RaceCheckpoint* cp = &v->stage->checkpoints[passed % sections];
         Vec3 d = v->body->position;
         d -= cp->centre;
-        if (d.x * d.x + d.y * d.y + d.z * d.z <= cp->radiusSq) {
+        if (d.X() * d.X() + d.Y() * d.Y() + d.Z() * d.Z() <= cp->radiusSq) {
             Vec3 r = v->body->position;
             r -= cp->origin;
             float a = r.x * cp->normalA.x + r.y * cp->normalA.y + r.z * cp->normalA.z;
             if (a >= 0 && a <= cp->length) {
                 float b = d.x * cp->normalB.x + d.y * cp->normalB.y + d.z * cp->normalB.z;
                 if (b >= 0 && b <= 5.0f) {
-                    passed++;
-                    v->passed = passed;
+                    v->passed++;
                     if (v->player) {
                         float speed = (float)sqrt(v->speedSq) * 3.6f;
-                        if (speed > v->player->maxSpeed)
+                        float oldMax = v->player->maxSpeed;
+                        if (speed > oldMax)
                             v->player->maxSpeed = speed;
                         int t = ms + v->unk1f148;
                         t -= t % 10;
-                        if (passed > v->player->last) {
-                            if (passed % sections == 0) {
+                        if (v->passed > v->player->last) {
+                            if (v->passed % sections == 0) {
                                 int n = v->player->sections;
                                 int e = t;
                                 if (n > 0)
@@ -130,7 +128,7 @@ void Car::FUN_004689b0(int ms)
                                 v->player->sectionTimes[n] = e;
                                 v->player->sections++;
                             }
-                            v->player->times[passed] = t;
+                            v->player->times[v->passed] = t;
                             v->player->last = v->passed;
                         }
                         if (v->passed >= total) {

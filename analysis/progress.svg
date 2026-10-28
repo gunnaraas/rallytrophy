@@ -242,9 +242,7 @@
 <rect x="645.8" y="120" width="3.6" height="36" fill="#e3b341"/>
 <rect x="649.4" y="120" width="1.7" height="36" fill="#3fb950"/>
 <rect x="651.0" y="120" width="6.1" height="36" fill="#e3b341"/>
-<rect x="657.1" y="120" width="2.1" height="36" fill="#3fb950"/>
-<rect x="659.3" y="120" width="0.8" height="36" fill="#e3b341"/>
-<rect x="660.1" y="120" width="0.6" height="36" fill="#3fb950"/>
+<rect x="657.1" y="120" width="3.2" height="36" fill="#3fb950"/>
 <rect x="660.4" y="120" width="2.1" height="36" fill="#e3b341"/>
 <rect x="662.5" y="120" width="0.7" height="36" fill="#3fb950"/>
 <rect x="663.1" y="120" width="0.8" height="36" fill="#e3b341"/>
@@ -889,9 +887,8 @@
 <text x="1018" y="1254" fill="#e6edf3">22% exact / 100% written</text>
 <text x="260" y="1280" text-anchor="end" fill="#e6edf3">41. Car race state</text>
 <rect x="270" y="1266" width="740" height="18" rx="2" fill="#484f58"/>
-<rect x="270" y="1266" width="426.6" height="18" fill="#3fb950"/>
-<rect x="696.6" y="1266" width="313.4" height="18" fill="#e3b341"/>
-<text x="1018" y="1280" fill="#e6edf3">58% exact / 100% written</text>
+<rect x="270" y="1266" width="740.0" height="18" fill="#3fb950"/>
+<text x="1018" y="1280" fill="#e6edf3">100% exact / 100% written</text>
 <text x="260" y="1306" text-anchor="end" fill="#e6edf3">42. Car model parts</text>
 <rect x="270" y="1292" width="740" height="18" rx="2" fill="#484f58"/>
 <rect x="270" y="1292" width="170.4" height="18" fill="#3fb950"/>
