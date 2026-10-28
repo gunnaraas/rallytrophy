@@ -102,9 +102,9 @@ void U40A850Prop::Fn(int dt)
             c->force[2] += r->z;
         }
         c->FUN_0041c010();
-        c->FUN_0041fc60(0);
+        c->FUN_0041fc60(0, st);
         c->FUN_0041c010();
-        if (c->FUN_0041ca70(&DAT_00508298)) {
+        if (c->FUN_0041ca70(&DAT_00508298, 0)) {
             c->FUN_0041ef60(0, st, 1);
             c->FUN_0041c010();
         }

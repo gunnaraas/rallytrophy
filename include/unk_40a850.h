@@ -25,8 +25,8 @@ struct U40A850Body {
     U40A850Box* box;                  // 0x234
     int FUN_0041d7d0(U40A850Body* other, int flag);
     void FUN_0041c010();
-    void FUN_0041fc60(void* stage);
-    int FUN_0041ca70(void* query);
+    void FUN_0041fc60(void* stage, void* unused);
+    int FUN_0041ca70(void* query, int flag);
     void FUN_0041ef60(void* stage, void* owner, int flag);
     void FUN_0041c540();
     void FUN_0041c220(float a, float b);

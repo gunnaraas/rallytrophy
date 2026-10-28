@@ -15,12 +15,12 @@ _Updated 2026-10-27 by `tools/progress.py` (game code `0x401000`–`0x4bcfc6`)._
 
 | | Functions | Code bytes |
 |---|---|---|
-| Byte-exact | 1807 / 2084 (86.71%) | 323,090 / 742,266 (43.53%) |
-| Written, not yet exact | 277 | 419,176 |
-| Written in total | 2084 / 2084 (100.00%) | 742,266 / 742,266 (100.00%) |
+| Byte-exact | 1809 / 2084 (86.80%) | 323,832 / 742,268 (43.63%) |
+| Written, not yet exact | 275 | 418,436 |
+| Written in total | 2084 / 2084 (100.00%) | 742,268 / 742,268 (100.00%) |
 
 ```
-exact   █████████████░░░░░░░░░░░░░░░░░ 43.53% of code bytes
+exact   █████████████░░░░░░░░░░░░░░░░░ 43.63% of code bytes
 written ██████████████████████████████ 100.00% of code bytes
 ```
 
@@ -99,7 +99,7 @@ Progress by module (ranges in `analysis/modules.csv`):
 | Car particle emitter | `0x47c460`–`0x47ef80` | 18 / 24 / 24 | 27.6% | 100.0% | `████████████` |
 | GameSpy SDK (third-party; out of scope) | `0x47ef80`–`0x4807d0` | 33 / 33 / 33 | 100.0% | 100.0% | `████████████` |
 | Single-player race mode | `0x4807d0`–`0x481390` | 10 / 13 / 13 | 27.2% | 100.0% | `████████████` |
-| Network race mode | `0x481390`–`0x4843e0` | 46 / 53 / 53 | 53.7% | 100.0% | `████████████` |
+| Network race mode | `0x481390`–`0x4843e0` | 47 / 53 / 53 | 56.6% | 100.0% | `████████████` |
 | Networking / DirectPlay | `0x4843e0`–`0x4856e0` | 19 / 19 / 19 | 100.0% | 100.0% | `████████████` |
 | Race-mode base class | `0x4856e0`–`0x48f130` | 97 / 124 / 124 | 31.7% | 100.0% | `████████████` |
 | Replay race mode | `0x48f130`–`0x48f670` | 11 / 11 / 11 | 100.0% | 100.0% | `████████████` |
@@ -125,7 +125,7 @@ Progress by module (ranges in `analysis/modules.csv`):
 | Keyboard/mouse input hooks | `0x4b6ac0`–`0x4b7390` | 13 / 13 / 13 | 100.0% | 100.0% | `████████████` |
 | Timer / string / registry helpers | `0x4b7390`–`0x4b7790` | 15 / 15 / 15 | 100.0% | 100.0% | `████████████` |
 | View object | `0x4b77b0`–`0x4b7a40` | 7 / 7 / 7 | 100.0% | 100.0% | `████████████` |
-| Draw context, mesh, shadow and sky | `0x4b7a40`–`0x4bbdf0` | 39 / 54 / 54 | 34.9% | 100.0% | `████████████` |
+| Draw context, mesh, shadow and sky | `0x4b7a40`–`0x4bbdf0` | 40 / 54 / 54 | 37.3% | 100.0% | `████████████` |
 | Renderer plugin loader | `0x4bbdf0`–`0x4bc210` | 5 / 5 / 5 | 100.0% | 100.0% | `████████████` |
 | Command line | `0x4bc210`–`0x4bc360` | 3 / 3 / 3 | 100.0% | 100.0% | `████████████` |
 | Draw queue and vector helpers | `0x4bc360`–`0x4bcfc7` | 9 / 10 / 10 | 81.2% | 100.0% | `████████████` |

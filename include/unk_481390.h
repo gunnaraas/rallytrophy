@@ -933,6 +933,22 @@ public:
     unsigned int Size() const;
     iterator Erase(iterator first, iterator last);
     void Destroy(iterator first, iterator last);
+    // resize(n) with size() inline: the default argument gives the zeroed stack slot before the erase.
+    void ResizeA(unsigned int n, Player* const& x = (Player*)0)   // erase out of line (0x484380)
+    {
+        if (size() < n) {
+            insert(end(), n - size(), x);
+        } else if (n < size()) {
+            Erase(begin() + n, end());
+        }
+    }
+    iterator EraseOut(iterator first, iterator last) // erase(first, last) with _Destroy out of line
+    {
+        iterator s = std::copy(last, end(), first);
+        Destroy(s, end());
+        _Last = s;
+        return first;
+    }
     void Erase1(iterator pos)          // erase(pos) with _Destroy out of line
     {
         std::copy(pos + 1, end(), pos);

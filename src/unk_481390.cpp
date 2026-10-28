@@ -16,9 +16,9 @@ IntVector::iterator IntVector::Erase(iterator first, iterator last) { return era
 #pragma auto_inline(on)
 
 // NONMATCHING: RALLYTROPHY 0x481390
-// 506 vs 491 bytes. The original inlines m_removed's erase but calls
-// _Destroy (0x403130) out of line; this build inlines both. The rest (member
-// vectors, sprite setup) matches apart from the registers that follow.
+// 498 vs 491 bytes. EraseOut gives the original's inline erase with _Destroy (0x403130) as a call, but it
+// reloads end() through `this` ([esi+0x8a8]) where the original reuses the member pointer in edi and keeps a
+// zeroed slot (a resize(0) default argument?); ResizeB(0) drops the degenerate copy loop entirely (466 bytes).
 NetRace::NetRace()
 {
     unk7a8 = 0;
@@ -32,7 +32,7 @@ NetRace::NetRace()
     unk858 = 0;
     InitializeCriticalSection(&m_lock);
     if (m_removed.size() > 0) {
-        m_removed.erase(m_removed.begin(), m_removed.end());
+        m_removed.EraseOut(m_removed.begin(), m_removed.end());
     }
     unk844 = 0;
     unk880 = 0;
@@ -56,10 +56,9 @@ NetRace::NetRace()
     m_pingSprite->unk24 = 2;
 }
 
-// NONMATCHING: RALLYTROPHY 0x4815a0
-// 360 vs 349 bytes. The original calls m_players.erase (0x484380) out of
-// line and caches m_players' begin pointer across the delete loop; this
-// build inlines erase. Same inlining question as AddPlayer.
+// FUNCTION: RALLYTROPHY 0x4815a0
+// The player list is emptied with resize(0): its default argument is the zeroed stack slot before the
+// out-of-line erase (0x484380).
 NetRace::~NetRace()
 {
     Lock();
@@ -69,9 +68,7 @@ NetRace::~NetRace()
             delete player;
         }
     }
-    if (m_players.size()) {
-        m_players.erase(m_players.begin(), m_players.end());
-    }
+    m_players.ResizeA(0);
     Unlock();
     DeleteCriticalSection(&m_lock);
     delete m_pingSprite->texture;

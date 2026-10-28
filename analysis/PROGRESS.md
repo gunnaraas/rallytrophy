@@ -6,7 +6,7 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Status
 
-- Marker inventory: 1807/2084 byte-exact (86.71%); 2084/2084 functions written (100.00%), from `tools/progress.py`.
+- Marker inventory: 1809/2084 byte-exact (86.80%); 2084/2084 functions written (100.00%), from `tools/progress.py`.
 - Game code: about 1,690 functions in `0x401000`–`0x4bcfc6`
 
 ## Queue
@@ -32,9 +32,15 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Log
 
+- 2026-10-27 (Claude, NONMATCHING triage sweep): New `tools/triage.py` writes `analysis/nonmatching-triage.md` (cause of first difference, byte counts, instruction-multiset delta, `ret N` and cleanup-state mismatches: 38 pure register/scheduling permutations, 5 wrong arities, 67 state-sequence mismatches); `tools/try_variants.py` now compiles variants in parallel and ranks them. Exact: `DrawContext::DrawContext` 0x4b7a40 (three empty-dtor members fill EH states 5-7) and `NetRace::~NetRace` 0x4815a0 (`resize(0)` shape with out-of-line erase). Arity fixed from `ret N`: `CullViews`, `ColBody::Collide`, `FUN_0041fc60` (unused trailing argument); 0x417ee0 rewritten as the out-of-line `vector<StageProp>::insert(pos, n, x)` twin (797/818). Full matcher: 1809 exact / 275 NONMATCHING / 0 DIFF.
+
+- 2026-10-27 (Codex, lobby panels `0x43ad80`): Retained the corrected two-panel rendering draft in `src/unk_43a390.cpp`; replaces the prior hit-box placeholder. Remains NONMATCHING at 532 bytes / 15 differences. Focused: eight exact / four NONMATCHING; full matcher: 1,807 exact / 277 NONMATCHING, zero failures. See `../docs/analysis/lobby-panels.md`.
+
+- 2026-10-27 (Codex, car configuration `0x462350`): Isolated two-Vec3 axis probe restores the target 0x88 frame and state 9, producing 4,504/4,484 bytes; tracked body unchanged. Fresh instruction evidence and next lifetime questions: `../docs/analysis/car-config-loader.md`. Focused 19 exact / five NONMATCHING.
+
 - 2026-10-27 (Claude loop, `ParallelShadow::ParallelShadow` `0x4703c0`): No gain. Struct-indexed `vertices[j]` loops grow to 396 bytes; `offset + ptr` operand order regresses 14→50 diffs. Target keeps the offset as SIB base (`[eax+ecx]`) for both arrays.
 
-- 2026-10-27 (Codex, lobby panels `0x43ad80`): Replaced local hit-box placeholder with the evidence-backed two-panel renderer. Retained 532-byte / 15-difference NONMATCHING body; geometry/material helper probes regressed and were rejected. Focused: eight exact / four NONMATCHING. Seven geometry constants independently checked against PE. Findings: `../docs/analysis/lobby-panels.md`.
+- 2026-10-27 (Codex, lobby panels `0x43ad80`): Follow-up: corrected the earlier status; the two-panel renderer is retained in `src/unk_43a390.cpp`, replacing the incorrect hit-box placeholder. It remains 532 bytes / 15 differences. Geometry/material helper probes regressed; a read-only review found only scheduling differences. Focused check: eight exact / four NONMATCHING. Full matcher: 1,807 exact / 277 NONMATCHING / zero failures. Findings: `../docs/analysis/lobby-panels.md`.
 
 - 2026-10-27 (Claude loop, `Player::FUN_00491130` / `FUN_00491e20`): No gain. 0x491130: declaration order and the unk40==2 store order leave the 4-register permutation (36 diffs). 0x491e20: base-first declarations, a stepped target pointer with a runtime base offset, and operand swaps all regress from 42 diffs.
 

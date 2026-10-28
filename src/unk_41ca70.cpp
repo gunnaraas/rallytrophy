@@ -54,7 +54,7 @@ inline void Xform(float* result, const float* point, const float* matrix, const 
 // original: FUN_0041ca70
 // NONMATCHING: RALLYTROPHY 0x41ca70
 // NONMATCHING: +19 bytes; frame is 12 bytes smaller (a Vec3 local missing), early-return epilogue and register allocation differ
-int ColBody::Collide(TriCollector* q)
+int ColBody::Collide(TriCollector* q, int unused)
 {
     nHits = 0;
     CBox* b = box;

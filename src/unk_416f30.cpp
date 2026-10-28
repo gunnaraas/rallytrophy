@@ -421,11 +421,90 @@ int PropStage::NearSphere(const float*, float)
     }
 }
 
-// NONMATCHING: RALLYTROPHY 0x417ee0
-// vector<StageProp>::_Insert_n not matched (590 vs 818 bytes); original uses out-of-line 0x418220/0x418270 helpers.
-void PropStage::InsertProp(StageProp* where, const StageProp& v)
+// Layout twin of std::vector<StageProp>: 0x417ee0 is its insert(pos, n, x), emitted out of line (the loader
+// calls it), with _Construct (0x418220) and the per-element _Destroy (empty, folded to 0x402c90) as calls.
+struct PropVec {
+    char alloc;
+    StageProp* first;
+    StageProp* last;
+    StageProp* end;
+    unsigned int Size() const { return first == 0 ? 0 : last - first; }
+    void Ins(StageProp* P, unsigned int M, const StageProp& X);  // 0x417ee0
+};
+// allocator.destroy(p): a thiscall on the element that the linker folded into the empty function 0x402c90.
+struct PropElem : StageProp {
+    void Destroy();                                              // never defined here
+};
+#define PROP_VEC(v) ((PropVec*)&(v))
+
+// The in-class body of StageProp::operator= (inlined at two of the three copy loops).
+static inline void CopyProp(StageProp* d, const StageProp* src)
 {
-    props.insert(where, 1, v);
+    d->v[0] = src->v[0];
+    d->v[1] = src->v[1];
+    d->v[2] = src->v[2];
+    d->v[3] = src->v[3];
+    d->v[4] = src->v[4];
+    d->v[5] = src->v[5];
+    d->v[6] = src->v[6];
+    int f = src->flag;
+    *(int*)&d->v[7] = *(const int*)&src->v[7];
+    d->flag = f;
+}
+
+// NONMATCHING: RALLYTROPHY 0x417ee0
+// SYMBOL: ?Ins@PropVec@@QAEXPAUStageProp@@IABU2@@Z
+// 797 vs 818 bytes: the three branches, calls and loops are in place. Open: M lives in esi (ours edi, swapped with
+// last), and the two inlined element copies address the element from +0x14 (ours +0x8); a plain-order copy helper
+// and a derived operator= twin did not change that.
+void PropVec::Ins(StageProp* P, unsigned int M, const StageProp& X)
+{
+    if ((unsigned int)(end - last) < M) {
+        unsigned int N = Size() + (M < Size() ? Size() : M);
+        int An = (int)N;
+        if (An < 0)
+            An = 0;
+        StageProp* S = (StageProp*)operator new(An * sizeof(StageProp));
+        StageProp* Q = S;
+        StageProp* F;
+        for (F = first; F != P; ++Q, ++F)
+            ConstructProp(Q, F);
+        StageProp* G = Q;
+        for (unsigned int n = M; 0 < n; --n, ++G)
+            ConstructProp(G, &X);
+        StageProp* D = Q + M;
+        for (F = P; F != last; ++D, ++F)
+            ConstructProp(D, F);
+        for (F = first; F != last; ++F)
+            ((PropElem*)F)->Destroy();
+        operator delete(first);
+        end = S + N;
+        last = S + Size() + M;
+        first = S;
+    } else if ((unsigned int)(last - P) < M) {
+        StageProp* D = P + M;
+        StageProp* F;
+        for (F = P; F != last; ++D, ++F)
+            ConstructProp(D, F);
+        StageProp* G = last;
+        for (unsigned int n = M - (last - P); 0 < n; --n, ++G)
+            ConstructProp(G, &X);
+        for (F = P; F != last; ++F)
+            CopyProp(F, &X);
+        last += M;
+    } else if (0 < M) {
+        StageProp* D = last;
+        StageProp* F;
+        for (F = last - M; F != last; ++D, ++F)
+            ConstructProp(D, F);
+        StageProp* B = last;
+        StageProp* E = last - M;
+        while (E != P)
+            CopyProp(--B, --E);
+        for (F = P; F != P + M; ++F)
+            *F = X;
+        last += M;
+    }
 }
 
 // FUNCTION: RALLYTROPHY 0x4182e0
@@ -1019,7 +1098,7 @@ void PropStage::Load()
                     f.Read(&prop, 0xc);
                     f.Read(pos, 0xc);
                     if (StageNearestCheckpoint(this, pos, 0))
-                        InsertProp(props.end(), prop);
+                        PROP_VEC(props)->Ins(props.end(), 1, prop);
                 }
             }
             f.Close();

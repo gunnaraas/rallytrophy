@@ -12,8 +12,7 @@ public:
 
 extern "C" void __cdecl Thunk_004b7c70();
 
-// NONMATCHING: RALLYTROPHY 0x4b7a40
-// EH states differ (original reaches state 7, 393 vs 397 bytes) and the stores of name/type are scheduled differently.
+// FUNCTION: RALLYTROPHY 0x4b7a40
 DrawContext::DrawContext()
     : roots(0x40, 0x40), solids(0x40, 0x40), normals(0x40, 0x40), specials(0x40, 0x40)
 {
@@ -21,17 +20,18 @@ DrawContext::DrawContext()
     unsigned int n = strlen("Scene");
     type = 4;
     if (str->Grow(n, true)) {
-        memcpy(str->ptr, "Scene", n);
-        str->ptr[str->len = n] = 0;
+        char* p = str->ptr;
+        memcpy(p, "Scene", n);
+        p[str->len = n] = 0;
     }
-    unk188 = 0;
-    unk18c = 0;
-    unk190 = 0;
-    unk174 = 0;
+    unk188.x = 0;
+    unk188.y = 0;
+    unk188.z = 0;
+    unk174.x = 0;
     unk184 = 0;
-    unk178 = 0;
-    unk180 = 0;
-    unk17c = 0x3f800000;
+    unk174.y = 0;
+    unk180.value = 0;
+    unk174.z = 1.0f;
 }
 
 // FUNCTION: RALLYTROPHY 0x4b7bd0
@@ -57,7 +57,7 @@ void __stdcall RegisterDrawFrustumExit()
 
 // NONMATCHING: RALLYTROPHY 0x4b7c80
 // Original duplicates the inline list-grow code per case and shares only the tails; ours is 43 bytes shorter.
-void DrawContext::CullViews(DrawDevice* device)
+void DrawContext::CullViews(DrawDevice* device, int)
 {
     solids.m_end = solids.m_data;
     normals.m_end = normals.m_data;

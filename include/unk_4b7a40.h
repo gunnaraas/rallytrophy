@@ -148,12 +148,18 @@ extern DrawQueue DAT_0057bda0;
 extern int DAT_00502470;
 extern int DAT_0057bdb0;
 
+// A float with an empty destructor (gives the constructor one unwind state).
+struct DrawScalar {
+    ~DrawScalar() {}
+    float value;
+};
+
 class DrawContext : public SceneNode {
 public:
     DrawContext();                                      // 0x4b7a40
     virtual ~DrawContext();                             // 0x4b7bd0 (scalar deleting), body 0x4b7bf0
     virtual void Slot1(void* view);                     // 0x4b8310
-    void CullViews(DrawDevice* device);                 // 0x4b7c80
+    void CullViews(DrawDevice* device, int unused);     // 0x4b7c80 (ret 8; the callers pass a second pointer it never reads)
     void DrawViews(DrawDevice* device, int unused);                 // 0x4b8160
     void BeginQueue(DrawDevice* device, int unused);    // 0x4b82f0
     void StampVisible();                                // 0x4b8340
@@ -161,13 +167,10 @@ public:
     DrawArray<SceneNode*> solids;                       // 0x138: flagged-4 (translucent-bounds) nodes
     DrawArray<SceneNode*> normals;                      // 0x14c
     DrawArray<SceneNode*> specials;                     // 0x160: type-2 nodes
-    int unk174;                                         // 0x174
-    int unk178;
-    int unk17c;
-    int unk180;
-    int unk184;                                         // 0x184
-    int unk188;                                         // 0x188
-    int unk18c;
-    int unk190;
+    // Three destructible members (EH states 5-7 in the constructor; 0x184 is plain); their roles are unknown.
+    ScenePoint unk174;                                  // 0x174
+    DrawScalar unk180;                                  // 0x180
+    float unk184;                                       // 0x184
+    ScenePoint unk188;                                  // 0x188
 };
 #endif

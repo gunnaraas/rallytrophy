@@ -9,7 +9,7 @@ Vec3 FUN_004203e0(const Vec3& a, const Vec3& b);   // cross product
 
 // NONMATCHING: RALLYTROPHY 0x41fc60
 // NONMATCHING: draft, faithful logic; compiler register/stack allocation not verified
-void U40A850Body::FUN_0041fc60(void* stage)
+void U40A850Body::FUN_0041fc60(void* stage, void* unused)
 {
     int cnt = *(int*)((char*)this + 0x23c);
     if (cnt == 0) {

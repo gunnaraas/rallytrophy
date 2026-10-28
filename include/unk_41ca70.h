@@ -70,6 +70,6 @@ public:
     CBox* box;                  // 0x234
     CHit* hits;                 // 0x238
     int nHits;                  // 0x23c
-    int Collide(TriCollector* q); // 0x41ca70
+    int Collide(TriCollector* q, int unused); // 0x41ca70 (thiscall, ret 8; the second argument is 0 at both call sites)
 };
 #endif

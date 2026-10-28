@@ -33,7 +33,6 @@ public:
     void Load();                           // 0x416f30
     void Reset();                          // 0x417430
     int NearSphere(const float* p, float r); // 0x417e60
-    void InsertProp(StageProp* where, const StageProp& v); // 0x417ee0 body is vector::_Insert_n
     BYTE pad0[0x136c];
     int f136c, f1370, f1374;
     float cx, cy, cz;                      // 0x1378

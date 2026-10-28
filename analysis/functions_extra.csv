@@ -300,7 +300,7 @@ entry,size,note
 0x4563b0,25,Car animation module end: guard-bit initialiser of the STL header statics (_$E)
 0x4563d0,12,Car animation module end: atexit(0x402c90) registration
 0x44eb60,525,SlotMenu::Setup (vtable slot 1)
-0x450be0,704,SlotMenu::Draw (vtable slot 3)
+0x450be0,706,SlotMenu::Draw (vtable slot 3)
 0x450eb0,25,SlotMenu module end: guard-bit initialiser of the STL header statics (_$E)
 0x450ed0,12,SlotMenu module end: atexit(0x402c90) registration
 0x44ba30,452,ReplayMenu::Setup (vtable slot 1; missing from functions.csv)

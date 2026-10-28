@@ -182,6 +182,12 @@ Distilled from the per-loop history; "(A: X)" means `NOTES-archive.md`, section 
 
 - A this-adjusting forwarder (`add ecx,N; call f; ret 4`) is a plain member calling the embedded object's method; no asm needed (MenuManager 0x43cb50).
 
+- **Triage first.** `python3 -I tools/triage.py --md analysis/nonmatching-triage.md` (after a full match.py run) classifies every NONMATCHING function: cause of the first difference, byte counts, an instruction-multiset delta (0 = pure register/scheduling permutation; leave those for last) and `ret N` / cleanup-state sequence mismatches. `tools/try_variants.py` compiles variant files in parallel and ranks them by differing bytes (`-k` keeps `build/try/<n>/` for objcmp).
+- Check `ret N` of every NONMATCHING function against the original (the triage notes column): `CullViews` 0x4b7c80, `ColBody::Collide` 0x41ca70 and `FUN_0041fc60` all take a trailing argument the body never reads, and 0x417ee0 is `vector<StageProp>::insert(pos, n, x)` emitted out of line (three arguments), not a wrapper.
+- A cleanup-state number that jumps ahead before a call (DrawContext 0x4b7a40: arrays give states 0-3, the next store is 7) counts destructible members whose constructors emit no code: add that many empty-destructor members (two ScenePoints and a float wrapper) in the layout gap.
+- VC6 canonicalises commutative operands: swapping `a*b`, `a+b` or `n = len + m` in the source never changes `fld`/`fmul`, `imul` or `lea [base+index]` operand order (ExhaustSmoke 0x478220, FUN_004ac730, Car::LoadDriver 0x455070). Those are register-class differences; do not spend variants on them.
+- A dead zero store to a stack slot right before an inline `size()` test and an out-of-line erase (0x484380) is `v.resize(0)`'s default argument: write a `Resize(n, const T& x = 0)` twin with inline `size()` and the erase as a call (NetRace::~NetRace 0x4815a0); where the original inlines the erase but calls `_Destroy` (0x403130), the twin's erase is written out with `Destroy()` declared under `auto_inline(off)`.
+
 - A standalone out-of-line copy of a class's inline method (UIRect ctor 0x4390a0) is defined on a file-local layout twin with `// SYMBOL:`; don't make the shared inline definition out of line.
 
 - Several default-constructed `Color` locals declared back to back, values assigned afterwards, merge their EH state writes into one dword store (DrawSpinner 0x438810).
