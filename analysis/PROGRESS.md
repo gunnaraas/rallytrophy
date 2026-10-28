@@ -6,7 +6,7 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Status
 
-- Marker inventory: 1815/2084 byte-exact (87.09%); 2084/2084 functions written (100.00%), from `tools/progress.py`.
+- Marker inventory: 1817/2084 byte-exact (87.19%); 2084/2084 functions written (100.00%), from `tools/progress.py`.
 - Game code: about 1,690 functions in `0x401000`–`0x4bcfc6`
 
 ## Queue
@@ -32,6 +32,10 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Log
 
+- 2026-10-28 (Codex, `HashMap::Grow` `0x402f30`): Reproducing the VC6 vector header's general insert algorithm, including its signed-size guard and inline `_Construct` prefix copy, then using `std::copy_backward`/`std::fill`, matches the 498-byte body and all 14 relocations. The simpler end-only `PushBack` overlay yielded 497/408; caching `end` before `last` was unchanged; a direct cast expression regressed the general insert. Focused file check: 11/11 marked, one other function remains NONMATCHING, no DIFF or compile failures.
+- 2026-10-28 (Codex, `Car::FUN_004693a0` `0x4693a0`): Reordering only the restore-branch material aliases (`m` from `nodes1` before `o` from `nodes2`) preserves 543 bytes and reduces differences 106→40; that branch now matches. Damaged-branch declaration reversal hoists a load and yields 537/308; `while (b && a)` yields 42 diffs. Pointer hints, material lifetimes, cursor-update order, and chained constant stores leave the 543/40 candidate unchanged. Focused file: 5/5 exact marked functions, two NONMATCHING.
+- 2026-10-28 (Codex, `Car::Draw459270` `0x459270`): Making `p.x` a volatile destination, with either x87 operand order, increases the 1,516-byte candidate from 54 to 60 differing bytes. Making only the source `p.x` nonvolatile keeps 1,516 bytes but gives 58 differences. Reverted; focused file remains 6/6 exact marked functions with one NONMATCHING.
+- 2026-10-28 (Codex, `ParallelShadow::ParallelShadow` `0x4703c0`): A single register vertex pointer used for all loop writes emits 362/378 bytes with 115 differences; a direct `m+4` pointer read for the first stores emits 376/378 with 168. Reverted; focused file: 62/62 exact marked functions, seven NONMATCHING.
 - 2026-10-28 (Codex, `SoundMenu::Setup` `0x451040`): Reversing scale-local declarations worsened the 31-byte baseline to 35 differences. Reordering position locals as x/y/step, x/step/y, y/step/x, or step/x/y gave 33, 75, 74, or 75 differences. Mutable static scale factors for the literal-first x87 loads, plus a volatile `MenuLabel::unk20` store in `SetPos`, produce an exact 998-byte body. The ten target NOPs after `ret 4` are alignment padding. Focused sound-menu check: 7/7 marked functions match, two other functions remain NONMATCHING, no DIFF or compile failures.
 - 2026-10-28 (Codex, `WheelSpray::Render` `0x477690`): A local `drawTexture` alias regressed the body from 4 to 65 differing bytes; expressing depth as a float/int union produced the same 1,227-byte/four-difference code. Reverted both. Focused effect-file check: 12 marked, 11 exact, 1 NONMATCHING, no DIFF or compile failures.
 - 2026-10-28 (Codex, `Car::Draw459270` `0x459270`): Sequencing volatile reads through `centerX`/`offsetX` worsens the body to 1,520 bytes / 991 differences. Splitting `SetIdentity` from the comma expression and passing the cross-product inputs through register pointer aliases leave 1,516/54 unchanged. Reverted; focused file: 6 marked, 5 exact, 1 NONMATCHING, no DIFF or compile failures.

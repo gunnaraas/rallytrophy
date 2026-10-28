@@ -261,11 +261,57 @@ void HashMap::LinkBlock(HashNode* p)
     p->dup = 0;
 }
 
-// NONMATCHING: RALLYTROPHY 0x402f30 (original open-codes vector::insert(end,1,x) differently than std::vector)
+// VC6's vector layout and insert(count, value) body, copied from the local VC6 vector header's algorithm.
+// The target expands this call in HashMap::Grow while retaining the allocator helpers as calls.
+struct HashPoolVec {
+    char alloc;
+    HashNode** first;
+    HashNode** last;
+    HashNode** end;
+    unsigned int Size() const { return first == 0 ? 0 : (unsigned int)(last - first); }
+    HashNode** Ucopy(HashNode** f, HashNode** l, HashNode** d); // 0x424320
+    void Ufill(HashNode** d, unsigned int n, HashNode* const& x); // 0x424350
+    void Destroy(HashNode** f, HashNode** l); // 0x403130
+    static void ConstructPtr(HashNode** p, HashNode* const& v); // 0x403140
+    void Insert(HashNode** P, unsigned int M, HashNode* const& X)
+    {
+        if ((unsigned int)(end - last) < M) {
+            unsigned int N = Size() + (M < Size() ? Size() : M);
+            int An = (int)N;
+            if (An < 0)
+                An = 0;
+            HashNode** S = (HashNode**)operator new(An * sizeof(HashNode*));
+            HashNode** Q = S;
+            for (HashNode** F = first; F != P; ++Q, ++F)
+                ConstructPtr(Q, *F);
+            Ufill(Q, M, X);
+            Ucopy(P, last, Q + M);
+            Destroy(first, last);
+            operator delete(first);
+            end = S + N;
+            last = S + Size() + M;
+            first = S;
+        } else if ((unsigned int)(last - P) < M) {
+            Ucopy(P, last, P + M);
+            Ufill(last, M - (last - P), X);
+            for (HashNode** F = P; F != last; ++F)
+                *F = X;
+            last += M;
+        } else if (0 < M) {
+            Ucopy(last - M, last, last);
+            std::copy_backward(P, last - M, last);
+            std::fill(P, P + M, X);
+            last += M;
+        }
+    }
+};
+
+// FUNCTION: RALLYTROPHY 0x402f30
 void HashMap::Grow()
 {
     HashNode* blk = (HashNode*)PoolAlloc(0x4000);
-    pool.insert(pool.end(), 1, blk);
+    HashPoolVec* v = (HashPoolVec*)&pool;
+    v->Insert(v->last, 1, blk);
     LinkBlock(blk);
 }
 

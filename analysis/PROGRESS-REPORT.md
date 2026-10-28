@@ -15,12 +15,12 @@ _Updated 2026-10-28 by `tools/progress.py` (game code `0x401000`–`0x4bcfc6`)._
 
 | | Functions | Code bytes |
 |---|---|---|
-| Byte-exact | 1816 / 2084 (87.14%) | 331,187 / 742,258 (44.62%) |
-| Written, not yet exact | 268 | 411,071 |
+| Byte-exact | 1817 / 2084 (87.19%) | 331,685 / 742,258 (44.69%) |
+| Written, not yet exact | 267 | 410,573 |
 | Written in total | 2084 / 2084 (100.00%) | 742,258 / 742,258 (100.00%) |
 
 ```
-exact   █████████████░░░░░░░░░░░░░░░░░ 44.62% of code bytes
+exact   █████████████░░░░░░░░░░░░░░░░░ 44.69% of code bytes
 written ██████████████████████████████ 100.00% of code bytes
 ```
 
@@ -32,7 +32,7 @@ Progress by module (ranges in `analysis/modules.csv`):
 
 | Module | Range | Exact / written / total | % exact | % written | |
 |---|---|---|---|---|---|
-| Startup helpers | `0x401000`–`0x404d50` | 58 / 65 / 65 | 61.6% | 100.0% | `████████████` |
+| Startup helpers | `0x401000`–`0x404d50` | 59 / 65 / 65 | 65.0% | 100.0% | `████████████` |
 | Language / text table | `0x404d50`–`0x405580` | 13 / 13 / 13 | 100.0% | 100.0% | `████████████` |
 | Config files | `0x405580`–`0x409690` | 33 / 34 / 34 | 97.8% | 100.0% | `████████████` |
 | Stage scene and collision | `0x409690`–`0x420490` | 165 / 201 / 201 | 20.3% | 100.0% | `████████████` |
