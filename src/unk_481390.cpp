@@ -76,19 +76,18 @@ NetRace::~NetRace()
     m_pingSprite = 0;
 }
 
-// NONMATCHING: RALLYTROPHY 0x481700
-// Same size (345). Same scheduling difference as Reset: this build hoists the
-// eax stores (0x868, 0x86c, 0x48) above `push edi`.
+// FUNCTION: RALLYTROPHY 0x481700
+// Volatile stores and a volatile mode read preserve the initializer order.
 void NetRace::Slot4(int mode)
 {
     unk7a8 = 0;
     m_time = -3000;
-    unk868 = -5000;
-    unk86c = -5000;
+    *(volatile int*)&unk868 = -5000;
+    *(volatile int*)&unk86c = -5000;
     unk874 = -4000;
     unk50 = 0;
     unk40 = 0;
-    unk48 = mode;
+    *(volatile int*)&unk48 = *(volatile int*)&mode;
     unk4c = 1;
     unk864 = 0;
     unk87c = 0;
