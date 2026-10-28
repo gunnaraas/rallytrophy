@@ -122,54 +122,64 @@ extern "C" void __fastcall FUN_004a95d0(void*);
 extern int DAT_00501460;
 extern int DAT_0050145c;
 extern int DAT_00508bdc;
+extern float DAT_0050150c, DAT_00501510, DAT_00501514, DAT_00501518, DAT_0050151c, DAT_00501520, DAT_00501524, DAT_00501528;
 extern void (__cdecl *DAT_0059b2f8)();
+extern const ConfigKey G9_GameIniKeys[12];
 extern "C" void fun_0049a550();
 extern "C" void fun_0049a4f0();
 extern "C" void fun_0049a580();
 extern "C" void fun_0049a5a0();
+extern "C" void __fastcall FUN_004af120(void*);
+extern "C" void __fastcall FUN_004adf50(void*);
 
 // NONMATCHING: RALLYTROPHY 0x4309d0
-// The dispatch and resource lifecycle are reconstructed; the virtual dispatch and exception cleanup lowering differ from the target.
+// State 0-2 share the original audio/resource update calls; VC6 places this shared block after the switch cases here,
+// while the target places it between cases 0 and 1. Exception-cleanup lowering also differs.
 void Game::FUN_004309d0() {
     Config config;
-    config.Define((const ConfigKey*)0x4f7688, 12);
+    config.Define(G9_GameIniKeys, 12);
     config.Load("data/settings/game.ini", true, false, 0);
     *((int*)((char*)this + 0x5c20)) = config.GetInt("NumberOfCars");
     *((int*)((char*)this + 0x59d0)) = config.GetInt("NumberOfTracks");
     *((float*)((char*)this + 0x13948c)) = config.GetFloat("TorqueMultiplier");
     *((int*)((char*)this + 0x139220)) = config.GetInt("DefaultMusicVolume");
-    *(float*)0x501518 = config.GetFloat("ResetTimeAir");
-    *(float*)0x50151c = config.GetFloat("ResetTimeJam");
-    *(float*)0x501520 = config.GetFloat("ResetTimeOutOfTrack");
-    *(float*)0x501524 = config.GetFloat("ResetTimeIllegal1");
-    *(float*)0x501528 = config.GetFloat("ResetTimeIllegal2");
-    *(float*)0x50150c = config.GetFloat("CPUGapsNovice");
-    *(float*)0x501510 = config.GetFloat("CPUGapsIntermediate");
-    *(float*)0x501514 = config.GetFloat("CPUGapsExpert");
+    DAT_00501518 = config.GetFloat("ResetTimeAir");
+    DAT_0050151c = config.GetFloat("ResetTimeJam");
+    DAT_00501520 = config.GetFloat("ResetTimeOutOfTrack");
+    DAT_00501524 = config.GetFloat("ResetTimeIllegal1");
+    DAT_00501528 = config.GetFloat("ResetTimeIllegal2");
+    DAT_0050150c = config.GetFloat("CPUGapsNovice");
+    DAT_00501510 = config.GetFloat("CPUGapsIntermediate");
+    DAT_00501514 = config.GetFloat("CPUGapsExpert");
     config.Close();
     ((RecordTable*)((unsigned char*)this + 0x5c30))->FUN_00490470("data/highscores/highscores.hs");
     FUN_00430cf0();
     FUN_00431f40(this);
     FUN_00430f60(this);
-    if (*(void**)((unsigned char*)this + 0x13910c))
-        ((void(*)(void*))0x48e660)(*(void**)((unsigned char*)this + 0x13910c));
+    void* emptyObject = *(void**)((unsigned char*)this + 0x13910c);
+    if (emptyObject)
+        ((RaceMode*)emptyObject)->RaceMode::Lock();
     FUN_0043cb50((unsigned char*)this + 0x2df4, 0);
     FUN_00432aa0(this);
-    for (;;) {
-        if (DAT_0057b9f4) break;
+    while (!DAT_0057b9f4) {
         int state = FUN_00432e10(this);
         DAT_00501460 = 0;
-        if (state <= 6) {
+        if ((unsigned int)state <= 6) {
             switch (state) {
             case 0:
                 FUN_004a4870("data/settings/game.ini"); DAT_00501458 = 0; DAT_0050145c = 1; DAT_00501473 = 0;
-                FUN_00433220(this); DAT_00501472 = 0; break;
+                FUN_00433220(this); DAT_00501472 = 0;
+            G2_update_audio:
+                FUN_004af120((char*)this + 0x1393e4);
+                FUN_004af120((char*)this + 0x139404);
+                FUN_004adf50((char*)this + 0x139424);
+                break;
             case 1:
                 FUN_004a4870("data/settings/game.ini"); DAT_00501472 = 0; DAT_00501458 = 1; DAT_0050145c = 0; DAT_00501473 = 0;
-                FUN_00433bc0(this); break;
+                FUN_00433bc0(this); goto G2_update_audio;
             case 2:
                 FUN_004a4870("data/settings/game.ini"); DAT_00501472 = 0; DAT_00501458 = 0; DAT_0050145c = 1; DAT_00501473 = 0;
-                FUN_00434a50(this); break;
+                FUN_00434a50(this); goto G2_update_audio;
             case 3: FUN_00434df0(this); break;
             case 4: FUN_00432b00(this); FUN_00425e50(this); FUN_00432b30(this, 0, 0); break;
             case 5: if (DAT_00508bdc) FUN_00434ba0(); else goto G2_cleanup; break;
@@ -2255,10 +2265,8 @@ public:
 extern int DAT_0050145c;
 extern int DAT_00508f60;
 extern int DAT_00508be0;
-extern float DAT_0050150c, DAT_00501510, DAT_00501514, DAT_00501518, DAT_0050151c, DAT_00501520, DAT_00501524, DAT_00501528;
-
 // game.ini keys (0x4f7688)
-static const ConfigKey G9_GameIniKeys[12] = {
+const ConfigKey G9_GameIniKeys[12] = {
     { "NumberOfCars", 1 },        { "NumberOfTracks", 1 },       { "TorqueMultiplier", 2 },
     { "DefaultMusicVolume", 1 },  { "ResetTimeAir", 2 },         { "ResetTimeJam", 2 },
     { "ResetTimeOutOfTrack", 2 }, { "ResetTimeIllegal1", 2 },    { "ResetTimeIllegal2", 2 },

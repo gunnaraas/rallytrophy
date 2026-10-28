@@ -32,6 +32,26 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Log
 
+- 2026-10-28 (Codex, `Car::UpdateLampPoints` `0x452b20`): Replacing either driver-point assignment triple with `F_Set` regresses to 202/196 differences; volatile lamp0 p.y and lamp1 p.z expand the candidate to 903 bytes / 372 and 287 differences. Reverted to the 897-byte, 145-difference coordinate form.
+
+- 2026-10-28 (Codex, `Car::UpdateLampPoints` `0x452b20`): Volatile compound updates to p.x at both lamp points reduce 179→159 differences; also making lamp1 p.y volatile reduces to 146, and lamp0 p.z volatile reduces to 145. Making lamp0 p.y volatile or either p.z volatile at lamp1 regresses. Retained the best per-coordinate form; focused file check: 7 marked, 5 NONMATCHING, no DIFF or compile failures.
+
+- 2026-10-28 (Codex, `Car::LoadDriver` `0x455070`): Replacing `ptr + len` with the equivalent `&len[ptr]` leaves all five target/candidate LEA base/index pairs unchanged (10 differences, 3651-byte body). Restored the readable form; focused check: 7 marked, 5 NONMATCHING, no DIFF or compile failures.
+
+- 2026-10-28 (Codex, `Car::LoadDriver` `0x455070`): Routing both string append copies through a trivial `Ptr()` getter leaves the same 3651-byte body with 10 differing bytes. Removed the getter; focused check: 7 marked, 5 NONMATCHING, no DIFF or compile failures.
+
+- 2026-10-28 (Codex, `Game::FUN_004309d0` `0x4309d0`): Replacing the C++ gotos to the shared state-0/1/2 audio block with inline-assembly jumps makes VC6 keep stack-based `this` accesses and grows the candidate 792→898 bytes / 154→374 differences. Reverted to C++ gotos; keep the target-observed calls while investigating layout.
+
+- 2026-10-28 (Codex, `Game::FUN_004309d0` `0x4309d0`): Referencing `G9_GameIniKeys` and the eight named reset-time globals replaces hard-coded addresses with relocatable symbols, matching those operand references. Added the target-observed `0x4af120`/`0x4adf50` calls shared by states 0–2; VC6 emits that shared block after all switch cases instead of before cases 1–2, growing the body 764→792 bytes and changing the diff 136→154. Keep the behavior correction; switch block placement remains open. Plain PE observation.
+
+- 2026-10-28 (Codex, `GameScreen2DD4::Frame` `0x4267a0`): Moving the volatile title-color read between the scaleX and color stores increases the same-size body from 3 to 17 differing bytes. Reverted; focused file check: 8 marked, 1 NONMATCHING, no DIFF or compile failures.
+
+- 2026-10-28 (Codex, `GameScreen2DD4::Frame` `0x4267a0`): Replacing the volatile title-color local with a direct global assignment restores the prior 54-difference body; summing the title scale with itself instead of multiplying by 2 emits the same 3-difference candidate. Restored the 3-difference form. Focused check: 8 marked, 1 NONMATCHING, no DIFF or compile failures.
+
+- 2026-10-28 (Codex, `Car::SetState` `0x4658a0`): Materializing the normalized compression byte, and separately making the body-pointer load volatile, leave the 917-byte candidate at 354 differing bytes. The compiler already emits the compression multiply in target order with the grouped expression. Both ineffective probes reverted; focused check: 10 marked, 1 NONMATCHING, no DIFF or compile failures.
+
+- 2026-10-28 (Codex, `Car::SetState` `0x4658a0`): Grouping `d * (compression * 1/255)` changes the spring-compression x87 sequence to the target order and improves 360→354 differences at 917/926 bytes. A separate normalized-compression local emits the same candidate. Focused check: 10 marked, 1 NONMATCHING, no DIFF or compile failures; body-copy scheduling and hit-array induction remain open.
+
 - 2026-10-28 (Codex, `Car::SetState` `0x4658a0`): Replacing indexed hit-array accesses with a base pointer at `hitNormal[0][2]` plus per-iteration increments grows the body 917→939 bytes and worsens 360→541 differing bytes. Reverted; keep indexed arrays until a more specific alias/lifetime hypothesis emerges.
 
 - 2026-10-28 (Codex, `Car::SetState` `0x4658a0`): Splitting the wheel-local `y` assignment drops 505→502 differences at 915 bytes; a volatile left-side read drops it further to 500. A separate volatile `wheelY` local makes the target's lhs-first x87 sequence and trailing `fstp st(0)` exact, reducing the candidate to 917/926 bytes and 360 differences. Removing `volatile` leaves 363 differences; a `register` hint emits identical bytes. Restored the measured 360-byte form. Focused file matcher: 10 marked, 1 NONMATCHING, no DIFF or compile failures.

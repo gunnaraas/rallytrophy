@@ -164,9 +164,9 @@ inline float ByteToUnitF(int b)
 
 // original: FUN_004658a0 (declared with PlayerSample*, the same packet seen from the player side)
 // NONMATCHING: RALLYTROPHY 0x4658a0
-// Semantics complete; 913 vs 926 bytes. Open: the scheduling of the body copies (the original loads Car+0x24 late),
-// `fld d` before `fmul` in the compression loop, the induction pointer of the hit arrays (original: Car+0x1e0c + n*12),
-// and the dead-looking `fld pos.y` / `fstp st(0)` pair around the local Vec3's y.
+// Semantics complete; 917 vs 926 bytes. Multiplying the spring length by the parenthesized normalized compression
+// byte matches the target's x87 multiply order. Open: scheduling of body copies (the original loads Car+0x24 late)
+// and the hit-array induction pointer (original: Car+0x1e0c + n*12).
 void Car::FUN_004658a0(PlayerSample* packet)
 {
     CarStateData* state = (CarStateData*)packet;
@@ -196,7 +196,7 @@ void Car::FUN_004658a0(PlayerSample* packet)
     int i;
     for (i = 0; i < 4; i++) {
         float d = V->spring[i].length;
-        V->wheel[i].pos[1] = V->wheel[i].topY - (float)state->compression[i] * 0.003921569f * d;
+        V->wheel[i].pos[1] = V->wheel[i].topY - d * ((float)state->compression[i] * 0.003921569f);
         V->wheel[i].spin = (float)state->spin[i] * 0.003921569f;
         V->spring[i].load = (float)state->load[i] * 0.003921569f;
         V->spring[i].travel = V->wheel[i].topY - V->wheel[i].pos[1];
@@ -208,7 +208,8 @@ void Car::FUN_004658a0(PlayerSample* packet)
         Vec3 local;
         *(int*)&local.x = *(int*)&w->pos[0];
         *(int*)&local.z = *(int*)&w->pos[2];
-        local.y = w->pos[1] - (V->rideB - t);
+        float wheelY = *(volatile float*)&w->pos[1];
+        local.y = wheelY - (V->rideB - t);
         Vec3 world;
         {
             const float* trans = V->body->position;

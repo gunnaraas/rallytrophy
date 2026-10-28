@@ -185,11 +185,9 @@ int GameScreen2DD4::Run(MenuGame* game)
 // Module end: guard-bit initialiser of the STL header statics and its atexit registration.
 
 // NONMATCHING: RALLYTROPHY 0x4267a0
-// original: FUN_004267a0. Same size and code except 54 bytes of scheduling in the title-print prologue: the original
-// loads DAT_00501458 after the text->color store (color in eax), VC6 here hoists the load above the stores (color in
-// ecx) and picks other temps for the DAT_0056b0ac loads. Tried statement order, !x, swapped arms, SetScale/SetColor;
-// a volatile title-mode read kept the size and diff count unchanged but changed store order; a named titleColor
-// temporary emitted identical bytes to baseline.
+// original: FUN_004267a0. A scaleX local plus a volatile read of the title color global reduces the mismatch 54→3 bytes.
+// The remaining 3-byte scheduling difference is before the scaleX store: target loads `esi` between `fld scaleX`
+// and `fadd`; VC6 emits `fadd`, loads the color global into eax, then loads `esi`. Plain PE disassembly observation.
 int GameScreen2DD4::Frame()
 {
     int done = 0;
@@ -320,8 +318,10 @@ int GameScreen2DD4::Frame()
             DAT_0056b0ac->vf38(0);
             game->FUN_00432a40();
             game->DrawVideo(1);
-            text->scaleX = DAT_0056aea8 * 2.0f;
-            text->color = DAT_00508bfc;
+            float titleScaleX = DAT_0056aea8 * 2.0f;
+            int titleColor = *(volatile const int*)&DAT_00508bfc;
+            text->scaleX = titleScaleX;
+            text->color = titleColor;
             text->scaleY = DAT_0056aeac * 2.0f;
             if (DAT_00501458 == 0) {
                 text->Print(DAT_0056b0ac, H1b_titleX * DAT_0056aea8, H1b_titleY * DAT_0056aeac, FUN_00405380(0x32), 0, 1.0f, 1.0f);

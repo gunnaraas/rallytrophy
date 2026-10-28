@@ -2119,7 +2119,7 @@ struct CarTextureView {
         } else { \
             node = (v)->spriteFree; \
             (v)->spriteFree = node->next; \
-            --(v)->spriteFreeCount; \
+            __asm dec dword ptr [esi+0xfd0] /* target: dec spriteFreeCount in place */ \
         } \
         tail = (v)->spriteTail; \
         node->data = (sprite); \
@@ -2135,9 +2135,8 @@ struct CarTextureView {
     } while (0)
 
 // NONMATCHING: RALLYTROPHY 0x463940
-// Built 3025 bytes against 2926. Frame, EH states, registers (esi = this, ebx/edi = 0) and the call sequence match;
-// the scheduling of the immediate stores into each new Sprite (0x18/0x1c/0x98/0x9c come after the free-list load
-// here) and of the list count update (the original keeps count and free count as plain load/inc and dec [mem]) differ.
+// Built 2983 bytes against 2926, 1773 differing bytes. Volatile stores at three flare sites plus the explicit
+// free-count DEC reduce the mismatch; target still differs in register/scheduling choices and sprite-list updates.
 // Loads the flare sprites, the light, window and overlay textures of the car from its data directory.
 void Car::LoadTextures(const std::string& dir)
 {
@@ -2154,7 +2153,8 @@ void Car::LoadTextures(const std::string& dir)
     s->texture = v->cache->Load(a.c_str(), 0x40);
     s->blendSrc = 2;
     s->blendDst = 2;
-    s->unk98 = 0xb;
+    // Preserve the target's immediate store before the sprite free-list check.
+    *(volatile int*)&s->unk98 = 0xb;
     s->unk9c = 2;
     s->color60[0] = 0;
     s->color60[1] = 0;
@@ -2174,7 +2174,7 @@ void Car::LoadTextures(const std::string& dir)
     s->texture = v->cache->Load(a.c_str(), 0x40);
     s->blendSrc = 2;
     s->blendDst = 2;
-    s->unk98 = 0xb;
+    *(volatile int*)&s->unk98 = 0xb;
     s->unk9c = 2;
     s->color60[0] = 0;
     s->color60[1] = 0;
@@ -2223,7 +2223,7 @@ void Car::LoadTextures(const std::string& dir)
     s->color60[1] = 0;
     s->color60[2] = 0;
     s->color60[3] = 0;
-    s->unk98 = 0xb;
+    *(volatile int*)&s->unk98 = 0xb;
     s->color40[0] = 1.0f;
     s->color40[1] = 1.0f;
     s->color40[2] = 1.0f;

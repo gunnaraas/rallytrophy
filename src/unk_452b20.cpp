@@ -112,7 +112,8 @@ struct F_CarView {
     { F_Vec* r = c->body->FUN_004204f0(&t, &w); (dst).x = r->x; (dst).y = r->y; (dst).z = r->z; }
 
 // NONMATCHING: RALLYTROPHY 0x452b20
-// 897 bytes, same size: only instruction scheduling of the FP copies differs (the original loads the call result before p.x).
+// 897 bytes, same size; volatile compound updates of p.x/p.z at lamp0 and p.x/p.y at lamp1 reduce 179→145 differing
+// bytes by constraining the FP/call-result schedule. Remaining component load/store scheduling differs.
 void Car::FUN_00452b20()
 {
     F_CarView* c = (F_CarView*)this;
@@ -128,13 +129,17 @@ void Car::FUN_00452b20()
     p.x = c->driverB.x;
     p.y = c->driverB.y;
     p.z = c->driverB.z;
-    p += c->lamp0;
+    *(volatile float*)&p.x += c->lamp0.x;
+    p.y += c->lamp0.y;
+    *(volatile float*)&p.z += c->lamp0.z;
     c->body->ToWorld(&w, &p);
     F_STORE(c->point2);
     p.x = c->driverA.x;
     p.y = c->driverA.y;
     p.z = c->driverA.z;
-    p += c->lamp1;
+    *(volatile float*)&p.x += c->lamp1.x;
+    *(volatile float*)&p.y += c->lamp1.y;
+    p.z += c->lamp1.z;
     c->body->ToWorld(&w, &p);
     F_STORE(c->point3);
 }
