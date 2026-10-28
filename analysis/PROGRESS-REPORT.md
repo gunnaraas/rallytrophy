@@ -15,12 +15,12 @@ _Updated 2026-10-28 by `tools/progress.py` (game code `0x401000`–`0x4bcfc6`)._
 
 | | Functions | Code bytes |
 |---|---|---|
-| Byte-exact | 1817 / 2084 (87.19%) | 331,685 / 742,258 (44.69%) |
-| Written, not yet exact | 267 | 410,573 |
-| Written in total | 2084 / 2084 (100.00%) | 742,258 / 742,258 (100.00%) |
+| Byte-exact | 1818 / 2084 (87.24%) | 332,349 / 742,276 (44.77%) |
+| Written, not yet exact | 266 | 409,927 |
+| Written in total | 2084 / 2084 (100.00%) | 742,276 / 742,276 (100.00%) |
 
 ```
-exact   █████████████░░░░░░░░░░░░░░░░░ 44.69% of code bytes
+exact   █████████████░░░░░░░░░░░░░░░░░ 44.77% of code bytes
 written ██████████████████████████████ 100.00% of code bytes
 ```
 
@@ -36,7 +36,7 @@ Progress by module (ranges in `analysis/modules.csv`):
 | Language / text table | `0x404d50`–`0x405580` | 13 / 13 / 13 | 100.0% | 100.0% | `████████████` |
 | Config files | `0x405580`–`0x409690` | 33 / 34 / 34 | 97.8% | 100.0% | `████████████` |
 | Stage scene and collision | `0x409690`–`0x420490` | 165 / 201 / 201 | 20.3% | 100.0% | `████████████` |
-| StageTable/control/credits screens | `0x420490`–`0x4266c0` | 28 / 39 / 39 | 13.3% | 100.0% | `████████████` |
+| StageTable/control/credits screens | `0x420490`–`0x4266c0` | 29 / 39 / 39 | 16.3% | 100.0% | `████████████` |
 | Mode select screen | `0x4266c0`–`0x427600` | 8 / 9 / 9 | 39.8% | 100.0% | `████████████` |
 | Game settings screen | `0x427600`–`0x4295c0` | 10 / 11 / 11 | 65.8% | 100.0% | `████████████` |
 | Graphics options screen | `0x4295c0`–`0x42c2b0` | 11 / 12 / 12 | 74.3% | 100.0% | `████████████` |

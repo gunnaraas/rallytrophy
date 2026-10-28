@@ -39,8 +39,7 @@ void SetCreditColors()
 }
 
 // original: FUN_004263f0 (flush the parsed line into the credit-line vector)
-// NONMATCHING: RALLYTROPHY 0x4263f0
-// Body is byte-exact; the CSV size (716) also covers the trailing _$E guard + atexit stub of 0x426690.
+// FUNCTION: RALLYTROPHY 0x4263f0
 void __stdcall FUN_004263f0()
 {
     CreditLine* line = new CreditLine;

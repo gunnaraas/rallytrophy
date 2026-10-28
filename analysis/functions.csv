@@ -355,7 +355,7 @@ entry,size,align16,thunk,source,calling_convention,name
 0x425e20,12,1,0,DEFAULT,__stdcall,"FUN_00425e20"
 0x425e50,1108,1,0,DEFAULT,__fastcall,"FUN_00425e50"
 0x4262b0,307,1,0,DEFAULT,__stdcall,"FUN_004262b0"
-0x4263f0,646,1,0,DEFAULT,__stdcall,"FUN_004263f0"
+0x4263f0,664,1,0,DEFAULT,__stdcall,"FUN_004263f0"
 0x4266c0,26,1,0,DEFAULT,__fastcall,"FUN_004266c0"
 0x4266e0,30,1,0,DEFAULT,__thiscall,"FUN_004266e0"
 0x426700,79,1,0,DEFAULT,__fastcall,"FUN_00426700"
