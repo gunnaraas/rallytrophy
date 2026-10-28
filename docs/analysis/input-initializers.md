@@ -114,12 +114,15 @@ The target also uses the one-space string at `0x4f2e40`; its terminating NUL
 and adjacent data are recorded in `ev_fc3abab171d4c5dca51f5f9aafa8205a4418fc642ae75efbded2d89ac88ea4dd`.
 
 The current source explicitly appends the text with `append(const char*, n)`,
-appends one space, and retains the empty-global append. This source shape emits
-1,533 bytes with 1,167 differing bytes outside relocations, improving on the
-initial 1,474-byte candidate with 1,191 differing bytes. An explicit append
-using the one-space length from `strlen` regressed to 1,580 bytes and 1,192
-differences, so that form was discarded. These are source-shape experiments;
-the function remains `NONMATCHING`, with stack layout, register assignment,
+appends the one-space literal with `names += " "`, and retains the empty-global
+append. This produces 1,500 bytes with 1,160 differing bytes outside relocations, improving
+on the previous `append(" ", 1)` form (1,533 bytes / 1,167 differences) and
+the initial 1,474-byte candidate (1,191 differences). An explicit append using
+a one-space length from `strlen` regressed to 1,580 bytes / 1,192 differences.
+Changing the text append to either `names += playerText` or
+`names.append(playerText)` regressed to 1,584 bytes / 1,183 differences. Changing
+the empty-global append from `+=` to `append` emitted the same 1,500 / 1,160
+candidate. The function remains `NONMATCHING`, with stack layout, register assignment,
 and several control-flow regions still unresolved. Adding explicit empty
 `PlayerDevices` constructor/destructor declarations did not change the emitted
 candidate. The target array allocation passes callbacks at `0x430700` and
@@ -130,5 +133,10 @@ respectively, so both were discarded. Moving the string declaration before
 the player allocation was also tested: initializing it from `""` produced
 1,559/1,171, while default initialization produced 1,479/1,185. Both were
 reverted. Default initialization after the allocation produced 1,484/1,186.
-Reordering the `i` and `total` declarations emitted the same candidate. These
-probes did not improve on the current 1,533/1,167 candidate.
+Reordering the `i` and `total` declarations emitted the same candidate. Those probes did not improve on the current 1,500/1,160 candidate.
+
+The local PE prologue observation at `0x495a75` shows the target reserves
+`0x80` stack bytes; the current object reserves `0x58`. Replacing the literal
+space append with the one-space string at `0x4f2e40` produced the same
+1,500-byte/1,160-difference candidate. The frame and object lifetimes remain
+the largest evidenced source-shape gap.

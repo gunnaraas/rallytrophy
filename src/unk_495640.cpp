@@ -536,7 +536,7 @@ int T_56b0b4::Init(int unused, int players)
         const char* playerText = FUN_00405380(0x94);
         names.append(playerText, strlen(playerText));
         total += strlen(FUN_00405380(0x94));
-        names.append(" ", 1);
+        names += " ";
         names += number;
         names += DAT_00569e6c;
         total += 3;

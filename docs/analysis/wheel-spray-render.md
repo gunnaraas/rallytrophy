@@ -46,6 +46,14 @@ observation).
 - Splitting the base V assignment into a store and copy retained four
   differences. Repeating the lookup expression for each store instead
   regressed to 1,221 bytes / 123 differences. Both probes were reverted.
+- Passing `depth` through a `const float&` alias did not change the four-byte
+  diff. Materializing a pointer to `depth` changed surrounding register order
+  and produced 11 differences. A volatile atlas accumulator produced 1,239
+  bytes / 314 differences.
+- A separate depth-bits local emitted the same 1,227-byte / four-difference
+  candidate. Reading the base U field through a volatile lvalue regressed to
+  1,224 bytes / 126 differences. These isolated probes did not move the
+  depth-argument load after the atlas `fadd`.
 
 The separate named accumulators are retained; the other probes were reverted.
 The focused matcher reports 12/12 marked functions
