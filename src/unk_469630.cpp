@@ -331,7 +331,8 @@ void Car::FUN_00469ea0(float k)
 // NONMATCHING: RALLYTROPHY 0x46a000
 // 511 vs 511 bytes. Identical except register choice: the original keeps the wheel pointer in ecx/memory and uses ebx for
 // the track-id test, the compiler here promotes the wheel pointer to ebx. A per-iteration EmitWheel* alias raises
-// the diff 55→62; an offset alias based at wheel.position expands it to 348. Both probes were reverted.
+// the diff 55→62; an offset alias based at wheel.position expands it to 348; a volatile pointer object gives 523/384.
+// All three probes were reverted.
 // Stamps a tyre mark for each wheel on a marked surface whose slip exceeds 2.5, or ends its mark.
 void Car::UpdateTyreTracks()
 {
@@ -364,9 +365,8 @@ void Car::UpdateTyreTracks()
 }
 
 // NONMATCHING: RALLYTROPHY 0x46a200
-// Same instruction stream apart from register choice: the original keeps -1 (the Color value and the
-// DrawRect/DrawQuad colour argument) in edi, base/gear texture in ebp/ebx and spills the needle texture
-// to the stack (frame 0x58 vs 0x50). Same unresolved -1 register issue as 0x484190 / 0x48e4c0.
+// Moving Color construction after the dimension reads and loading needles before gear reduces the diff from 136 to 95
+// bytes at the same 1,424-byte size. Frame/register allocation remains off; target keeps -1 in edi and uses a 0x58 frame.
 void Car::FUN_0046a200()
 {
     CarGaugeView* v = (CarGaugeView*)this;
@@ -379,16 +379,15 @@ void Car::FUN_0046a200()
     } else {
         base = v->textureA;
     }
-    int gear = TEX->gear;
     int needles = TEX->needles;
+    int gear = TEX->gear;
     Vec2 pos[4];
     Vec2 uv[4];
-    DWORD white = 0xffffffff;
-    Color color(white);
     int iw = DAT_0056b0ac->m_width;
     int ih = DAT_0056b0ac->m_height;
     float fw = (float)iw;
     float fh = (float)ih;
+    Color color(0xffffffff);
     float sx = fw / 1024.0f;
     float sy = fh / 768.0f;
     pos[0].x = pos[3].x = sx * v->x;

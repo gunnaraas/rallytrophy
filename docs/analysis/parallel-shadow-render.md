@@ -10,10 +10,12 @@ REA assembly evidence `ev_22c39413bccfaabbe1f4aa8d9d76264a62c41ae7fe9a4baad8d680
 shows the target interleaving call-setup pushes with sprite initialization
 stores on both the render-target and system-texture paths. The 715-byte
 candidate initially differed in 168 bytes. Making the `unk60` stores
-volatile reduced that to 162; making `unk40` stores volatile gave 165, and
-making `unk18`/`unk24` volatile gave 182. The 715-byte `unk60`-volatile
-candidate is retained, but the call-setup instruction schedule still differs
-and the function remains NONMATCHING.
+volatile reduced that to 162. Also making the `unk70` stores volatile reduces
+it to 131; adding volatile `unk40` stores to that form regresses to 155.
+Volatile `unk40` alone gave 165, and making `unk18`/`unk24` volatile gave
+182. The current 715-byte candidate keeps `unk60` and `unk70` volatile, but
+call-setup instruction scheduling still differs and the function remains
+NONMATCHING.
 
 ## `ParallelShadow::Prepare` (`0x470940`)
 

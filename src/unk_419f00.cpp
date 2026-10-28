@@ -236,11 +236,13 @@ void ColModel::BuildTree(int minTris)
 }
 
 // NONMATCHING: RALLYTROPHY 0x41b7f0
-// reason: only the flag-byte store is scheduled after the mesh lookup args instead of before (same bytes otherwise)
+// Volatile `o` plus the local alias moves the flag store ahead of the owner load and reproduces the target's EAX/LEA
+// owner+0x124 setup (23→22 differences). Only the EH-state zero remains scheduled before, rather than after, that setup.
 // SYMBOL: ??0ColHolder@@QAE@PAUColOwner@@H@Z
-ColHolder::ColHolder(ColOwner* o, int x) : flag(0)
+ColHolder::ColHolder(ColOwner* volatile o, int x) : flag(0)
 {
-    ColSrc* s = (ColSrc*)o->meshes.At(0);
+    ColOwner* owner = o;
+    ColSrc* s = (ColSrc*)owner->meshes.At(0);
     model.p = new ColModel(s, x);
     f[0] = s->f[0]; f[1] = s->f[1]; f[2] = s->f[2]; f[3] = s->f[3];
     f[4] = s->f[4]; f[5] = s->f[5]; f[6] = s->f[6]; f[7] = s->f[7];
@@ -249,11 +251,12 @@ ColHolder::ColHolder(ColOwner* o, int x) : flag(0)
 }
 
 // NONMATCHING: RALLYTROPHY 0x41b8c0
-// reason: only the flag-byte store is scheduled after the mesh lookup args instead of before (same bytes otherwise)
+// The volatile owner pointer plus local alias gives the same 23→22 improvement as the one-argument constructor.
 // SYMBOL: ??0ColHolder@@QAE@PAUColOwner@@HH@Z
-ColHolder::ColHolder(ColOwner* o, int a, int b) : flag(0)
+ColHolder::ColHolder(ColOwner* volatile o, int a, int b) : flag(0)
 {
-    ColSrc* s = (ColSrc*)o->meshes.At(0);
+    ColOwner* owner = o;
+    ColSrc* s = (ColSrc*)owner->meshes.At(0);
     model.p = new ColModel(s, a, b);
     f[0] = s->f[0]; f[1] = s->f[1]; f[2] = s->f[2]; f[3] = s->f[3];
     f[4] = s->f[4]; f[5] = s->f[5]; f[6] = s->f[6]; f[7] = s->f[7];

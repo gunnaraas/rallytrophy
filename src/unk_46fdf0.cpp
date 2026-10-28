@@ -523,9 +523,9 @@ ParallelShadow::~ParallelShadow()
 
 // original: FUN_00470610
 // NONMATCHING: RALLYTROPHY 0x470610
-// Same size (715); the best candidate has 162 differing bytes. Making only the unk60 stores volatile improves the
-// instruction schedule slightly, but VC6 still places call-setup pushes differently from the original's interleaving.
-// Making unk40 volatile or making unk18/unk24 volatile does not improve the best candidate.
+// Same size (715); the best candidate has 131 differing bytes. Volatile unk60 and unk70 stores move the call-setup
+// schedule closer to the target's interleaving. Adding volatile unk40 stores regresses to 155 differences; volatile
+// unk40 alone gives 165, and volatile unk18/unk24 gives 182.
 // Allocates the shadow texture: a render target when the device can draw into textures, else a texture
 // filled by the software rasteriser through a system-memory copy.
 void ParallelShadow::Create(ShadowEngine* engine, int size)
@@ -546,10 +546,10 @@ void ParallelShadow::Create(ShadowEngine* engine, int size)
         ((volatile Sprite*)&spriteA)->unk60[3] = 0;
         spriteA.unk18 = 1;
         spriteA.unk24 = 1;
-        spriteA.unk70[0] = 0;
-        spriteA.unk70[1] = 0;
-        spriteA.unk70[2] = 0;
-        spriteA.unk70[3] = 0;
+        ((volatile Sprite*)&spriteA)->unk70[0] = 0;
+        ((volatile Sprite*)&spriteA)->unk70[1] = 0;
+        ((volatile Sprite*)&spriteA)->unk70[2] = 0;
+        ((volatile Sprite*)&spriteA)->unk70[3] = 0;
         spriteA.unk1c = 3;
         spriteA.unk20 = 7;
         spriteA.unk9c = 0xe;
@@ -575,10 +575,10 @@ void ParallelShadow::Create(ShadowEngine* engine, int size)
         spriteA.unk60[3] = 0;
         spriteA.unk18 = 1;
         spriteA.unk24 = 1;
-        spriteA.unk70[0] = 0;
-        spriteA.unk70[1] = 0;
-        spriteA.unk70[2] = 0;
-        spriteA.unk70[3] = 0;
+        ((volatile Sprite*)&spriteA)->unk70[0] = 0;
+        ((volatile Sprite*)&spriteA)->unk70[1] = 0;
+        ((volatile Sprite*)&spriteA)->unk70[2] = 0;
+        ((volatile Sprite*)&spriteA)->unk70[3] = 0;
         spriteA.unk1c = 3;
         spriteA.unk20 = 7;
         spriteA.unk9c = 0xe;
