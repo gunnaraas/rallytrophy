@@ -211,6 +211,7 @@ int SoundMenu::Run(MenuGame* game, NetRace* net_)
 // Everything but the draw loop matches (prologue, input handling, cursor placement, tail). In the loop VC6 hoists the
 // (1, 1) object's stores out of the loop (the original keeps them inside), puts it and the GetScale copy in swapped
 // frame slots (0x44/0x4c), and the scaled constants come out `fld mem; fmul const` instead of `fld const; fmul mem`.
+// Bounded objcmp: 1968-byte COFF span vs 1915-byte inventory, 407 differences. Probes: docs/analysis/sound-menu-frame.md.
 int SoundMenu::Frame()
 {
     int done = 0;

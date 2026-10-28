@@ -40,6 +40,7 @@ matching maps, compiler notes, and the active work queue are under
   [suspension setters](analysis/car-suspension-setter.md),
   [drivetrain gear selection](analysis/drivetrain-select-gear.md),
   [skid-mark rendering](analysis/skid-render.md),
+  [skid-mark construction](analysis/skid-mark-constructor.md),
   [car environment-map drawing](analysis/car-environment-map-draw.md),
   [car rain setup](analysis/car-rain-setup.md),
   [particle emitter rendering](analysis/car-emitter-b-render.md),

@@ -18,8 +18,9 @@ void SkidMarks::SetQuality(int q)
 }
 
 // NONMATCHING: RALLYTROPHY 0x4741a0
-// 561 of 696 bytes: the fill loop's induction pointer sits at the 2nd-referenced field (v1.color here, v0.position.y in
-// the original) so every offset differs, and the inline std::string assign keeps its three duplicated epilogues there.
+// 594 of 696 bytes: initialization matches through the string assignment prefix.
+// The original expands string cleanup with three separate constructor epilogues;
+// VC6 currently emits one cleanup call and merges the return paths.
 SkidMarks::SkidMarks()
 {
     int q = DAT_00501428;
@@ -37,28 +38,28 @@ SkidMarks::SkidMarks()
     lastLength = 0;
     id = 0;
     unk8 = 0;
-    for (int i = 0; i < 128; i++) {
-        EffectVertex* v = seg[i].v;
-        v[0].color = -1;
-        v[1].color = -1;
-        v[2].color = -1;
-        v[3].color = -1;
-        v[0].position.x = v[0].position.y = v[0].position.z = 0;
-        v[0].normal.x = v[0].normal.y = v[0].normal.z = 0;
-        v[1].position.x = v[1].position.y = v[1].position.z = 0;
-        v[1].normal.x = v[1].normal.y = v[1].normal.z = 0;
-        v[2].position.x = v[2].position.y = v[2].position.z = 0;
-        v[2].normal.x = v[2].normal.y = v[2].normal.z = 0;
-        v[3].position.x = v[3].position.y = v[3].position.z = 0;
-        v[3].normal.x = v[3].normal.y = v[3].normal.z = 0;
-        v[0].u = v[0].v = 1.0f;
-        v[0].u2 = v[0].v2 = 0;
-        v[1].u = v[1].v = 0;
-        v[1].u2 = v[1].v2 = 0;
-        v[2].u = v[2].v = 0;
-        v[2].u2 = v[2].v2 = 0;
-        v[3].u = v[3].v = 1.0f;
-        v[3].u2 = v[3].v2 = 0;
+    BYTE* mark = (BYTE*)seg + 0x1c;
+    for (int i = 0; i < 128; i++, mark += sizeof(SkidSeg)) {
+        *(DWORD*)(mark + 0x14) = -1;
+        *(DWORD*)(mark + 0x40) = -1;
+        *(DWORD*)(mark + 0x6c) = -1;
+        *(DWORD*)(mark + 0x98) = -1;
+        *(float*)(mark - 0x4) = *(float*)(mark + 0x0) = *(float*)(mark + 0x4) = 0;
+        *(float*)(mark + 0x8) = *(float*)(mark + 0xc) = *(float*)(mark + 0x10) = 0;
+        *(float*)(mark + 0x28) = *(float*)(mark + 0x2c) = *(float*)(mark + 0x30) = 0;
+        *(float*)(mark + 0x34) = *(float*)(mark + 0x38) = *(float*)(mark + 0x3c) = 0;
+        *(float*)(mark + 0x54) = *(float*)(mark + 0x58) = *(float*)(mark + 0x5c) = 0;
+        *(float*)(mark + 0x60) = *(float*)(mark + 0x64) = *(float*)(mark + 0x68) = 0;
+        *(float*)(mark + 0x80) = *(float*)(mark + 0x84) = *(float*)(mark + 0x88) = 0;
+        *(float*)(mark + 0x8c) = *(float*)(mark + 0x90) = *(float*)(mark + 0x94) = 0;
+        *(float*)(mark + 0x18) = *(float*)(mark + 0x1c) = 1.0f;
+        *(float*)(mark + 0x20) = *(float*)(mark + 0x24) = 0;
+        *(float*)(mark + 0x44) = *(float*)(mark + 0x48) = 0;
+        *(float*)(mark + 0x4c) = *(float*)(mark + 0x50) = 0;
+        *(float*)(mark + 0x70) = *(float*)(mark + 0x74) = 0;
+        *(float*)(mark + 0x78) = *(float*)(mark + 0x7c) = 0;
+        *(float*)(mark + 0x9c) = *(float*)(mark + 0xa0) = 1.0f;
+        *(float*)(mark + 0xa4) = *(float*)(mark + 0xa8) = 0;
     }
     flags &= 0xfc;
     SetFlag04(1);

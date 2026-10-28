@@ -344,23 +344,36 @@ int Screen1378::Frame()
 }
 
 // NONMATCHING: RALLYTROPHY 0x43ad80
-// Reconstructs the unk24 quads and appends two hit regions; exact renderer state
-// setup and quad arguments still need byte-level tuning.
+// 532/532 bytes, 15 differences: second-panel coordinate stores versus material loads.
+// Draws two textured panels; the separate Layout function builds hit boxes.
 void Screen1378::BuildRects()
 {
-    float sx = DAT_0056aea8;
-    float sy = DAT_0056aeac;
-    float x0 = 0.0f * sx;
-    float y0 = 0.0f * sy;
-    float x1 = 1024.0f * sx;
-    float y1 = 768.0f * sy;
-
-    UIRect* r = new UIRect(HudPoint(), HudPoint());
-    r->left = x0; r->top = y0; r->right = x1; r->bottom = y1; r->enabled = 1;
-    m_items.push_back(r);
-    r = new UIRect(HudPoint(), HudPoint());
-    r->left = x0; r->top = y0; r->right = x1; r->bottom = y1; r->enabled = 1;
-    m_items.push_back(r);
+    HudPoint uv[4];
+    HudPoint pos[4];
+    Color white;
+    float x = DAT_0056aea8 * 47.0f;
+    float y = DAT_0056aeac * 355.0f;
+    uv[0].x = uv[3].x = 0.0f;
+    uv[0].y = uv[1].y = 0.0f;
+    uv[1].x = uv[2].x = 1.0f;
+    uv[2].y = uv[3].y = 1.0f;
+    pos[0].x = pos[3].x = x;
+    pos[0].y = pos[1].y = y;
+    pos[1].x = pos[2].x = DAT_0056aea8 * 896.0f + x;
+    pos[2].y = pos[3].y = DAT_0056aeac * 256.0f + y;
+    white.value = -1;
+    DAT_0056b0ac->vf35(unk24);
+    ((RaceDeviceSlots*)DAT_0056b0ac)->DrawQuad((Vec2*)pos, (Vec2*)uv, white, 1.0f, 1.0f);
+    float w = DAT_0056aea8 * 512.0f;
+    float h = DAT_0056aeac * 256.0f;
+    float x2 = DAT_0056aea8 * 432.0f;
+    float y2 = DAT_0056aeac * 205.0f;
+    pos[0].x = pos[3].x = x2;
+    pos[0].y = pos[1].y = y2;
+    pos[1].x = pos[2].x = w + x2;
+    pos[2].y = pos[3].y = h + y2;
+    DAT_0056b0ac->vf35(unk28);
+    ((RaceDeviceSlots*)DAT_0056b0ac)->DrawQuad((Vec2*)pos, (Vec2*)uv, white, 1.0f, 1.0f);
 }
 
 struct LL_Point {
