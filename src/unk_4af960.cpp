@@ -9,21 +9,38 @@ static __forceinline const std::string& Name(File* f) { return ((BmfFileName*)f)
 #define WORD(p,n) (((unsigned int*)(p))[n])
 #define FLOAT(p,n) (((float*)(p))[n])
 
+// std::string built from a C string in one class: _Tidy (0x402700) and assign(s, n) (0x404ba0) as calls, the
+// object's cleanup state set after the assign returns.
+struct BmfDirString {
+    BmfDirString(const char* s, const std::allocator<char>& a = std::allocator<char>()) : alloc(a)
+    {
+        Tidy(false);
+        AssignText(s, strlen(s));
+    }
+    ~BmfDirString() { ((std::string*)this)->~basic_string(); }
+    void Tidy(bool built);                       // 0x402700
+    void AssignText(const char*, unsigned int);  // 0x404ba0
+    void Append(unsigned int, char);             // 0x408d10
+    std::string& Str() { return *(std::string*)this; }
+    std::allocator<char> alloc;
+    char* ptr;
+    unsigned int size, capacity;
+};
 // NONMATCHING: RALLYTROPHY 0x4af950
-// String construction EH-state placement and initialization instruction scheduling differ (1227 bytes).
+// 1227/1227 bytes, 29 differ: the original schedules `push edx; mov ecx,ebp` and the cleanup-state 7 store of the
+// path assign between the b and c zero stores; every statement order and a call-after-stores form were tried.
 BmfReader::BmfReader(const char* filename, const char* dir, BmfTextures* cache, List<Sprite*>* mats, int flags)
 {
+    DAT_0057b95c = flags;
     a.x = a.y = a.z = 0;
     b.x = b.y = b.z = 0;
     c.x = c.y = c.z = 0;
     enabled = true;
-    DAT_0057b95c = flags;
     path.AssignText(dir, strlen(dir));
-    materials = mats;
     textures = cache;
+    materials = mats;
     File file(filename, 0x81);
-    BmfString directory;
-    directory.AssignText(dir, strlen(dir));
+    BmfDirString directory(dir);
     if (!directory.Str().empty() && directory.Str()[directory.Str().size()-1] != '/')
         directory.Append(1, '/');
     ModelNamedValue* chunk = FUN_004af560(&file);

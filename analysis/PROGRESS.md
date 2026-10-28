@@ -32,11 +32,27 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Log
 
+- 2026-10-27 (Claude loop, `BmfReader::BmfReader` 0x4af950): 56 → 29 differing bytes (1227/1227). The directory string is a one-class `(const char*)` constructor twin (`_Tidy` call, strlen, assign call, cleanup state after the assign) and the `textures`/`materials` stores follow the swapped source order. Left: the scheduler's interleave of the zero stores with the path-assign call setup.
+
 - 2026-10-27 (Claude loop, `Stage::Stage` 0x40c9b0): 8202/5694 → 8451/5770 with the call sequence now identical to the original (217 calls). The collision-mesh error paths call the empty logger (0x402c90) and the stage module's printf-style string replace (0x414550) through a `StMsg` twin, throw a `StLogicError` twin (exception("") out of line, message copied by assign); the degenerate-triangle log call was missing; the AI path is the fully expanded string flavour (`StPathFull`: inline assign with the buffer-sharing branch, `_Grow` inline around `_Copy`/`_Tidy`/`_Eos` calls, `_Nullstr` out of line).
 
 - 2026-10-27 (Codex, `Stage::Stage` 0x40c9b0): Audited the new error-path reconstruction against the PE: logger and format strings, `0x414550` formatting, exception-string assignment, and throw helper match the target's observed call structure. Updated `docs/analysis/stage-constructor.md`; function remains NONMATCHING at 8,451/8,656 bytes and 5,770 differing bytes.
 
 - 2026-10-27 (Codex, `StageGrid::FillCells` 0x40f390): Reversing the `gy`/`gx` declarations left VC6 output unchanged at 2,391/2,340 bytes, 2,153 differing bytes, instruction delta 197. Restored declaration order; findings added to `docs/analysis/stage-grid-fill.md`.
+
+- 2026-10-27 (Codex, `ServiceMenu::Init` 0x4470a0): Target increments its stage parameter before computing the stage-name base and again at loop tail. Explicit parameter-induction probes regressed to 1,752–1,758 differences; splitting the stage-index expression changed no code. All probes were reverted; baseline remains 2,806/2,806 bytes, 65 differences, instruction delta 0. Details: `analysis/range-445e80.md`.
+
+- 2026-10-27 (Codex, `ServiceMenu::Init` 0x4470a0): Moving the initialized text buffer before the double temporary worsened the diff to 103 bytes. An uninitialized early declaration with `memcpy` at the original use point emitted baseline code; both probes were reverted. Focused module remains 16 exact-marked / six NONMATCHING. Findings: `analysis/range-445e80.md`.
+
+- 2026-10-27 (Codex, `ServiceMenu::Init` 0x4470a0): A count-guarded preincrement with the existing `i` loop preserved semantics but regressed to 2,802 bytes / 1,787 differences / instruction delta 65; reverted. Baseline remains unchanged; details in `analysis/range-445e80.md`.
+
+- 2026-10-27 (Codex, `ServiceMenu::Init` 0x4470a0): Moving the uninitialized text buffer to function scope and copying its literal at the original point emitted unchanged baseline code (2,806 bytes / 65 differences). Reverted; stack-slot mismatch remains open.
+
+- 2026-10-27 (Codex, `ServiceMenu::Init` 0x4470a0): Read-only audit confirms the text local is a plain five-byte char array with no cleanup state; PE bytes do not establish its lexical scope. No supported source change remains for this slot hypothesis; findings are in `analysis/range-445e80.md`.
+
+- 2026-10-27 (Codex, `ServiceMenu::ServiceMenu` 0x445e80): Moving the four zero stores after two or three sprite macros worsened the diff to 480/481 bytes; a volatile `m_selected` store gave 471 versus the 469-byte baseline. Reverted all; module check remains 16 exact-marked / six NONMATCHING. Details: `analysis/range-445e80.md`.
+
+- 2026-10-27 (Codex, `ServiceMenu::DrawInfo` 0x448f80): Read-only review confirms the six-byte tail shift and EBP/EDI pointer-register difference; roughly 20 relevant variants are already documented. No new source hypothesis was found. Findings: `analysis/range-445e80.md`.
 
 - 2026-10-27 (Claude loop, `Stage::Stage` 0x40c9b0): 8487/5808 → 8202/5694. Function-scope path strings as `StPath` twins (out-of-line dtor 0x430720, copy ctor reading npos at the assign call) and an `StPathLate` twin for the collision-model path (inline `_Tidy`, appends expanded with `_Xlen`/`_Grow`); the loading-label pointer is read at the `SetText` call; `NameOf` inlined; the light branch nested as `if (x != 1) {...} else {push_back}`; the sign tails duplicated per branch; all push_backs through a declared-only `insert(end(), 1, x)` twin (0x4bc680). Call sequence now identical through the grid.
 
