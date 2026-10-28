@@ -58,6 +58,16 @@ Functions:
 - **0x464ea0 `bool MirrorVisible(Object* o)`** (stdcall-style `ret 4`, no frame): `if (DAT_00501308 && DAT_0050146c && !(o->flags[+0xc] & 3)) return SkidFrustum(0x508f68).Test(o+0xa0 (sphere), o+0x60)` (0x4ba830). Caller: 0x469655 (Car render 0x469630). DAT_00501308 (mirror enabled option, guess), DAT_0050146c (header unk_481390.h calls it replay speed; the use here suggests it is the mirror/view flag too - guess, check).
 - **0x464ef0 `Car::RenderMirror(float dt)`** (thiscall, `ret 4`, SEH EH 0x4db998, `ebp` frame, FPU, 1230 B). Skipped if DAT_00501308 == 0. Same camera build as 0x464c10, then: renderer slot 0x84(14,1); `0x48e660()` (shared empty ret); `Stage::FUN_00411170(&ViewManager, &DrawContext)` (0x411170); copies Stage fields into the DrawContext statics (0x5093c4..0x5093e0 from stage+0x1a8..0x1cc; stage+0x1a4 only if DAT_00501434); RaceMode (global 0x501450) virtual **slot 22 (+0x58)**(ctx, view, car); `DrawContext::0x4b8310(0)`; converts the Vec2 constants to an integer viewport (`fistp`, x = 0x56aea8*0x5093f0, y = 0x56aeac*0x5093f4, w = 0x5093e8*0x56aea8, h = 0x5093ec*0x56aeac); renderer 0x3c GetViewport (save), 0x38 SetViewport(mirror), slot 0x60(2), 0x84(1,1), 0xc0, 0xcc; `DrawContext::0x4b7c80(device, view)`; RaceMode slot 23 (+0x5c); `Stage::0x411350(device, view)`; `DrawContext::0x4b8160(device, view)`; RaceMode slot 24 (+0x60); renderer 0x84(1,1); `RaceMode::0x488880(&view)`; 0x80(3); `Stage::0x411460(device, view, ctx, 0)`; 0x80(3); then restores states 0x84(0,14), 0x84(2,1), SetViewport(saved), 0x84(0,13). Caller 0x49415f. (This is the draw order of the main view with a different viewport and mirrored camera; names guess.)
 
+Plain PE/object observations (`objcmp`) for `0x464ef0`: reordering the
+independent Stage-to-context stores to read `stage+0x1c8` and `stage+0x1cc`
+before `stage+0x1a8` removed the 10-byte register-order hunk (15→13 differing
+bytes). A body-pointer alias and an explicit `body + 0x60` float pointer kept
+the remaining mismatch. The exact source shape evaluates the eye-height term
+through `car->body->m0[17]` before declaring `matrix = car->body->m0`; this
+reproduces the target's in-place `add eax,0x60` schedule. `objcmp` confirms the
+complete 1,230-byte function and all 108 relocations match. Focused file check:
+26 exact-marked, one `NONMATCHING`, no DIFF or compile failures.
+
 ## 2. F3: replay glue and network state packing, 0x4654f0 - 0x465e5f
 
 Embedded object at **Car+0x1bed0**: a replay/ghost **recorder** (methods 0x401380 `Start(mode)` (mode 1 calls `0x401880` and clears +0x24, stores mode in recorder+0x28 = Car+0x1bef8), 0x4013b0 `Stop()` (`[this+0x28]=0`), 0x4013c0 per-frame `Update(Car*)` (reads `car+0x1becc` Player*), 0x401920 `Save(name)` (uses 0x4a4d40 File), 0x401a40 `Load(name)`). The recorder in turn calls `Car::GetState` (0x401412) and `Car::SetState` (0x40147e). `Car+0x1befc` is the Car-side mode word (0 = off, 1 = record, 2 = play/ghost; same word `state` in unk_4666a0.h "2 = no random sounds").

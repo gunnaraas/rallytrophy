@@ -141,9 +141,9 @@ int MirrorCar::CanSee(MirrorObject* object)
     return visible;
 }
 
-// NONMATCHING: RALLYTROPHY 0x464ef0
-// Same size (1230), 15 differing bytes: the in-place `add eax,0x60` matrix pointer as in 0x464c10, and the
-// register choice (ecx/edx swapped) of the Stage-to-DrawContext copy block; the rest is identical.
+// FUNCTION: RALLYTROPHY 0x464ef0
+// Reusing the member expression for eye height before declaring the matrix pointer reproduces the original's
+// in-place `add eax,0x60` schedule. Exact 1230-byte match, 108 relocations.
 void Car::FUN_00464ef0(float dt)
 {
     MirrorCar* car = (MirrorCar*)this;
@@ -155,8 +155,8 @@ void Car::FUN_00464ef0(float dt)
     s_view.farPlane = 100.0f;
     Vec3 eye = car->body->unkb8;
     eye.z = car->body->unkb4;
+    eye.y = car->body->unkb0 * 0.85f + car->body->m0[17] * 0.15f;
     const float* matrix = car->body->m0;
-    eye.y = car->body->unkb0 * 0.85f + matrix[17] * 0.15f;
     const float* point = (const float*)&eye;
     float* result = s_view.pos;
     MIRROR_TRANSFORM();
@@ -186,10 +186,10 @@ void Car::FUN_00464ef0(float dt)
     MirrorContext* ctx = (MirrorContext*)&s_context;
     ctx->unk188 = stage->unk1c4;
     ctx->unk188 = stage->unk1c4;
-    ctx->unk174 = stage->unk1a8;
     ctx->unk180 = PassFloat(stage->unk1b4);
-    ctx->unk190 = stage->unk1cc;
     ctx->unk18c = stage->unk1c8;
+    ctx->unk190 = stage->unk1cc;
+    ctx->unk174 = stage->unk1a8;
     ctx->unk178 = stage->unk1ac;
     ctx->unk17c = stage->unk1b0;
     ctx->unk184 = DAT_00501434 ? stage->unk1a4 : 0;

@@ -6,7 +6,7 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Status
 
-- Marker inventory: 1812/2084 byte-exact (86.95%); 2084/2084 functions written (100.00%), from `tools/progress.py`.
+- Marker inventory: 1814/2084 byte-exact (87.04%); 2084/2084 functions written (100.00%), from `tools/progress.py`.
 - Game code: about 1,690 functions in `0x401000`–`0x4bcfc6`
 
 ## Queue
@@ -31,6 +31,8 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 
 ## Log
+
+- 2026-10-27 (Codex, `Car::FUN_00464ef0` `0x464ef0`): Exact 1,230-byte match with 108 relocations. Evaluating the eye-height term via `car->body->m0[17]` before declaring the matrix alias reproduces the target’s in-place matrix-pointer update. Focused mirror file: 26 exact-marked, one NONMATCHING, no DIFF or compile failures; details in `analysis/range-4649f0.md`.
 
 - 2026-10-27 (Claude loop, `Stage::FUN_00417540` 0x417540): 2234 → 2256 of 2332 bytes; cleanup states now match (nine empty-destructor vector locals declared in the original's order, a 16-byte sphere object, a plain-struct return for the direction scale), the record lerp is `pos = r[3..5]; pos -= r[0..2]; pos *= t; pos += r[0..2]`, the hit box is written through the trace object. Register allocation remains.
 

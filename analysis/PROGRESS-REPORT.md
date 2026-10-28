@@ -15,12 +15,12 @@ _Updated 2026-10-27 by `tools/progress.py` (game code `0x401000`–`0x4bcfc6`)._
 
 | | Functions | Code bytes |
 |---|---|---|
-| Byte-exact | 1813 / 2084 (87.00%) | 328,314 / 742,268 (44.23%) |
-| Written, not yet exact | 271 | 413,954 |
+| Byte-exact | 1814 / 2084 (87.04%) | 329,544 / 742,268 (44.40%) |
+| Written, not yet exact | 270 | 412,724 |
 | Written in total | 2084 / 2084 (100.00%) | 742,268 / 742,268 (100.00%) |
 
 ```
-exact   █████████████░░░░░░░░░░░░░░░░░ 44.23% of code bytes
+exact   █████████████░░░░░░░░░░░░░░░░░ 44.40% of code bytes
 written ██████████████████████████████ 100.00% of code bytes
 ```
 
@@ -68,7 +68,7 @@ Progress by module (ranges in `analysis/modules.csv`):
 | Car sun factor | `0x45dac0`–`0x45de90` | 2 / 3 / 3 | 3.9% | 100.0% | `████████████` |
 | Car lights update | `0x45de90`–`0x45e480` | 3 / 3 / 3 | 100.0% | 100.0% | `████████████` |
 | Car constructor file | `0x45e480`–`0x464ab0` | 20 / 24 / 24 | 10.0% | 100.0% | `████████████` |
-| Rear-view mirror | `0x464ab0`–`0x4654c0` | 25 / 27 / 27 | 21.4% | 100.0% | `████████████` |
+| Rear-view mirror | `0x464ab0`–`0x4654c0` | 26 / 27 / 27 | 72.9% | 100.0% | `████████████` |
 | Car replay and network state | `0x4654c0`–`0x465e90` | 12 / 13 / 13 | 61.4% | 100.0% | `████████████` |
 | Car setup | `0x465e90`–`0x4666a0` | 6 / 7 / 7 | 18.6% | 100.0% | `████████████` |
 | Car sounds | `0x4666a0`–`0x468720` | 9 / 11 / 11 | 22.4% | 100.0% | `████████████` |
