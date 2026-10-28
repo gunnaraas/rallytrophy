@@ -243,13 +243,14 @@ void Wheel::LoadModel(const char* name)
 
 static inline float WrapAngle(float x) { return (float)fmod(x, 6.2831854820251465); }
 
-// NONMATCHING: RALLYTROPHY 0x46c550
-// 352/352 bytes, 9 differ: the inline helper's parameter homing reproduces the pre-fmod stores; only the final
-// pair is swapped (target stores `a` before `angle`). Tried `a = ...; angle = a`, `angle = (a = ...)` (lose the homing).
+// FUNCTION: RALLYTROPHY 0x46c550
+// The volatile pre-fmod store and nested result assignment preserve the target store order; see
+// docs/analysis/wheel-spin-matrix.md.
 void Wheel::UpdateSpinMatrix(float dt)
 {
-    angle = dt * spin + angle;
-    float a = (angle = WrapAngle(angle));
+    *(volatile float*)&angle = dt * spin + angle;
+    float a;
+    angle = (a = WrapAngle(angle));
     RawMatrix steerMatrix;
     RawMatrix spinMatrix;
     steerMatrix.SetIdentity();

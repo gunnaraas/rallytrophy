@@ -15,12 +15,12 @@ _Updated 2026-10-27 by `tools/progress.py` (game code `0x401000`–`0x4bcfc6`)._
 
 | | Functions | Code bytes |
 |---|---|---|
-| Byte-exact | 1810 / 2084 (86.85%) | 324,947 / 742,268 (43.78%) |
-| Written, not yet exact | 274 | 417,321 |
+| Byte-exact | 1811 / 2084 (86.90%) | 325,299 / 742,268 (43.83%) |
+| Written, not yet exact | 273 | 416,969 |
 | Written in total | 2084 / 2084 (100.00%) | 742,268 / 742,268 (100.00%) |
 
 ```
-exact   █████████████░░░░░░░░░░░░░░░░░ 43.78% of code bytes
+exact   █████████████░░░░░░░░░░░░░░░░░ 43.83% of code bytes
 written ██████████████████████████████ 100.00% of code bytes
 ```
 
@@ -77,7 +77,7 @@ Progress by module (ranges in `analysis/modules.csv`):
 | Car render and effects | `0x469630`–`0x46a8a0` | 10 / 13 / 13 | 36.5% | 100.0% | `████████████` |
 | Drivetrain | `0x46a8a0`–`0x46bb90` | 23 / 23 / 23 | 100.0% | 100.0% | `████████████` |
 | Car snapshots | `0x46bb90`–`0x46c2c0` | 7 / 7 / 7 | 100.0% | 100.0% | `████████████` |
-| Wheel and tyre forces | `0x46c2c0`–`0x46d720` | 8 / 11 / 11 | 17.5% | 100.0% | `████████████` |
+| Wheel and tyre forces | `0x46c2c0`–`0x46d720` | 9 / 11 / 11 | 24.4% | 100.0% | `████████████` |
 | Spring follower | `0x46d720`–`0x46d830` | 5 / 5 / 5 | 100.0% | 100.0% | `████████████` |
 | Car rain | `0x46d830`–`0x46e850` | 6 / 9 / 9 | 23.8% | 100.0% | `████████████` |
 | Car light glows | `0x46e850`–`0x46eec0` | 12 / 13 / 13 | 28.5% | 100.0% | `████████████` |

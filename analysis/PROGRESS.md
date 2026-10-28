@@ -6,7 +6,7 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Status
 
-- Marker inventory: 1810/2084 byte-exact (86.85%); 2084/2084 functions written (100.00%), from `tools/progress.py`.
+- Marker inventory: 1811/2084 byte-exact (86.90%); 2084/2084 functions written (100.00%), from `tools/progress.py`.
 - Game code: about 1,690 functions in `0x401000`–`0x4bcfc6`
 
 ## Queue
@@ -31,6 +31,8 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 
 ## Log
+
+- 2026-10-27 (Codex, `Wheel::UpdateSpinMatrix` `0x46c550`): A volatile pre-wrap angle store plus nested result assignment matches the target's final store order; exact 352-byte body with 10 relocation fields. Full matcher: 1,811 exact / 273 NONMATCHING / zero DIFF and compile failures. Disassembly observations and rejected forms: `../docs/analysis/wheel-spin-matrix.md`.
 
 - 2026-10-27 (Codex, `Car::LoadTiresIni` `0x4634e0`): Typed `TyreF3*` stores reproduce the final config-address scheduling move; exact 1,115-byte match with 62 relocation fields. Full matcher: 1,810 exact / 274 NONMATCHING / zero DIFF and compile failures. Evidence and rejected source forms: `../docs/analysis/tire-config-loader.md`.
 
