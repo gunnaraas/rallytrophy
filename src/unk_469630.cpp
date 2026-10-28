@@ -330,7 +330,8 @@ void Car::FUN_00469ea0(float k)
 
 // NONMATCHING: RALLYTROPHY 0x46a000
 // 511 vs 511 bytes. Identical except register choice: the original keeps the wheel pointer in ecx/memory and uses ebx for
-// the track-id test, the compiler here promotes the wheel pointer to ebx.
+// the track-id test, the compiler here promotes the wheel pointer to ebx. A per-iteration EmitWheel* alias raises
+// the diff 55→62; an offset alias based at wheel.position expands it to 348. Both probes were reverted.
 // Stamps a tyre mark for each wheel on a marked surface whose slip exceeds 2.5, or ends its mark.
 void Car::UpdateTyreTracks()
 {

@@ -32,6 +32,22 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Log
 
+- 2026-10-28 (Codex, `StageSoundLoader::LoadSounds` `0x415370`): A `LoadSoundsPath` stand-in for `base` pins its copy constructor to `_Tidy`/`assign(string,0,npos)`, initial appends to `0x403ba0`, later literal assigns to `_Grow`/inline `_Eos`, and `base += *name` to `0x408ef0`. A direct C-string stand-in for `path` matches its observed `_Tidy`, `0x404ba0` assign, and `0x403ba0` append calls. Together the body improves from 3443/2284 to 3302/2145 (bytes/differences). An earlier `path` helper accepted `std::string`, materialized a temporary from `GetString()` and regressed to 3554/2367; reverted. A stand-in for `fx` emits the same bytes as `std::string`, so it was reverted; an explicit register-qualified `self` alias regresses to 3394/2219, and an explicit `std::string` cast for `base + fx` regresses to 3439/2248. Separate event-offset loop forms measured 3394/2219 (ordinary offset) and 3414/2131 (volatile offset); neither reproduced the target loop register schedule, so both were reverted. Local PE disassembly observations; no REA export used.
+
+- 2026-10-28 (Codex, `Car::UpdateTyreTracks` `0x46a000`): A per-iteration wheel pointer alias changes the 511-byte candidate from 55 to 62 differing bytes. An alias based at the target-observed `wheel.position` address, with contact/slip accessed at `+0x284/+0x280`, expands the candidate to 513 bytes / 348 differences. Reverted both; no further pointer-shape probe without new register-allocation evidence.
+
+- 2026-10-28 (Codex, `ReplayFiles::SaveReplay` `0x404100`): A local result variable and an explicit scope for the path string both retain the original 465-byte candidate / 44 differing bytes. A volatile result grows it to 473 bytes / 73 differences. Reverted; the shared-epilogue scheduling mismatch remains.
+
+- 2026-10-28 (Codex, image writer `0x4ac730`): Reversing the pixel-count accumulator (`height` then `*= width`) and using `height * width` directly both preserve the 488-byte body and its 10 differing bytes; explicit width/height locals grow it to 492 bytes / 201 differences, and a volatile height read grows it to 492 bytes / 200 differences. Reverted all variants. The target uses height in EAX then multiplies by width, while VC6 keeps choosing width in EAX for these source forms.
+
+- 2026-10-28 (Codex, `ReplayMenu::DrawField` `0x44c580`): A volatile local copy of `m_game` forces the pointer read through a stack slot, growing the body 2554→2562 bytes and expanding the diff from 13 to 1081 bytes. Reverted; focused replay-menu check remains clean. This does not support using a volatile pointer to delay the Game load.
+
+- 2026-10-28 (Codex, `ReplayMenu::Setup` `0x44ba30`): Reversing the second label's x/y assignment order to mirror the target's stores increased the diff 8→11 bytes; reverted. The 452-byte body remains 8 bytes off. Focused replay-menu check: 9 marked, 6 exact, 3 NONMATCHING, no DIFF/compile failures.
+
+- 2026-10-28 (Codex, `Screen1378::BuildRects` `0x43ad80`): Moving `vf35(unk28)` before coordinate stores expands 532→554 bytes / 15→177 differences. A volatile material local improves to 18 but selects ESI vs target EAX; `register` leaves 24, and a local after two coordinate stores leaves 25. Reverted; focused file remains 8 exact / 4 NONMATCHING, no DIFF/compile failures. Details: `docs/analysis/lobby-panels.md`.
+
+- 2026-10-28 (Codex, `ReplayMenu::Setup` `0x44ba30`): Moving the `y2` computation after the second label's string assignment increases the same-size body's diff 8→173 bytes; scoping the original block leaves the 8-byte diff unchanged. Both probes were reverted. Focused replay-menu check: 9 marked, 6 exact, 3 NONMATCHING, no DIFF/compile failures.
+
 - 2026-10-28 (Codex, `CarRain::Render` `0x46e430`): A volatile `hoodObject` read after the `liveBody` copy prevents the load from being hoisted, reducing the diff 43→16 bytes at 997 bytes. Remaining differences are register assignments for the copy destination and `Multiply` arguments; still NONMATCHING. Plain PE/object observations: `analysis/range-46d830.md`.
 
 - 2026-10-27 (Codex, `Car::FUN_00464c10` `0x464c10`): Exact 645-byte match with 47 relocations. Evaluating eye height through `body->m0[17]` before declaring the matrix alias reproduces the target's in-place matrix-pointer update; reuses the proven source shape from `0x464ef0`. Focused mirror file: 27 exact-marked functions, no NONMATCHING, DIFF or compile failures.

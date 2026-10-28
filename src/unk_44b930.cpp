@@ -142,6 +142,8 @@ ReplayMenu::~ReplayMenu()
 // 452 bytes; 8 differ in the shared y/y2 temporary and inline-assign pointer slots (target +0x20/+0x18, ours swapped).
 // Early declarations of y or y2 and a named nonvolatile text pointer change no bytes. Hoisting y2's computation
 // gives 144 differences, volatile x gives 28, and a volatile title pointer gives 313.
+// Computing y2 after the second label assignment expands the diff to 173; a scope around the original block is unchanged.
+// Writing label 1's y before x to mirror the target's stores raises the diff 8→11 bytes.
 // Plain objcmp observations.
 // original: FUN_0044ba30 (slot 1)
 void ReplayMenu::Setup(MenuGame* game)
@@ -337,7 +339,7 @@ void ReplayMenu::BuildRects()
 // NONMATCHING: RALLYTROPHY 0x44c580
 // Identical size and instruction mix; only the register for the rally index in the "v -= table[rally]" step differs
 // (original edx with the Game load after the multiply, mine esi with the Game load hoisted; 13 bytes).
-// Named offsets, factored multiplication and an inline rally accessor all emit the same candidate.
+// Named offsets, factored multiplication, an inline rally accessor, and a volatile Game* all emit worse or unchanged code.
 // original: FUN_0044c580
 void ReplayMenu::DrawField(int k)
 {

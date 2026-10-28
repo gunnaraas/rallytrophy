@@ -55,7 +55,7 @@ static __forceinline int RoundF(float v)
 #define SURF_SET(S, KIND)                                                           \
     fx = cfg.GetString(KIND);                                                       \
     if (fx.length() > 1) {                                                          \
-        S->sample = DAT_0056b0b0->LoadSample((base + fx).c_str());                  \
+        S->sample = DAT_0056b0b0->LoadSample((base.Str() + fx).c_str());                  \
     }                                                                               \
     S->pitchRange = *(V2*)&cfg.GetVector2(KIND "PitchRange");                       \
     S->pitchMinMax = *(V2*)&cfg.GetVector2(KIND "PitchMinMax");                     \
@@ -67,26 +67,61 @@ static __forceinline int RoundF(float v)
     S->volRange.a *= 0.2777778f;                                                    \
     S->volRange.b *= 0.2777778f;
 
+// VC6 std::string layout twin for LoadSounds' mixed out-of-line and inline path operations.
+struct LoadSoundsPath {
+    LoadSoundsPath() : alloc(std::allocator<char>()) { Tidy(false); }
+    LoadSoundsPath(const std::string& x) : alloc(*(const std::allocator<char>*)&x)
+    {
+        Tidy(false);
+        Assign(x, 0, std::string::npos);
+    }
+    ~LoadSoundsPath() { ((std::string*)this)->~basic_string(); }
+    void Tidy(bool built);                                                        // 0x402700
+    LoadSoundsPath& Assign(const std::string& x, unsigned int pos, unsigned int n); // 0x4024f0
+    LoadSoundsPath& AppendOut(const char* s, unsigned int n);                     // 0x403ba0
+    LoadSoundsPath& AssignOut(const char* s, unsigned int n);                     // 0x404ba0
+    LoadSoundsPath& AppendStringCall(const std::string& s, unsigned int pos, unsigned int n); // 0x408ef0
+    bool Grow(unsigned int n, bool trim);                                         // 0x402980
+    void Eos(unsigned int n);                                                     // 0x402960
+    void AssignB(const char* s)
+    {
+        unsigned int n = strlen(s);
+        if (Grow(n, true)) {
+            memcpy(ptr, s, n);
+            ptr[len = n] = 0;
+        }
+    }
+    void AppendCString(const char* s) { AppendOut(s, strlen(s)); }
+    void AppendString(const std::string& s) { AppendStringCall(s, 0, std::string::npos); }
+    const char* c_str() const { return ptr == 0 ? "" : ptr; }
+    std::string& Str() { return *(std::string*)this; }
+    std::allocator<char> alloc;
+    char* ptr;
+    unsigned int len, res;
+};
+
 // NONMATCHING: RALLYTROPHY 0x415370
-// draft: logic complete; string assign/append are inlined here but out of line in the original (3443 vs 3209 bytes)
+// `base` and `path` use target-shaped string calls via LoadSoundsPath (3302 bytes / 2145 differences). An earlier
+// path append wrapper accidentally materialized a temporary std::string and regressed; the direct C-string form is kept.
+// An explicit register self alias regressed to 3394/2219; an explicit std::string cast for operator+ regressed to 3439/2248.
 void StageSoundLoader::LoadSounds()
 {
     FLD(int, 0x15f8) = 0;
     FLD(int, 0x15fc) = 0;
     FLD(int, 0x1600) = 0;
-    std::string base(FLD(std::string, 8));
-    base += "data/stage";
+    LoadSoundsPath base(FLD(std::string, 8));
+    base.AppendOut("data/stage", strlen("data/stage"));
     char num[4];
     itoa(FLD(int, 4), num, 10);
-    base += num;
-    base += ".snd";
+    base.AppendOut(num, strlen(num));
+    base.AppendOut(".snd", strlen(".snd"));
     Config cfg;
     if (File::Exists(base.c_str())) {
-        std::string path;
+        LoadSoundsPath path;
         cfg.Define(AmbientKeys, 0x1b);
         cfg.Load(base.c_str(), true, false, 0);
-        path.assign("data/soundfx/");
-        path += cfg.GetString("AmbientSound");
+        path.AssignOut("data/soundfx/", strlen("data/soundfx/"));
+        path.AppendCString(cfg.GetString("AmbientSound"));
         int vol = cfg.GetInt("AmbientVolume");
         SoundSource* amb = new SoundSource;
         FLD(SoundSource*, 0x15f8) = amb;
@@ -101,8 +136,8 @@ void StageSoundLoader::LoadSounds()
             Event1File[5] = (char)i + '1';
             Event1Volume[5] = Event1File[5];
             Event1Delay[5] = Event1File[5];
-            path.assign("data/soundfx/");
-            path += cfg.GetString(Event1File);
+            path.AssignOut("data/soundfx/", strlen("data/soundfx/"));
+            path.AppendCString(cfg.GetString(Event1File));
             AmbientSound* e = &ev[i];
             Sample* smp = DAT_0056b0b0->LoadSample(path.c_str());
             *(Sample**)((unsigned char*)e + 0x70) = smp;
@@ -123,11 +158,11 @@ void StageSoundLoader::LoadSounds()
     std::string* name = &FLD(std::string, 0x23c8);
     for (int i = 15; i >= 0; i--, name++, roll++) {
         if (name->length() > 1) {
-            base = "data/global/surfacesounds/";
-            base += *name;
+            base.AssignB("data/global/surfacesounds/");
+            base.AppendString(*name);
             cfg.Define(SurfaceKeys, 0x1e);
             cfg.Load(base.c_str(), true, false, 0);
-            base = "data/soundfx/";
+            base.AssignB("data/soundfx/");
             SurfSlot* s = roll;
             SURF_SET(s, "Roll")
             s = roll + 16;

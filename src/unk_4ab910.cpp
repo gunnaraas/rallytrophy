@@ -181,7 +181,9 @@ int __fastcall FUN_004abf30(ImgW5* img, int, const char* name)
 }
 
 // NONMATCHING: RALLYTROPHY 0x4ac730
-// Original size reproduced; width/height multiply operands are reversed (10 differing bytes).
+// Original size reproduced; width/height multiply operands are reversed (10 differing bytes). Reversing the
+// accumulator order or writing a direct height*width expression leaves those bytes unchanged; separate width/height
+// locals add 4 bytes and 191 additional differences; a volatile height read adds 4 bytes and 190 differences.
 int __fastcall FUN_004ac730(ImgW5* img, int, const char* name)
 {
     unsigned char h[18];

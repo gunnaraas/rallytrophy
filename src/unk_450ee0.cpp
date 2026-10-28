@@ -162,7 +162,9 @@ SoundMenu::~SoundMenu()
 // The built body is 998 bytes; the target interval is 1008, with ten NOPs after ret 4. Comparing the bodies leaves
 // 21 differing bytes in x87 operand order and loop stack scheduling. Reversing products had no effect; volatile xs/ys
 // gave 76 body bytes, x-before-y 23, ys-before-xs 25, step/y/x order 30, volatile constant-address reads 53, and a
-// nonvolatile 262-address read 28. Plain objcmp observations.
+// nonvolatile 262-address read 28. Pointer induction and register-qualified x/y/step leave the 21-byte body diff
+// unchanged; moving both x/step products into the loop also leaves it unchanged, while moving x alone there raises
+// the body diff to 64 bytes. Plain objcmp observations.
 void SoundMenu::Setup(MenuGame* game)
 {
     if (m_state) {

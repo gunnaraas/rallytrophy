@@ -116,7 +116,9 @@ struct H6Str {
 };
 
 // NONMATCHING: RALLYTROPHY 0x404100
-// 20 bytes: the original jumps to one shared epilogue after the inlined string dtor, VC6 duplicates it here
+// 20 bytes: the original jumps to one shared epilogue after the inlined string dtor; VC6 duplicates it here.
+// A result local and an explicit string scope both emit identical bytes; a volatile result grows the body to 473 bytes
+// and 73 differing bytes. Reverted all forms.
 bool ReplayFiles::SaveReplay(int index, const char* label)
 {
     H6Player* player = DAT_00501450_->player;
