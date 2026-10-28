@@ -176,7 +176,7 @@ void S414List::RemoveNode(S414Node* n)
 }
 
 // NONMATCHING: RALLYTROPHY 0x414550
-// inlined string replace(first,last,s1,s2); source form guessed
+// Candidate for string::replace(first,last,first2,last2); the target also performs range replacement.
 Str414& __fastcall Func414550(std::string* self, int, char* first, char* last, const char* s1, const char* s2)
 {
     return self->replace(first, last, s1, s2);

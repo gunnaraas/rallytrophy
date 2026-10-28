@@ -106,7 +106,8 @@ struct StPathLate {
 
 void __cdecl StageLog(const char* fmt, ...);                 // 0x402c90: the release build's empty debug logger
 // Error-message string: inline _Tidy stores, begin()/end() through the out-of-line _Freeze (0x414750), the stage
-// module's printf-style range replace (0x414550) and the out-of-line string destructor (0x430720).
+// module's range-replace helper (0x414550) and the out-of-line string destructor (0x430720). Caller arguments still
+// need semantic confirmation: the PE pushes a format literal and object field where the helper expects a source range.
 struct StMsg {
     StMsg(const std::allocator<char>& a = std::allocator<char>()) : alloc(a) { ptr = 0; len = 0; res = 0; }
     ~StMsg();

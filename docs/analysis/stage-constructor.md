@@ -38,13 +38,17 @@ claimed for them.
 
 Target disassembly calls the empty logger at `0x402c90` for degenerate
 triangles at `0x40e418`. For the missing-vertices path, it logs the fatal
-message at `0x40e4d8`, initializes a string-like local at EBP-`0x1c`, calls
-the range-replace helper `0x414550` with the format string at `0x4f4fbc`, and
-copies the result into an exception string through `0x4024f0` before the throw
-helper at `0x4c13ca`. The missing-triangles path repeats this structure from
-`0x40e5b6`, using log text at `0x4f4f88` and format text at `0x4f4f64`. This
-supports the current `StMsg`/`StLogicError` source shape. These are plain PE
-disassembly observations, not REA Evidence IDs.
+message at `0x40e4d8`, initializes a string-like local at EBP-`0x1c`, and calls
+`0x414550` at `0x40e532`; it then copies the result into an exception string
+through `0x4024f0` before the throw helper at `0x4c13ca`. The missing-triangles
+path repeats this structure from `0x40e5b6`. PE disassembly of `0x414550`
+shows a string range-replacement body: it derives lengths from two pointer
+pairs, then grows, moves, and copies string data. The caller pushes the local
+`begin`/`end` pair followed by a format literal and the object's field at
+`+0x118`; that source pair's meaning remains unresolved. Therefore the existing
+`StMsg::Format` interpretation is provisional and these caller observations do
+not establish printf-style formatting. These are plain PE disassembly
+observations, not REA Evidence IDs.
 
 The current whole-function candidate is 8,451 bytes versus 8,656 target bytes,
 with 5,770 differing bytes. Focused matching confirms it remains

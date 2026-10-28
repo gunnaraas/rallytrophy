@@ -134,9 +134,8 @@ void WindowRain::vf6(RenderDevice* device, Camera* camera, int unused)
 }
 
 // NONMATCHING: RALLYTROPHY 0x476be0
-// 953 vs 955 bytes. Structure matches up to the vertex loop (the zero constant lives in edi); the 11-dword
-// bounds copy starts at edx instead of eax, the loop addresses the spot through other induction pointers and
-// keeps one extra value on the x87 stack (fcom st(5)/st(4) instead of st(4)/st(3)).
+// 949 vs 955 bytes / 362 differing bytes. Expanding the y-delta expressions removes 37 differences, but the frame
+// remains four bytes larger and the bounds-copy registers and x87 comparison stack still differ.
 void WindowRain::Init(RainScene* scene)
 {
     int i = 0;
@@ -202,21 +201,19 @@ void WindowRain::Init(RainScene* scene)
         float dx = s->world.x - viewPos[0].x;
         s->angleA = s->angleB = 100.0f;
         s->right.x = 1.0f;
-        float dy = s->world.y - viewPos[0].y;
         s->up.y = 1.0f;
-        float d = dy * dy + dx * dx;
+        float d = (s->world.y - viewPos[0].y) * (s->world.y - viewPos[0].y) + dx * dx;
         if (d >= r1 && d <= r2) {
-            float ang = (float)atan2(dy, dx);
+            float ang = (float)atan2(s->world.y - viewPos[0].y, dx);
             if (ang >= min0 && ang <= max0) {
                 s->angleA = ang;
             }
         }
         if (viewCount > 1) {
             dx = s->world.x - viewPos[1].x;
-            dy = s->world.y - viewPos[1].y;
-            d = dy * dy + dx * dx;
+            d = (s->world.y - viewPos[1].y) * (s->world.y - viewPos[1].y) + dx * dx;
             if (d >= r1 && d <= r2) {
-                float ang = (float)atan2(dy, dx);
+                float ang = (float)atan2(s->world.y - viewPos[1].y, dx);
                 if (ang >= min1 && ang <= max1) {
                     s->angleB = ang;
                 }
