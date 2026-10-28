@@ -6,7 +6,7 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Status
 
-- Marker inventory: 1820/2084 byte-exact (87.33%); 2084/2084 functions written (100.00%), from `tools/progress.py`.
+- Marker inventory: 1821/2084 byte-exact (87.38%); 2084/2084 functions written (100.00%), from `tools/progress.py`.
 - Game code: about 1,690 functions in `0x401000`–`0x4bcfc6`
 
 ## Queue
@@ -32,6 +32,7 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Log
 
+- 2026-10-28 (Codex, `TrackSelectMenu::DrawTrackBook` `0x445c90`): Reordered UV stores and introduced separate right/bottom float temporaries with GPR bit copies. Exact match: 434 bytes / 26 relocations; focused matcher: 22 exact, 3 NONMATCHING, no DIFF or compile failures. Evidence: `ev_d75f1466e03adee2022eecff0abdd168bae0f3e3d71c762a1d5c090fe91daef3` and local PE/object comparison.
 - 2026-10-28 (Codex, `RaceMode::RaceMode` `0x485bb0`): Making the `unk40` initialization volatile moves the `LoadOverlays` receiver setup to the target position. Exact match: 456 bytes / 10 relocations. Focused matcher: 92 exact, 26 NONMATCHING, no DIFF or compile failures. Evidence is local PE/object comparison.
 - 2026-10-28 (Codex, `NetRace::Slot4` `0x481700`): Making stores to `unk868`, `unk86c`, and `unk48` volatile, and reading `mode` through a volatile lvalue, reproduces the initializer scheduling. Exact match: 345 bytes / 10 relocations. Focused matcher: 47 exact, 5 NONMATCHING, no DIFF or compile failures. Evidence is local PE/object comparison.
 - 2026-10-28 (Codex, `RaceMode::DrawSetup` `0x488aa0`): Baseline was 440 bytes / 150 differing bytes. Replacing `distSq` with repeated y/z sums plus a volatile x-square improves it to 444 / 132; nonvolatile x-square gives 432 / 156, and keeping `distSq` gives 444 / 144. Retained the best probe, still NONMATCHING. Focused matcher: 107 exact, 31 NONMATCHING, no DIFF or compile failures.

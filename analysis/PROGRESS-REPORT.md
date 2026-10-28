@@ -15,12 +15,12 @@ _Updated 2026-10-28 by `tools/progress.py` (game code `0x401000`–`0x4bcfc6`)._
 
 | | Functions | Code bytes |
 |---|---|---|
-| Byte-exact | 1820 / 2084 (87.33%) | 333,150 / 742,276 (44.88%) |
-| Written, not yet exact | 264 | 409,126 |
+| Byte-exact | 1821 / 2084 (87.38%) | 333,584 / 742,276 (44.94%) |
+| Written, not yet exact | 263 | 408,692 |
 | Written in total | 2084 / 2084 (100.00%) | 742,276 / 742,276 (100.00%) |
 
 ```
-exact   █████████████░░░░░░░░░░░░░░░░░ 44.88% of code bytes
+exact   █████████████░░░░░░░░░░░░░░░░░ 44.94% of code bytes
 written ██████████████████████████████ 100.00% of code bytes
 ```
 
@@ -50,7 +50,7 @@ Progress by module (ranges in `analysis/modules.csv`):
 | Menu manager | `0x43c590`–`0x43d770` | 10 / 11 / 11 | 69.6% | 100.0% | `████████████` |
 | Player-name screen | `0x43d770`–`0x43f9e0` | 14 / 16 / 16 | 51.5% | 100.0% | `████████████` |
 | Race options screen | `0x43f9e0`–`0x441370` | 9 / 10 / 10 | 65.7% | 100.0% | `████████████` |
-| Track-selection screen | `0x441370`–`0x445e80` | 22 / 25 / 25 | 45.3% | 100.0% | `████████████` |
+| Track-selection screen | `0x441370`–`0x445e80` | 23 / 25 / 25 | 47.6% | 100.0% | `████████████` |
 | Service-area screen | `0x445e80`–`0x44b930` | 16 / 22 / 22 | 44.0% | 100.0% | `████████████` |
 | Replay menu | `0x44b930`–`0x44d260` | 9 / 12 / 12 | 42.6% | 100.0% | `████████████` |
 | Save-game files | `0x44d260`–`0x44ea60` | 5 / 9 / 9 | 16.5% | 100.0% | `████████████` |

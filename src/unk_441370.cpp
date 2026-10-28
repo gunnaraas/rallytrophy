@@ -4267,9 +4267,9 @@ void TrackSelectMenu::DrawRally(RallyInfo info)
     ((RaceDeviceSlots*)DAT_0056b0ac)->DrawQuad((Vec2*)pos, (Vec2*)uv, *(Color*)&color, 1.0f, 1.0f);
 }
 
-// NONMATCHING: RALLYTROPHY 0x445c90
-// Evidence: ev_d75f1466e03adee2022eecff0abdd168bae0f3e3d71c762a1d5c090fe91daef3. Candidate 422 bytes, 140 differing
-// bytes. The target's right-edge X and bottom-edge Y stores retain the x87 value while copying its bits through a GPR.
+// FUNCTION: RALLYTROPHY 0x445c90
+// Exact 434-byte match / 26 relocations. The separate right/bottom temporaries and GPR bit copies preserve the target's
+// shared-coordinate stores; the UV assignments follow the target's store sequence (Evidence: ev_d75f1466e03adee2022eecff0abdd168bae0f3e3d71c762a1d5c090fe91daef3).
 // original: FUN_00445c90 (the track-book background quad)
 void TrackSelectMenu::DrawTrackBook()
 {
@@ -4278,14 +4278,22 @@ void TrackSelectMenu::DrawTrackBook()
     TSB_Color color;
     DAT_0056b0ac->vf35(trackBook);
     pos[0].x = DAT_0056aea8 * TSB_BookX;
+    uv[3].x = 0.0f;
+    uv[1].y = 0.0f;
     pos[0].y = DAT_0056aeac * TSB_BookY;
-    uv[0].x = uv[3].x = 0.0f;
-    uv[0].y = uv[1].y = 0.0f;
-    uv[2].x = uv[1].x = 1.0f;
-    uv[2].y = uv[3].y = 1.0f;
-    pos[1].x = pos[2].x = (TSB_BookX + 512.0f) * DAT_0056aea8;
+    uv[0].y = 0.0f;
+    uv[0].x = 0.0f;
+    uv[1].x = 1.0f;
+    uv[3].y = 1.0f;
+    uv[2].y = 1.0f;
+    uv[2].x = 1.0f;
+    float right = (TSB_BookX + 512.0f) * DAT_0056aea8;
+    pos[1].x = right;
+    *(DWORD*)&pos[2].x = *(DWORD*)&right;
     pos[1].y = DAT_0056aeac * TSB_BookY;
-    pos[2].y = pos[3].y = (TSB_BookY + 256.0f) * DAT_0056aeac;
+    float bottom = (TSB_BookY + 256.0f) * DAT_0056aeac;
+    pos[2].y = bottom;
+    *(DWORD*)&pos[3].y = *(DWORD*)&bottom;
     pos[3].x = DAT_0056aea8 * TSB_BookX;
     ((RaceDeviceSlots*)DAT_0056b0ac)->DrawQuad((Vec2*)pos, (Vec2*)uv, *(Color*)&color, 1.0f, 1.0f);
 }

@@ -179,9 +179,7 @@
 <rect x="425.4" y="120" width="4.8" height="36" fill="#3fb950"/>
 <rect x="430.2" y="120" width="7.9" height="36" fill="#e3b341"/>
 <rect x="438.2" y="120" width="1.7" height="36" fill="#3fb950"/>
-<rect x="439.9" y="120" width="4.5" height="36" fill="#3fb950"/>
-<rect x="444.5" y="120" width="0.7" height="36" fill="#e3b341"/>
-<rect x="445.1" y="120" width="0.6" height="36" fill="#3fb950"/>
+<rect x="439.9" y="120" width="5.2" height="36" fill="#3fb950"/>
 <rect x="445.2" y="120" width="2.4" height="36" fill="#e3b341"/>
 <rect x="447.6" y="120" width="4.5" height="36" fill="#3fb950"/>
 <rect x="452.2" y="120" width="4.2" height="36" fill="#e3b341"/>
@@ -787,9 +785,9 @@
 <text x="1018" y="682" fill="#e6edf3">66% exact / 100% written</text>
 <text x="260" y="708" text-anchor="end" fill="#e6edf3">19. Track-selection screen</text>
 <rect x="270" y="694" width="740" height="18" rx="2" fill="#484f58"/>
-<rect x="270" y="694" width="335.6" height="18" fill="#3fb950"/>
-<rect x="605.6" y="694" width="404.4" height="18" fill="#e3b341"/>
-<text x="1018" y="708" fill="#e6edf3">45% exact / 100% written</text>
+<rect x="270" y="694" width="352.5" height="18" fill="#3fb950"/>
+<rect x="622.5" y="694" width="387.5" height="18" fill="#e3b341"/>
+<text x="1018" y="708" fill="#e6edf3">48% exact / 100% written</text>
 <text x="260" y="734" text-anchor="end" fill="#e6edf3">20. Service-area screen</text>
 <rect x="270" y="720" width="740" height="18" rx="2" fill="#484f58"/>
 <rect x="270" y="720" width="325.7" height="18" fill="#3fb950"/>
