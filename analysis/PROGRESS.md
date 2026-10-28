@@ -6,7 +6,7 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Status
 
-- Marker inventory: 1809/2084 byte-exact (86.80%); 2084/2084 functions written (100.00%), from `tools/progress.py`.
+- Marker inventory: 1810/2084 byte-exact (86.85%); 2084/2084 functions written (100.00%), from `tools/progress.py`.
 - Game code: about 1,690 functions in `0x401000`–`0x4bcfc6`
 
 ## Queue
@@ -31,6 +31,10 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 
 ## Log
+
+- 2026-10-27 (Codex, `Car::LoadTiresIni` `0x4634e0`): Typed `TyreF3*` stores reproduce the final config-address scheduling move; exact 1,115-byte match with 62 relocation fields. Full matcher: 1,810 exact / 274 NONMATCHING / zero DIFF and compile failures. Evidence and rejected source forms: `../docs/analysis/tire-config-loader.md`.
+
+- 2026-10-27 (Codex, `T_56b0b4::Init` `0x495a60`): Literal `names += " "` reduces differences 1,167→1,160 and output size 1,533→1,500; function remains NONMATCHING. Focused DirectInput file: 49 exact / two NONMATCHING, zero failures. Prior `append(" ", 1)` was reverted. Evidence and source-form history: `../docs/analysis/input-initializers.md`.
 
 - 2026-10-27 (Claude, NONMATCHING triage sweep): New `tools/triage.py` writes `analysis/nonmatching-triage.md` (cause of first difference, byte counts, instruction-multiset delta, `ret N` and cleanup-state mismatches: 38 pure register/scheduling permutations, 5 wrong arities, 67 state-sequence mismatches); `tools/try_variants.py` now compiles variants in parallel and ranks them. Exact: `DrawContext::DrawContext` 0x4b7a40 (three empty-dtor members fill EH states 5-7) and `NetRace::~NetRace` 0x4815a0 (`resize(0)` shape with out-of-line erase). Arity fixed from `ret N`: `CullViews`, `ColBody::Collide`, `FUN_0041fc60` (unused trailing argument); 0x417ee0 rewritten as the out-of-line `vector<StageProp>::insert(pos, n, x)` twin (797/818). Full matcher: 1809 exact / 275 NONMATCHING / 0 DIFF.
 

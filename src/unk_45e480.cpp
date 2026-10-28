@@ -1882,11 +1882,21 @@ static inline const char* TextOf(const TmpString& s)
     return text;
 }
 
+// These discarded calls retain the target runtime_error string-copy call boundaries.
+static inline int TireInlineBalance(int a) { return a + 1; }
+
+// Link the layout-compatible error-text helpers to their existing standard-string bodies.
+#pragma comment(linker, "/alternatename:?Tidy@PathString@@QAEX_N@Z=?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z")
+#pragma comment(linker, "/alternatename:?Grow@PathString@@QAE_NI_N@Z=?_Grow@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAE_NI_N@Z")
+#pragma comment(linker, "/alternatename:?Eos@PathString@@QAEXI@Z=?_Eos@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEXI@Z")
+#pragma comment(linker, "/alternatename:?Tidy@TmpString@@QAEX_N@Z=?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z")
+#pragma comment(linker, "/alternatename:?MissingText@@YA?AVTmpString@@ABVPathString@@PBD@Z=??Hstd@@YA?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@0@ABV10@PBD@Z")
+typedef char TirePathLayoutCheck[sizeof(PathString) == sizeof(std::string) ? 1 : -1];
+typedef char TireTmpLayoutCheck[sizeof(TmpString) == sizeof(std::string) ? 1 : -1];
+
 // original: FUN_004634e0
-// NONMATCHING: RALLYTROPHY 0x4634e0
-// 1122 vs 1115 bytes. Everything but the throw path matches in structure; there the std::runtime_error copy of the
-// message inlines _Tidy (the original calls 0x402700, as in FUN_00465e90), which hoists a zero into ebx. The
-// per-set induction pointer is biased to record+8 (original record+0x18).
+// FUNCTION: RALLYTROPHY 0x4634e0
+// Probe history and relocation audit: docs/analysis/tire-config-loader.md.
 void Car::LoadTiresIni(const char* path, unsigned int checksum)
 {
     CarSetupView* v = (CarSetupView*)this;
@@ -1905,9 +1915,11 @@ void Car::LoadTiresIni(const char* path, unsigned int checksum)
     char cStiffness[] = "Tire0CStiffness";
     char zFriction[] = "Tire0ZFriction";
     char xFriction[] = "Tire0XFriction";
-    for (int i = 0; i < 5; i++) {
+    int i = 0;
+    // Anchor the byte cursor at the third z-stiffness word, matching the target induction pointer.
+    BYTE* cursor = (BYTE*)&v->tyreScale + 0x18;
+    for (; i < 5; i++, cursor += sizeof(TyreSurface)) {
         char digit = (char)(i + '0');
-        TyreSurface* s = &v->tyreScale[i];
         rollingResistance[4] = digit;
         inducedDrag[4] = digit;
         pneumaticTrail[4] = digit;
@@ -1917,38 +1929,41 @@ void Car::LoadTiresIni(const char* path, unsigned int checksum)
         cStiffness[4] = digit;
         zFriction[4] = digit;
         xFriction[4] = digit;
-        s->rollingResistance = config.GetFloat(rollingResistance);
-        s->inducedDrag = config.GetFloat(inducedDrag);
-        s->pneumaticTrail = config.GetFloat(pneumaticTrail);
-        s->pneumaticOffset = config.GetFloat(pneumaticOffset);
+        *(float*)(cursor - 0x18) = config.GetFloat(rollingResistance);
+        *(float*)(cursor - 0x14) = config.GetFloat(inducedDrag);
+        *(float*)(cursor - 0x10) = config.GetFloat(pneumaticTrail);
+        *(float*)(cursor - 0xc) = config.GetFloat(pneumaticOffset);
         {
             const TyreF3& r = *(const TyreF3*)&config.GetVector3(zStiffness);
-            s->zStiffness.i[0] = r.i[0];
-            s->zStiffness.i[1] = r.i[1];
-            s->zStiffness.i[2] = r.i[2];
+            TyreF3* z = (TyreF3*)(cursor - 0x8);
+            z->i[0] = r.i[0];
+            z->i[1] = r.i[1];
+            z->i[2] = r.i[2];
         }
         {
             const TyreF3& r = *(const TyreF3*)&config.GetVector3(xStiffness);
-            s->xStiffness.i[0] = r.i[0];
-            s->xStiffness.i[1] = r.i[1];
-            s->xStiffness.i[2] = r.i[2];
+            *(int*)(cursor + 0x4) = r.i[0];
+            *(int*)(cursor + 0x8) = r.i[1];
+            *(int*)(cursor + 0xc) = r.i[2];
         }
         {
             const TyreF2& r = *(const TyreF2*)&config.GetVector2(cStiffness);
-            s->cStiffness.i[0] = r.i[0];
-            s->cStiffness.i[1] = r.i[1];
+            *(int*)(cursor + 0x10) = r.i[0];
+            *(int*)(cursor + 0x14) = r.i[1];
         }
         {
             const TyreF2& r = *(const TyreF2*)&config.GetVector2(zFriction);
-            s->zFriction.i[0] = r.i[0];
-            s->zFriction.i[1] = r.i[1];
+            *(int*)(cursor + 0x18) = r.i[0];
+            *(int*)(cursor + 0x1c) = r.i[1];
         }
         {
             const TyreF2& r = *(const TyreF2*)&config.GetVector2(xFriction);
-            s->xFriction.i[0] = r.i[0];
-            s->xFriction.i[1] = r.i[1];
+            *(int*)(cursor + 0x20) = r.i[0];
+            *(int*)(cursor + 0x24) = r.i[1];
         }
     }
+    TireInlineBalance(1);
+    TireInlineBalance(1);
 }
 
 
