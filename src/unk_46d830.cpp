@@ -472,9 +472,9 @@ void CarRain::Update(float)
     __asm fstp dword ptr [eax+4]
 
 // NONMATCHING: RALLYTROPHY 0x46e430
-// 997 bytes both, 43 differing: this version hoists the load of hoodObject above the first matrix copy, so
-// &liveBody lives in edx and the Multiply arguments swap eax/edx; everything else (x87 transform block,
-// vertex fill, EH states) matches. The original builds the trunk matrix into liveHood (copy/paste slip).
+// 997 bytes both, 16 differing. Reading hoodObject through a volatile lvalue after the liveBody matrix copy
+// matches the target's load schedule. The remaining differences are register choices for the liveBody destination
+// and Multiply arguments; the x87 transform, vertex fill, EH states, and original hood/trunk copy-paste behavior match.
 void CarRain::Render(RenderDevice* device, Camera* camera)
 {
     if (texture == 0) {
@@ -482,8 +482,9 @@ void CarRain::Render(RenderDevice* device, Camera* camera)
     }
     CarMatrix* body = &liveBody;
     memcpy(body, &bodyObject->world, sizeof(liveBody));
-    if (hoodObject != 0) {
-        memcpy(&liveHood, &hoodObject->world, sizeof(liveHood));
+    CarBodyObject* hood = *(CarBodyObject* volatile*)&hoodObject;
+    if (hood != 0) {
+        memcpy(&liveHood, &hood->world, sizeof(liveHood));
     } else {
         memcpy(&liveHood, &savedHood, sizeof(liveHood));
         CopyBits((Vec3*)&liveHood.m[12], hoodPos);

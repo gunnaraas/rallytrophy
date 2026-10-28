@@ -32,9 +32,13 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Log
 
+- 2026-10-28 (Codex, `CarRain::Render` `0x46e430`): A volatile `hoodObject` read after the `liveBody` copy prevents the load from being hoisted, reducing the diff 43→16 bytes at 997 bytes. Remaining differences are register assignments for the copy destination and `Multiply` arguments; still NONMATCHING. Plain PE/object observations: `analysis/range-46d830.md`.
+
 - 2026-10-27 (Codex, `Car::FUN_00464c10` `0x464c10`): Exact 645-byte match with 47 relocations. Evaluating eye height through `body->m0[17]` before declaring the matrix alias reproduces the target's in-place matrix-pointer update; reuses the proven source shape from `0x464ef0`. Focused mirror file: 27 exact-marked functions, no NONMATCHING, DIFF or compile failures.
 
 - 2026-10-27 (Codex, `Car::FUN_00464ef0` `0x464ef0`): Exact 1,230-byte match with 108 relocations. Evaluating the eye-height term via `car->body->m0[17]` before declaring the matrix alias reproduces the target’s in-place matrix-pointer update. Focused mirror file: 26 exact-marked, one NONMATCHING, no DIFF or compile failures; details in `analysis/range-4649f0.md`.
+
+- 2026-10-27 (Codex, `TriCollector::Walk` `0x418760`): Moving the positive count read after the `idx` pointer declaration matches the target’s stack-home store order and reduces differences 548→532 (774/773 bytes). Reversing the fill-loop comparison is unchanged; materializing the triangle index worsens the diff. Still NONMATCHING; focused module has 6 exact-marked functions, 4 NONMATCHING, no DIFF or compile failures.
 
 - 2026-10-27 (Claude loop, `Stage::FUN_00417540` 0x417540): 2234 → 2256 of 2332 bytes; cleanup states now match (nine empty-destructor vector locals declared in the original's order, a 16-byte sphere object, a plain-struct return for the direction scale), the record lerp is `pos = r[3..5]; pos -= r[0..2]; pos *= t; pos += r[0..2]`, the hit box is written through the trace object. Register allocation remains.
 

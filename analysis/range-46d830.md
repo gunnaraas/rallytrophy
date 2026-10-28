@@ -242,3 +242,21 @@ Header first (one pass by whoever does group G1): a new `include/unk_46d830.h` h
 - `Render` third argument of `DrawSprite` ([0x114]) and the semantics of `[device+0xb0](1)`; both are shared with the other effect classes.
 - Whether `CarRain` (Viewport+0x2008) draws on the car body of the *viewed* car or on a windshield-like plane; the name is from the three `rain_*` meshes it searches in the car model (strings 0x4fe460-0x4fe478).
 - The exact role of the object kind at `+0x04` (C sets 5) and of the `0x4203b0` Vec3 (light/sun direction, many other callers).
+
+### Object matching note: `CarRain::Render` (`0x46e430`)
+
+Plain PE/object comparison showed the original loads `hoodObject` after the
+`liveBody` matrix copy; the original source form allowed VC6 to hoist the load
+before that copy. Reading `hoodObject` once through a volatile lvalue at its
+existing branch preserves the target ordering and reduces the diff from 43 to
+16 bytes at 997 bytes. The remaining differences are register assignment for
+the `liveBody` destination and `Multiply` arguments (`eax`/`edx`); the
+transform, vertex fill and EH state sequence match. This candidate remains
+`NONMATCHING`.
+Register hints on `body` and `hood`, and passing `&liveBody` directly to the
+hood fallback `Multiply`, left this 16-byte diff unchanged.
+Declaring `hood` before the first copy and assigning it in the branch
+condition also left the diff unchanged.
+Replacing the volatile local with an empty inline-assembly block before the
+direct `hoodObject` test allowed VC6 to hoist the load again (43 differences);
+that variant was reverted.

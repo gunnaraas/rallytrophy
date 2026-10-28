@@ -36,6 +36,10 @@ NONMATCHING. Focused validation preserves eight exact functions with four
 NONMATCHING entries and no compile failures. An interleaved x/y-store probe
 regressed to 530 bytes / 119 differences and was rejected.
 
+A `Sprite*` local for the second panel's `unk28` material, declared before its
+coordinate stores, increased the diff from 15 to 24 bytes at the same 532-byte
+size. The local was removed; the material load still schedules too late.
+
 Local PE reads independently verified constants 47, 355, 896, 256, 512, 432,
 and 205 at `0x4e1784`, `0x4e1780`, `0x4e177c`, `0x4e14e0`, `0x4e14e8`,
 `0x4e1778`, and `0x4e1774`, respectively. Array constructor/destructor

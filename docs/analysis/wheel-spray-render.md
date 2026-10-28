@@ -54,6 +54,9 @@ observation).
   candidate. Reading the base U field through a volatile lvalue regressed to
   1,224 bytes / 126 differences. These isolated probes did not move the
   depth-argument load after the atlas `fadd`.
+- An empty VC6 inline-assembly block immediately before `DrawQuad` emitted the
+  same 1,227-byte / four-difference candidate; it does not constrain the
+  compiler's depth-load scheduling. The block was removed.
 
 The separate named accumulators are retained; the other probes were reverted.
 The focused matcher reports 12/12 marked functions

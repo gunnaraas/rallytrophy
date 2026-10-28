@@ -13,6 +13,14 @@ Removing the local `SpriteA* q` alias and accessing `quad` directly worsened
 the diff to 38 bytes; restoring the alias returned it to four. Accessing only
 `quad->wrapV` directly emitted the same code as `q->wrapV`.
 
+Additional local probes confirmed the scheduling boundary: a nested volatile
+pointer alias and the `register` hint on `q` both emitted the same four-byte
+diff. Moving the volatile write before all `colorA` stores increased the diff
+to 41 bytes. Moving it between `colorA[2]` and `colorA[3]` retained four
+differing bytes but moved the write/pop pair before the final color store, so
+that variant was reverted. Ordinary `wrapV` assignment emits 31 differing
+bytes; its early pop is accompanied by other store-order changes.
+
 Verification: `python3 -I tools/match.py --quiet src/unk_403270.cpp` reports
 7 exact and 2 NONMATCHING functions, with no DIFF or compile failure. The
 remaining `LoadScreen::Init` difference is a compiler scheduling permutation.

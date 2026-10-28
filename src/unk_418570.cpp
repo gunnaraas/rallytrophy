@@ -368,9 +368,9 @@ struct HitVec {
 };
 
 // NONMATCHING: RALLYTROPHY 0x418760
-// 774 vs 773 bytes; node tests, the leaf test order (id before sel) and the HitVec push_back expansion follow the
-// target. Open: the leaf count is spilled before the ebx/ebp pushes ([esp+0xc] vs the target's [esp+0x14]),
-// the tri pointer is stored to its push_back slot earlier, and one fill-loop compare has swapped operands.
+// 774 vs 773 bytes, 532 differing bytes. Moving the count declaration into the positive-count branch and after
+// the index pointer matches the target's stack-store order. Remaining differences are mostly register choices,
+// including the triangle index/id registers, plus one fill-loop compare with swapped operands.
 void TriCollector::Walk(TriNode* n)
 {
     while (n->mn[0] <= mx[0]) {
@@ -380,9 +380,9 @@ void TriCollector::Walk(TriNode* n)
         if (n->mx[1] < mn[1]) return;
         if (n->mx[2] < mn[2]) return;
         if (n->child == 0) {
-            int c = n->count;
-            if (c > 0) {
+            if (n->count > 0) {
                 short* ip = n->idx;
+                int c = n->count;
                 do {
                     if (DAT_00508500[*ip].id < limit) {
                         Tri* t = &DAT_00508500[*ip];
