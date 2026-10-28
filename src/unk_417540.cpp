@@ -50,6 +50,12 @@ struct AVec {
         y -= v.y;
         z -= v.z;
     }
+    void operator+=(const AVec& v)
+    {
+        x += v.x;
+        y += v.y;
+        z += v.z;
+    }
     void operator*=(float k)
     {
         x = k * x;
@@ -63,15 +69,33 @@ struct AVec {
     }
 };
 
+// Locals of the update are Vec3-like objects with an empty destructor (cleanup states 0-8 in the original) and
+// the hit sphere is a 16-byte object of the same kind; the direction scale returns a plain AVec (no state).
+struct AnimVec : AVec { ~AnimVec() {} AnimVec& operator=(const AVec& v) { x = v.x; y = v.y; z = v.z; return *this; } };
+struct AnimSphere { float x, y, z, r; ~AnimSphere() {} };
+struct AnimDir { AVec Scale(float k) const; };          // 0x40b0c0 (Vec3::operator*(float)), hidden POD result
+struct AnimTrace {                                      // the hit collector at Stage + 0x13b8 (AnimalTrace layout)
+    int alloc;
+    void* first;                                        // 0x04
+    void* last;                                         // 0x08
+    void* end;                                          // 0x0c
+    int pad10;
+    AVec lo;                                            // 0x14
+    AVec hi;                                            // 0x20
+    AnimSphere* sphere;                                 // 0x2c
+    int mode;                                           // 0x30
+};
+
 #define F(o, t) (*(t*)((BYTE*)this + (o)))
 #define DIR (*(AVec*)((BYTE*)this + 0x1390))
+#define POS (*(AVec*)((BYTE*)this + 0x1378))
 #define REC(i) ((float*)(F(0x13ac, int) + (i) * 0x24))
 
 // NONMATCHING: RALLYTROPHY 0x417540
-// 2234 vs 2332 bytes; the nine calls match. The original has nine empty-destructor Vec3 temporaries (cleanup
-// states 0-8 at ebp-0x44, -0x6c, -0x54, -0x8c, -0x38, -0x28, -0x78, -0x18, -0x60) where this build has two: the
-// float[3] locals (`up`, `dv`), the cross-product results, the record lerp and the sphere setup should be a Vec3
-// type with a destructor, declared in the original's order. The frame is 4 bytes larger.
+// 2256 vs 2332 bytes; the nine calls and the cleanup states (0, 3, 5, 8 stored; nine Vec3-like locals in the
+// original's order: dv, lo, hi, sphere, a, b, n1, n2, down) match, and the record lerp / box / sample points are
+// vector operations as in the original. Left: register allocation (the original keeps the record pointer in edi
+// and the trace in edi later) and the frame layout.
 void Stage::FUN_00417540(Player* player, int time, int dt)
 {
     int car = *(int*)((BYTE*)player + 0x28);
@@ -153,12 +177,12 @@ tail:
     int cur = F(0x136c, int);
     if (-1 < cur && F(0x1374, int) != 0) {
         int b2 = *(int*)(car + 0x24);
-        float dv[3];
-        dv[0] = *(float*)(b2 + 0x14) - F(0x1378, float);
+        AnimVec dv;
+        dv.x = *(float*)(b2 + 0x14) - F(0x1378, float);
         rate = F(0x234, float);
-        dv[1] = *(float*)(b2 + 0x18) - F(0x137c, float);
-        dv[2] = *(float*)(b2 + 0x1c) - F(0x1380, float);
-        f4 = (float)sqrt(dv[1] * dv[1] + dv[2] * dv[2] + dv[0] * dv[0]);
+        dv.y = *(float*)(b2 + 0x18) - F(0x137c, float);
+        dv.z = *(float*)(b2 + 0x1c) - F(0x1380, float);
+        f4 = (float)sqrt(dv.y * dv.y + dv.z * dv.z + dv.x * dv.x);
         if (f4 < F(0x244, float) + F(0x244, float)) {
             if (F(0x244, float) < f4) {
                 f4 = (f4 - F(0x244, float)) / F(0x244, float);
@@ -182,85 +206,76 @@ tail:
             return;
         }
         f5 = f5 / r[6];
-        f4 = r[4];
-        float f6 = r[5];
-        F(0x1378, float) = r[3];
-        F(0x137c, float) = f4;
-        F(0x1380, float) = f6;
-        F(0x1378, float) = F(0x1378, float) - r[0];
-        F(0x137c, float) = F(0x137c, float) - r[1];
-        F(0x1380, float) = F(0x1380, float) - r[2];
-        F(0x1378, float) = f5 * F(0x1378, float);
-        F(0x137c, float) = f5 * F(0x137c, float);
-        F(0x1380, float) = f5 * F(0x1380, float);
-        F(0x1378, float) = F(0x1378, float) + r[0];
-        F(0x137c, float) = F(0x137c, float) + r[1];
-        F(0x1380, float) = F(0x1380, float) + r[2];
+        POS = *(AVec*)&r[3];
+        POS -= *(AVec*)&r[0];
+        POS *= f5;
+        POS += *(AVec*)&r[0];
 
-        float sph[4];                  // x y z radius
-        float lo[3];
-        float hi[3];
-        sph[0] = F(0x1378, float);
-        lo[0] = sph[0] - DAT_004e13dc;
-        sph[1] = F(0x137c, float);
-        sph[2] = F(0x1380, float);
-        sph[3] = DAT_004e13f4 + DAT_004e13f4;
-        lo[1] = sph[1] - sph[3];
-        lo[2] = sph[2] - DAT_004e13dc;
-        hi[0] = sph[0] + DAT_004e13dc;
-        hi[1] = sph[3] + sph[1];
-        hi[2] = sph[2] + DAT_004e13dc;
-        AnimalTrace* trace = (AnimalTrace*)((BYTE*)this + 0x13b8);
-        trace->Erase(F(0x13bc, void*), F(0x13c0, void*));
-        F(0x13e8, int) = 0xf;
-        F(0x13e4, float*) = sph;
-        F(0x13cc, float) = lo[0];
-        F(0x13d0, float) = lo[1];
-        F(0x13d8, float) = hi[0];
-        F(0x13d4, float) = lo[2];
-        F(0x13dc, float) = hi[1];
-        F(0x13e0, float) = hi[2];
-        ((RaceScene*)this)->FUN_00411520((S6Collector*)trace, (S6Sphere*)sph);
+        AnimVec lo;
+        AnimVec hi;
+        AnimSphere sph;                // x y z radius
+        lo = POS;
+        hi = POS;
+        float rad = DAT_004e13f4 + DAT_004e13f4;
+        lo.x -= DAT_004e13dc;
+        lo.y -= rad;
+        lo.z -= DAT_004e13dc;
+        hi.x += DAT_004e13dc;
+        hi.y += rad;
+        hi.z += DAT_004e13dc;
+        sph.x = POS.x;
+        sph.y = POS.y;
+        sph.z = POS.z;
+        sph.r = rad;
+        AnimTrace* trace = (AnimTrace*)((BYTE*)this + 0x13b8);
+        ((AnimalTrace*)trace)->Erase(trace->first, trace->last);
+        trace->mode = 0xf;
+        trace->sphere = &sph;
+        trace->lo.x = lo.x;
+        trace->lo.y = lo.y;
+        trace->lo.z = lo.z;
+        trace->hi.x = hi.x;
+        trace->hi.y = hi.y;
+        trace->hi.z = hi.z;
+        ((RaceScene*)this)->FUN_00411520((S6Collector*)trace, (S6Sphere*)&sph);
 
         int obj = *(int*)(F(0x13a4, int) + 0xc);
-        float a[3];
-        float b[3];
-        a[0] = F(0x1378, float);
-        a[1] = F(0x137c, float) + DAT_004e13f8;
-        a[2] = F(0x1380, float);
-        b[1] = F(0x137c, float) + DAT_004e13f8;
-        b[0] = a[0];
-        b[2] = a[2];
-        Vec3 off1 = (*(Vec3*)&F(0x1390, Vec3)) * *(float*)(obj + 0xb4);
-        a[0] = a[0] + off1.x;
-        a[1] = a[1] + off1.y;
-        a[2] = a[2] + off1.z;
-        Vec3 off2 = (*(Vec3*)&F(0x1390, Vec3)) * *(float*)(obj + 0xa8);
-        b[0] = b[0] + off2.x;
-        b[1] = b[1] + off2.y;
-        b[2] = b[2] + off2.z;
-        float down[3];
-        down[1] = DAT_004e13f8 * DAT_004e13fc;
-        down[0] = 0.0f;
-        down[2] = 0.0f;
-        float n1[3];
-        float n2[3];
-        float h1 = trace->Cast(0.1f, a, down, n1, 0);
-        float h2 = trace->Cast(0.1f, b, down, n2, 0);
+        AnimVec a;
+        AnimVec b;
+        a = POS;
+        a.y += DAT_004e13f8;
+        b = POS;
+        b.y += DAT_004e13f8;
+        AVec off1 = ((AnimDir*)&DIR)->Scale(*(float*)(obj + 0xb4));
+        a.x = a.x + off1.x;
+        a.y = a.y + off1.y;
+        a.z = a.z + off1.z;
+        AVec off2 = ((AnimDir*)&DIR)->Scale(*(float*)(obj + 0xa8));
+        b.x = b.x + off2.x;
+        b.y = b.y + off2.y;
+        b.z = b.z + off2.z;
+        AnimVec n1;
+        AnimVec n2;
+        AnimVec down;
+        down.y = DAT_004e13f8 * DAT_004e13fc;
+        down.x = 0.0f;
+        down.z = 0.0f;
+        float h1 = ((AnimalTrace*)trace)->Cast(0.1f, &a.x, &down.x, &n1.x, 0);
+        float h2 = ((AnimalTrace*)trace)->Cast(0.1f, &b.x, &down.x, &n2.x, 0);
         ((AnimalPart*)F(0x13a4, int))->SetColour(F(0x13a0, float));
 
         float* ov = (float*)(obj + 0x40);
         float* o2 = (float*)(obj + 0x20);
         if (h1 < DAT_004e1348 && h2 < DAT_004e1348) {
-            *(AVec*)ov = *(AVec*)n1;
-            *(AVec*)ov -= *(AVec*)n2;
+            *(AVec*)ov = n1;
+            *(AVec*)ov -= n2;
             *(AVec*)ov *= DAT_004e1348 / ((AVec*)ov)->Length();
             *(AVec*)o2 = *(AVec*)&F(0x1384, float);
             AnimCross(ov, o2, (float*)(obj + 0x30));
             *(float*)(obj + 0x14) = F(0x1378, float);
             *(float*)(obj + 0x18) = F(0x137c, float);
             *(float*)(obj + 0x1c) = F(0x1380, float);
-            *(float*)(obj + 0x18) = (n2[1] + n1[1]) * DAT_004e138c;
+            *(float*)(obj + 0x18) = (n2.y + n1.y) * DAT_004e138c;
             return;
         }
         *(AVec*)ov = DIR;

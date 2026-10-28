@@ -32,6 +32,10 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Log
 
+- 2026-10-27 (Claude loop, `Stage::FUN_00417540` 0x417540): 2234 → 2256 of 2332 bytes; cleanup states now match (nine empty-destructor vector locals declared in the original's order, a 16-byte sphere object, a plain-struct return for the direction scale), the record lerp is `pos = r[3..5]; pos -= r[0..2]; pos *= t; pos += r[0..2]`, the hit box is written through the trace object. Register allocation remains.
+
+- 2026-10-27 (Codex, mirror renderer `0x464ef0`): Reordered independent Stage field copies; the candidate remains 1230 bytes, with differences reduced 15→13. The 10-byte register-order hunk now matches; current remaining difference is the shared camera pointer schedule. Focused file: 25 exact-marked, two NONMATCHING, no DIFF or compile failures. Details: `analysis/range-4649f0.md`.
+
 - 2026-10-27 (Codex, `GameView::ShowCountryVideo` `0x4526e0`): Exact 1,040-byte match / 78 relocations. A volatile store through the ordinary `y2` local's address preserves the four coordinate stores before the first wait-call argument push; a volatile local changed register allocation. Evidence and probe: `docs/analysis/country-video-caption-order.md`; focused file: 4 exact, 0 NONMATCHING, no diff/compile failures.
 
 - 2026-10-27 (Claude loop, `StageSoundLoader::LoadSoundFiles` 0x416260 / `MeshSetLoader::Load` 0x401cf0): LoadSoundFiles rewritten to the original's shape (1603 → 1797 of 1822 bytes; 56-call sequence and states identical): one `SndPath` twin reused for all three paths with site-specific flavours (out-of-line appends, then `_Grow`/`_Eos` calls, then `_Eos` inline), `NpfRec` with the out-of-line dtor so `new[]` uses the EH iterator, real `File` locals. MeshSetLoader::Load: 1184/933 → 1186/877 with a message-string twin and `frames` re-read per allocation. Both remain register-allocation NONMATCHING.
