@@ -104,6 +104,113 @@ struct StPathLate {
     unsigned int res;
 };
 
+void __cdecl StageLog(const char* fmt, ...);                 // 0x402c90: the release build's empty debug logger
+// Error-message string: inline _Tidy stores, begin()/end() through the out-of-line _Freeze (0x414750), the stage
+// module's printf-style range replace (0x414550) and the out-of-line string destructor (0x430720).
+struct StMsg {
+    StMsg(const std::allocator<char>& a = std::allocator<char>()) : alloc(a) { ptr = 0; len = 0; res = 0; }
+    ~StMsg();
+    void Freeze();
+    char* begin() { Freeze(); return ptr; }
+    char* end() { Freeze(); return ptr == 0 ? 0 : ptr + len; }
+    StMsg& Format(char* first, char* last, const char* fmt, const char* arg);
+    std::allocator<char> alloc;
+    char* ptr;
+    unsigned int len;
+    unsigned int res;
+};
+// std::logic_error as VC6 lays it out: exception("") out of line, the message copied with assign(x, 0, npos).
+struct StErrStr {
+    StErrStr(const StMsg& x) : alloc(x.alloc) { ptr = 0; len = 0; res = 0; Assign(x, 0, std::string::npos); }
+    ~StErrStr();                                                        // 0x430720
+    StErrStr& Assign(const StMsg& x, unsigned int pos, unsigned int n);  // 0x4024f0
+    std::allocator<char> alloc;
+    char* ptr;
+    unsigned int len;
+    unsigned int res;
+};
+class StLogicError : public std::exception {
+public:
+    StLogicError(const StMsg& s) : std::exception(""), str(s) {}
+    virtual ~StLogicError();
+    StErrStr str;
+};
+
+// The AI-path string is the fully expanded flavour: the copy constructor's assign(x, 0, npos) and the appends'
+// _Grow are inline, with erase (0x408de0), _Tidy (0x402700), _Grow (0x402980), _Xlen (0x4bd00b), _Eos (0x402960)
+// and _Copy (0x402ab0) as calls, like VC6's <xstring> bodies.
+struct StPathFull {
+    StPathFull(const StString& x) : alloc(x.alloc)
+    {
+        ptr = 0; len = 0; res = 0;
+        unsigned int n = x.len;
+        if (std::string::npos < n)
+            n = std::string::npos;
+        if ((StString*)this == &x) {
+            Erase(n, std::string::npos);
+            Erase(0, 0);
+        } else if (0 < n && n == x.len && Refcnt(x.ptr) < 0xfe) {
+            Tidy(true);
+            ptr = x.ptr;
+            len = x.len;
+            res = x.res;
+            ++Refcnt(ptr);
+        } else if (Grow(n, true)) {
+            memcpy(ptr, x.c_str(), n);
+            ptr[len = n] = 0;
+        }
+    }
+    ~StPathFull();                                                      // 0x430720
+    static unsigned char& Refcnt(const char* u) { return ((unsigned char*)u)[-1]; }
+    void Erase(unsigned int pos, unsigned int n);                       // 0x408de0
+    void Tidy(bool built);                                              // 0x402700
+    bool Grow(unsigned int n, bool trim);                               // 0x402980
+    void Eos(unsigned int n);                                           // 0x402960
+    void Copy(unsigned int n);                                          // 0x402ab0
+    bool GrowInline(unsigned int n, bool trim)
+    {
+        if (0xfffffffd < n)
+            std::_Xlen();
+        if (ptr != 0 && Refcnt(ptr) != 0 && Refcnt(ptr) != 0xff) {
+            if (n == 0) {
+                --Refcnt(ptr);
+                Tidy(false);
+                return false;
+            }
+            Copy(n);
+            return true;
+        }
+        if (n == 0) {
+            if (trim)
+                Tidy(true);
+            else if (ptr != 0)
+                Eos(0);
+            return false;
+        }
+        if (res < n || trim && n < res)
+            Copy(n);
+        return true;
+    }
+    StPathFull& operator+=(const char* s)
+    {
+        unsigned int m = strlen(s);
+        if (std::string::npos - len <= m)
+            std::_Xlen();
+        unsigned int n;
+        if (0 < m && GrowInline(n = len + m, false)) {
+            memcpy(ptr + len, s, m);
+            ptr[len = n] = 0;
+        }
+        return *this;
+    }
+    static const char* NullStr();                                       // 0x414480: basic_string::_Nullstr out of line
+    const char* c_str() const { return ptr == 0 ? NullStr() : ptr; }
+    std::allocator<char> alloc;
+    char* ptr;
+    unsigned int len;
+    unsigned int res;
+};
+
 static inline const char* NameOf(void* p)    // object name (std::string at +0x114), "" when empty
 {
     const char* s = (const char*)IV(p, 0x118);
@@ -111,10 +218,10 @@ static inline const char* NameOf(void* p)    // object name (std::string at +0x1
 }
 
 // NONMATCHING: RALLYTROPHY 0x40c9b0
-// 8202 vs 8656 bytes. The call sequence matches the original through the collision-model grid (148 calls);
-// open: the checkpoint-error throws (the original builds the message with 0x414750 / 0x414550, not sprintf),
-// the cross-jumped tails of the two sign branches (the original keeps the sign_ copy and jumps back into it),
-// the out-of-line plain-object push_back, the start-position store order and the frame layout.
+// 8451 vs 8656 bytes; the call sequence is identical to the original (217 calls, four string flavours, the
+// logger and the format helper at the error sites). Open: the 21 start-position stores are scheduled
+// differently, the two sign branches' shared tail is kept in the checkpoint copy (the original keeps the sign_
+// copy and jumps back), the plain-object push_back sits before the checkpoint block, and the frame layout.
 // original: FUN_0040c9b0
 Stage::Stage(int a, int b, int c, int d)
 {
@@ -476,19 +583,24 @@ Stage::Stage(int a, int b, int c, int d)
         void* p = mf3.v28[i];
         if (IV(p, 4) == 1) {
             BYTE* mesh = (BYTE*)((StMeshList*)((BYTE*)p + 0x124))->At(0);
-            char msg[256];
             if (IV(mesh, 0x40) == 0) {
-                sprintf(msg, "collision mesh %s has no vertices", NameOf(p));
-                throw std::logic_error(std::string(msg));
+                StageLog("FATAL ERROR: collision mesh %s has no vertices.", NameOf(p));
+                StMsg msg;
+                msg.Format(msg.begin(), msg.end(), "collision mesh %s has no vertices", NameOf(p));
+                throw StLogicError(msg);
             }
             if (IV(mesh, 0x44) == 0) {
-                sprintf(msg, "collision mesh %s has no triangles", NameOf(p));
-                throw std::logic_error(std::string(msg));
+                StageLog("FATAL ERROR: collision mesh %s has no triangles.", NameOf(p));
+                StMsg msg;
+                msg.Format(msg.begin(), msg.end(), "collision mesh %s has no triangles", NameOf(p));
+                throw StLogicError(msg);
             }
             ((StVirt*)p)->Prepare();
             StColModel* m = new StColModel(p, 0);
             m->Update();
             m->tree->Build(0x10);
+            if (IV(m->tree, 0x24) == 0)
+                StageLog("ERROR: collision mesh %s has degenerate triangles.", NameOf(p));
             void* cell = RAW->Cell((float*)((BYTE*)p + 0xb8));
             VECP(cell, 0x80).PushBack(m);
             VEC(0x154).PushBack(m);
@@ -513,7 +625,7 @@ Stage::Stage(int a, int b, int c, int d)
     RAW->SetTextures((const std::string*)&texDir);
     AT(StAiPath*, 0x1368) = new StAiPath;
     if (d != 0) {
-        StPath ai(root);
+        StPathFull ai(root);
         ai += "data/stage";
         ai += _itoa(stageCount, DAT_00508440, 10);
         ai += ".ai";

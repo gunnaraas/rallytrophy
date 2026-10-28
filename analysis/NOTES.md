@@ -195,6 +195,8 @@ Distilled from the per-loop history; "(A: X)" means `NOTES-archive.md`, section 
 - A `static` helper is not inlined under /O2 (/Ob1): mark file-local helpers `static inline` when the original has their body expanded (`NameOf` in the Stage ctor).
 - Identical statement tails in two branches are cross-jumped by VC6 (the `_itoa` + append in the Stage ctor label block): write the tail in both branches when the original shares one copy.
 - The same string type takes several twins in one TU as the inline budget changes: early locals = out-of-line assign/append/dtor, later locals = inline `_Tidy` ctor with appends expanded around `_Xlen`/`_Grow` calls, the member = inline `_Tidy(true)` dtor (Stage ctor `StPath` / `StPathLate` vs `StString`).
+- Error paths in loaders: `FUN_00402c90(fmt, name)` (the empty debug logger, two pushes) precedes a `std::string` message built with the stage module's range replace 0x414550 (`msg.Format(msg.begin(), msg.end(), fmt, arg)`, begin/end through `_Freeze` 0x414750) and `throw std::logic_error(msg)` (= `exception("")` 0x4c12db + assign 0x4024f0 + `__CxxThrowException`); `sprintf` into a char buffer is never what the original did (Stage ctor).
+- The last string flavour (Stage ctor `ai`): assign(x, 0, npos) expanded with the `this == &x` erase calls (0x408de0) and the refcount-sharing branch, `_Grow` expanded around `_Copy` 0x402ab0 / `_Tidy` 0x402700 / `_Eos` 0x402960, `c_str()` through an out-of-line `_Nullstr` (0x414480).
 
 - A standalone out-of-line copy of a class's inline method (UIRect ctor 0x4390a0) is defined on a file-local layout twin with `// SYMBOL:`; don't make the shared inline definition out of line.
 
