@@ -83,12 +83,9 @@ inline void SetProjection(RaceDeviceSlots* device, float fov, float nearPlane, f
     __asm fstp dword ptr [eax+8] \
     __asm fstp dword ptr [eax+4]
 
-// NONMATCHING: RALLYTROPHY 0x464c10
-// Same size (645), 13 differing bytes: the original computes the matrix pointer (body + 0x60) in place
-// (`add eax,0x60` and `mov [ebp-0x10],eax`) where this build uses `lea ecx,[eax+0x60]`; the rest is identical.
-// Pointer arithmetic from the body start kept the same code; mutating body inside the expression emitted `add eax`
-// but evaluated the matrix term first (19 bytes); splitting the eye-height product before advancing body produced
-// 647 bytes / 266 differences, and a volatile pointer expanded the diff to 286. Plain observations.
+// FUNCTION: RALLYTROPHY 0x464c10
+// Evaluating eye height through body->m0[17] before declaring the matrix alias reproduces the target's in-place
+// `add eax,0x60` schedule. Exact 645-byte match, 47 relocations.
 void Car::FUN_00464c10(ViewManager* view)
 {
     MirrorCar* car = (MirrorCar*)this;
@@ -98,8 +95,8 @@ void Car::FUN_00464c10(ViewManager* view)
     MirrorBody* body = car->body;
     Vec3 eye = body->unkb8;
     eye.z = body->unkb4;
+    eye.y = body->unkb0 * 0.85f + body->m0[17] * 0.15f;
     const float* matrix = body->m0;
-    eye.y = body->unkb0 * 0.85f + matrix[17] * 0.15f;
     const float* point = (const float*)&eye;
     MIRROR_TRANSFORM();
     MirrorBody* b = car->body;

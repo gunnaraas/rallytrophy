@@ -241,9 +241,7 @@
 <rect x="619.8" y="120" width="6.8" height="36" fill="#e3b341"/>
 <rect x="626.6" y="120" width="1.7" height="36" fill="#3fb950"/>
 <rect x="628.3" y="120" width="4.4" height="36" fill="#e3b341"/>
-<rect x="632.7" y="120" width="2.8" height="36" fill="#3fb950"/>
-<rect x="635.5" y="120" width="1.0" height="36" fill="#e3b341"/>
-<rect x="636.5" y="120" width="3.8" height="36" fill="#3fb950"/>
+<rect x="632.7" y="120" width="7.7" height="36" fill="#3fb950"/>
 <rect x="640.4" y="120" width="1.4" height="36" fill="#e3b341"/>
 <rect x="641.8" y="120" width="0.9" height="36" fill="#3fb950"/>
 <rect x="642.7" y="120" width="2.5" height="36" fill="#e3b341"/>
@@ -885,9 +883,8 @@
 <text x="1018" y="1150" fill="#e6edf3">10% exact / 100% written</text>
 <text x="260" y="1176" text-anchor="end" fill="#e6edf3">37. Rear-view mirror</text>
 <rect x="270" y="1162" width="740" height="18" rx="2" fill="#484f58"/>
-<rect x="270" y="1162" width="539.8" height="18" fill="#3fb950"/>
-<rect x="809.8" y="1162" width="200.2" height="18" fill="#e3b341"/>
-<text x="1018" y="1176" fill="#e6edf3">73% exact / 100% written</text>
+<rect x="270" y="1162" width="740.0" height="18" fill="#3fb950"/>
+<text x="1018" y="1176" fill="#e6edf3">100% exact / 100% written</text>
 <text x="260" y="1202" text-anchor="end" fill="#e6edf3">38. Car replay and network state</text>
 <rect x="270" y="1188" width="740" height="18" rx="2" fill="#484f58"/>
 <rect x="270" y="1188" width="454.7" height="18" fill="#3fb950"/>

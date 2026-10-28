@@ -66,7 +66,13 @@ the remaining mismatch. The exact source shape evaluates the eye-height term
 through `car->body->m0[17]` before declaring `matrix = car->body->m0`; this
 reproduces the target's in-place `add eax,0x60` schedule. `objcmp` confirms the
 complete 1,230-byte function and all 108 relocations match. Focused file check:
-26 exact-marked, one `NONMATCHING`, no DIFF or compile failures.
+27 exact-marked, no `NONMATCHING`, DIFF or compile failures after the shared
+camera setup was matched below.
+
+For `0x464c10`, the same scheduling fix is to evaluate the eye-height term via
+`body->m0[17]` before declaring `matrix = body->m0`. This matches the target's
+in-place `add eax,0x60` and subsequent pointer store. `objcmp` confirms the
+complete 645-byte function and all 47 relocations match.
 
 ## 2. F3: replay glue and network state packing, 0x4654f0 - 0x465e5f
 

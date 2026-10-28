@@ -6,7 +6,7 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Status
 
-- Marker inventory: 1814/2084 byte-exact (87.04%); 2084/2084 functions written (100.00%), from `tools/progress.py`.
+- Marker inventory: 1815/2084 byte-exact (87.09%); 2084/2084 functions written (100.00%), from `tools/progress.py`.
 - Game code: about 1,690 functions in `0x401000`–`0x4bcfc6`
 
 ## Queue
@@ -31,6 +31,8 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 
 ## Log
+
+- 2026-10-27 (Codex, `Car::FUN_00464c10` `0x464c10`): Exact 645-byte match with 47 relocations. Evaluating eye height through `body->m0[17]` before declaring the matrix alias reproduces the target's in-place matrix-pointer update; reuses the proven source shape from `0x464ef0`. Focused mirror file: 27 exact-marked functions, no NONMATCHING, DIFF or compile failures.
 
 - 2026-10-27 (Codex, `Car::FUN_00464ef0` `0x464ef0`): Exact 1,230-byte match with 108 relocations. Evaluating the eye-height term via `car->body->m0[17]` before declaring the matrix alias reproduces the target’s in-place matrix-pointer update. Focused mirror file: 26 exact-marked, one NONMATCHING, no DIFF or compile failures; details in `analysis/range-4649f0.md`.
 
