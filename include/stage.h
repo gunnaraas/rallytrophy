@@ -49,6 +49,7 @@ struct StQuery {
 // std::string layout whose destructor is the out-of-line _Tidy(true) (0x402700).
 struct StString {
     StString(const std::allocator<char>& a = std::allocator<char>()) : alloc(a) { Tidy(false); }
+    StString(const StString& x) : alloc(x.alloc) { Tidy(false); Assign(x, 0, std::string::npos); }   // npos read at the assign call
     StString(const StString& x, unsigned int pos, unsigned int n) : alloc(x.alloc) { Tidy(false); Assign(x, pos, n); }
     ~StString() { Tidy(true); }
     void Tidy(bool built);                       // 0x402700, out of line in both directions

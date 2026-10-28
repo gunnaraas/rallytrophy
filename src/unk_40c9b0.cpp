@@ -11,6 +11,12 @@
 #include "stage.h"
 #include "unk_414330.h"
 
+class StageLightVector : public std::vector<StCityLight*> {
+public:
+    void Insert(iterator pos, unsigned int n, StCityLight* const& value);
+};
+#pragma comment(linker, "/alternatename:?Insert@StageLightVector@@QAEXPAPAUStCityLight@@IABQAU2@@Z=?insert@?$vector@PAXV?$allocator@PAX@std@@@std@@QAEXPAPAXIABQAX@Z")
+
 extern float DAT_005012f8, DAT_004e13cc, DAT_004e139c, DAT_004e13c8, DAT_004e1348, DAT_004e134c;
 extern float DAT_004e13c4, DAT_004e1390, DAT_004e138c;
 extern float DAT_00508490, DAT_00508494, DAT_00508488, DAT_0050848c, DAT_00508480, DAT_00508484;
@@ -36,8 +42,13 @@ extern void FUN_004a86d0();
 #define AT(T, off) (*(T*)((BYTE*)this + (off)))
 #define IV(p, o) (*(int*)((BYTE*)(p) + (o)))
 #define FV(p, o) (*(float*)((BYTE*)(p) + (o)))
-#define VEC(off) (*(std::vector<void*>*)((BYTE*)this + (off)))
-#define VECP(p, off) (*(std::vector<void*>*)((BYTE*)(p) + (off)))
+// Pointer vectors whose push_back stays the shared out-of-line insert(end(), 1, x) instance (0x4bc680).
+struct StPtrVecIns : std::vector<void*> {
+    void Ins(iterator pos, unsigned int n, void* const& x);           // 0x4bc680
+    void PushBack(void* const& x) { Ins(end(), 1, x); }
+};
+#define VEC(off) (*(StPtrVecIns*)((BYTE*)this + (off)))
+#define VECP(p, off) (*(StPtrVecIns*)((BYTE*)(p) + (off)))
 #define RAW ((StStageRaw*)this)
 
 static inline int RoundF(float v)
@@ -48,16 +59,62 @@ static inline int RoundF(float v)
     return r;
 }
 
-static const char* NameOf(void* p)    // object name (std::string at +0x114), "" when empty
+struct StNetInfo { BYTE pad[0x28]; int raceIndex; int stage; };   // DAT_00501450 fields used here
+
+// Path strings of this constructor. Early sites keep assign/append out of line and the destructor is the
+// out-of-line string destructor (0x430720); the collision-model path (a later site) has its constructor's _Tidy
+// and its appends expanded, with _Xlen (0x4bd00b) and _Grow (0x402980) as calls.
+struct StPath {
+    StPath(const std::allocator<char>& a = std::allocator<char>()) : alloc(a) { Tidy(false); }
+    StPath(const StString& x) : alloc(x.alloc) { Tidy(false); Assign(x, 0, std::string::npos); }
+    ~StPath();                                                          // 0x430720
+    void Tidy(bool built);                                              // 0x402700
+    StPath& Assign(const StString& x, unsigned int pos, unsigned int n); // 0x4024f0
+    StPath& Assign(const StPath& x, unsigned int pos, unsigned int n);   // 0x4024f0
+    StPath& Append(const char* s, unsigned int n);                      // 0x403ba0
+    StPath& operator+=(const char* s) { return Append(s, strlen(s)); }
+    const char* c_str() const { return ptr == 0 ? "" : ptr; }
+    std::allocator<char> alloc;
+    char* ptr;
+    unsigned int len;
+    unsigned int res;
+};
+struct StPathLate {
+    StPathLate(const StString& x) : alloc(x.alloc) { ptr = 0; len = 0; res = 0; Assign(x, 0, std::string::npos); }
+    ~StPathLate();                                                      // 0x430720
+    StPathLate& Assign(const StString& x, unsigned int pos, unsigned int n); // 0x4024f0
+    bool Grow(unsigned int n, bool trim);                               // 0x402980
+    StPathLate& operator+=(const char* s)
+    {
+        unsigned int m = strlen(s);
+        if (std::string::npos - len <= m) {
+            std::_Xlen();
+        }
+        unsigned int n;
+        if (0 < m && Grow(n = m + len, false)) {
+            memcpy(ptr + len, s, m);
+            ptr[len = n] = 0;
+        }
+        return *this;
+    }
+    const char* c_str() const { return ptr == 0 ? "" : ptr; }
+    std::allocator<char> alloc;
+    char* ptr;
+    unsigned int len;
+    unsigned int res;
+};
+
+static inline const char* NameOf(void* p)    // object name (std::string at +0x114), "" when empty
 {
     const char* s = (const char*)IV(p, 0x118);
     return s ? s : "";
 }
 
 // NONMATCHING: RALLYTROPHY 0x40c9b0
-// 8487 vs 8656 bytes. Member construction comes from the layout in stage.h; the path strings are StString twins
-// (assign/append out of line, npos read from its static). Open: the 21 start-position stores are scheduled
-// differently (row/column/loop orders tried), later string temporaries and the frame layout (0x2fc vs 0x258).
+// 8202 vs 8656 bytes. The call sequence matches the original through the collision-model grid (148 calls);
+// open: the checkpoint-error throws (the original builds the message with 0x414750 / 0x414550, not sprintf),
+// the cross-jumped tails of the two sign branches (the original keeps the sign_ copy and jumps back into it),
+// the out-of-line plain-object push_back, the start-position store order and the frame layout.
 // original: FUN_0040c9b0
 Stage::Stage(int a, int b, int c, int d)
 {
@@ -85,7 +142,7 @@ Stage::Stage(int a, int b, int c, int d)
     unsigned int fpcw = SaveSceneControlWord();
 
     // stage config: <root>data/stage<N>.txt
-    StString cfg(root, 0, std::string::npos);
+    StPath cfg(root);
     cfg += "data/stage";
     cfg += _itoa(stageCount, DAT_00508440, 10);
     cfg += ".txt";
@@ -107,44 +164,43 @@ Stage::Stage(int a, int b, int c, int d)
     AT(int, 0x24) = 0; AT(int, 0x19c) = 0;
 
     // loading screen caption: "<name> - <text> <n>\n<text137>"
-    LoadingLabel* label = (LoadingLabel*)AT(int, 0x1364);
-    {
-        StString line;
-        StString text;
-        BYTE* net = (BYTE*)DAT_00501450;
-        int idx = IV(net, 0x28);
-        char num[8];
-        text += FUN_00405380(idx + 0xb4);
-        text += " - ";
-        if (DAT_00501458 == 0) {
-            text += FUN_00405380(0x1a);
-            text += " ";
-            _itoa(IV(net, 0x2c), num, 10);
-        } else {
-            text += FUN_00405380(0x2a);
-            text += " ";
-            text += FUN_00405380(0x1b);
-            text += " ";
-            _itoa(IV(net, 0x2c) - IV((BYTE*)DAT_0056b0c8, 0x3680 + idx * 0x5e8), num, 10);
-        }
+    StPath line;                                     // function-scope strings: destroyed at the end
+    StPath text;
+    StNetInfo* net = (StNetInfo*)DAT_00501450;
+    int idx = net->raceIndex;
+    char num[8];
+    text += FUN_00405380(idx + 0xb4);
+    text += " - ";
+    if (DAT_00501458 == 0) {
+        text += FUN_00405380(0x1a);
+        text += " ";
+        _itoa(net->stage, num, 10);
         text += num;
-        text += "\n";
-        line.Assign(text, 0, std::string::npos);
-        line += FUN_00405380(0x137);
-        label->SetText(line.c_str());
+    } else {
+        text += FUN_00405380(0x2a);
+        text += " ";
+        text += FUN_00405380(0x1b);
+        text += " ";
+        _itoa(net->stage - IV((BYTE*)DAT_0056b0c8, 0x3680 + idx * 0x5e8), num, 10);
+        text += num;
     }
+    text += "\n";
+    line.Assign(text, 0, std::string::npos);
+    line += FUN_00405380(0x137);
+    ((LoadingLabel*)AT(int, 0x1364))->SetText(line.c_str());
+    LoadingLabel* label = (LoadingLabel*)AT(int, 0x1364);   // progress updates below
 
     // model file names
-    StString stageModel(root, 0, std::string::npos);
+    StPath stageModel(root);
     stageModel += "models/stage";
     stageModel += _itoa(stageCount, DAT_00508440, 10);
     stageModel += ".bmf";
-    StString texDir(root, 0, std::string::npos);
+    StPath texDir(root);
     texDir += "textures/";
 
     StModelFile mf1(stageModel.c_str(), texDir.c_str(), &AT(StTexCache, 0xd4), &AT(BYTE, 0x98), 0);
 
-    StString skyModel(root, 0, std::string::npos);
+    StPath skyModel(root);
     skyModel += "models/stage";
     skyModel += _itoa(stageCount, DAT_00508440, 10);
     skyModel += "sky.bmf";
@@ -221,8 +277,8 @@ Stage::Stage(int a, int b, int c, int d)
             } else if (IV(p, 0x124) == 2 && FV(p, 0x10c) != 0.0f) {
                 StCityLight* light = new StCityLight(p, &AT(StTexCache, 0xd4), &AT(Sprite, 0x6b4), &AT(Sprite, 0x788));
                 ((StShow*)p)->Show();
-                VEC(0x68).push_back(light);
-                VEC(0x28).push_back(light);
+                (*(StageLightVector*)((BYTE*)this + 0x68)).Insert((*(StageLightVector*)((BYTE*)this + 0x68)).end(), 1, light);
+                VEC(0x28).PushBack(light);
             }
         } else {
             IV(p, 8) = 1;
@@ -239,14 +295,14 @@ Stage::Stage(int a, int b, int c, int d)
                 }
             }
         }
-        VEC(0x28).push_back(p);
+        VEC(0x28).PushBack(p);
         i++;
         label->SetProgress(((float)i / (float)(int)mf1.v48.size()) * DAT_00508494 + DAT_00508490);
     }
 
     // model 1 list at +0x38
     for (i = 0; i < (int)mf1.v38.size(); i++) {
-        VEC(0x38).push_back(mf1.v38[i]);
+        VEC(0x38).PushBack(mf1.v38[i]);
         void* o = VEC(0x38)[i];
         ((StSceneObj*)o)->Place(&AT(float, 0x1d0));
         ((StVirt*)o)->Prepare();
@@ -260,17 +316,19 @@ Stage::Stage(int a, int b, int c, int d)
     for (i = 0; i < (int)mf1.v28.size(); ) {
         void* p = mf1.v28[i];
         if (IV(p, 4) == 3) {
-            VEC(0x78).push_back(p);
+            VEC(0x78).PushBack(p);
             if (_strnicmp(NameOf(p), "z", 1) == 0)
                 IV(p, 0x130) = 1;
             i++;
         } else if (IV(p, 4) == 2) {
-            if (IV(p, 0x124) == 1) {
-                VEC(0x68).push_back(p);
-            } else if (IV(p, 0x124) == 2) {
-                StCityLight* light = new StCityLight(p, &AT(StTexCache, 0xd4), &AT(Sprite, 0x6b4), &AT(Sprite, 0x788));
-                VEC(0x68).push_back(light);
-                VEC(0x28).push_back(light);
+            if (IV(p, 0x124) != 1) {          // the == 1 block sits out of line after the loop (VC6: if (!x) A else B)
+                if (IV(p, 0x124) == 2) {
+                    StCityLight* light = new StCityLight(p, &AT(StTexCache, 0xd4), &AT(Sprite, 0x6b4), &AT(Sprite, 0x788));
+                    VEC(0x68).PushBack(light);
+                    VEC(0x28).PushBack(light);
+                }
+            } else {
+                VEC(0x68).PushBack(p);
             }
             i++;
         } else if (_strnicmp(NameOf(p), "split", 5) == 0) {
@@ -283,9 +341,8 @@ Stage::Stage(int a, int b, int c, int d)
                 i++;
                 continue;
             }
-            StSign* s;
             if (_strnicmp(NameOf(p), "sign_", 5) == 0) {
-                s = new StSign;
+                StSign* s = new StSign;
                 s->pos[0] = FV(p, 0x14);
                 s->pos[1] = FV(p, 0x18);
                 s->pos[2] = FV(p, 0x1c);
@@ -297,13 +354,19 @@ Stage::Stage(int a, int b, int c, int d)
                 c[1] = FV(p, 0xa4) * DAT_004e13c4 + FV(p, 0xb0) * DAT_004e1390;
                 s->body = new StBody(p, 150.0f, ext, (float*)((BYTE*)p + 0xb8));
                 s->body->SetCollision2(p);
+                s->body->pos[0] = FV(p, 0x14);
+                s->body->pos[1] = FV(p, 0x18);
+                s->body->pos[2] = FV(p, 0x1c);
+                s->f4c = 1.45f;
+                s->Sync();
+                VEC(0x88).PushBack(s);
+                i++;
             } else if (_strnicmp(NameOf(p), "checkpoint", 10) != 0) {
                 if ((IV(p, 0xc) & lodMask) == 0)
-                    VEC(0x68).push_back(p);
+                    VEC(0x68).PushBack(p);
                 i++;
-                continue;
-            } else {
-                s = new StSign;
+            } else {                                   // the tail is written in both sign branches; VC6 merges it
+                StSign* s = new StSign;
                 s->pos[0] = FV(p, 0x14);
                 s->pos[1] = FV(p, 0x18);
                 s->pos[2] = FV(p, 0x1c);
@@ -311,14 +374,14 @@ Stage::Stage(int a, int b, int c, int d)
                 float ext[3] = { 100.0f, 100.0f, 100.0f };
                 s->body = new StBody(p, 25.0f, ext, (float*)((BYTE*)p + 0xb8));
                 s->body->SetCollision3(p);
+                s->body->pos[0] = FV(p, 0x14);
+                s->body->pos[1] = FV(p, 0x18);
+                s->body->pos[2] = FV(p, 0x1c);
+                s->f4c = 1.45f;
+                s->Sync();
+                VEC(0x88).PushBack(s);
+                i++;
             }
-            s->body->pos[0] = FV(p, 0x14);
-            s->body->pos[1] = FV(p, 0x18);
-            s->body->pos[2] = FV(p, 0x1c);
-            s->f4c = 1.45f;
-            s->Sync();
-            VEC(0x88).push_back(s);
-            i++;
         }
     }
 
@@ -375,22 +438,22 @@ Stage::Stage(int a, int b, int c, int d)
     }
     for (n = 0; AT(int, 0x3c) != 0 && n < (unsigned int)((AT(int, 0x40) - AT(int, 0x3c)) >> 2); n++) {
         StGridEntry* e = new StGridEntry(VEC(0x38)[n]);
-        VEC(0x134).push_back(e);
+        VEC(0x134).PushBack(e);
         void* cell = RAW->Cell((float*)((BYTE*)e->d[1] + 0xb8));
-        VECP(cell, 0x60).push_back(e);
+        VECP(cell, 0x60).PushBack(e);
     }
 
     // collision model (c.bmf)
-    StString colModel(root, 0, std::string::npos);
+    StPathLate colModel(root);
     colModel += "models/stage";
     colModel += _itoa(stageCount, DAT_00508440, 10);
     colModel += "c.bmf";
     StModelFile mf3(colModel.c_str(), texDir.c_str(), 0, &AT(BYTE, 0xac), 0);
 
     for (i = 0; i < (int)mf3.v48.size(); i++)
-        VEC(0x48).push_back(mf3.v48[i]);
+        VEC(0x48).PushBack(mf3.v48[i]);
     for (i = 0; i < (int)mf3.v38.size(); ) {
-        VEC(0x58).push_back(mf3.v38[i]);
+        VEC(0x58).PushBack(mf3.v38[i]);
         ((StVirt*)VEC(0x58)[i])->Prepare();
         i++;
         label->SetProgress(((float)i / (float)(int)mf3.v38.size()) * DAT_00508484 + DAT_00508480);
@@ -400,9 +463,9 @@ Stage::Stage(int a, int b, int c, int d)
         StColModel* m = new StColModel(o, 0);
         m->Update();
         m->tree->Build(0x10);
-        VEC(0x154).push_back(m);
+        VEC(0x154).PushBack(m);
         void* cell = RAW->Cell((float*)((BYTE*)o + 0xb8));
-        VECP(cell, 0x80).push_back(m);
+        VECP(cell, 0x80).PushBack(m);
         if (o)
             delete (StVirt*)o;
         int total = AT(int, 0x5c) == 0 ? 0 : (AT(int, 0x60) - AT(int, 0x5c)) >> 2;
@@ -427,8 +490,8 @@ Stage::Stage(int a, int b, int c, int d)
             m->Update();
             m->tree->Build(0x10);
             void* cell = RAW->Cell((float*)((BYTE*)p + 0xb8));
-            VECP(cell, 0x80).push_back(m);
-            VEC(0x154).push_back(m);
+            VECP(cell, 0x80).PushBack(m);
+            VEC(0x154).PushBack(m);
         }
         if (p)
             delete (StVirt*)p;
@@ -442,7 +505,7 @@ Stage::Stage(int a, int b, int c, int d)
     RAW->Fill();
     RAW->ScanEffects();
     RAW->F415370();
-    AT(StModelCache, 0xf4).Preload(VEC(0x68));
+    AT(StModelCache, 0xf4).Preload(*(std::vector<void*>*)&VEC(0x68));
     for (n = 0; AT(int, 0x3c) != 0 && n < (unsigned int)((AT(int, 0x40) - AT(int, 0x3c)) >> 2); n++)
         AT(StModelCache, 0xf4).Release(VEC(0x38)[n]);
     AT(StModelCache, 0xf4).Release(AT(void*, 0x18));
@@ -450,7 +513,7 @@ Stage::Stage(int a, int b, int c, int d)
     RAW->SetTextures((const std::string*)&texDir);
     AT(StAiPath*, 0x1368) = new StAiPath;
     if (d != 0) {
-        StString ai(root, 0, std::string::npos);
+        StPath ai(root);
         ai += "data/stage";
         ai += _itoa(stageCount, DAT_00508440, 10);
         ai += ".ai";
