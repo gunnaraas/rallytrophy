@@ -686,9 +686,9 @@ void SlotMenu::DrawCaret(RenderDevice* device, float x, float y, Color color)
 }
 
 // NONMATCHING: RALLYTROPHY 0x450be0
-// Same size (704) and instruction mix; differs only in register allocation: the original keeps the loop index in ebp
-// and the label pointer in a stack slot (mine swaps them), and loads the device global into eax before the title
-// Print's float args (mine uses ecx).
+// Capturing the title device before Print reduces the bounded object diff 358→272 bytes and moves its global load
+// ahead of the float arguments; it currently uses ebp instead of the target's eax. The loop still allocates the
+// label cursor to ebp and index to a stack slot, opposite the target.
 // original: FUN_00450be0 (vtable slot 3, Draw)
 void SlotMenu::Slot3(int skipPresent)
 {
@@ -701,7 +701,8 @@ void SlotMenu::Slot3(int skipPresent)
         text->scaleX = DAT_0056aea8 * 2.0f;
         text->color = DAT_00508bfc;
         text->scaleY = DAT_0056aeac * 2.0f;
-        text->Print(DAT_0056b0ac, 54.0f * DAT_0056aea8, 142.0f * DAT_0056aeac, FUN_00405380(0x16f), 0, 1.0f, 1.0f);
+        RenderDevice* titleDevice = DAT_0056b0ac;
+        text->Print(titleDevice, 54.0f * DAT_0056aea8, 142.0f * DAT_0056aeac, FUN_00405380(0x16f), 0, 1.0f, 1.0f);
         text->SetScale(DAT_0056aea8, DAT_0056aeac);
         game->FUN_00435de0(480.0f, 240.0f);
         game->FUN_00435f50(480.0f, 590.0f);
