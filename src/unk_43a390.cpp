@@ -54,6 +54,69 @@ extern int DAT_004f8d34[];             // by m_cars
 extern const char* DAT_004f8d44[];     // by m_option4 (filled by the ctor, 0x43a3c0)
 static const char C4_SEP[] = ": ";     // 0x4f75c8
 static const char C4_SPACE[] = " ";    // 0x4f2e40
+class C4_LineCall {
+public:
+    void Append(const char* text, unsigned int length); // std::string::append(const char*, size_t), target call 0x403ba0
+};
+class C4_LineLayout {
+public:
+    bool Grow(unsigned int length, bool trim); // std::string::_Grow, target call 0x402980
+    void Eos(unsigned int length);             // std::string::_Eos, target call 0x402960
+    std::allocator<char> alloc;
+    char* ptr;
+    unsigned int len;
+    unsigned int reserve;
+};
+static __forceinline void C4_AssignEos(std::string& line, const char* text)
+{
+    C4_LineLayout& s = (C4_LineLayout&)line;
+    unsigned int length = strlen(text);
+    if (s.Grow(length, true)) {
+        memcpy(s.ptr, text, length);
+        s.Eos(length);
+    }
+}
+static __forceinline void C4_AssignInline(std::string& line, const char* text)
+{
+    C4_LineLayout& s = (C4_LineLayout&)line;
+    unsigned int length = strlen(text);
+    if (s.Grow(length, true)) {
+        memcpy(s.ptr, text, length);
+        s.len = length;
+        s.ptr[length] = 0;
+    }
+}
+static __forceinline void C4_AppendEos(std::string& line, const char* text)
+{
+    C4_LineLayout& s = (C4_LineLayout&)line;
+    unsigned int length = strlen(text);
+    if (std::string::npos - s.len <= length) {
+        std::_Xlen();
+    }
+    if (length > 0) {
+        unsigned int total = s.len + length;
+        if (s.Grow(total, false)) {
+            std::char_traits<char>::copy(s.ptr + s.len, text, length);
+            s.Eos(total);
+        }
+    }
+}
+static __forceinline void C4_AppendInline(std::string& line, const char* text)
+{
+    C4_LineLayout& s = (C4_LineLayout&)line;
+    unsigned int length = strlen(text);
+    if (std::string::npos - s.len <= length) {
+        std::_Xlen();
+    }
+    if (length > 0) {
+        unsigned int total = s.len + length;
+        if (s.Grow(total, false)) {
+            std::char_traits<char>::copy(s.ptr + s.len, text, length);
+            s.len = total;
+            s.ptr[total] = 0;
+        }
+    }
+}
 
 // FUNCTION: RALLYTROPHY 0x43a3c0
 Screen1378::Screen1378()
@@ -435,9 +498,9 @@ void Screen1378::Layout()
 }
 
 // NONMATCHING: RALLYTROPHY 0x43b1d0
-// Semantics complete (header rows, player list with car icons, session options, status text, three buttons, cursor);
-// not compared at instruction level: the original builds each text line with inlined string appends (assign, ": ",
-// value) whose exact inlining and local layout were not reproduced.
+// The session rows follow target-observed order (including the separate 0x133 row), both first-row append calls,
+// and all 21 _Grow / 13 _Eos boundaries; register/frame scheduling remains. Evidence:
+// ev_d0320ad31102fdbe186138a6333006379715eb281e74b440e51f34d3f4d12b57.
 // original: FUN_0043b1d0 (vtable slot 3, Draw)
 void Screen1378::Slot3(int noPresent)
 {
@@ -449,9 +512,9 @@ void Screen1378::Slot3(int noPresent)
     float colF = sx * 450.0f;
     float rowTop = sy * 362.0f, lineH = sy * 32.0f, rowH = sy * 20.0f, rowBot = sy * 585.0f, rowY = sy * 210.0f;
     float x0 = sx * 54.0f;
-    std::string line;
     big->scaleX = sx;
     big->scaleY = sy;
+    std::string line;
     game->UpdateVideo();
     if (DAT_0056b0ac->BeginScene()) {
         DAT_0056b0ac->vf38(0);
@@ -476,15 +539,17 @@ void Screen1378::Slot3(int noPresent)
             NetRace* race = net;
             race->Lock();
             count = race->m_players.size();
+            LobbyEntry* out = entries;
             for (int i = 0; i < count; i++) {
                 Player* p = race->m_players[i];
-                strcpy(entries[i].name, p->name);
-                entries[i].unk20 = p->unk20;
-                entries[i].state = p->state;
-                entries[i].ping = race->GetLatency(p);
-                if (entries[i].state == 2) {
-                    entries[i].unk28 = p->unk2c;
+                strcpy(out->name, p->name);
+                out->unk20 = p->unk20;
+                out->state = p->state;
+                out->ping = race->GetLatency(p);
+                if (out->state == 2) {
+                    out->unk28 = p->unk2c;
                 }
+                ++out;
             }
             race->Unlock();
             big->SetColor(ColorArg(0xff000000));
@@ -524,41 +589,46 @@ void Screen1378::Slot3(int noPresent)
         // Session description, one "label: value" line per row.
         T_56b0b8* session = DAT_0056b0b8;
         float y = rowY;
-        line = FUN_00405380(0x19);
-        line += C4_SEP;
-        line += FUN_00405380(session->m_rallyInfo[0] + 0xb4);
-        if (session->m_rallyInfo[2]) {
-            line += FUN_00405380(0x2a);
-            line += C4_SPACE;
-        }
-        line += FUN_00405380(DAT_004f8d14[session->m_rallyInfo[3]]);
+        C4_AssignEos(line, FUN_00405380(0x19));
+        ((C4_LineCall*)&line)->Append(C4_SEP, strlen(C4_SEP));
+        const char* rallyName = FUN_00405380(session->m_rallyInfo[0] + 0xb4);
+        ((C4_LineCall*)&line)->Append(rallyName, strlen(rallyName));
         big->Print(DAT_0056b0ac, colF, y, line.c_str(), 0, 1.0f, 1.0f);
         y = rowY + rowH;
+        C4_AssignEos(line, FUN_00405380(0x133));
+        C4_AppendEos(line, C4_SEP);
+        if (session->m_rallyInfo[2]) {
+            C4_AppendEos(line, FUN_00405380(0x2a));
+            C4_AppendEos(line, C4_SPACE);
+        }
+        C4_AppendEos(line, FUN_00405380(DAT_004f8d14[session->m_rallyInfo[3]]));
+        big->Print(DAT_0056b0ac, colF, y, line.c_str(), 0, 1.0f, 1.0f);
+        y += rowH;
         line = FUN_00405380(0x1a);
-        line += C4_SEP;
+        C4_AppendEos(line, C4_SEP);
         char buf[16];
         itoa(session->m_rallyInfo[1], buf, 10);
-        line += buf;
+        C4_AppendEos(line, buf);
         big->Print(DAT_0056b0ac, colF, y, line.c_str(), 0, 1.0f, 1.0f);
         y += rowH;
         line = FUN_00405380(0x11a);
-        line += C4_SEP;
-        line += FUN_00405380(DAT_004f8d24[session->m_ghostMode]);
+        C4_AppendEos(line, C4_SEP);
+        C4_AppendEos(line, FUN_00405380(DAT_004f8d24[session->m_ghostMode]));
         big->Print(DAT_0056b0ac, colF, y, line.c_str(), 0, 1.0f, 1.0f);
         y += rowH;
         line = FUN_00405380(0x119);
-        line += C4_SEP;
-        line += FUN_00405380(DAT_004f8d2c[session->m_damage]);
+        C4_AppendEos(line, C4_SEP);
+        C4_AppendEos(line, FUN_00405380(DAT_004f8d2c[session->m_damage]));
         big->Print(DAT_0056b0ac, colF, y, line.c_str(), 0, 1.0f, 1.0f);
         y += rowH;
         line = FUN_00405380(0x11c);
-        line += C4_SEP;
+        C4_AppendEos(line, C4_SEP);
         line += FUN_00405380(DAT_004f8d34[session->m_cars]);
         big->Print(DAT_0056b0ac, colF, y, line.c_str(), 0, 1.0f, 1.0f);
         y += rowH;
-        line = FUN_00405380(0x11b);
-        line += C4_SEP;
-        line += DAT_004f8d44[session->m_option4];
+        C4_AssignInline(line, FUN_00405380(0x11b));
+        C4_AppendInline(line, C4_SEP);
+        C4_AppendInline(line, DAT_004f8d44[session->m_option4]);
         big->Print(DAT_0056b0ac, colF, y, line.c_str(), 0, 1.0f, 1.0f);
         }
 
