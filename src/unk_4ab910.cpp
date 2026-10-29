@@ -180,10 +180,7 @@ int __fastcall FUN_004abf30(ImgW5* img, int, const char* name)
     return 1;
 }
 
-// NONMATCHING: RALLYTROPHY 0x4ac730
-// Original size reproduced; width/height multiply operands are reversed (10 differing bytes). Reversing the
-// accumulator order or writing a direct height*width expression leaves those bytes unchanged; separate width/height
-// locals add 4 bytes and 191 additional differences; a volatile height read adds 4 bytes and 190 differences.
+// FUNCTION: RALLYTROPHY 0x4ac730
 int __fastcall FUN_004ac730(ImgW5* img, int, const char* name)
 {
     unsigned char h[18];
@@ -194,14 +191,14 @@ int __fastcall FUN_004ac730(ImgW5* img, int, const char* name)
     h[14]=(unsigned char)img->height; h[15]=(unsigned char)(img->height>>8);
     h[17]=32;
     if (img->format<5) {
+        const int& height = img->height;
         ((ImageOps*)img)->Convert(3);
         h[16]=24;
         File f;
         if ((char)f.Open(name,0x82)) {
             f.Write(h,18);
             f.Write("Bugbear Entertainment Ltd. \0",h[0]);
-            int n=img->width;
-            n*=img->height;
+            int n = height * img->width;
             f.Write(img->pixels,n*3);
             f.Close();
         }
@@ -212,8 +209,8 @@ int __fastcall FUN_004ac730(ImgW5* img, int, const char* name)
         if ((char)f.Open(name,0x82)) {
             f.Write(h,18);
             f.Write("Bugbear Entertainment Ltd. \0",h[0]);
-            int n=img->width;
-            n*=img->height;
+            const int& height = img->height;
+            int n = height * img->width;
             f.Write(img->pixels,n*4);
             f.Close();
         }

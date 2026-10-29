@@ -2,7 +2,7 @@
 <title>Rally Trophy per-function decompilation map</title>
 <rect width="1600" height="1120" rx="8" fill="#0d1117"/>
 <text x="20" y="30" font-size="18" font-weight="600" fill="#e6edf3">Every game function, sized by code bytes and branch complexity</text>
-<text x="20" y="53" fill="#8b949e">1,823 byte-exact · 261 written but not byte-exact · 0 unwritten. Tile area = bytes × (1 + log₂(1 + branch points)); hover for details.</text>
+<text x="20" y="53" fill="#8b949e">1,824 byte-exact · 260 written but not byte-exact · 0 unwritten. Tile area = bytes × (1 + log₂(1 + branch points)); hover for details.</text>
 <g transform="translate(20,72)" fill="#e6edf3">
 <rect width="12" height="12" fill="#3fb950"/><text x="18" y="11">byte-exact</text>
 <rect x="118" width="12" height="12" fill="#e3b341"/><text x="136" y="11">written, not exact</text>
@@ -1876,7 +1876,7 @@
 <rect x="705.11" y="976.73" width="184.29" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x004ab010 · FUN_004ab010 · Engine image/font/model files · 2,302 code bytes · complexity 36 (35 branch points) · written, not exact</title></rect>
 <rect x="890.40" y="976.73" width="132.12" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x004ab910 · FUN_004ab910 · Engine image/font/model files · 1,523 code bytes · complexity 52 (51 branch points) · written, not exact</title></rect>
 <rect x="1023.52" y="976.73" width="185.33" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x004abf30 · FUN_004abf30 · Engine image/font/model files · 2,034 code bytes · complexity 65 (64 branch points) · written, not exact</title></rect>
-<rect x="1209.85" y="976.73" width="18.10" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x004ac730 · FUN_004ac730 · Engine image/font/model files · 488 code bytes · complexity 4 (3 branch points) · written, not exact</title></rect>
+<rect x="1209.85" y="976.73" width="18.10" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x004ac730 · FUN_004ac730 · Engine image/font/model files · 488 code bytes · complexity 4 (3 branch points) · byte-exact</title></rect>
 <rect x="1228.95" y="976.73" width="72.94" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x004ac920 · FUN_004ac920 · Engine image/font/model files · 1,080 code bytes · complexity 19 (18 branch points) · written, not exact</title></rect>
 <rect x="1302.89" y="976.73" width="62.87" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x004acd60 · FUN_004acd60 · Engine image/font/model files · 933 code bytes · complexity 19 (18 branch points) · written, not exact</title></rect>
 <rect x="1366.76" y="976.73" width="4.44" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x004ad110 · FUN_004ad110 · Engine image/font/model files · 139 code bytes · complexity 4 (3 branch points) · byte-exact</title></rect>

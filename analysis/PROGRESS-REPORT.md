@@ -11,16 +11,16 @@ conventions are in [`NOTES.md`](NOTES.md); the work queue and log are in
 ## Progress
 
 <!-- progress:begin -->
-_Updated 2026-10-28 by `tools/progress.py` (game code `0x401000`–`0x4bcfc6`)._
+_Updated 2026-10-29 by `tools/progress.py` (game code `0x401000`–`0x4bcfc6`)._
 
 | | Functions | Code bytes |
 |---|---|---|
-| Byte-exact | 1823 / 2084 (87.48%) | 334,675 / 742,276 (45.09%) |
-| Written, not yet exact | 261 | 407,601 |
+| Byte-exact | 1824 / 2084 (87.52%) | 335,163 / 742,276 (45.15%) |
+| Written, not yet exact | 260 | 407,113 |
 | Written in total | 2084 / 2084 (100.00%) | 742,276 / 742,276 (100.00%) |
 
 ```
-exact   ██████████████░░░░░░░░░░░░░░░░ 45.09% of code bytes
+exact   ██████████████░░░░░░░░░░░░░░░░ 45.15% of code bytes
 written ██████████████████████████████ 100.00% of code bytes
 ```
 
@@ -117,7 +117,7 @@ Progress by module (ranges in `analysis/modules.csv`):
 | Static-initialiser-only files | `0x4a16a0`–`0x4a1760` | 8 / 8 / 8 | 100.0% | 100.0% | `████████████` |
 | WinMain / setup | `0x4a1760`–`0x4a4b10` | 45 / 45 / 45 | 100.0% | 100.0% | `████████████` |
 | File / archive I/O | `0x4a4b10`–`0x4a6600` | 28 / 28 / 28 | 100.0% | 100.0% | `████████████` |
-| Engine image/font/model files | `0x4a9b60`–`0x4b2830` | 52 / 73 / 73 | 27.1% | 100.0% | `████████████` |
+| Engine image/font/model files | `0x4a9b60`–`0x4b2830` | 53 / 73 / 73 | 28.6% | 100.0% | `████████████` |
 | Scene-object base | `0x4b2830`–`0x4b3050` | 14 / 14 / 14 | 100.0% | 100.0% | `████████████` |
 | Collision geometry | `0x4b3050`–`0x4b44e0` | 5 / 6 / 6 | 71.1% | 100.0% | `████████████` |
 | Bounding-sphere geometry | `0x4b47e0`–`0x4b5110` | 11 / 11 / 11 | 100.0% | 100.0% | `████████████` |
