@@ -35,11 +35,7 @@ SingleRace::~SingleRace()
 {
 }
 
-// NONMATCHING: RALLYTROPHY 0x480830
-// Same 406-byte size. Volatile unk4c store reduces the diff from 40 to 10 bytes; volatile unk48 alone gives 45, both give 13.
-// Pointer-based first-loop, cached-begin, and volatile-vector-view forms expand to 397/335 or 412/317.
-// Remaining diff is the begin-pointer load order around the unk4c and unk48 stores. The loops match, including the
-// out-of-line vector insert (AddListener takes the player by value).
+// FUNCTION: RALLYTROPHY 0x480830
 void SingleRace::Slot4(int mode)
 {
     unsigned int i, j, k;
@@ -47,8 +43,8 @@ void SingleRace::Slot4(int mode)
     unk848 = 0;
     m_time = -3000;
     unk50 = 1;
-    unk40 = 0;
-    *(volatile int*)&unk4c = 1;
+    *(volatile int*)&unk40 = 0; // scheduling barrier: puts the begin-pointer load before the unk4c store
+    unk4c = 1;
     unk48 = mode;
     for (i = 0; i < m_players.size(); i++) {
         m_players[i]->ai->FUN_0049ba70();
