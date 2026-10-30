@@ -141,9 +141,9 @@ void RespBody::Respond(void* car, void* stage, int flag)
             if (NEG(az) == 0) posS[2] = posS[2] + az; else negS[2] = negS[2] + az;
         }
     }
-    if ((int)posS[0] < 0x3a83126f) posS[0] = 0.001f;
-    if ((int)posS[1] < 0x3a83126f) posS[1] = 0.001f;
-    if ((int)posS[2] < 0x3a83126f) posS[2] = 0.001f;
+    if (*(int*)&posS[0] < 0x3a83126f) posS[0] = 0.001f;
+    if (*(int*)&posS[1] < 0x3a83126f) posS[1] = 0.001f;
+    if (*(int*)&posS[2] < 0x3a83126f) posS[2] = 0.001f;
     if (DAT_004e1448 < negS[0]) negS[0] = -0.001f;
     if (DAT_004e1448 < negS[1]) negS[1] = -0.001f;
     if (DAT_004e1448 < negS[2]) negS[2] = -0.001f;
@@ -255,7 +255,7 @@ void RespBody::Respond(void* car, void* stage, int flag)
     float sc[6];
     float acc[6] = { fp[0], fp[1], fp[2], fn[0], fn[1], fn[2] };
     for (int j = 0; j < 6; j++) {
-        if ((int)cap < (int)acc[j]) sc[j] = cap / acc[j]; else sc[j] = 1.0f;
+        if (*(int*)&cap < *(int*)&acc[j]) sc[j] = cap / acc[j]; else sc[j] = 1.0f;
     }
 
     h = *(float**)((char*)this + 0x238);

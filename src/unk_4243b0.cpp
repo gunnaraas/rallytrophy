@@ -196,7 +196,10 @@ int MenuScreen8DC::Frame()
                            (m_items[m_selected]->GetBottomRight().x - m_items[m_selected]->GetTopLeft().x) * 0.5f);
             int cy = (int)(m_items[m_selected]->GetTopLeft().y +
                            (m_items[m_selected]->GetBottomRight().y - m_items[m_selected]->GetTopLeft().y) * 0.5f);
-            SetCursorPos((int)(cx * sx), (int)(cy * sy));
+            HudPoint position;
+            position.x = cx * sx;
+            position.y = cy * sy;
+            ((MouseInput*)DAT_0056b0c0)->SetPosition((Vec2*)&position);
         }
         for (int i = 0; i < 6; i++) {
             if (m_selected != i && m_items[i]->Contains(*((MouseInput*)DAT_0056b0c0)->GetPosition())) {
