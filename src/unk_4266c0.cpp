@@ -188,6 +188,7 @@ int GameScreen2DD4::Run(MenuGame* game)
 // original: FUN_004267a0. A scaleX local plus a volatile read of the title color global reduces the mismatch 54→3 bytes.
 // The remaining 3-byte scheduling difference is before the scaleX store: target loads `esi` between `fld scaleX`
 // and `fadd`; VC6 emits `fadd`, loads the color global into eax, then loads `esi`. Plain PE disassembly observation.
+// Tried 2026-10-30 night: 10 variants (inline scaleX/color, reordered color read, +/* forms, volatile text ptr/cast, extra alias local); none beat the current 1 insn differ, esi load stays after fadd.
 int GameScreen2DD4::Frame()
 {
     int done = 0;
