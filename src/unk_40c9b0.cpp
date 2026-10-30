@@ -10,6 +10,7 @@
 #include <math.h>
 #include "stage.h"
 #include "unk_414330.h"
+#include "x87_cross.h"
 
 class StageLightVector : public std::vector<StCityLight*> {
 public:
@@ -354,16 +355,12 @@ Stage::Stage(int a, int b, int c, int d)
                         f[0xc] = 0.0f;
                         f[0x10] = (float)sqrt(k) * (nx / len);
                         f[0x12] = (float)sqrt(k) * dz;
-                        f[8] = f[0xd] * f[0x12] - f[0xe] * f[0x11];
-                        f[9] = f[0xe] * f[0x10] - f[0xc] * f[0x12];
-                        f[10] = f[0xc] * f[0x11] - f[0xd] * f[0x10];
+                        X87Cross(&f[8], &f[0xc], &f[0x10]);
                         float inv = DAT_004e1348 / (float)sqrt(f[10] * f[10] + f[9] * f[9] + f[8] * f[8]);
                         f[8] = inv * f[8];
                         f[9] = inv * f[9];
                         f[10] = inv * f[10];
-                        f[0xc] = f[0x11] * f[10] - f[0x12] * f[9];
-                        f[0xd] = f[0x12] * f[8] - f[0x10] * f[10];
-                        f[0xe] = f[0x10] * f[9] - f[0x11] * f[8];
+                        X87Cross(&f[0xc], &f[0x10], &f[8]);
                         inv = DAT_004e1348 / (float)sqrt(f[0xe] * f[0xe] + f[0xd] * f[0xd] + f[0xc] * f[0xc]);
                         f[0xc] = inv * f[0xc];
                         f[0xd] = inv * f[0xd];

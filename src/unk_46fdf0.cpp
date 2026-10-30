@@ -805,7 +805,31 @@ void ParallelShadow::Prepare(RenderDevice* device, void* unused, DrawContext* co
             DAT_00509680.m[1] = DAT_00509570.y;
             DAT_00509680.m[2] = DAT_00509570.z;
             *(Vec3*)&DAT_00509680.m[4] = -DAT_00509560;
-            CrossInto((Vec3*)&DAT_00509680.m[0], (Vec3*)&DAT_00509680.m[4], (Vec3*)&DAT_00509680.m[8]);
+            __asm {
+                mov ecx, offset DAT_00509680
+                mov edx, offset DAT_00509680 + 0x10
+                mov eax, offset DAT_00509680 + 0x20
+                fld dword ptr [ecx+4]
+                fmul dword ptr [edx+8]
+                fld dword ptr [ecx+8]
+                fmul dword ptr [edx]
+                fld dword ptr [ecx]
+                fmul dword ptr [edx+4]
+                fld dword ptr [ecx+8]
+                fmul dword ptr [edx+4]
+                fld dword ptr [ecx]
+                fmul dword ptr [edx+8]
+                fld dword ptr [ecx+4]
+                fmul dword ptr [edx]
+                fxch st(2)
+                fsubp st(5), st
+                fsubp st(3), st
+                fsubp st(1), st
+                fxch st(2)
+                fstp dword ptr [eax]
+                fstp dword ptr [eax+4]
+                fstp dword ptr [eax+8]
+            }
             DAT_00509680.m[12] = g_shadowSphere.centre.x;
             DAT_00509680.m[13] = g_shadowSphere.centre.y;
             DAT_00509680.m[14] = g_shadowSphere.centre.z;
