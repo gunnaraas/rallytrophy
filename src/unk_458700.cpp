@@ -305,8 +305,18 @@ struct IC_Car {
 
 #define BITS(x) (*(int*)&(x))
 
+inline int FloatToInt(float f)
+{
+    int i;
+    __asm {
+        fld f
+        fistp i
+    }
+    return i;
+}
+
 // NONMATCHING: RALLYTROPHY 0x458b30
-// Tried 2026-10-30: inline-asm fistp for the p2 blend (the original has it) moves size to 1364 but adds 5 differing bytes.
+// The p2 blend uses the inline-asm FloatToInt as in the original (225 -> 201 differing instructions).
 // Same code shape and constants (builds 1358 bytes, original 1393); the original keeps `car` in ebx and zero in edi and
 // copies floats through the FPU (fld/fstp), which the source below does not reproduce.
 void CarInput::FUN_00458b30(Car* carPtr, int dtMs, int flag)
@@ -427,7 +437,7 @@ register IC_Car* car = (IC_Car*)carPtr;
                     f1 = 10000.0f;
                 }
                 float wf = (float)rumble;
-                p2 = (int)((period * wf + f2 * f1) * (1.0f / (wf + f1)));
+                p2 = FloatToInt((period * wf + f2 * f1) * (1.0f / (wf + f1)));
                 if (f1 > wf) {
                     p1 = (int)f1;
                 }
