@@ -6,6 +6,7 @@
 #include "unk_40b560.h"
 #include "unk_40c280.h"
 #include "unk_40f390.h"
+#include "x87_xform.h"
 
 extern float DAT_004e1348, DAT_004e13b4, DAT_004e138c, DAT_004e13d4, DAT_004e13d0;
 
@@ -22,7 +23,7 @@ static __forceinline int RoundF(float v)
 
 // NONMATCHING: RALLYTROPHY 0x40f390
 // reason: RoundF applied (EBP frame now from inline asm); built 2391 vs 2340 bytes, 2153 differ, regalloc differs.
-// Tried (2026-10-30): Xform asm block (obj+0xb8 point, obj+0x20 matrix, obj+0x14 translation) for p.x/y/z: 2153 -> 2189 differing bytes, reverted. Original keeps this in esi and has no early [ebp-0x14] spill.
+// The point transform is the X87XformT asm helper (657 -> 627 differing instructions; the positional byte count got worse, 2153 -> 2190).
 void StageGrid::FillCells()
 {
     float invW = DAT_004e1348 / cellW;
@@ -84,9 +85,7 @@ void StageGrid::FillCells()
                     float lim = *(volatile float*)&diag * DAT_004e138c + r;
                     lim = lim * lim;
                     Vec3Slot p;
-                    p.x = FV(obj, 0xc0) * FV(obj, 0x40) + FV(obj, 0xbc) * FV(obj, 0x30) + FV(obj, 0xb8) * FV(obj, 0x20) + FV(obj, 0x14);
-                    p.y = FV(obj, 0xc0) * FV(obj, 0x44) + FV(obj, 0xbc) * FV(obj, 0x34) + FV(obj, 0xb8) * FV(obj, 0x24) + FV(obj, 0x18);
-                    p.z = FV(obj, 0xc0) * FV(obj, 0x48) + FV(obj, 0xbc) * FV(obj, 0x38) + FV(obj, 0xb8) * FV(obj, 0x28) + FV(obj, 0x1c);
+                    X87XformT(&p.x, &FV(obj, 0xb8), &FV(obj, 0x20), &FV(obj, 0x14));
                     int y, x;
                     for (y = y0; y < y1; y++) {
                         for (x = x0; x < x1; x++) {

@@ -9,6 +9,7 @@
 #include "unk_46fdf0.h"
 #include <math.h>
 #include <string.h>
+#include "x87_xform.h"
 
 static const float kLutZero = 0.0f;
 static const float kLutOne = 1.0f;
@@ -727,7 +728,7 @@ void ParallelShadow::Prepare(RenderDevice* device, void* unused, DrawContext* co
         half.x *= 0.5f;
         half.y *= 0.5f;
         half.z *= 0.5f;
-        ((const ViewMat*)&camera->right)->Transform(&half, &g_shadowSphere.centre);
+        X87Xform(&g_shadowSphere.centre.x, &half.x, (const float*)&camera->right);
         DAT_005095c0 = *(ViewMat*)&camera->right;
         DAT_00509680.m[0] = lightMatrix.m[0];
         DAT_00509680.m[1] = lightMatrix.m[1];
@@ -764,7 +765,7 @@ void ParallelShadow::Prepare(RenderDevice* device, void* unused, DrawContext* co
         float maxY = 0.0f;
         for (int j = 0; j < 8; j++) {
             Vec3 t;
-            DAT_00509600.Transform(&corners[j], &t);
+            X87Xform(&t.x, &corners[j].x, DAT_00509600.m);
             if (fabsf(t.x) > maxX)
                 maxX = fabsf(t.x);
             if (fabsf(t.y) > maxY)
