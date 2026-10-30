@@ -3788,6 +3788,8 @@ public:
     };
 };
 
+// Inlining depth 1 (std::string helpers stay out of line as in the original; 437 -> 432 differing instructions).
+#pragma inline_depth(1)
 // NONMATCHING: RALLYTROPHY 0x443790
 // Same instruction sequence in all parts (5268 vs 5277 bytes) except register/frame-slot choices: the original keeps
 // sx/sy/hi/`one` in other frame slots (frame 0x104, mine 0x100) and holds the constant 0 in edi only from the row loop
@@ -4073,6 +4075,7 @@ int TrackSelectMenu::Run()
     }
     return r;
 }
+#pragma inline_depth()
 
 // FUNCTION: RALLYTROPHY 0x444c40
 // original: FUN_00444c40
