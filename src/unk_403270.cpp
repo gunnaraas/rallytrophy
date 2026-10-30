@@ -170,9 +170,8 @@ void* LoadScreen::Self()
     return this;
 }
 
-// NONMATCHING: RALLYTROPHY 0x4033f0
-// Same size; the final four-byte mismatch is the pop edi / wrapV store order. A volatile wrapV store keeps
-// it after the colorA stores, as in the target, but VC6 pops edi one instruction later.
+// FUNCTION: RALLYTROPHY 0x4033f0
+// colorA[3] stored through volatile pins "pop edi" after the colorA stores, before wrapV.
 void LoadScreen::Init(int level)
 {
     _itoa(level, DAT_005070b8, 10);
@@ -197,8 +196,8 @@ void LoadScreen::Init(int level)
     q->colorA[0] = 1.0f;
     q->colorA[1] = 1.0f;
     q->colorA[2] = 1.0f;
-    q->colorA[3] = 1.0f;
-    *(volatile int*)&q->wrapV = 2;
+    *(volatile float*)&q->colorA[3] = 1.0f;
+    q->wrapV = 2;
     q->colorB[0] = 1.0f;
     q->colorB[1] = 1.0f;
     q->colorB[2] = 1.0f;
