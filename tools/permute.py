@@ -150,7 +150,10 @@ def mutate(body, rng, steps):
 
 
 def score(source, address, bodies, workdir, jobs):
-    """Return [(differing_bytes + |size delta|, body)] via try_variants.py."""
+    """Return [((differing instructions, differing bytes + |size delta|), body)] via try_variants.py.
+
+    Aligned instructions rank first: the positional byte count punishes any size change upstream.
+    """
     shutil.rmtree(workdir, ignore_errors=True)
     os.makedirs(workdir)
     paths = []
@@ -162,9 +165,9 @@ def score(source, address, bodies, workdir, jobs):
                           source, f"0x{address:x}", *paths], stdin=subprocess.DEVNULL, capture_output=True, text=True, cwd=ROOT, env={**os.environ, "RT_TRY_DIR": os.path.join(workdir, "try")}).stdout
     result = []
     for line in out.splitlines():
-        m = re.match(r"(v\d+)\.cpp: (MATCH|DIFF (\d+) bytes differ, built (\d+) vs original (\d+))", line)
+        m = re.match(r"(v\d+)\.cpp: (MATCH|DIFF (\d+) bytes differ, built (\d+) vs original (\d+), (\d+) insns)", line)
         if m:
-            s = 0 if m.group(2) == "MATCH" else int(m.group(3)) + abs(int(m.group(4)) - int(m.group(5)))
+            s = (0, 0) if m.group(2) == "MATCH" else (int(m.group(6)), int(m.group(3)) + abs(int(m.group(4)) - int(m.group(5))))
             result.append((s, bodies[int(m.group(1)[1:])]))
     return result
 
@@ -198,7 +201,7 @@ def main(argv):
                     print(f"round {r}: {best_score} -> {s}", flush=True)
                 best, best_score = body, s
                 open(os.path.join(out, "best.cpp"), "w").write(best + "\n")
-        if best_score == 0:
+        if best_score == (0, 0):
             print(f"MATCH: {os.path.join(out, 'best.cpp')}")
             return
     print(f"best {best_score}: {os.path.join(out, 'best.cpp')}")
