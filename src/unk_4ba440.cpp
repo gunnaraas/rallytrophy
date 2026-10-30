@@ -642,25 +642,26 @@ int ViewFrustum::TestBoundsB(const SceneBounds* b)
     return 1;
 }
 
+// A vector with an empty destructor and the out-of-line operator- (0x414330): the live copy gives the original its EH frame.
+struct FrVec { float x, y, z; ~FrVec() {} FrVec operator-(const FrVec& o) const; };
+
 // NONMATCHING: RALLYTROPHY 0x4bad30
-// Logic complete (EH frame in the original comes from a temporary with a destructor); not compared in detail.
+// EH frame from the FrVec copy (live across the out-of-line subtract). Open: the copy/result slots are swapped and the compares
+// are inverted (fcompp vs fcomp).
 int ViewFrustum::TestSphereMargin(const SceneBounds* b, const float* m, float margin)
 {
     if (b->flags & 1) {
         float rr = margin + b->d;
-        float pt[3];
-        Xform(pt, &b->c.x, m);
+        FrVec pt = *(const FrVec*)&b->c;
+        XformSelf(&pt.x, &pt.x, m);
         const float* cam = camera;
-        float diff[3];
-        diff[0] = pt[0] - cam[12];
-        diff[1] = pt[1] - cam[13];
-        diff[2] = pt[2] - cam[14];
-        float d2 = diff[0] * diff[0] + diff[2] * diff[2] + diff[1] * diff[1];
+        FrVec dv = pt - *(const FrVec*)(cam + 12);
+        float d2 = dv.x * dv.x + dv.z * dv.z + dv.y * dv.y;
         if (rr * rr <= d2) {
             float r = rr + radius;
             if (r * r < d2)
                 return 0;
-            float f = diff[0] * cam[8] + diff[2] * cam[10] + diff[1] * cam[9];
+            float f = dv.x * cam[8] + dv.z * cam[10] + dv.y * cam[9];
             if (f < nearD - rr)
                 return 0;
             if (rr + farD < f)
@@ -668,7 +669,7 @@ int ViewFrustum::TestSphereMargin(const SceneBounds* b, const float* m, float ma
             const float* p = &tplanes[0] + 1;
             int i = 0;
             do {
-                if (pt[1] * p[0] + pt[0] * p[-1] + pt[2] * p[1] + rr < p[2])
+                if (pt.y * p[0] + pt.x * p[-1] + pt.z * p[1] + rr < p[2])
                     return 0;
                 i++;
                 p += 4;
