@@ -129,6 +129,7 @@ void WheelSpray::Update(float dt)
 }
 
 // NONMATCHING: RALLYTROPHY 0x477690
+// Tried 2026-10-30 night: reordering atlasU/atlasV blocks, split stores, volatile on atlas temps/stores/col, depth copy; none beat 1 insn differing (depth push load still scheduled before the first atlas fadd).
 // 1227 bytes, same size and layout; named atlas accumulators reproduce the target's constant-first x87 adds.
 // Four bytes differ: the depth argument load is scheduled before the first add instead of after it.
 // Evidence: ev_6e2034557ea54db46de9b42321c77c445cd8efd3f0dbae384e3a4b07d011fb93.
