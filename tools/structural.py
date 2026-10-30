@@ -20,7 +20,7 @@ from asm_helpers import ROOT, pe_reader  # noqa: E402
 from match import marked_functions  # noqa: E402
 from objcmp import coff_function  # noqa: E402
 
-STATE = re.compile(r"mov\s+DWORD PTR \[(?:ebp-0x4|esp\+0x[0-9a-f]+)\],(0x[0-9a-f]+|0xffffffff)$")
+STATE = re.compile(r"mov\s+(?:DWORD|BYTE) PTR \[ebp-0x4\],(0x[0-9a-f]+|e[a-d]x|e[sd]i|[a-d]l)$")  # state may come from a zeroed register
 
 
 def disasm(blob):
@@ -36,7 +36,7 @@ def shape(blob, eh):
     ins = disasm(blob)
     frame = next((int(m.group(1), 16) for i in ins[:6] if (m := re.match(r"sub\s+esp,(0x[0-9a-f]+)", i))), 0)
     # EH functions store the state index in [ebp-4]; others hit [esp+x] too, so only count those when EH is on
-    states = [int(m.group(1), 16) for i in ins if eh and (m := STATE.search(i)) and "ebp-0x4" in i]
+    states = [m.group(1) for i in ins if eh and (m := STATE.search(i))]
     ops = collections.Counter(i.split()[0] for i in ins if i)
     return {"frame": frame, "ebp": ins[:2] == ["push   ebp", "mov    ebp,esp"],
             "states": len(states), "calls": ops["call"], "ops": ops, "n": len(ins),
