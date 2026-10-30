@@ -27,8 +27,8 @@ Instruction-multiset view: 36 functions are pure register/scheduling permutation
 | 0x40a680 | src/unk_409690.cpp | SceneXform::SceneXform | order | 300 | 300 | 28 | 0 | `mov    DWORD PTR [esi],edi` | `mov    DWORD PTR [esi+0x48],eax` |  |
 | 0x40a850 | src/unk_40a850.cpp | U40A850Prop::Fn | size | 1970 | 2098 | 1692 | 179 | `sub    esp,0xc4` | `sub    esp,0xd4` | eh 0,-1,1,11,13 vs 0,-1,1,7,9,10,9 |
 | 0x40b600 | src/unk_40b560.cpp | TrailQueue::Draw | size | 658 | 663 | 403 | 8 | `mov    eax,0xffffff60` | `mov    DWORD PTR [ebp-0x10],esi` |  |
-| 0x40c9b0 | src/unk_40c9b0.cpp | Stage::Stage | size | 8451 | 8656 | 5770 | 237 | `sub    esp,0x258` | `sub    esp,0x23c` | eh 11,12,30,31,32,33,34,35,37,38,44,45,46,47,48,49,51,52,53,54,55,56,57,58,59,60,59,61,59,62,64,65,64,59,66,67,68,67,69,59,70,59,71,72,73,72,78,72,75,77,79,72,80,72,71,59,58,57,56,55,54,53,52,51 vs 11,12,30,31,32,33,34,35,37,38,44,45,46,47,48,49,51,52,53,54,55,56,57,58,59,60,59,61,59,62,59,63,59,64,59,65,59,66,59,67,68,69,68,74,68,70,71,70,72,73,72,75,68,76,68,67,59,58,57,56,55,54,53,52,51 |
-| 0x40f390 | src/unk_40f390.cpp | StageGrid::FillCells | size | 2391 | 2340 | 2153 | 197 | `sub    esp,0x78` | `sub    esp,0x74` |  |
+| 0x40c9b0 | src/unk_40c9b0.cpp | Stage::Stage | size | 8525 | 8656 | 5633 | 209 | `sub    esp,0x258` | `sub    esp,0x240` | eh 11,12,30,31,32,33,34,35,37,38,44,45,46,47,48,49,51,52,53,54,55,56,57,58,59,60,59,61,59,62,64,65,64,59,66,67,68,67,69,59,70,59,71,72,73,72,78,72,75,77,79,72,80,72,71,59,58,57,56,55,54,53,52,51 vs 11,12,30,31,32,33,34,35,37,38,44,45,46,47,48,49,51,52,53,54,55,56,57,58,59,60,59,61,59,62,59,63,59,64,59,65,59,66,59,67,68,69,68,74,68,70,71,70,72,73,72,75,68,76,68,67,59,58,57,56,55,54,53,52,51 |
+| 0x40f390 | src/unk_40f390.cpp | StageGrid::FillCells | size | 2406 | 2340 | 2190 | 167 | `sub    esp,0x78` | `sub    esp,0x7c` |  |
 | 0x40fcc0 | src/unk_40fcc0.cpp | StageGrid::Build | size | 1720 | 1716 | 1448 | 50 | `xor    ebx,ebx` | `mov    eax,DWORD PTR [edi+0x6c]` |  |
 | 0x410720 | src/unk_410720.cpp | StageScene::LoadEffect | size | 2113 | 2128 | 1214 | 10 | `sub    esp,0x3c` | `sub    esp,0x38` |  |
 | 0x411600 | src/unk_411600.cpp | StageConfigLoader::LoadConfig | size | 9679 | 8628 | 5611 | 664 | `sub    esp,0x70` | `sub    esp,0x88` | eh 0,1,2,3,4,3,5,3,0 vs 0,1,2,3,2,1,0,-1 |
@@ -43,17 +43,17 @@ Instruction-multiset view: 36 functions are pure register/scheduling permutation
 | 0x417ee0 | src/unk_416f30.cpp | ?Ins@PropVec@@QAEXPAUStageProp@@IABU2@@Z | size | 797 | 818 | 435 | 28 | `mov    esi,DWORD PTR [esp+0x24]` | `mov    esi,DWORD PTR [ecx+0x8]` |  |
 | 0x418760 | src/unk_418570.cpp | TriCollector::Walk | size | 774 | 773 | 532 | 6 | `je     0x418a5d` | `je     0x418a5e` |  |
 | 0x418b90 | src/unk_418b90.cpp | SweepQuery::Cast | size | 1766 | 2054 | 1856 | 116 | `sub    esp,0xb8` | `sub    esp,0x64` | eh 5,7,11,7,12 vs 2 |
-| 0x4193a0 | src/unk_418570.cpp | TriCollector::Closest | size | 729 | 974 | 930 | 78 | `push   0xffffffff` | `sub    esp,0x4c` | eh 2,4,4 vs  |
+| 0x4193a0 | src/unk_418570.cpp | TriCollector::Closest | size | 706 | 974 | 940 | 70 | `push   0xffffffff` | `sub    esp,0x4c` | eh 2,4,4 vs  |
 | 0x419770 | src/unk_418570.cpp | TriCollector::Contact | size | 880 | 1130 | 1039 | 91 | `sub    esp,0x88` | `sub    esp,0x54` | eh 3,7,3 vs  |
 | 0x419be0 | src/unk_418570.cpp | TriCollector::ContactList | size | 568 | 748 | 659 | 80 | `sub    esp,0x60` | `sub    esp,0x3c` | eh 5 vs  |
-| 0x419f30 | src/unk_419f30.cpp | ColModel::ColModel | size | 2510 | 2386 | 2153 | 510 | `push   ebp` | `push   0xffffffff` | eh 2,-1,3,-1,4,-1,5,-1,6,-1,1,0 vs 1,0 |
-| 0x41a890 | src/unk_41a890.cpp | ColModel::ColModel | size | 2357 | 2298 | 1958 | 253 | `push   ebp` | `push   0xffffffff` | eh -1,1,-1,2,-1,3,-1,4,-1,5,-1,6,-1,7,-1,8,-1 vs  |
+| 0x419f30 | src/unk_419f30.cpp | ColModel::ColModel | size | 2336 | 2386 | 2031 | 306 | `sub    esp,0x74` | `sub    esp,0x80` | eh 2,-1,3,-1,4,-1,5,-1,6,-1,1,0 vs 1,0 |
+| 0x41a890 | src/unk_41a890.cpp | ColModel::ColModel | size | 2350 | 2298 | 1972 | 177 | `sub    esp,0x30` | `sub    esp,0x2c` | eh -1,1,-1,2,-1,3,-1,4,-1,5,-1,6,-1,7,-1,8,-1 vs 1,2,-1,3,-1,4,5,6,-1,7,-1,8,-1 |
 | 0x41b270 | src/unk_419f00.cpp | ColModel::Transform | size | 698 | 697 | 322 | 10 | `sub    esp,0x68` | `sub    esp,0x6c` |  |
 | 0x41b590 | src/unk_419f00.cpp | ColModel::ComputeSel | size | 385 | 412 | 398 | 63 | `mov    eax,DWORD PTR [ecx+0x18]` | `sub    esp,0x10` |  |
 | 0x41b7f0 | src/unk_419f00.cpp | ??0ColHolder@@QAE@PAUColOwner@@H@Z | other | 195 | 195 | 22 | 0 | `mov    BYTE PTR [esi+0x30],0x0` | `mov    DWORD PTR [esp+0x14],0x0` |  |
 | 0x41b8c0 | src/unk_419f00.cpp | ??0ColHolder@@QAE@PAUColOwner@@HH@Z | other | 200 | 200 | 22 | 0 | `mov    BYTE PTR [esi+0x30],0x0` | `mov    DWORD PTR [esp+0x14],0x0` |  |
 | 0x41bab0 | src/unk_41b9e0.cpp | CarBody::CarBody | size | 604 | 663 | 486 | 25 | `push   ebx` | `push   ebp` | eh 22,23 vs 22,21,23 |
-| 0x41c540 | src/unk_41c390.cpp | PhysBody::FUN_0041c540 | size | 962 | 987 | 666 | 65 | `sub    esp,0x40` | `sub    esp,0x34` | eh 1,2 vs 1 |
+| 0x41c540 | src/unk_41c390.cpp | PhysBody::FUN_0041c540 | size | 962 | 987 | 666 | 59 | `sub    esp,0x40` | `sub    esp,0x34` | eh 1,2 vs 1 |
 | 0x41ca70 | src/unk_41ca70.cpp | ColBody::Collide | size | 3442 | 3423 | 2917 | 153 | `sub    esp,0x178` | `sub    esp,0x16c` | eh 4,5,8,9,8,10,8,11,8,12,8,13,8,14,8,5,16,18,16,5 vs 4,7,8,7,9,7,10,7,11,7,12,7,13,7,15,7,4,4 |
 | 0x41d7d0 | src/unk_41d7d0.cpp | U40A850Body::FUN_0041d7d0 | size | 5502 | 6021 | 5419 | 390 | `sub    esp,0x284` | `sub    esp,0x26c` | eh 0,3,4,3,5,3,6,3,7,3,8,3,9,3,0,13,15,16,18,15,19,21,15,22,24,15,25,27,15,28,30,15,31,33,13 vs 0,1,0,2,4,0,5,0,6,8,0,9,0,10,12,0,-1,14,15,17,14,18,20,14,21,23,14,24,26,14,27,29,14,30,32,14,-1 |
 | 0x41ef60 | src/unk_41ef60.cpp | RespBody::Respond | size | 3107 | 3319 | 2990 | 437 | `sub    esp,0x10c` | `sub    esp,0x110` | eh 4,6,10,11,13,16,6,20,22,6 vs 0,-1,1,2,5,8,9,-1,10,12,-1 |
@@ -117,7 +117,7 @@ Instruction-multiset view: 36 functions are pure register/scheduling permutation
 | 0x4578c0 | src/unk_4563e0.cpp | ViewManager::FUN_004578c0 | size | 542 | 588 | 193 | 30 | `sub    esp,0x28` | `sub    esp,0x10` | eh  vs 0 |
 | 0x457b10 | src/unk_4563e0.cpp | FUN_00457b10 | size | 1730 | 1599 | 650 | 59 | `lea    ecx,[esp+0x38]` | `push   ebx` |  |
 | 0x4581f0 | src/unk_4581f0.cpp | Car::FUN_004581f0 | size | 931 | 923 | 756 | 54 | `mov    edx,DWORD PTR [edi+0x24]` | `mov    ecx,DWORD PTR [edi+0x24]` |  |
-| 0x458b30 | src/unk_458700.cpp | CarInput::FUN_00458b30 | size | 1359 | 1393 | 984 | 114 | `sub    esp,0x18` | `sub    esp,0x14` | eh 0,0,1,1 vs 1,1 |
+| 0x458b30 | src/unk_458700.cpp | CarInput::FUN_00458b30 | size | 1366 | 1393 | 992 | 90 | `mov    ebx,DWORD PTR [ebp+0x8]` | `push   esi` | eh 0,0,1,1 vs 1,1 |
 | 0x459270 | src/unk_459230.cpp | Car::Draw459270 | order | 1516 | 1516 | 4 | 0 | `mov    edi,DWORD PTR [ebp-0x28]` | `mov    esi,DWORD PTR [ebp-0x38]` |  |
 | 0x459910 | src/unk_459890.cpp | Car::ProcessContacts | size | 3695 | 3722 | 2722 | 67 | `mov    DWORD PTR [ebp-0x14],esi` | `mov    DWORD PTR [ebp-0x30],esi` |  |
 | 0x45ad40 | src/unk_45ad10.cpp | Car::UpdateSteering | size | 1402 | 1404 | 696 | 61 | `sub    esp,0x20` | `sub    esp,0x1c` |  |
@@ -140,7 +140,7 @@ Instruction-multiset view: 36 functions are pure register/scheduling permutation
 | 0x46a000 | src/unk_469630.cpp | Car::UpdateTyreTracks | other | 511 | 511 | 55 | 0 | `lea    ecx,[esi+0x3c]` | `lea    ebx,[esi+0x3c]` |  |
 | 0x46a200 | src/unk_469630.cpp | Car::FUN_0046a200 | other | 1424 | 1424 | 95 | 0 | `mov    DWORD PTR [esp+0x1c],eax` | `mov    DWORD PTR [esp+0x18],eax` |  |
 | 0x46c2c0 | src/unk_46c2c0.cpp | Wheel::Wheel | order | 317 | 317 | 27 | 0 | `mov    ecx,DWORD PTR [esp+0x14]` | `mov    DWORD PTR [ebp+0x2b4],esi` |  |
-| 0x46c790 | src/unk_46c2c0.cpp | Wheel::UpdateForces | size | 3506 | 3573 | 2843 | 97 | `sub    esp,0xe4` | `sub    esp,0xfc` |  |
+| 0x46c790 | src/unk_46c2c0.cpp | Wheel::UpdateForces | size | 3504 | 3573 | 2860 | 87 | `sub    esp,0xe4` | `sub    esp,0xfc` |  |
 | 0x46d830 | src/unk_46d830.cpp | CarRain::CarRain | size | 1117 | 1048 | 636 | 46 | `mov    DWORD PTR [esi],0x0` | `mov    DWORD PTR [esi+0x290],eax` |  |
 | 0x46dd80 | src/unk_46d830.cpp | CarRain::Init | size | 1046 | 1050 | 843 | 36 | `push   edi` | `mov    ebx,ecx` |  |
 | 0x46e430 | src/unk_46d830.cpp | CarRain::Render | registers | 997 | 997 | 2 | 0 | `fld    DWORD PTR [eax]` | `fld    DWORD PTR [esi]` |  |
@@ -150,7 +150,7 @@ Instruction-multiset view: 36 functions are pure register/scheduling permutation
 | 0x46fc10 | src/unk_46fa80.cpp | WaterAnimator::Update | size | 431 | 428 | 229 | 17 | `sub    esp,0x48` | `sub    esp,0x40` | eh 0,2,3,5,7,8,7,9,5 vs 0,2,3,5,6,7,6,8,5 |
 | 0x4703c0 | src/unk_46fdf0.cpp | ParallelShadow::ParallelShadow | order+registers | 378 | 378 | 14 | 0 | `mov    ecx,DWORD PTR [edi+0x4]` | `add    esp,0x4` |  |
 | 0x470610 | src/unk_46fdf0.cpp | ParallelShadow::Create | order | 715 | 715 | 131 | 0 | `push   ebx` | `mov    DWORD PTR [esi+0x174],ebx` |  |
-| 0x470940 | src/unk_46fdf0.cpp | ParallelShadow::Prepare | size | 3490 | 3336 | 1483 | 228 | `sub    esp,0xbc` | `sub    esp,0xc0` | eh 3,4,5,4,3 vs 2,3,4,5,4,3 |
+| 0x470940 | src/unk_46fdf0.cpp | ParallelShadow::Prepare | size | 3537 | 3336 | 1589 | 122 | `sub    esp,0xbc` | `sub    esp,0xc0` | eh 3,4,5,4,3 vs 2,3,4,5,4,3 |
 | 0x471ab0 | src/unk_46fdf0.cpp | ParallelShadow::ProjectMeshes | size | 1763 | 1788 | 1121 | 83 | `sub    esp,0x90` | `sub    esp,0x8c` |  |
 | 0x4721b0 | src/unk_46fdf0.cpp | ParallelShadow::RasteriseObject | size | 1362 | 1372 | 542 | 30 | `fld    DWORD PTR ds:0x0` | `fld    DWORD PTR [ebp-0x10]` | eh 0,2,-1 vs 2,-1 |
 | 0x472710 | src/unk_46fdf0.cpp | FillTriangle | size | 414 | 405 | 92 | 17 | `mov    edx,DWORD PTR ds:0x0` | `mov    ecx,DWORD PTR ds:0x0` |  |
@@ -158,7 +158,7 @@ Instruction-multiset view: 36 functions are pure register/scheduling permutation
 | 0x472d00 | src/unk_472c90.cpp | RainEffect::RainEffect | size | 1425 | 1434 | 711 | 26 | `mov    DWORD PTR [ebx+0x78],0x11` | `mov    BYTE PTR [esp+0x20],0x2` |  |
 | 0x473470 | src/unk_472c90.cpp | RainEffect::Update | size | 3318 | 3324 | 2740 | 47 | `mov    DWORD PTR [ebp-0x124],ebx` | `je     0x474155` | eh 0,1,6,7,6,8,6,9,6,10,6,11,6,14,1,1,17,18,19,20,21,17,14,23,24,23,25,23,26,23,27,14 vs 0,1,6,7,6,8,6,9,6,10,6,11,6,14,0,0,1,1,17,18,19,20,21,17,14,23,24,23,25,23,26,23,27,14 |
 | 0x4741a0 | src/unk_4741a0.cpp | SkidMarks::SkidMarks | size | 594 | 696 | 198 | 47 | `je     0x4743a1` | `je     0x47438a` |  |
-| 0x4746b0 | src/unk_4741a0.cpp | SkidMarks::AddSegment | size | 955 | 972 | 607 | 63 | `mov    esi,DWORD PTR [edi+0x150]` | `test   edx,edx` |  |
+| 0x4746b0 | src/unk_4741a0.cpp | SkidMarks::AddSegment | size | 983 | 972 | 612 | 38 | `mov    esi,DWORD PTR [edi+0x150]` | `test   edx,edx` |  |
 | 0x474c50 | src/unk_474c50.cpp | SnowFall::SnowFall | size | 821 | 824 | 326 | 1 | `mov    DWORD PTR [ebx+0x1c],0x41480000` | `mov    DWORD PTR [esp+0x2c],ebp` |  |
 | 0x4751b0 | src/unk_474c50.cpp | SnowFall::Update | size | 1747 | 1741 | 748 | 36 | `push   edi` | `push   esi` |  |
 | 0x475eb0 | src/unk_4758b0.cpp | Sky::Update | size | 1437 | 1441 | 1047 | 22 | `push   esi` | `mov    ebx,DWORD PTR [ebp+0xc]` |  |
@@ -255,9 +255,9 @@ Instruction-multiset view: 36 functions are pure register/scheduling permutation
 | 0x4b1ec0 | src/unk_4b1af0.cpp | ModelFile::ReadBatchSmall | size | 905 | 963 | 571 | 41 | `sub    esp,0xc4` | `sub    esp,0xcc` | eh 3,4,5,6,10,9,8,11,12,3 vs 3,4,5,9,8,7,10,11,2 |
 | 0x4b2330 | src/unk_4b1af0.cpp | ModelFile::ReadPolylist | eh-state | 545 | 505 | 377 | 23 | `mov    eax,fs:0x0` | `push   0xffffffff` |  |
 | 0x4b2530 | src/unk_4b2530.cpp | ModelLoader::Attach | size | 458 | 434 | 261 | 16 | `jae    0x4b263e` | `jae    0x4b2656` |  |
-| 0x4b3800 | src/unk_4b3050.cpp | fun_004b3800 | size | 1354 | 1473 | 1268 | 113 | `push   0xffffffff` | `sub    esp,0x2c` |  |
-| 0x4b59b0 | src/unk_4b2530.cpp | Tri3::Overlap | size | 1572 | 1538 | 1336 | 305 | `push   ebp` | `push   0xffffffff` | eh 0 vs  |
-| 0x4b65d0 | src/unk_4b2530.cpp | TriangleProjection::Contains | size | 486 | 550 | 528 | 176 | `push   ebp` | `sub    esp,0x30` |  |
+| 0x4b3800 | src/unk_4b3050.cpp | fun_004b3800 | size | 1354 | 1473 | 1268 | 109 | `push   0xffffffff` | `sub    esp,0x2c` |  |
+| 0x4b59b0 | src/unk_4b2530.cpp | Tri3::Overlap | size | 1405 | 1538 | 1170 | 191 | `sub    esp,0x3c` | `sub    esp,0x2c` |  |
+| 0x4b65d0 | src/unk_4b2530.cpp | TriangleProjection::Contains | size | 552 | 550 | 191 | 10 | `fld    DWORD PTR [ebp-0x28]` | `fld    DWORD PTR [ebp-0x2c]` |  |
 | 0x4b6800 | src/unk_4b2530.cpp | Tri3::EdgeDist | size | 476 | 447 | 309 | 9 | `fld    DWORD PTR [esi+0x28]` | `fld    DWORD PTR [esi+0x2c]` |  |
 | 0x4b7c80 | src/unk_4b7a40.cpp | DrawContext::CullViews | size | 1176 | 1219 | 401 | 26 | `mov    DWORD PTR [ebp+0x140],esi` | `push   eax` |  |
 | 0x4b8640 | src/unk_4b83a0.cpp | SceneEntry::SceneEntry | order+registers | 57 | 57 | 9 | 0 | `xor    ecx,ecx` | `mov    cl,BYTE PTR [esp+0x3]` |  |
@@ -265,12 +265,12 @@ Instruction-multiset view: 36 functions are pure register/scheduling permutation
 | 0x4b91c0 | src/unk_4b8b10.cpp | MeshModel::SetDeformSource | size | 920 | 880 | 688 | 35 | `mov    ebp,ecx` | `mov    ebx,ecx` |  |
 | 0x4b95b0 | src/unk_4b8b10.cpp | MeshModel::Refresh | size | 538 | 479 | 472 | 31 | `sub    esp,0x48` | `push   0xffffffff` | eh  vs 1,2 |
 | 0x4b9b50 | src/unk_4b8b10.cpp | ChunkList::AddFlagged | size | 489 | 469 | 435 | 15 | `sub    esp,0x14` | `sub    esp,0x10` |  |
-| 0x4b9d30 | src/unk_4b9d30.cpp | ShadowUpdater::Update | size | 1563 | 1750 | 1395 | 133 | `sub    esp,0x224` | `sub    esp,0x210` | eh 3,8 vs 2,3,5,6,7 |
+| 0x4b9d30 | src/unk_4b9d30.cpp | ShadowUpdater::Update | size | 1710 | 1750 | 1372 | 120 | `sub    esp,0x224` | `sub    esp,0x218` | eh 3,8 vs 2,3,5,6,7 |
 | 0x4ba620 | src/unk_4ba440.cpp | ViewFrustum::Init | size | 507 | 523 | 428 | 66 | `sub    esp,0x20` | `sub    esp,0x24` | eh  vs 6 |
-| 0x4ba830 | src/unk_4ba440.cpp | ViewFrustum::TestSphere | size | 449 | 411 | 414 | 48 | `sub    esp,0x1c` | `sub    esp,0x10` |  |
-| 0x4ba9d0 | src/unk_4ba440.cpp | ViewFrustum::TestBounds | size | 420 | 421 | 395 | 60 | `mov    edx,DWORD PTR [esp+0x4]` | `sub    esp,0xc` |  |
-| 0x4bab80 | src/unk_4ba440.cpp | ViewFrustum::TestBoundsB | size | 434 | 421 | 394 | 62 | `mov    edx,DWORD PTR [esp+0x4]` | `sub    esp,0xc` |  |
-| 0x4bad30 | src/unk_4ba440.cpp | ViewFrustum::TestSphereMargin | size | 436 | 475 | 453 | 71 | `push   0xffffffff` | `sub    esp,0x1c` | eh 0 vs  |
-| 0x4bb3a0 | src/unk_4bb3a0.cpp | TraceNodeSweep | size | 1662 | 1635 | 1302 | 127 | `mov    ebx,DWORD PTR [ebp+0x8]` | `mov    edi,DWORD PTR [ebp+0x8]` | eh 1,0,2,3,4,6,3 vs 0,1,0,2,3,2,4,5,6,7,6,2 |
+| 0x4ba830 | src/unk_4ba440.cpp | ViewFrustum::TestSphere | size | 441 | 411 | 236 | 36 | `sub    esp,0x1c` | `sub    esp,0x10` |  |
+| 0x4ba9d0 | src/unk_4ba440.cpp | ViewFrustum::TestBounds | size | 400 | 421 | 397 | 54 | `push   edi` | `jne    0x4baa3a` |  |
+| 0x4bab80 | src/unk_4ba440.cpp | ViewFrustum::TestBoundsB | size | 422 | 421 | 384 | 42 | `push   edi` | `je     0x4babe6` |  |
+| 0x4bad30 | src/unk_4ba440.cpp | ViewFrustum::TestSphereMargin | size | 523 | 475 | 431 | 43 | `je     0x4baef4` | `je     0x4baf24` |  |
+| 0x4bb3a0 | src/unk_4bb3a0.cpp | TraceNodeSweep | size | 1657 | 1635 | 1366 | 120 | `mov    ebx,DWORD PTR [ebp+0x8]` | `mov    edi,DWORD PTR [ebp+0x8]` | eh 1,0,2,3,4,6,3 vs 0,1,0,2,3,2,4,5,6,7,6,2 |
 | 0x4bbb30 | src/unk_4bb260.cpp | SkySampleBilinear | size | 684 | 646 | 514 | 40 | `push   esi` | `je     0x4bbdc8` |  |
 | 0x4bcb50 | src/unk_4bc680.cpp | DrawQueueX::Flush | size | 516 | 499 | 479 | 9 | `sub    esp,0x14` | `sub    esp,0x18` |  |
