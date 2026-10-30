@@ -11,7 +11,7 @@ extern float DAT_004e1e88;
 extern double DAT_004e2a20;
 extern double DAT_004e2a18;
 
-struct V3D { float x, y, z; V3D() {} ~V3D() {} };
+struct V3D { float x, y, z; V3D() {} };
 struct V3Sub { float x, y, z; float* Sub(float* out, const float* o) const; }; // 0x414330
 
 // NONMATCHING: RALLYTROPHY 0x4b9d30 (draft: the world-point transform (centre*matA + pos) is the Xform asm block (frame now ebp as original; 1563 vs 1750 bytes, ~1395 differ mostly from shifts). Remaining: EH state 3 and sub esp 0x224 (ours 2 / 0x210), the original reuses the arg slots [ebp+8..0x14] for temporaries (more asm), different dot-product order in the vertex loop)
