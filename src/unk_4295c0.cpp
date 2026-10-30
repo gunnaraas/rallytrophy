@@ -370,6 +370,7 @@ int MenuScreen2A8::Run(MenuGame* game, NetRace* net_)
 // Module end: guard-bit initialiser of the STL header statics and its atexit registration.
 
 // NONMATCHING: RALLYTROPHY 0x42a330
+// 2976 vs 2988 bytes; 783 differing bytes. Combining rows 6/7 matches the original shared case tail; remaining open items:
 // Frame of the 9-row options screen (rows 0-7 sliders/selectors, row 8 Back; 16 arrow rects at m_items[9..24]).
 // Control flow, calls, jump tables and EH states match. Open: (1) the original keeps the zero constant in ebp and the
 // -1 / `dir` register in ebx, mine swaps them (also seen in 0x43cc50); (2) mine hoists nothing but gives `fld mem; fmul
@@ -569,11 +570,9 @@ int MenuScreen2A8::Frame()
                 case 1:
                     DrawToggle(text, values1f4, pos.x, pos.y, 400.0f * sx, m_selected == 1, DAT_00501418[1], 0, 3);
                     break;
-                case 7:
-                    DrawToggle(text, values284, pos.x, pos.y, 400.0f * sx, m_selected == 7, DAT_00501418[2], 0, 4);
-                    break;
                 case 6:
-                    DrawToggle(text, values284, pos.x, pos.y, 400.0f * sx, m_selected == 6, DAT_00501418[3], 0, 4);
+                case 7:
+                    DrawToggle(text, values284, pos.x, pos.y, 400.0f * sx, m_selected == i, DAT_00501418[9 - i], 0, 4);
                     break;
                 case 5:
                     DrawToggle(text, values3c8, pos.x, pos.y, 400.0f * sx, m_selected == 5, DAT_00501418[4], 0, 2);

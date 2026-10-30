@@ -157,8 +157,9 @@ inline void Cross(const Vec3* a, const Vec3* b, Vec3* out)
 }
 
 // NONMATCHING: RALLYTROPHY 0x4746b0
-// 955 of 972 bytes. Matches up to the ring advance. After that VC6 keeps &s->b / &s->v[k].position in lea'd registers (CSE)
-// where the original addresses esi+const, and the original spills the Cross/Scale pointer arguments into dead parameter slots.
+// 955 vs 972 bytes, 607 differing bytes. Keep componentwise scaling: REA target evidence
+// ev_67f3ea7db45baa110e290e5d865f5e9d6c3f59005a093d7d924247edaa3d24f2 has no 0x40b0c0 scale-helper call.
+// Ring-advance, corner-base CSE, and Cross/Scale argument homes remain different (PE observations).
 // Appends one tyre-mark quad at pos; pos == 0 closes the current mark.
 void SkidMarks::AddSegment(Vec3* pos, Vec3* axis, Vec3* fallback, float alpha, int newId)
 {

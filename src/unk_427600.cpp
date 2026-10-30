@@ -221,7 +221,8 @@ int GameScreen11A4::Run(MenuGame* game)
 // NONMATCHING: RALLYTROPHY 0x427c10
 // 2747 vs 2745 bytes. Control flow, EH states and all calls match. Left: `clicked`/`sy` frame slots swapped (0x24/0x20
 // vs 0x20/0x24), and in the title-text switch and the item Print the scheduler picks other scratch registers for
-// the device pointer (ecx/edx/eax rotated). Tried: declaration order, case order, if-chains, locals for device/xy.
+// the device pointer (ecx/edx/eax rotated). Tried: declaration order, case order, if-chains, locals for device/xy,
+// a FrameTemps struct (626 differences), volatile clicked (1,548), and volatile sy (584); all reverted.
 // original: FUN_00427c10 (thiscall; one frame loop of the screen)
 int GameScreen11A4::Frame()
 {
@@ -440,7 +441,7 @@ int GameScreen11A4::Frame()
                     DrawToggle(text, values6, pos.x, pos.y, H2b_toggleW * sx, selected, DAT_00501334 - 1, 0, 5);
                     break;
                 }
-                y += H2b_step * sy;
+                    y += H2b_step * sy;
             }
             int n = 4;
             if (DAT_00501464 == 1) {

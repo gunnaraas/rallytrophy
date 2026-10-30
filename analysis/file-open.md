@@ -9,12 +9,10 @@ failed disk open closes the file and throws `file_error("Cannot open file")`,
 while a signature mismatch throws `file_error("Invalid file")`. These behaviors
 are observed in Evidence `ev_99c9e6265233a208ee2d60d17289d27174e62b68f151a2d9bd0b01833ecdd22b`.
 
-`src/file.cpp` now wires the archive helper into `File::Open` and reconstructs
-the disk fallback and signature check. The implementation is marked
-`NONMATCHING` (1213 bytes emitted versus 1247 in the executable); the main
-remaining differences are exception construction and legacy stream setup
-instruction shape. Runtime behavior has not yet been exercised against the
-game's archive or disk assets.
+`src/file.cpp` wires the archive helper into `File::Open` and reconstructs the
+disk fallback and signature check. The focused matcher confirms the current
+implementation matches all 1247 bytes. Runtime behavior has not yet been
+exercised against the game's archive or disk assets.
 
 `File::Read` (`0x4a5e00`) copies from the 8 KiB buffer, calls
 `FUN_004a6090` when the active window is empty, advances the buffer cursor,
@@ -31,21 +29,22 @@ advances that offset, resets the output cursor, checks the stream, and applies
 the indexed byte transform when enabled. The compressed path maintains zlib's
 input/output windows, reads more archive bytes when `avail_in` reaches zero,
 applies the same transform to input, and inflates into the output window. The
-inflate implementation is provided by zlib; no SDK body is copied. This helper
-is NONMATCHING (306 vs. 308 bytes).
+inflate implementation is provided by zlib; no SDK body is copied. The focused
+matcher confirms this helper matches all 308 bytes.
 
 `FUN_004a63b0` checks for a missing or failed stream and throws
 `file_error("Read error")` (Evidence
-`ev_4daa441b9e318aa26c999ccc0ffb066fa2d1433f9ee28e958aac6ec7f1d5ed15`); its
-reconstruction is NONMATCHING (440 vs. 469 bytes). The zlib/archive path has
-not yet been exercised against game data.
+`ev_4daa441b9e318aa26c999ccc0ffb066fa2d1433f9ee28e958aac6ec7f1d5ed15`); the
+current reconstruction matches all 469 bytes. The zlib/archive path has not
+yet been exercised against game data.
 
 `File::Close` (`0x4a5d00`) is reconstructed in `src/file.cpp` from Evidence
 `ev_334d5577f328ddd50a9f52a751746462258fdfa2f20a5bdc224dc96aef65e5fa`: close
 and release the stream, end the inflater when the compression flag is set,
 clear the filename through the observed VC6 string helpers, and reset the
-cached size to `-1`. It remains NONMATCHING (240 vs. 241 bytes; 191 differing
-bytes outside relocations).
+cached size to `-1`. `python3 -I tools/match.py --quiet src/file.cpp` confirms
+the current implementation matches all 241 bytes; the stale NONMATCHING note
+is removed.
 
 `File::GetSize` (`0x4a5ff0`) reads the cached size, returning `-1` when the
 stream is absent, and lazily fills the cache from the stored path. This is
@@ -58,8 +57,7 @@ and returns the requested count (Evidence
 `ev_8dc39e86a2daa8fc3d0ae01bd967dbfc4793b359f2b56f7d3166db9efeb32200`). Its
 stream check throws `file_error("Write error")` when the stream is absent or
 failed (Evidence `ev_4aca27b489a723537324608b96d6e4133bc1897629df39295c1c3ddfcc9aea78`).
-`File::Write` now matches byte-for-byte (38 bytes); the stream check remains
-NONMATCHING (440 vs. 469 bytes).
+Both the 38-byte `File::Write` and 469-byte stream check match exactly.
 
 The observed File layout is a stream pointer at `+0`, the 16-byte VC6
 `std::string` name at `+4`, and remaining state at `+0x14` through `+0x4077`.
@@ -78,10 +76,9 @@ and destroys the name string. These behaviors are observed in Evidence
 `ev_b67770eb4505e0acf546b4a04c05f2ac6c16354261808705bcf57336ab290156`;
 the reset helper uses Evidence
 `ev_6cd0bf3349a4b391be27ae337a81ef5279e5b3881a0d024704901aec9783a0e2`.
-The default constructor, opening constructor, and destructor now match exactly
-(76, 93, and 102 bytes). The reset helper remains NONMATCHING (223 vs. 229;
-144 differing bytes outside relocations) and models the observed string
-detach/grow/empty calls.
+The default constructor, opening constructor, destructor, and reset helper
+match exactly (76, 93, 102, and 229 bytes). The reset helper models the
+observed string detach/grow/empty calls.
 
 The one-byte reader `FUN_004a5ec0` matches exactly (19 bytes, 1 relocation;
 Evidence `ev_69d69ad81fabefa8a33d33392002140bc88c76f7809c762b92f4b096f958d529`).

@@ -58,9 +58,12 @@ void BarycentricWeights(const SunVertex* a, const SunVertex* b, const SunVertex*
     __asm fstp dword ptr [eax+4]
 
 // NONMATCHING: RALLYTROPHY 0x45dac0
-// 918 vs 921 bytes; frame, EH states, FP code and the call sequence match. In the inner loop the original keeps
-// tri in esi, idx in edi and the strength-reduced &tri->cz pointer in edx (reloaded after the call); here tri/idx
-// are swapped and that pointer lives in ebx.
+// One advancing triangle-record cursor for plane fields and nx, alongside the separately advancing tri pointer,
+// cuts the differing-byte count from 468 to 403. A volatile WORD read assigned to int preserves the target's later
+// count-load order and 32-bit decrement (422→403). The earlier 422-difference cursor-only variant was invalid
+// because it passed a stale triangle pointer; this version keeps tri++.
+// The sequential h assignments follow the target's x87 term order. Cursor/index registers, local homes, and
+// vertex-index call setup still differ from the target.
 float Car::SunFactor(void* models)
 {
     SunModels* list = (SunModels*)models;
@@ -103,10 +106,10 @@ float Car::SunFactor(void* models)
         for (unsigned i = 0; i < tris->size(); i++) {
             SunPart* part = mesh->parts[i];
             const unsigned short* idx;
-            SunTri* tri;
             idx = part->indices;
+            SunTri* tri;
             tri = (*tris)[i];
-            int n = part->count;
+            int n = *(volatile unsigned short*)&part->count;
             SunVertex* verts = part->vertices;
             if (!n) {
                 continue;
@@ -120,7 +123,9 @@ float Car::SunFactor(void* models)
                         float tx = p.x - q[-2];
                         float tz = p.z - q[0];
                         if (!(tx * tx + tz * tz > r * r)) {
-                            float h = p.z * q[-4] + p.y * q[-5] + p.x * tri->nx - q[-3];
+                            float h = p.z * q[-4] + p.y * q[-5];
+                            h = h + p.x * q[-6];
+                            h = h - q[-3];
                             if (!(*(unsigned*)&h & 0x80000000)) {
                                 float t = h / q[-5];
                                 if (!(t > best)) {

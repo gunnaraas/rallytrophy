@@ -150,6 +150,13 @@ scope cannot be recovered from these bytes. The available evidence supports
 no further declaration/lifetime probe, so this slot difference remains a
 compiler-allocation question.
 
+Grouping `text`, `double d`, and `float f` into one format struct also failed
+to model those offsets. A naturally aligned struct expanded the frame from
+`0x140` to `0x14c` and produced 2,837/2,806 bytes with 1,883 differing bytes.
+A packed struct with explicit three-byte padding reduced the frame increase to
+8 bytes but still produced 2,825/2,806 bytes and 1,781 differences. Both forms
+changed unrelated local slots and branch offsets; they were reverted.
+
 ## Constructor store scheduling (`0x445e80`)
 
 The target stores `m_selected` at `0x446024`, then the 60-second values and

@@ -42,11 +42,14 @@ static inline void ClearVec(Vec3* p)
 
 // original: FUN_00472d00
 // NONMATCHING: RALLYTROPHY 0x472d00
-// 1425 vs 1434 bytes; every call, EH state and store is present. Open: the original does not forward the
+// 1425 vs 1434 bytes; 711 bytes differ (baseline 714). Moving queryKind from the member initializer to a
+// volatile first-body store reduces the diff by 3 bytes but does not recover its target placement relative to
+// base/EH initialization. Other open differences: the original does not forward the
 // new[] results (m->vertices / m->indices are re-read from the mesh after the index loop; ours keeps them in
 // a stack temp), keeps the index loop counter in memory, and stores queryKind (0x11) right after the vector init.
-RainEffect::RainEffect(TextureLoader* loader, int dropCount_, int splashCount_) : queryKind(0x11)
+RainEffect::RainEffect(TextureLoader* loader, int dropCount_, int splashCount_)
 {
+    *(volatile int*)&queryKind = 0x11;
     dropCount = dropCount_;
     dropDrawCount = dropCount_;
     splashCount = splashCount_;

@@ -56,6 +56,10 @@ the index-allocation result and moving the vertex-pointer capture around its
 assignment both regressed to 379 bytes with 164 differing bytes; those probes
 were reverted. An inline-assembly loop using the captured registers forced an
 EBP frame and regressed to 368 bytes with 276 differences; it was reverted.
+Replacing the volatile pointer-to-field capture with a plain
+`EffectVertex* initialVertices = m->vertices` preserves the array writes but
+changes unrelated constructor register allocation and grows the comparison to
+376 bytes / 168 differences; it was reverted.
 
 ## `ParallelShadow::RasteriseObject` (`0x4721b0`)
 
@@ -78,6 +82,36 @@ code as `m[12] += h`, as does accessing the matrix through its global name.
 An inline-assembly store emitted the requested `m[12]` load/add/store, but
 forced `m13Scaled` out of the x87 register stack and regressed to 648 differing
 bytes; it was reverted.
+
+Reversing only the declaration order of local vectors `e1` and `e2` leaves the
+1,362-byte / 550-difference candidate unchanged. The probe was reverted; VC6
+retained the same allocation.
+
+The target materializes the `v1` edge into `[ebp-0x58]` before the `v2` edge
+into `[ebp-0x64]`. Computing `e2` before `e1` in source improves the same-size
+candidate from 550 to 542 differing bytes, although the candidate's local slot
+identity still differs from the target. Reversing only the declarations left
+the 550-difference form unchanged. The computation-order form is retained as
+the closer measured candidate.
+
+Moving the `v2` pointer lookup before `v1` while retaining the `e2`-then-`e1`
+calculations worsens the current candidate from 542 to 545 differing bytes;
+that pointer-order probe was reverted.
+
+The target evaluates the light-direction dot product as y, z, x and loads the
+y/z direction globals before their cross components. The retained C++ spelling
+already produces the target's y/z/x term schedule, with reversed x87 operand
+loads for y/z. Reordering the source terms makes VC6 emit x/z/y and raises the
+diff to 543; a nine-instruction inline x87 form restores the operand-load order
+but shifts the `cross` stack home and raises the full-function diff to 549.
+Both probes were reverted.
+
+The half-size local has the target stack home at `[ebp-0x10]` in both objects.
+The remaining x87 mismatch in this region is the `m[12]` update: the target
+loads `m[12]` before adding `h`, then reuses the pending `-b*m[13]` value for
+the `m[13]` store. The candidate loads `h` first and emits an extra `fld` and
+`fstp st(0)` around that store. Earlier source spellings for the `m[12]`
+addition were byte-identical, and inline assembly disturbed the broader frame.
 
 ## `FillTriangle` (`0x472710`)
 

@@ -180,9 +180,9 @@ struct FB3_Stats {
 
 // original: FUN_0044d260
 // NONMATCHING: RALLYTROPHY 0x44d260
-// Structure matches (record = size dword 0x74 + fields, shared by both loops; path via out-of-line assign/append). Left:
-// the original keeps the File* in edi with a stack home ([esp+0x14]) and the RaceMode pointer in ebx;
-// mine puts the File* in ebx and spills the RaceMode pointer. Frame 0x90 vs 0x94, 1071 vs 1081 bytes.
+// Structure matches (record = size dword 0x74 + fields, shared by both loops; path via out-of-line assign/append). The
+// four-byte `itoa` buffer reduces the candidate diff 737→728; the frame remains 0x90 vs target 0x94. The original keeps
+// File* in EDI with a stack home and RaceMode* in EBX; this candidate keeps File* in EBX and spills RaceMode*.
 void SaveGame::SaveSlot(int slot)
 {
     FillHeader();
@@ -195,7 +195,7 @@ void SaveGame::SaveSlot(int slot)
         path.AssignCall("savegame/rally", strlen("savegame/rally"));
     }
     {
-        char buf[2];
+        char buf[4];
         itoa(slot, buf, 10);
         path.AppendCall(buf, strlen(buf));
     }
@@ -423,8 +423,9 @@ loaded:
 }
 
 // NONMATCHING: RALLYTROPHY 0x44deb0
-// Shape matches; the original shares no failure epilogues (each early return has its own) and keeps the per-player
-// 10-dword blocks in a stack temporary (frame 0x48); VC6 merges the returns and elides the temporary here.
+// The target explicitly closes the file before deleting it on bad headers; this source now preserves that sequence.
+// Candidate is 1259/1321 bytes with 947 differing bytes. The target uses a 0x48 frame and local failure epilogues;
+// candidate uses a 0x44 frame and merges some exits. Both use the per-player 10-dword stack temporary.
 bool SlotStore::LoadRelay()
 {
     DAT_00501472 = 0;
@@ -436,6 +437,7 @@ bool SlotStore::LoadRelay()
     int magic1;
     file->Read(&magic0, 4);
     if (magic0 != 0x63777472 || (file->Read(&magic1, 4), magic1 != 0x20020109)) {
+        file->Close();
         delete file;
         return false;
     }
@@ -584,8 +586,8 @@ void SlotStore::SaveRelay(char level, char advance)
         out += bytes;
     }
     for (int i = 0; i < (int)race->m_players.size(); i++) {
-        FB3_Stats stats = *(FB3_Stats*)race->m_players[i]->unk1a28;
-        *(FB3_Stats*)out = stats;
+        volatile FB3_Stats stats = *(FB3_Stats*)race->m_players[i]->unk1a28;
+        memcpy(out, (const void*)&stats, 0x28);
         out += 0x28;
     }
     FB3_Cipher cipher;

@@ -477,7 +477,11 @@ __declspec(naked) void BuildColourLuts(const Vec3* light)
 // NONMATCHING: RALLYTROPHY 0x4703c0
 // Target evidence (ev_e2d18152e9c91241b4226ef784a2de4febf5e28195db3b37cc938a94cbefa4fb) shows a byte-offset loop
 // with stride 0x2c through 0xb000 and four caster clears. Moving the offset declaration before the pointer locals
-// reduces the 378-byte candidate from 15 to 14 differing bytes; the remaining difference is register/SIB selection.
+// reduces the 378-byte candidate from 15 to 14 differing bytes. Removing the `register` hint leaves 14 unchanged;
+// reading `m->vertices` nonvolatile shifts the frame/register allocation and grows the diff to 168 bytes, even
+// with `register Mesh* m` or volatile field stores; the retained mismatch is register/SIB selection around the
+// two vertex-base pointers. Combining the index-array assignment and volatile vertex-pointer read in one comma
+// expression shifts the whole frame/register layout (380 bytes / 181 differences), so those statements stay split.
 ParallelShadow::ParallelShadow()
 {
     sysTexture = 0;
@@ -1108,12 +1112,15 @@ static const float kTwo = 2.0f;          // 0x4e1b44
 
 // original: FUN_004721b0
 // NONMATCHING: RALLYTROPHY 0x4721b0
-// Baseline 1347/1372 bytes. EH frame, calls, CROSS block, culling test, projection blocks and the fill dispatch are in place.
-// Open: VC6 keeps h = size/2 in the FPU (the original spills it to [ebp-0x10]), puts e1/e2 in the opposite stack slots,
-// and loads cross.y/z before the light-direction terms in the dot product (the original loads the global first).
+// Current candidate: 1362/1372 bytes, 542 differing. EH frame, calls, CROSS block, culling test, projection blocks
+// and fill dispatch are in place. Open: the m[12] update loads h before m[12] (target does the reverse), then the
+// candidate adds an extra h load/pop while forming m[13]. The y/z dot-product terms also load cross components
+// before direction globals here, opposite the target. Computing e2 before e1 reduced the previous 550-difference
+// candidate to 542; the target maps v1/e1 to [ebp-0x58] and v2/e2 to [ebp-0x64].
 // Evidence ev_29d97e716110d7023b37b541d681a71602455c2e54fc525bd1455f0e8cda5ddd shows the target h stack home.
 // Splitting -b*m[13] before the m[12] update follows the target schedule in evidence ev_97dc54e79fef93c284c6e010b9015776b75175379b7307954374c1592c15c85e;
-// current candidate is 1362/1372 bytes with 550 differing bytes (volatile h alone: 1354/1372, 634 diffs).
+// Before the edge-vector computation-order change, m13Scaled produced 1362/1372 bytes and 550 differences;
+// volatile h alone produced 1354/1372 bytes and 634 differences.
 // Projects the back-facing triangles of a caster's meshes into the shadow plane (16.16 fixed point) and
 // fills them into the locked shadow surface.
 void ParallelShadow::RasteriseObject(ShadowCaster* obj)
@@ -1157,14 +1164,14 @@ void ParallelShadow::RasteriseObject(ShadowCaster* obj)
             const Vec3* v0 = verts[idx[0]].Pos();
             const Vec3* v1 = verts[idx[1]].Pos();
             const Vec3* v2 = verts[idx[2]].Pos();
-            e1 = *v1;
-            e1.x -= v0->x;
-            e1.y -= v0->y;
-            e1.z -= v0->z;
             e2 = *v2;
             e2.x -= v0->x;
             e2.y -= v0->y;
             e2.z -= v0->z;
+            e1 = *v1;
+            e1.x -= v0->x;
+            e1.y -= v0->y;
+            e1.z -= v0->z;
             Vec3* ca = &e1;
             Vec3* cb = &e2;
             Vec3* cresult = &cross;
@@ -1342,7 +1349,8 @@ void StepEdgeB()
 
 // original: FUN_00472a30
 // NONMATCHING: RALLYTROPHY 0x472a30
-// 389 vs 382 bytes, same register-allocation difference as 0x472710.
+// 398 vs 382 bytes, 73 differing bytes (previous form: 389/382, 79 differences).
+// Computing the A-row predicate before storing the decremented counter reproduces the target's test/store order.
 // A volatile s_rowsA decrement regressed to 391/382 bytes, 176 differences; a `fixedOne` register local changed no bytes.
 // The same with the 32-bit colour.
 void FillTriangleFlat(ProjVertex** tri)
@@ -1385,7 +1393,13 @@ void FillTriangleFlat(ProjVertex** tri)
                                 row[x] = g_fillColor32;
                             }
                             row = (int*)((BYTE*)row + g_pitch);
-                            if (--s_rowsA <= 0) {
+                            int rowsA = s_rowsA;
+                            --rowsA;
+                            bool moreRowsA = rowsA > 0;
+                            s_rowsA = rowsA;
+                            if (moreRowsA) {
+                                s_xA = xa + s_stepA;
+                            } else {
                                 while (s_idxA != bot) {
                                     StepEdgeA();
                                     if (s_rowsA > 0) {
@@ -1394,8 +1408,6 @@ void FillTriangleFlat(ProjVertex** tri)
                                     }
                                 }
                                 return;
-                            } else {
-                                s_xA = xa + s_stepA;
                             }
                         doneA:
                             if (--s_rowsB <= 0) {

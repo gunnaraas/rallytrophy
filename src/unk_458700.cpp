@@ -350,7 +350,7 @@ register IC_Car* car = (IC_Car*)carPtr;
             } else if (w < 0) {
                 w = 0;
             }
-            float x = car->fd40;
+            volatile float x = car->fd40;
             float lateral = (car->fd34 - x) * car->fd28;
             if (BITS(x) < BITS(car->fd48)) {
                 lateral += (car->fd48 - x) * car->fd4c;

@@ -158,7 +158,7 @@ static __forceinline int RoundF(float v)
     return r;
 }
 
-// NONMATCHING: RALLYTROPHY 0x4021b0 (stack-slot/register layout differs: original reuses the spline double slot for ints; 839 vs 824 bytes)
+// NONMATCHING: RALLYTROPHY 0x4021b0 (union mirrors the target reuse of the spline double slot high dword for an index; 836 vs 824 bytes, 564 differing bytes; remaining frame/register layout differs)
 void MeshSet::Interp(float t)
 {
     if (owner == 0)
@@ -170,26 +170,29 @@ void MeshSet::Interp(float t)
         t = 0.0f;
     else if (*(int*)&t > 0x3f800000)
         t = 1.0f;
-    double s = (frames - 1) * t;
-    float f = (float)(s - floor(s));
+    union IndexSplineSlot { double spline; int words[2]; } indexSpline;
+    float f;
+    int prev, nxt, nxt2;
+    indexSpline.spline = (frames - 1) * t;
+    f = (float)(indexSpline.spline - floor(indexSpline.spline));
     if (*(int*)&f < 0)
         f = 0.0f;
     else if (*(int*)&f > 0x3f800000)
         f = 1.0f;
-    int cur = RoundF((float)floor(s));
-    int prev, nxt, nxt2;
+    indexSpline.words[1] = RoundF((float)floor(indexSpline.spline));
+
     if (loop != 0) {
-        s = frames * t;
-        cur = RoundF((float)floor(s));
-        if (cur == frames) {
+        indexSpline.spline = frames * t;
+        indexSpline.words[1] = RoundF((float)floor(indexSpline.spline));
+        if (indexSpline.words[1] == frames) {
             f = DAT_004e134c;
-            cur = 0;
+            indexSpline.words[1] = 0;
         } else {
-            f = (float)(s - floor(s));
+            f = (float)(indexSpline.spline - floor(indexSpline.spline));
         }
-        prev = cur - 1;
-        nxt = cur + 1;
-        nxt2 = cur + 2;
+        prev = indexSpline.words[1] - 1;
+        nxt = indexSpline.words[1] + 1;
+        nxt2 = indexSpline.words[1] + 2;
         if (prev < 0)
             prev = frames - 1;
         if (frames <= nxt)
@@ -197,32 +200,32 @@ void MeshSet::Interp(float t)
         if (frames <= nxt2)
             nxt2 -= frames;
     } else {
-        if (cur < 0)
-            cur = 0;
+        if (indexSpline.words[1] < 0)
+            indexSpline.words[1] = 0;
         int last = frames - 1;
-        if (last <= cur) {
-            cur = frames - 2;
+        if (last <= indexSpline.words[1]) {
+            indexSpline.words[1] = frames - 2;
             f = DAT_004e1348;
         }
-        if (cur < 1)
+        if (indexSpline.words[1] < 1)
             prev = 0;
         else
-            prev = cur - 1;
-        nxt = cur + 1;
+            prev = indexSpline.words[1] - 1;
+        nxt = indexSpline.words[1] + 1;
         nxt2 = nxt;
         if (nxt < last)
-            nxt2 = cur + 2;
+            nxt2 = indexSpline.words[1] + 2;
     }
     Vec3Slot sp;
     sp.x = f;
     sp.y = f * f;
     sp.z = f * f * f;
     MeshElem* e = elems;
-    cur *= 12;
+    indexSpline.words[1] *= 12;
     prev *= 12;
     nxt *= 12;
     nxt2 *= 12;
-    int oc = cur, op = prev, on = nxt, on2 = nxt2;
+    int oc = indexSpline.words[1], op = prev, on = nxt, on2 = nxt2;
     for (int k = count; k > 0; k--, e++) {
         float* d = e->dst;
         char* a = (char*)e->a;

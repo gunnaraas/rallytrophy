@@ -26,6 +26,11 @@ candidate remains the best observed result.
 Separating their declarations from initialization, while preserving the target's
 initialization order, and moving the title color assignment after `scaleY` each
 left the 2,747-byte/582-difference result unchanged.
+Declaring `sy` before `clicked` while keeping `clicked`'s initialization before
+the `GetHeight()` call also leaves the object unchanged at 2,747 bytes and 582
+differences; reverted.
+Making only the title-color field store volatile changes the scheduling of the
+title-scale block but still yields 2,747 bytes and 582 differences; reverted.
 
 The current focused matcher reports 10/10 marked functions checked in this
 source file, with this function still `NONMATCHING`. No exact match or commit

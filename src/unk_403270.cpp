@@ -336,9 +336,9 @@ class CarBody { public: void FUN_0046be50(int mode); };
 
 // NONMATCHING: RALLYTROPHY 0x403ca0
 // Calling convention (thiscall on the header, bool result), object sizes, constructor arguments, the PathText
-// string calls and block order follow the target. Open: the frame is 4 bytes smaller, so `this` lands in ebx
-// instead of ebp; and the target destroys the string in the shared failure exit with an out-of-line
-// _Tidy(true) call (here expanded inline).
+// string calls and block order follow the target. Direct singleton field stores before taking the `race` alias
+// improve the object comparison (158 differing bytes vs. 589 in the prior form), but the frame remains four
+// bytes smaller and the target's shared failure cleanup calls out-of-line _Tidy(true) (here expanded inline).
 bool ReplayHeader::Load(int index)
 {
     PathText name("savegame/replay");
@@ -358,9 +358,9 @@ bool ReplayHeader::Load(int index)
             DAT_00501458 = raw[0x6e];
             DAT_00501468 = *(int*)(raw + 0x34);
             DAT_0050145c = raw[0x6c];
+            DAT_00501450->unk28 = *(int*)(raw + 0x24);
+            DAT_00501450->unk2c = *(int*)(raw + 0x28);
             NetRace* race = DAT_00501450;
-            race->unk28 = *(int*)(raw + 0x24);
-            race->unk2c = *(int*)(raw + 0x28);
             int cars = *(int*)(raw + 0x68) + 1;
             for (int i = 0; i < cars; i++) {
                 ReplayCar* car = i == 0 ? new ReplayCar(1, 0) : new ReplayCar("dummy");

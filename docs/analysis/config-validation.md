@@ -35,6 +35,12 @@ exception-state updates around those temporary destructors differ from the
 target. This is still open; the matching behavior and message construction are
 not evidence that the constructor is byte-exact.
 
+An inline helper with named intermediate `std::string` values was also tested
+to model the concatenation lifetimes explicitly. It compiled the constructor to
+301 bytes with 206 differing bytes and changed six other exact functions in
+the translation unit, so the helper was removed. The original 372-byte
+candidate remains the better current source form.
+
 ## String value parser (`0x405670`)
 
 `Config::ParseString` clears the destination string, scans the remaining

@@ -24,9 +24,8 @@ extern "C" long __cdecl _ftol(void);
 
 // original: FUN_00474c50
 // NONMATCHING: RALLYTROPHY 0x474c50
-// 732 vs 824 bytes. Same calls, EH states and stores, but VC6 keeps the count in ebp and the mesh in edi in
-// the original (here the constant 2 takes ebp and the count stays on the stack), and the original's vertex
-// init loop keeps six per-field pointers (+0x2c steps) with a zero register; no source form reached either.
+// 821 vs 824 bytes, 326 differing bytes. Strided field cursors model the PE-observed six per-field vertex
+// pointers (+0x2c steps), with a volatile mesh-field reload; count/array setup and tail stores remain open.
 SnowFall::SnowFall(TextureLoader* loader, int count_)
 {
     if (DAT_00501428 == 2) {
@@ -65,7 +64,7 @@ SnowFall::SnowFall(TextureLoader* loader, int count_)
     mesh = m;
     m->vertices = new EffectVertex[n * 4];
     m->indices = new WORD[n * 6];
-    WORD w = (WORD)count;
+    int w = (WORD)count;
     m->unk24 = 0;
     m->primitiveCount = w * 2;
     m->vertexCount = w * 4;
@@ -79,25 +78,73 @@ SnowFall::SnowFall(TextureLoader* loader, int count_)
         *idx++ = b + 2;
         *idx++ = b + 3;
     }
-    EffectVertex* v = m->vertices;
+    EffectVertex* v = *(EffectVertex* volatile*)&m->vertices;
+    DWORD* pColor = &v[0].color;
+    float* pNormal = &v[0].normal.x;
+    float* pU = &v[0].u;
+    float* pV = &v[0].v;
+    float* pU2 = &v[0].u2;
+    float* pV2 = &v[0].v2;
     for (int j = 0; j < n; j++) {
-        v[0].color = -1;
-        v[0].normal.x = v[0].normal.y = v[0].normal.z = 0;
-        v[0].u = v[0].v = v[0].u2 = v[0].v2 = 0;
-        v[1].color = -1;
-        v[1].normal.x = v[1].normal.y = v[1].normal.z = 0;
-        v[1].u = 0.5f;
-        v[1].v = v[1].u2 = v[1].v2 = 0;
-        v[2].color = -1;
-        v[2].normal.x = v[2].normal.y = v[2].normal.z = 0;
-        v[2].u = v[2].v = 0.5f;
-        v[2].u2 = v[2].v2 = 0;
-        v[3].color = -1;
-        v[3].normal.x = v[3].normal.y = v[3].normal.z = 0;
-        v[3].u = 0;
-        v[3].v = 0.5f;
-        v[3].u2 = v[3].v2 = 0;
-        v += 4;
+        *pColor = -1;
+        pColor += 11;
+        pNormal[0] = 0;
+        pNormal[1] = 0;
+        pNormal[2] = 0;
+        pNormal += 11;
+        *pU = 0;
+        pU += 11;
+        *pV = 0;
+        pV += 11;
+        *pU2 = 0;
+        pU2 += 11;
+        *pV2 = 0;
+        pV2 += 11;
+
+        *pColor = -1;
+        pColor += 11;
+        pNormal[0] = 0;
+        pNormal[1] = 0;
+        pNormal[2] = 0;
+        pNormal += 11;
+        *pU = 0.5f;
+        pU += 11;
+        *pV = 0;
+        pV += 11;
+        *pU2 = 0;
+        pU2 += 11;
+        *pV2 = 0;
+        pV2 += 11;
+
+        *pColor = -1;
+        pColor += 11;
+        pNormal[0] = 0;
+        pNormal[1] = 0;
+        pNormal[2] = 0;
+        pNormal += 11;
+        *pU = 0.5f;
+        pU += 11;
+        *pV = 0.5f;
+        pV += 11;
+        *pU2 = 0;
+        pU2 += 11;
+        *pV2 = 0;
+        pV2 += 11;
+
+        *pColor = -1;
+        pColor += 11;
+        pNormal[0] = 0;
+        pNormal[1] = 0;
+        pNormal[2] = 0;
+        pNormal += 11;
+        *pU = 0;
+        pU += 11;
+        *pV = 0.5f;
+        pV += 11;
+        *pU2 = 0;
+        pU2 += 11;
+        *pV2 = 0;
+        pV2 += 11;
     }
     flakes = (SnowFlake*)operator new(n * 32);
     threshold = 1.0f;

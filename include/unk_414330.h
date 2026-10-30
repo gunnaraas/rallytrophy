@@ -22,5 +22,20 @@ struct S414List {
     void RemoveNode(S414Node* n); // 0x4144e0
 };
 #include <string>
-typedef std::string Str414;
-Str414& __fastcall Func414550(Str414* self, int, char* first, char* last, const char* s1, const char* s2); // 0x414550
+struct StMsg {
+    StMsg(const std::allocator<char>& a = std::allocator<char>()) : alloc(a) { ptr = 0; len = 0; res = 0; }
+    ~StMsg();
+    void Freeze();
+    char* begin() { Freeze(); return ptr; }
+    char* end() { Freeze(); return ptr == 0 ? 0 : ptr + len; }
+    bool Grow(unsigned int n, bool trim);
+    void Tidy(bool built);
+    StMsg& AssignCall(const char* text, unsigned int n);
+    unsigned int MaxSize() const;
+    void Copy(unsigned int n);
+    StMsg& Format(char* first, char* last, const char* fmt, const char* arg);
+    std::allocator<char> alloc;
+    char* ptr;
+    unsigned int len;
+    unsigned int res;
+};

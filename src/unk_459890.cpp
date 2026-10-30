@@ -244,7 +244,7 @@ public:
     float m[16];
 };
 // Inverts a rotation + translation matrix in place (inlined in the original).
-static inline void InvertRigid(float* m, float tz)
+static inline void InvertRigid(float* m, const float& tz)
 {
     float x = -(m[0] * m[12] + m[2] * tz + m[1] * m[13]);
     float y = -(m[4] * m[12] + m[6] * tz + m[5] * m[13]);
@@ -304,10 +304,10 @@ void Car::AddContact(Vec3* a, Vec3* b, float strength)
 }
 
 // NONMATCHING: RALLYTROPHY 0x459910
-// 3695 vs 3722 bytes; logic complete (every branch, constant and call in the original is present). Open: register
-// and stack-slot allocation (the original pushes ebx/edi after the early exits and counts the dent loops in edi),
-// the instruction scheduling of the loop tests, the trunk/hood inverse (the original keeps the part's z in st0 and
-// the EH state 1 store before At(0)), and the wheel loops (original biases the record pointer to rec+0xc).
+// 3695 vs 3722 bytes; logic complete (every branch, constant and call in the original is present). Delaying the
+// recs pointer, separating both PartMatrix lifetimes, using volatile translation reads and a by-reference Z, and
+// reusing the body pointer reduced objcmp's differing-byte count from 3070 to 2722. Open: register/stack allocation,
+// loop scheduling, trunk/hood inverse x87 order, and wheel-loop cursors.
 // Applies the buffered contact records (AddContact, 0x459890) to the damage state: impact statistics, dents in the
 // body, trunk and hood meshes, the four zone/wheel damages, broken lamps and the shatter flags.
 void Car::ProcessContacts()
@@ -315,7 +315,6 @@ void Car::ProcessContacts()
     ContactView* v = (ContactView*)this;
     int i1, i2, i3, i4, i5, i6, i7, i8, i9;
     int w;
-    HitRec* recs = (HitRec*)((BYTE*)this + 0x1c914);
     if (v->count == 0) {
         return;
     }
@@ -323,6 +322,7 @@ void Car::ProcessContacts()
         v->count = 0;
         return;
     }
+    HitRec* recs = (HitRec*)((BYTE*)this + 0x1c914);
     float lo = v->hitMin;
     float inv = 1.0f / (v->hitMax - lo);
     HitBody* body = v->body;
@@ -394,8 +394,7 @@ void Car::ProcessContacts()
     }
 
     // dents in the body mesh
-    HitBody* b2 = v->body;
-    DentMesh* mesh = b2->meshes.At(0);
+    DentMesh* mesh = body->meshes.At(0);
     for (i2 = 0; i2 < v->count; i2++) {
         HitRec* r = &v->rec[i2];
         float fx = r->f1c;
@@ -421,10 +420,11 @@ void Car::ProcessContacts()
     // dents in the trunk and hood parts, in their own frame
     HitPart* part = v->trunk;
     if (part) {
+        PartMatrix inv2;
         DentMesh* pm = part->meshes.At(0);
-        PartMatrix inv2 = *(PartMatrix*)part->matrix;
-        inv2.m[12] = part->pos[0];
-        inv2.m[13] = part->pos[1];
+        inv2 = *(PartMatrix*)part->matrix;
+        inv2.m[12] = *(volatile float*)&part->pos[0];
+        inv2.m[13] = *(volatile float*)&part->pos[1];
         InvertRigid(inv2.m, part->pos[2]);
         for (i3 = 0; i3 < v->count; i3++) {
             HitRec* r = &recs[i3];
@@ -441,10 +441,11 @@ void Car::ProcessContacts()
     }
     part = v->hood;
     if (part) {
+        PartMatrix inv2;
         DentMesh* pm = part->meshes.At(0);
-        PartMatrix inv2 = *(PartMatrix*)part->matrix;
-        inv2.m[12] = part->pos[0];
-        inv2.m[13] = part->pos[1];
+        inv2 = *(PartMatrix*)part->matrix;
+        inv2.m[12] = *(volatile float*)&part->pos[0];
+        inv2.m[13] = *(volatile float*)&part->pos[1];
         InvertRigid(inv2.m, part->pos[2]);
         for (i4 = 0; i4 < v->count; i4++) {
             HitRec* r = &recs[i4];

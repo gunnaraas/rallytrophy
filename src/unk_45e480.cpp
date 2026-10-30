@@ -1649,11 +1649,12 @@ const float kDegToRad = 0.017453292f;
 
 // original: FUN_00462350
 // NONMATCHING: RALLYTROPHY 0x462350
-// 4439 vs 4484 bytes; ~60 of ~1000 instructions differ. The 100 Config reads, the five-point suspension tables, the
-// static-load loop, the wiper tail and Config::Close match. Open: (1) the frame is 0x28 bytes short, the original keeps
-// two more EH-tracked locals (states 8 and 9, esp+0x50 and esp+0x5c) around the hood/trunk axes, whose cos/sin go
-// through float temps; (2) the runtime_error built in the failure path inlines _Tidy here (original calls 0x402700)
-// and loads the c_str pointer into eax first; (3) MomentOfInertia keeps mass in st(0) in the original.
+// 4504 built vs 4484 target bytes; 2339 bytes differ outside relocations. The 100 Config reads, five-point
+// suspension tables, static-load loop, wiper tail and Config::Close remain structurally close. Sequential Vec3 axis
+// locals restore the target's 0x88 frame and EH states 8/9, with state 9 installed after the hood cosine. Open:
+// (1) the target pushes 0x4fb77c between the scaled-angle fst and fcos; this candidate pushes 0 after fcos; (2) the
+// failure-path string code differs: the target calls _Tidy at 0x402700 and loads the concatenated string data pointer
+// directly into esi, while this candidate routes it through eax; (3) the target keeps mass in st(0) in MomentOfInertia.
 void Car::LoadCarIni(const char* path, unsigned int checksum)
 {
     CarIniView* v = (CarIniView*)this;
@@ -1790,20 +1791,32 @@ void Car::LoadCarIni(const char* path, unsigned int checksum)
     }
     float hoodAngle = config.GetFloat("HoodAngle");
     float trunkAngle = config.GetFloat("TrunkAngle");
-    float hood = hoodAngle * kDegToRad;
+    Vec3 axisA;
     v->hoodAxes[0] = 0;
-    v->hoodAxes[1] = (float)cos(hood);
-    v->hoodAxes[2] = (float)sin(hood);
     v->hoodAxes[3] = 0;
-    v->hoodAxes[4] = -(float)sin(hood);
-    v->hoodAxes[5] = (float)cos(hood);
-    float trunk = trunkAngle * kDegToRad;
     v->trunkAxes[0] = 0;
-    v->trunkAxes[1] = (float)cos(trunk);
-    v->trunkAxes[2] = (float)sin(trunk);
+    float hood = hoodAngle * kDegToRad;
+    axisA.y = (float)cos(hood);
+    Vec3 axisB;
+    axisA.x = 0;
+    axisB.x = 0;
     v->trunkAxes[3] = 0;
-    v->trunkAxes[4] = -(float)sin(trunk);
-    v->trunkAxes[5] = (float)cos(trunk);
+    axisA.z = (float)sin(hood);
+    axisB.y = -axisA.z;
+    axisB.z = axisA.y;
+    v->hoodAxes[1] = axisA.y;
+    v->hoodAxes[2] = axisA.z;
+    v->hoodAxes[4] = axisB.y;
+    v->hoodAxes[5] = axisB.z;
+    float trunk = trunkAngle * kDegToRad;
+    axisA.y = (float)cos(trunk);
+    axisA.z = (float)sin(trunk);
+    axisB.y = -axisA.z;
+    axisB.z = axisA.y;
+    v->trunkAxes[1] = axisA.y;
+    v->trunkAxes[2] = axisA.z;
+    v->trunkAxes[4] = axisB.y;
+    v->trunkAxes[5] = axisB.z;
     v->hoodMaxAngle = config.GetFloat("HoodMaxAngle") * kDegToRad;
     v->trunkMaxAngle = config.GetFloat("TrunkMaxAngle") * kDegToRad;
     v->wiperAnimSpeed = config.GetFloat("WiperAnimSpeed");

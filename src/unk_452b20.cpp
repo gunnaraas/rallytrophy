@@ -681,10 +681,9 @@ inline void H_Normalize1(float* v)
 }
 
 // NONMATCHING: RALLYTROPHY 0x453940
-// Logic complete (5002 of 5036 bytes, 86 diff hunks, tail from the lamp loop on matches). Open: the trunk/hood angle
-// divides by a limit the original keeps preloaded on the x87 stack, the three inline normalisations differ in which
-// product copies the reciprocal (fld st(0)), the offset adds load operands in the other order, and the frame
-// layout/register choice of the rotation locals (edi/esi, argument slots) is not reproduced.
+// Logic complete (5010 of 5036 bytes; 3310 differing bytes). The trunk and hood angles now match the target's register
+// x87 divides; staged a2/b1 and wrapped-phase locals align the wiper arithmetic schedule. Remaining issues include
+// the 12-byte frame/rotation-local displacement, three inline normalisations, and offset-add operand order.
 void Car::FUN_00453940(float k)
 {
     H_Car* V = (H_Car*)this;
@@ -699,14 +698,19 @@ void Car::FUN_00453940(float k)
         float b2 = range2 * t + V->wipeLo2;
         V->wiperPhase = k * V->wiperSpeed + V->wiperPhase;
         double phase = V->wiperPhase;
-        V->wiperPhase = (float)(phase - floor(phase));
+        double wrapped = phase - floor(phase);
+        V->wiperPhase = (float)wrapped;
         float t2 = V->wiperPhase + V->wiperPhase;
         if (!(t2 < 1.0f)) {
             t2 = 2.0f - t2;
         }
         V->wiper->SetAngle(t2);
-        float a2 = range1 * t2 + V->wipeLo1;
-        float b1 = range2 * t2 + V->wipeLo2;
+        float a2 = range1;
+        a2 *= t2;
+        a2 += V->wipeLo1;
+        float b1 = range2;
+        b1 *= t2;
+        b1 += V->wipeLo2;
         if (a2 < a1) {
             float tmp = a2;
             a2 = a1;
@@ -726,7 +730,9 @@ void Car::FUN_00453940(float k)
     }
     H_Matrix m;
     if (V->trunk) {
-        float angle = H_Ratio(V->trunkPos * V->trunkGain, V->trunkLimit);
+        float limit = V->trunkLimit;
+        float numerator = V->trunkPos * V->trunkGain;
+        float angle = numerator / limit;
         m.SetIdentity();
         float c = (float)cos(angle);
         float s = (float)sin(angle);
@@ -737,7 +743,9 @@ void Car::FUN_00453940(float k)
         V->trunk->matrix.Multiply(&V->trunkMatrix, &m);
     }
     if (V->hood) {
-        float angle = H_Ratio(V->hoodPos * V->hoodGain, V->hoodLimit);
+        float limit = V->hoodLimit;
+        float numerator = V->hoodPos * V->hoodGain;
+        float angle = numerator / limit;
         m.SetIdentity();
         float c = (float)cos(angle);
         float s = (float)sin(angle);
@@ -1049,6 +1057,7 @@ struct F2_V {
         y = o.y;
         z = o.z;
     }
+    float Length() const { return (float)sqrt(x * x + y * y + z * z); }
     float x, y, z;
 };
 // A 3x3 rotation stored as three rows of a 4x4 matrix (row stride 0x10).
@@ -1115,19 +1124,21 @@ inline void F2_Cross(const F2_V* a, const F2_V* b, F2_V* dst)
 }
 
 // NONMATCHING: RALLYTROPHY 0x454d10
-// 824 vs 843 bytes: logic and the function static (0x508c60, atexit 0x455060) are in place. Open: the original keeps
-// only x of the clamped vector on the FPU stack (y, z in memory, squares in the order x, y, z) and the first part
-// builds y/z of the part position in memory; ours enregisters differently.
+// 867 vs 843 bytes, 512 differing bytes. Separate x/y/z square accumulation recovers the target's x, y, z
+// component loads and initial square sequence. Remaining differences include the x87 addition/normalization order,
+// and the first part's y/z position stores; the function static (0x508c60, atexit 0x455060) is in place.
 void Car::FUN_00454d10()
 {
     F2_CarView* c = (F2_CarView*)this;
     F2_V v = c->ctrl;
-    float len2 = v.x * v.x + v.y * v.y + v.z * v.z;
+    float len2 = v.x * v.x;
+    len2 += v.y * v.y;
+    len2 += v.z * v.z;
     if (len2 > 196.0f) {
-        float s = 1.0f / (float)sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
-        v.x = v.x * s;
+        float s = 1.0f / v.Length();
         v.y = v.y * s;
         v.z = v.z * s;
+        v.x = v.x * s;
     } else if (len2 < 4.0f) {
         v.x = 0.0f;
         v.y = 0.0f;

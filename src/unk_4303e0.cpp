@@ -115,8 +115,6 @@ extern "C" void __fastcall FUN_00434dd0(Game*);
 extern "C" void __fastcall FUN_00434ba0();
 extern "C" void __fastcall FUN_004327d0(Game*);
 extern "C" void __fastcall FUN_00425e50(Game*);
-extern "C" void __fastcall FUN_00432b30(Game*, int, int);
-extern "C" void __fastcall FUN_0043cb50(void*, int);
 extern "C" void __fastcall FUN_004a9520(void*, void*, const char*, float, float);
 extern "C" void __fastcall FUN_004a95d0(void*);
 extern int DAT_00501460;
@@ -133,8 +131,8 @@ extern "C" void __fastcall FUN_004af120(void*);
 extern "C" void __fastcall FUN_004adf50(void*);
 
 // NONMATCHING: RALLYTROPHY 0x4309d0
-// State 0-2 share the original audio/resource update calls; VC6 places this shared block after the switch cases here,
-// while the target places it between cases 0 and 1. Exception-cleanup lowering also differs.
+// State 0-2 share the audio/resource update calls. The target lays the shared block after case 0 so cases 1 and 2 jump
+// backward to it; VC6 places it after cases 1 and 2, changing the dispatch targets. Other small switch-order differences remain.
 void Game::FUN_004309d0() {
     Config config;
     config.Define(G9_GameIniKeys, 12);
@@ -159,7 +157,7 @@ void Game::FUN_004309d0() {
     void* emptyObject = *(void**)((unsigned char*)this + 0x13910c);
     if (emptyObject)
         ((RaceMode*)emptyObject)->RaceMode::Lock();
-    FUN_0043cb50((unsigned char*)this + 0x2df4, 0);
+    menu.FUN_0043cb50(0);
     FUN_00432aa0(this);
     while (!DAT_0057b9f4) {
         int state = FUN_00432e10(this);
@@ -181,7 +179,7 @@ void Game::FUN_004309d0() {
                 FUN_004a4870("data/settings/game.ini"); DAT_00501472 = 0; DAT_00501458 = 0; DAT_0050145c = 1; DAT_00501473 = 0;
                 FUN_00434a50(this); goto G2_update_audio;
             case 3: FUN_00434df0(this); break;
-            case 4: FUN_00432b00(this); FUN_00425e50(this); FUN_00432b30(this, 0, 0); break;
+            case 4: FUN_00432b00(this); FUN_00425e50(this); ((GameView*)this)->FUN_00432b30(0, 0); break;
             case 5: if (DAT_00508bdc) FUN_00434ba0(); else goto G2_cleanup; break;
             case 6: FUN_00434dd0(this); break;
             }
@@ -1390,67 +1388,71 @@ public:
 };
 
 // NONMATCHING: RALLYTROPHY 0x432e10
-// Builds to 900 bytes vs 1031. The interaction/update loop is approximate: the original has distinct window-inactive,
-// first-frame hit-test, keyboard selection, mouse-warp, and end-of-loop helper paths that still differ in control flow.
+// Current candidate: 1011 bytes vs 1031, 554 differing bytes. PE disassembly restores the six rectangle reads for the
+// mouse-warp center and scaled SetCursorPos call, plus the independent escape/transition, confirm and loop-exit paths;
+// substantial control-flow and stack-layout differences remain. Plain objdump observation; SetCursorPos is mapped at
+// this callsite in analysis/api_callsites.csv. Timer calls and loop poll state follow REA Evidence
+// ev_45a6a4b044b0093cd2df5d0b94cb1e8e47df7009a969ffc39945fd2d35a3833b.
 int __fastcall GameG6::FUN_00432e10()
 {
-    GameG6* game = this;
     int oldSelection;
-    int changed = 0;
     int leave = 0;
-    int wait = 0;
-    int first = 1;
+    RenderDevice* wait = 0;
+    int changed;
+    int first;
     int selected;
     int i;
     float widthScale;
     float heightScale;
-    RenderDevice* device = DAT_0056b0ac;
-
-    device->SetRenderState(5, 0);
-    device->vf42(8);
     DAT_00508bdc = 0;
-    widthScale = (float)device->GetHeight() * 0.0013020834f;
-    heightScale = (float)device->GetWidth() * 0.0009765625f;
+    DAT_0056b0ac->SetRenderState(5, 0);
+    DAT_0056b0ac->vf42(8);
+    widthScale = (float)DAT_0056b0ac->GetWidth() * 0.0009765625f;
+    changed = 0;
+    heightScale = (float)DAT_0056b0ac->GetHeight() * 0.0013020834f;
     DAT_0056b0bc->ClearKeys();
-    FUN_004b69f0(0);
-    oldSelection = *(int*)((BYTE*)game + 0x139078);
+    first = 1;
+    timeGetTime();
+    oldSelection = *(int*)((BYTE*)this + 0x139078);
+    if (FUN_004b69f0(0)) {
 
-    while (FUN_004b69f0(wait)) {
+    do {
         if (leave || changed)
             break;
-        ((GameView*)game)->FUN_00432c00();
-        if (!device->m_active) {
-            wait = (int)device;
+        ((GameView*)this)->FUN_00432c00();
+        if (!DAT_0056b0ac->m_active) {
+            wait = DAT_0056b0ac;
             continue;
         }
         if (wait != 0)
-            FUN_004b69f0(0);
+            timeGetTime();
         if (first) {
             first = 0;
             DAT_0056b0bc->ClearKeys();
             DAT_0057ba20 = 0;
             DAT_0057ba24 = 0;
+            timeGetTime();
             for (i = 0; i < 7; ++i) {
-                if (*(int*)((BYTE*)game + 0x139078) != i &&
-                    ((G6_RectLookup*)((BYTE*)game + 0x139460))->Get(i)->Contains(*((MouseInput*)DAT_0056b0c0)->GetPosition()))
-                    *(int*)((BYTE*)game + 0x139078) = i;
+                if (((G6_RectLookup*)((BYTE*)this + 0x139460))->Get(i)->Contains(*((MouseInput*)DAT_0056b0c0)->GetPosition()))
+                    *(int*)((BYTE*)this + 0x139078) = i;
             }
+        }
+        if (DAT_0057ba43 && ((G6_GameCalls*)this)->FUN_004368a0(0)) {
+            changed = 1;
         }
         wait = 0;
-        if (DAT_0057ba28[VK_ESCAPE]) {
-            leave = 1;
-        } else if (DAT_0057ba43 && ((G6_GameCalls*)game)->FUN_004368a0(0)) {
-            changed = 1;
-        }
         if (DAT_0057ba35 || DAT_0057ba20) {
-            if (*(int*)((BYTE*)game + 0x139078) == 6) {
-                ((G6_Sound*)((BYTE*)game + 0x139304))->FUN_0049b730();
-                changed = 1;
+            if (*(int*)((BYTE*)this + 0x139078) == 6) {
+                ((G6_Sound*)((BYTE*)this + 0x139294))->FUN_0049b730();
+                if (((G6_GameCalls*)this)->FUN_004368a0(0)) {
+                    leave = 1;
+                    continue;
+                }
+            } else {
+                ((G6_Sound*)((BYTE*)this + 0x139294))->FUN_0049b730();
+                leave = 1;
                 continue;
             }
-            ((G6_Sound*)((BYTE*)game + 0x139294))->FUN_0049b730();
-            changed = 1;
-            continue;
         }
 
         selected = 0;
@@ -1459,44 +1461,44 @@ int __fastcall GameG6::FUN_00432e10()
         if (DAT_0057ba4e)
             --selected;
         if (selected) {
-            *(int*)((BYTE*)game + 0x139078) += selected;
-            ((G6_Sound*)((BYTE*)game + 0x139224))->FUN_0049b730();
-            if (*(int*)((BYTE*)game + 0x139078) < 0)
-                *(int*)((BYTE*)game + 0x139078) = 6;
-            else if (*(int*)((BYTE*)game + 0x139078) >= 7)
-                *(int*)((BYTE*)game + 0x139078) = 0;
+            *(int*)((BYTE*)this + 0x139078) += selected;
+            ((G6_Sound*)((BYTE*)this + 0x139224))->FUN_0049b730();
+            if (*(int*)((BYTE*)this + 0x139078) < 0)
+                *(int*)((BYTE*)this + 0x139078) = 6;
+            else if (*(int*)((BYTE*)this + 0x139078) >= 7)
+                *(int*)((BYTE*)this + 0x139078) = 0;
 
-            i = *(int*)((BYTE*)game + 0x139078);
-            UIRect* rect = ((G6_RectLookup*)((BYTE*)game + 0x139460))->Get(i);
-            HudPoint top = rect->GetTopLeft();
-            HudPoint bottom = rect->GetBottomRight();
-            HudPoint midpoint = rect->GetTopLeft();
-            int x = (int)(midpoint.x + (top.x - bottom.x) * 0.5f);
-            int y = (int)(top.y + (rect->GetBottomRight().y - rect->GetTopLeft().y) * 0.5f);
-            ((MouseInput*)DAT_0056b0c0)->SetPosition((Vec2*)&x);
+            i = *(int*)((BYTE*)this + 0x139078);
+            UIRect* rect = ((G6_RectLookup*)((BYTE*)this + 0x139460))->Get(i);
+            int x = (int)(rect->GetTopLeft().x +
+                          (rect->GetBottomRight().x - rect->GetTopLeft().x) * 0.5f);
+            int y = (int)(rect->GetTopLeft().y +
+                          (rect->GetBottomRight().y - rect->GetTopLeft().y) * 0.5f);
+            SetCursorPos((int)(x * heightScale), (int)(y * widthScale));
         }
 
         for (i = 0; i < 7; ++i) {
-            if (*(int*)((BYTE*)game + 0x139078) != i &&
-                ((G6_RectLookup*)((BYTE*)game + 0x139460))->Get(i)->Contains(*((MouseInput*)DAT_0056b0c0)->GetPosition())) {
-                *(int*)((BYTE*)game + 0x139078) = i;
-                ((G6_Sound*)((BYTE*)game + 0x139224))->FUN_0049b730();
+            if (*(int*)((BYTE*)this + 0x139078) != i &&
+                ((G6_RectLookup*)((BYTE*)this + 0x139460))->Get(i)->Contains(*((MouseInput*)DAT_0056b0c0)->GetPosition())) {
+                *(int*)((BYTE*)this + 0x139078) = i;
+                ((G6_Sound*)((BYTE*)this + 0x139224))->FUN_0049b730();
             }
         }
-        if (*(int*)((BYTE*)game + 0x139078) != oldSelection) {
-            oldSelection = *(int*)((BYTE*)game + 0x139078);
-            FUN_004b69f0(0);
+        if (*(int*)((BYTE*)this + 0x139078) != oldSelection) {
+            oldSelection = *(int*)((BYTE*)this + 0x139078);
+            timeGetTime();
         }
-        ((G6_GameCalls*)game)->FUN_00437040(0);
+        ((G6_GameCalls*)this)->FUN_00437040(0);
         DAT_0056b0bc->ClearKeys();
         DAT_0057ba20 = 0;
         DAT_0057ba24 = 0;
+    } while (FUN_004b69f0((int)wait));
     }
-    if (!leave && !DAT_0057b9f4)
-        return *(int*)((BYTE*)game + 0x139078);
-    *(int*)((BYTE*)game + 0x139078) = 6;
-    ((G6_Sound*)((BYTE*)game + 0x139304))->FUN_0049b730();
-    return *(int*)((BYTE*)game + 0x139078);
+    if (changed || DAT_0057b9f4) {
+        *(int*)((BYTE*)this + 0x139078) = 6;
+        ((G6_Sound*)((BYTE*)this + 0x139304))->FUN_0049b730();
+    }
+    return *(int*)((BYTE*)this + 0x139078);
 }
 
 // ---- Group G7 ----

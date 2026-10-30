@@ -398,10 +398,9 @@ void CarParticles::Render(RenderDevice* device, Camera* camera)
 }
 
 // NONMATCHING: RALLYTROPHY 0x47cd60
-// 1231 vs 1233 bytes. Everything but three scheduling details is exact: (1) the original keeps
-// `chance` at ebp-0x14 and the fabs/length temp at ebp-0x10 (here swapped, no declaration order
-// changes it); (2) the final compare has an extra fxch (`r < chance*rate` is emitted as
-// fcompp with test ah,0x41 here); (3) `push edi` sits three instructions later in the original.
+// 1233 bytes, 52 differing bytes. Naming `randomValue` and `threshold`, then expressing the
+// failure test as `threshold <= randomValue`, reproduces the target's FXCH/FCOMPP compare pair.
+// Stack homes, compare operand/order flags, and the delayed `push edi` still differ; see the log.
 // Spawn core A: emits a particle with probability from the slips and speed.
 Particle* CarParticles::SpawnCoreA(float rate)
 {
@@ -433,7 +432,9 @@ Particle* CarParticles::SpawnCoreA(float rate)
     } else {
         chance = SCALE_A;
     }
-    if (!((float)(rand() & 0xff) < chance * rate)) {
+    int randomValue = rand() & 0xff;
+    float threshold = chance * rate;
+    if (threshold <= (float)randomValue) {
         return 0;
     }
     if (!DAT_0056ae90.head) {

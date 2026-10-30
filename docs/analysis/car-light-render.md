@@ -18,6 +18,7 @@ Plain matcher observations from 2026-10-27:
 | Constructor-based camera-relative vector assignment | 1113 | 709 |
 | Local `lightSize` for all six axis components | 1088 | 491 |
 | `volatile` alpha | 1097 | 477 |
+| Named volatile `alphaScaled` temporary before `FloatToInt` | 1101 | 614 |
 | Local stack copies of depth near/far bits | 1097 | 477 |
 | Local `Vec3` construction for quad corner 0 | 1097 | 483 |
 | `!(forwardDistance > nearPlane)` guard | 1095 | 626 |
@@ -40,6 +41,14 @@ which does not reject unordered results. The target-compatible status-mask
 sequence is currently 1095 bytes with 626 differing bytes; matching the guard
 alone does not resolve the larger stack, alpha, and quad-construction gaps.
 
+The current candidate is 1,101 bytes with 614 differing bytes after a volatile
+`alphaScaled` local forced the target-like float spill before integer
+conversion (the prior inline expression was 1,095 bytes with 626 differences).
+Wrapping the converted result in a volatile integer `rawAlpha` instead adds
+stores and loads around the inline `FISTP`, worsening the comparison to 1,107
+bytes / 638 differences; that probe was reverted. The target's `FISTP` writes
+directly to its local stack home (REA instruction evidence
+`ev_dd1aeecb4a4dd2083e5c24e9edfde14f91d90fa80ac91297dfaf6d57b3530c9a`).
 The remaining diff includes stack-frame and local-slot differences, FPU
 comparison/branch differences, alpha storage, and quad-corner construction.
 These are open matching work; this note does not claim semantic similarity is

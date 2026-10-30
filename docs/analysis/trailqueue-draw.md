@@ -29,8 +29,12 @@ as floats.
 
 ## Current match state
 
-The current candidate is 656 bytes against the 663-byte target, with 408
-differing bytes outside relocations. A pointer-based `do` loop reduced the
+The current candidate is 658 bytes against the 663-byte target, with 403
+differing bytes outside relocations. Naming the fade contribution separately
+before combining it with the base y offset reduced the diff by four bytes;
+then naming the scaled offset before subtracting it from the initial y matched
+the target's fade, offset, y load order and reduced the diff by one more byte.
+A pointer-based `do` loop reduced the
 focused mismatch from 433 to 408 bytes and matches the target's pointer walk
 more closely. Reusing one local for both integer screen dimensions was tested
 and worsened the result to 649 bytes with 410 differing bytes, so separate

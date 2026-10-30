@@ -314,10 +314,11 @@ void RaceMode::SendStartTimes()
 extern float DAT_005012f8;             // draw distance for the ghost fade
 
 // NONMATCHING: RALLYTROPHY 0x488aa0
-// The target spills only d.x*d.x and recomputes y*y+z*z+temp for the compare and sqrt. A volatile x-square
-// with repeated source sums improves the candidate from 440/150 to 444/132 bytes/differences; reversing y/z in all
-// three sums follows the observed x87 order and reduces the remaining differences to 128. A local expiry snapshot
-// reproduces the target comparison direction and further reduces the residual to 126; y/z is still shared.
+// Plain PE disassembly shows the target spills only d.x*d.x and recomputes y*y+z*z+temp for compare and sqrt.
+// A volatile x-square, reversed y/z sums, and an expiry snapshot reduce the baseline from 440/150 to 444/126
+// bytes/differences.
+// Volatile reads used only for sqrt prevent VC6 from sharing the range-check sum and reduce differences to 123
+// (458-byte candidate); the remaining x87, argument-register, and branch layout still differ.
 // Per-car setup pass; also fades the ghost car with its distance to the view.
 void RaceMode::DrawSetup(int a, ViewPoint* view)
 {
@@ -349,7 +350,8 @@ void RaceMode::DrawSetup(int a, ViewPoint* view)
             volatile float xx = d.x * d.x;
             if (d.z * d.z + d.y * d.y + xx < range * range &&
                 d.z * d.z + d.y * d.y + xx > 100.0f) {
-                car->FUN_004695c0(((float)(int)sqrt(d.z * d.z + d.y * d.y + xx) - 10.0f) * 0.02f);
+                car->FUN_004695c0(((float)(int)sqrt((*(volatile float*)&d.z) * d.z +
+                                                       (*(volatile float*)&d.y) * d.y + xx) - 10.0f) * 0.02f);
                 m_ghostVisible = 1;
                 car->FUN_00468c70(a);
             }

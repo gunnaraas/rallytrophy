@@ -328,6 +328,8 @@ void GameScreen1E9C::Run(MenuGame* game)
 // NONMATCHING: RALLYTROPHY 0x42c8e0
 // One instruction off: in the title Print the original loads the device pointer into eax right after pushing the text
 // (before the y product), mine into ecx after the x product (1 byte longer). Tried an inline Print wrapper and reordering.
+// A title-only device pointer local (including register storage) changes text/device register allocation; a reference is neutral.
+// Explicit x/device/y locals shift the surrounding frame; a volatile device read in the first argument is emitted after y.
 // original: Frame (thiscall; GameScreen1E9C::Frame)
 int GameScreen1E9C::Frame()
 {

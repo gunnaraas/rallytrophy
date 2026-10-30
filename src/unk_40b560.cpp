@@ -65,7 +65,7 @@ void TrailQueue::Push(int corner, int t)
 }
 
 // NONMATCHING: RALLYTROPHY 0x40b600
-// Current candidate is 656 bytes vs. 663, with 408 differing bytes. Expiry, alpha-byte math, FISTP
+// Current candidate is 658 bytes vs. 663, with 403 differing bytes. Expiry, alpha-byte math, FISTP
 // conversion, and integer screen dimensions now follow the target; local-slot and schedule differences remain.
 void TrailQueue::Draw(int now)
 {
@@ -122,8 +122,9 @@ void TrailQueue::Draw(int now)
     float xs = (float)dimension * DAT_004e1354;
     uv[0].x = uv[3].x = DAT_005083dc * xs;
     uv[1].x = uv[2].x = (DAT_005083d4 + DAT_005083dc) * xs;
-    float y = DAT_005083d8;
-    y -= (DAT_005083d0 * s + (s - DAT_004e1348) * DAT_004f2ffc) * DAT_004e138c;
+    float fade = (s - DAT_004e1348) * DAT_004f2ffc;
+    float offset = (DAT_005083d0 * s + fade) * DAT_004e138c;
+    float y = DAT_005083d8 - offset;
     y *= ys;
     h = DAT_005083d0 * ys;
     quadData.step = DAT_004f2ffc * ys + h;

@@ -74,8 +74,8 @@ typedef void Generated_459250();
 typedef void Generated_459260();
 
 // NONMATCHING: RALLYTROPHY 0x459270
-// Same size (1516 with the jump table), 54 differing bytes. Volatile reads reduce the mismatch, but VC6
-// reverses the target's x87 operand order; matrix identity stores follow the target order around the call.
+// Same size (1516 with the jump table), four differing bytes. The expanded center copy matches the
+// arithmetic/EH schedule; only the loop-back-edge face/target reload order remains.
 void Car::Draw459270(ViewManager* view, DrawContext* context)
 {
     EnvCar* car = (EnvCar*)this;
@@ -95,8 +95,11 @@ void Car::Draw459270(ViewManager* view, DrawContext* context)
     *(EnvBlock*)lv.unk20 = *frameSrc;
     *(EnvBlock*)lv.m0 = camera->view;
     EnvBody* body = *(EnvBody* volatile*)&car->body;
-    Vec3 p = body->center;
-    p.x = *(volatile float*)&body->unkac + *(volatile float*)&p.x;
+    Vec3 p;
+    p.x = body->center.x;
+    p.y = body->center.y;
+    p.z = body->center.z;
+    p.x += body->unkac;
     const float* trans = body->pos;
     const float* mat = body->rows;
     p.y += mat[0x24];

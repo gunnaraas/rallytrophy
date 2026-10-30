@@ -26,8 +26,9 @@ void Car::FUN_00468c40(int a)
 }
 
 // NONMATCHING: RALLYTROPHY 0x468c70
-// 1390 vs 1392 bytes: the original tests +0x1c738 with `jne X; jmp end` (chain placed after the
-// jump) and the push_back pushes the old buffer after the rep movs; everything else is identical.
+// 1392-byte candidate/target; 8 differing bytes remain in the EBP/EDI allocation around the visibility test.
+// The inverted `visible = 1` branch matches the target's `jne X; jmp end`, and direct list->data expressions
+// place the old-buffer argument after the rep movs.
 void Car::FUN_00468c70(int a)
 {
     CarModelView* v = (CarModelView*)this;
@@ -64,9 +65,10 @@ void Car::FUN_00468c70(int a)
     } else {
         if (v->part1f18) {
             int visible = 1;
-            if (v->v1c738) {
-                if (!DAT_00501454 && !DAT_00501458 && DAT_00501464 != 3 && DAT_0050132c == 2)
-                    visible = 0;
+            if (!v->v1c738) {
+                visible = 1;
+            } else if (!DAT_00501454 && !DAT_00501458 && DAT_00501464 != 3 && DAT_0050132c == 2) {
+                visible = 0;
             }
             if (!DAT_00501450->GetStageValue())
                 visible = 0;
@@ -160,10 +162,9 @@ void Car::FUN_00468c70(int a)
     void* body = v->body;
     if (list->count == list->capacity) {
         void** p = (void**)operator new((list->grow + list->capacity) * 4);
-        void** old = list->data;
-        memcpy(p, old, list->capacity * 4);
+        memcpy(p, list->data, list->capacity * 4);
         list->capacity += list->grow;
-        operator delete(old);
+        operator delete(list->data);
         list->data = p;
         list->end = p + list->count;
     }

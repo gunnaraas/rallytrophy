@@ -108,18 +108,6 @@ void __cdecl StageLog(const char* fmt, ...);                 // 0x402c90: the re
 // Error-message string: inline _Tidy stores, begin()/end() through the out-of-line _Freeze (0x414750), the stage
 // module's range-replace helper (0x414550) and the out-of-line string destructor (0x430720). Caller arguments still
 // need semantic confirmation: the PE pushes a format literal and object field where the helper expects a source range.
-struct StMsg {
-    StMsg(const std::allocator<char>& a = std::allocator<char>()) : alloc(a) { ptr = 0; len = 0; res = 0; }
-    ~StMsg();
-    void Freeze();
-    char* begin() { Freeze(); return ptr; }
-    char* end() { Freeze(); return ptr == 0 ? 0 : ptr + len; }
-    StMsg& Format(char* first, char* last, const char* fmt, const char* arg);
-    std::allocator<char> alloc;
-    char* ptr;
-    unsigned int len;
-    unsigned int res;
-};
 // std::logic_error as VC6 lays it out: exception("") out of line, the message copied with assign(x, 0, npos).
 struct StErrStr {
     StErrStr(const StMsg& x) : alloc(x.alloc) { ptr = 0; len = 0; res = 0; Assign(x, 0, std::string::npos); }

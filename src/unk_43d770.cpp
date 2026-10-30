@@ -228,10 +228,9 @@ int PlayerNameMenu::Open(MenuGame* game, NetRace* net_)
 // ---- module end: guard-bit initialiser of the STL header statics and its atexit registration ----
 
 // NONMATCHING: RALLYTROPHY 0x43df70
-// 1050 vs 1046 instructions; everything but three spots is identical: (1) the `m_selected` skip loop is a rotated loop
-// in mine, an un-rotated top-tested one in the original (no source form found); (2) the title Print loads the device
-// pointer one instruction earlier; (3) VC6 creates the draw loop's three induction pointers (name, icon, label) in the
-// order label, icon, name here (original name, icon, label), which shifts eax/ecx and the i register of that loop.
+// The temporary selected index reduces the original candidate's 1,691 differences to 1,669 at the target's 3,832-byte
+// size. The target stores after the first increment and uses an unconditional loop back edge; this form emits a body
+// compare and conditional back edge. The title Print device load and draw-loop induction-pointer order also differ.
 // original: FUN_0043df70
 int PlayerNameMenu::Run()
 {
@@ -343,13 +342,18 @@ int PlayerNameMenu::Run()
             }
             m_selected = hit;
         }
-        m_selected += vert;
+        int selected = m_selected + vert;
         for (;;) {
-            if (m_selected <= rowCount - 1 || m_selected >= 6) {
+            if (selected <= rowCount - 1) {
                 break;
             }
-            m_selected += vert;
+            if (selected >= 6) {
+                break;
+            }
+            selected += vert;
+            m_selected = selected;
         }
+        m_selected = selected;
         if (m_selected < 0) {
             m_selected = 7;
         } else if (m_selected > 7) {

@@ -213,7 +213,7 @@ int SoundMenu::Run(MenuGame* game, NetRace* net_)
 // Everything but the draw loop matches (prologue, input handling, cursor placement, tail). In the loop VC6 hoists the
 // (1, 1) object's stores out of the loop (the original keeps them inside), puts it and the GetScale copy in swapped
 // frame slots (0x44/0x4c), and the scaled constants come out `fld mem; fmul const` instead of `fld const; fmul mem`.
-// Bounded objcmp: 1968-byte COFF span vs 1915-byte inventory, 407 differences. Probes: docs/analysis/sound-menu-frame.md.
+// Bounded objcmp: 1968-byte COFF span vs 1915-byte inventory, 402 differences. Probes: docs/analysis/sound-menu-frame.md.
 int SoundMenu::Frame()
 {
     int done = 0;
@@ -342,14 +342,15 @@ int SoundMenu::Frame()
             game->FUN_00435de0(517.0f, 243.0f);
             HudPoint scale = *game->GetScale();
             for (int i = 0; i < 7; i++) {
-                int selected = (i == m_selected);
                 Color col;
                 HudPoint one;
+                int selected = (i == m_selected);
                 col.value = selected ? DAT_00508c0c : DAT_00508c04;
                 text->color = col.value;
-                one.x = 1.0f;
-                one.y = 1.0f;
-                text->Print(DAT_0056b0ac, items[i].x, items[i].y, items[i].text.c_str(), 0, 1.0f, 1.0f);
+                const char* labelText = items[i].text.c_str();
+                *(volatile float*)&one.x = 1.0f;
+                *(volatile float*)&one.y = 1.0f;
+                text->Print(DAT_0056b0ac, items[i].x, items[i].y, labelText, 0, one.x, one.y);
                 HudPoint pos;
                 pos.x = 520.0f * DAT_0056aea8;
                 pos.y = items[i].y;

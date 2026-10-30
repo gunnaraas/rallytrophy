@@ -513,7 +513,7 @@ static BOOL __stdcall ConfigureCallback(void* surface, void* context);
 // Evidence: ev_4ed365b0cbf63abb24939040c5cb657c1776ec50aa6df6154220034f281fd370 (body/pseudocode),
 // ev_a822bdd79943b37f0fead09e596472f4c18bf4a9f10be94d8f8778d0425888ee (assembly),
 // ev_b25e98ef80db0bc0a1ac0d3946b3948142dc014cb9a56c005359702275f00557 (empty initial text).
-// Candidate 1533/1568 bytes, 1167 differing; the observed append forms reduced the first candidate's 1191 differences.
+// Candidate 1500/1568 bytes, 1160 differing; the observed append forms reduced the first candidate's 1191 differences.
 // Creates DirectInput, names the players ("<text 0x94> <n>"), fills the
 // action format and maps each player's devices. Returns the HRESULT.
 int T_56b0b4::Init(int unused, int players)

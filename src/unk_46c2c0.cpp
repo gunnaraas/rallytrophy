@@ -302,9 +302,10 @@ void Wheel::Reset()
 
 // NONMATCHING: RALLYTROPHY 0x46c790
 // original: FUN_0046c790
-// 3504 vs 3573 bytes; logic and call sequence complete (mnemonic sequence ~91% equal). Differences: stack slots (the
-// original's asm pointer temporaries share slots with float locals), the original keeps lon/lat.z in the FPU after
-// the cross-product call and caches x*x, the interleaving of the unk2f0/value/unk304 stores, and some fxch/fabs reloads.
+// 3506 vs 3573 bytes (2843 differing bytes). Stiction vector declaration groups reproduce target EH transitions 8,
+// 0xb and 0xd before the scale, subtraction, and output stages (REA Evidence
+// ev_e435fac9d046ad9215a458d11ef7434b9660e6fc42ca1f6de1e8904630099a6d). Remaining differences include stack slots
+// (target asm pointer temporaries share slots with float locals), x87 lifetimes, and store scheduling.
 // Tyre forces of one wheel: contact patch velocity, relaxed slip ratio/angle, Pacejka lateral and longitudinal
 // force with a friction-circle limit, low-speed stiction, and the reaction applied to the car body.
 void Wheel::UpdateForces()
@@ -316,14 +317,14 @@ void Wheel::UpdateForces()
     unk304 = 0.0f;
     unk308 = 0.0f;
     if (active != 0 && *(const int*)&load > *(const int*)&kMinLoad) {
-        Vec3 lat, lon, localPos, contact, vel;
+        Vec3 lat, lon, contact, vel;
 
         // Contact point and its velocity in world space.
+        Vec3 localPos(*(Vec3*)position);
         const float* matrix = body->rotation;
         const float* trans = body->position;
         const float* point = (const float*)&localPos;
         float* result = (float*)&contact;
-        localPos = *(Vec3*)position;
         WHEEL_XFORM_ADD();
         vel = *(Vec3*)body->velocity;
         vel += body->FUN_004204f0(contact);
@@ -494,7 +495,7 @@ void Wheel::UpdateForces()
             float limLon = peakLon * 9.81f;
             bool lonStick = (float)fabs(slipSpeed0 * DAT_00509418) < limLon;
             if (latStick || lonStick) {
-                Vec3 slip, dir, r, axis, tmp;
+                Vec3 slip, dir;
                 slip = latVel * lat;
                 slip += slipSpeed0 * lon;
                 dir = slip;
@@ -505,6 +506,7 @@ void Wheel::UpdateForces()
                     dir.y = slip.y * inv;
                     dir.z = slip.z * inv;
                 }
+                Vec3 r, axis, tmp;
                 r = contact - *(Vec3*)body->centre;
                 axis = FUN_004203e0(r, dir);
                 const float* matrix2 = body->inertia;

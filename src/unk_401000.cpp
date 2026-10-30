@@ -388,7 +388,7 @@ extern float DAT_004e1338;
 // Raw field access on the Car and its Player (offsets from unk_481390.h / unk_4654f0.h).
 #define CARF(c, off) (*(float*)((BYTE*)(c) + (off)))
 
-// NONMATCHING: RALLYTROPHY 0x4013c0 (drafted, not compared in detail; Car/Player seen through raw offsets)
+// NONMATCHING: RALLYTROPHY 0x4013c0. Sampling/playback behavior matches the observed PE paths; current candidate is 558/579 bytes with 451 differing bytes, primarily frame and register allocation. Plain PE/object comparison.
 void RecPool::Push(Car* car, int clock)
 {
     if (mode == 0)

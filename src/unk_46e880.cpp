@@ -129,7 +129,7 @@ inline float Dot(const Vec3& a, const Vec3& b)
 }
 
 // NONMATCHING: RALLYTROPHY 0x46ea20
-// Same algorithm and constants (1095 vs 1124 bytes; 626 differing bytes). The positive near-plane branch
+// Same algorithm and constants (1101 vs 1124 bytes; 614 differing bytes). The positive near-plane branch
 // emits the target's unordered-aware status-mask test; alpha storage, stack slots, and quad construction
 // still differ.
 // Draws the glow quad when the light is in front of the camera and faces it.
@@ -182,7 +182,8 @@ void CarLight::Render(RenderDevice* device, Camera* camera)
             u.x = u.x * size;
             u.y = u.y * size;
             u.z = u.z * size;
-            int c = FloatToInt(a * 255.0f) & 0xff;
+            volatile float alphaScaled = a * 255.0f;
+            int c = FloatToInt(alphaScaled) & 0xff;
             DWORD g = c | (c << 8);
             DWORD col = g | (g << 16);
             s_quad[0].color = col;

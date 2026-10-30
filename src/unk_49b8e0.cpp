@@ -1698,7 +1698,7 @@ struct AiVelocity {
 };
 
 // NONMATCHING: RALLYTROPHY 0x49f1f0
-// 459 vs 522 bytes; logic complete. The original copies the two velocities into locals in a mixed fld/integer
+// 485 vs 522 bytes, 354 differing bytes; logic complete. The original copies the two velocities into locals in a mixed fld/integer
 // pattern (x1 stays in the FPU, x1*x1 and x2*x2 are reused for the squared speeds) that plain struct copies and a
 // by-value helper (not inlined, EH frame) did not reproduce.
 int AIDriver::FUN_0049f1f0(Player* other)

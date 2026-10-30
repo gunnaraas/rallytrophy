@@ -22,8 +22,9 @@ inline int FloatToInt(float f)
 
 // NONMATCHING: RALLYTROPHY 0x46eec0
 // The original copies the child matrix with 16 strictly sequential ecx load/store pairs and keeps three
-// overwritten translation stores. Volatile destination stores preserve those three, but the ctor remains
-// NONMATCHING (979/1044 bytes, 746 differing); the corner helper also uses a different register schedule.
+// overwritten translation stores. Volatile destination stores preserve those three, and scalar translation
+// copies avoid three indirect stores; current candidate is 975/1044 bytes with 630 differing bytes. The
+// corner helper still uses a different register schedule.
 CityLight::CityLight(LightSource* source, TextureLoader* loader, Sprite* glowSprite, Sprite* flareSprite)
 {
     unk8 = 0;
@@ -59,7 +60,9 @@ CityLight::CityLight(LightSource* source, TextureLoader* loader, Sprite* glowSpr
         tmp.m[14] = child->position.z;
         ((LightView*)&matrix)->Concat(tmp);
     }
-    position14 = matrix.translation;
+    position14.x = matrix.translation.x;
+    position14.y = matrix.translation.y;
+    position14.z = matrix.translation.z;
     flags &= 0xfd;
     flags |= 1;
     matrix.translation.x = matrix.translation.y = matrix.translation.z = 0;
@@ -117,7 +120,7 @@ inline float Dot(const Vec3& a, const Vec3& b)
 // Rotated texture coordinates of the flare quad: the unit square turned by (c, s) about its centre.
 inline void FlareUV(EffectVertex* v, float c, float s)
 {
-    float ms = -s;
+    volatile float ms = -s;
     v[0].u = 0.5f - c - s;
     v[0].v = 0.5f - ms - c;
     v[1].u = c + 0.5f - s;
@@ -129,12 +132,15 @@ inline void FlareUV(EffectVertex* v, float c, float s)
 }
 
 // NONMATCHING: RALLYTROPHY 0x46f360
-// 1749 vs 1767 bytes, frame 0x10c vs 0x104. Same structure (glow quad, flare quad drawn twice with the uv square
-// turned one way then the other); the compiler schedules the operand loads of the sum-of-squares, depth and
-// normalisation chains differently, and keeps more locals live than the original (which reuses [ebp-0x1c]).
+// 1777 vs 1767 bytes. The eye-relative vector follows the target's component load/subtract/store order; separately
+// named right/up flare-angle contributions preserve their scale-before-add sequence. Volatile flare intermediates
+// remain at different stack slots, and projection, normalization, and UV code still differ.
 void CityLight::Render(RenderDevice* device, Camera* camera)
 {
-    Vec3 d = *(Vec3*)&position;
+    Vec3 d;
+    d.x = position.x;
+    d.y = position.y;
+    d.z = position.z;
     d -= camera->eyePosition;
     float nearF = *(float*)&camera->nearBits;
     if (d.x * camera->forward.x + d.y * camera->forward.y + d.z * camera->forward.z <= nearF) {
@@ -210,8 +216,9 @@ void CityLight::Render(RenderDevice* device, Camera* camera)
     quad[1].color = col;
     quad[2].color = col;
     quad[3].color = col;
-    float ang = (d.z * camera->right.z + d.y * camera->right.y + d.x * camera->right.x) * 0.7f
-              + (d.z * camera->up.z + d.y * camera->up.y + d.x * camera->up.x) * 0.7f;
+    float rightAngle = (d.z * camera->right.z + d.y * camera->right.y + d.x * camera->right.x) * 0.7f;
+    float upAngle = (d.z * camera->up.z + d.y * camera->up.y + d.x * camera->up.x) * 0.7f;
+    float ang = rightAngle + upAngle;
     ang = ang * 3.1415927f;
     float cs = (float)cos(ang) * 0.5f;
     float sn = (float)sin(ang) * 0.5f;

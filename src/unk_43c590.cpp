@@ -201,10 +201,10 @@ int MenuManager::Run(MenuGame* game, NetRace* session)
 }
 
 // NONMATCHING: RALLYTROPHY 0x43cc50
-// 1365 vs 1362 bytes, ~410 differing, all control flow and calls match. Remaining: the original keeps the zero constant in
-// ebp for the whole body (`cmp eax,ebp` after the second Contains loop, `push ebp` args, imm -1 EH stores) while mine puts
-// -1 in ebp after the Up/Down block; the (1, 1) object and the GetScale copy sit in swapped frame slots (0x34/0x3c); the
-// title Print loads the device pointer after the y product in the original (register choice).
+// 1365 vs 1362 bytes, 361 differing. Remaining: the original keeps the zero constant in ebp for the whole body
+// (`cmp eax,ebp` after the second Contains loop, `push ebp` args, imm -1 EH stores) while mine puts -1 in ebp after the
+// Up/Down block; the (1, 1) object and the GetScale copy sit in swapped frame slots (0x34/0x3c); the
+// title Print's device load is now early, but uses a different register.
 // original: FUN_0043cc50 (thiscall; MenuManager::Frame)
 int MenuManager::Frame()
 {
@@ -274,7 +274,7 @@ int MenuManager::Frame()
             SetCursorPos((int)(cx * sx), (int)(cy * sy));
         }
         for (int i = 0; i < 6; i++) {
-            if (m_selected != i && m_items[i]->Contains(*((MouseInput*)DAT_0056b0c0)->GetPosition())) {
+            if (m_selected != i && m_items[i]->Contains(*((MouseInput*)DAT_0056b0c0)->GetPosition()) != first) {
                 m_selected = i;
                 m_game->Play(0);
             }
@@ -289,7 +289,8 @@ int MenuManager::Frame()
             text->color = DAT_00508bfc;
             text->scaleX = DAT_0056aea8 * 2.0f;
             text->scaleY = DAT_0056aeac * 2.0f;
-            text->Print(DAT_0056b0ac, M3_titleX * DAT_0056aea8, M3_titleY * DAT_0056aeac, FUN_00405380(0x2c), 0, 1.0f, 1.0f);
+            RenderDevice* titleDevice = DAT_0056b0ac;
+            text->Print(titleDevice, M3_titleX * DAT_0056aea8, M3_titleY * DAT_0056aeac, FUN_00405380(0x2c), 0, 1.0f, 1.0f);
             text->SetScale(DAT_0056aea8, DAT_0056aeac);
             for (int i = 0; i < 6; i++) {
                 int selected = (i == m_selected);

@@ -9,6 +9,7 @@
 
 // NONMATCHING: RALLYTROPHY 0x4ae4b0
 // Exception string-copy inlining, local stack layout and vertex-loop register allocation differ.
+// The direct first error string gives 824 differing bytes (1217-byte body) versus 852 (1169-byte body) with the custom wrapper.
 void ModelCacheUpload::UploadVertices(int count, unsigned char flags, std::vector<Mesh*>* meshList)
 {
     if (count > 0) {
@@ -16,7 +17,7 @@ void ModelCacheUpload::UploadVertices(int count, unsigned char flags, std::vecto
         if (flags & 2) format = 45;
         FUN_00402c90("create vb: %i", count);
         ModelUploadBuffer* buffer = ((ModelUploadDevice*)device)->CreateVertices(format, count, 0, 2);
-        if (!buffer) throw std::logic_error(*(std::string*)&ModelUploadCreateMessage("failed to create vertexbuffer"));
+        if (!buffer) throw std::logic_error(std::string("failed to create vertexbuffer"));
         if (!buffer->Lock(0, 0, 0)) throw std::logic_error(std::string("failed to lock vertexbuffer"));
         int index = 0;
         for (unsigned int i = 0; i < meshList->size(); ++i) {

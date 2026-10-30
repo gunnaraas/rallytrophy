@@ -175,9 +175,79 @@ void S414List::RemoveNode(S414Node* n)
     freeCount = f - 1;
 }
 
+#pragma comment(linker, "/alternatename:?Grow@StMsg@@QAE_NI_N@Z=?_Grow@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAE_NI_N@Z")
+#pragma comment(linker, "/alternatename:?Tidy@StMsg@@QAEX_N@Z=?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z")
+#pragma comment(linker, "/alternatename:?AssignCall@StMsg@@QAEAAV1@PBDI@Z=?assign@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@QAEAAV12@PBDI@Z")
+#pragma comment(linker, "/alternatename:?MaxSize@StMsg@@QBEIXZ=?max_size@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@QBEIXZ")
+#pragma comment(linker, "/alternatename:?Copy@StMsg@@QAEXI@Z=?_Copy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEXI@Z")
+
 // NONMATCHING: RALLYTROPHY 0x414550
-// Candidate for string::replace(first,last,first2,last2); the target also performs range replacement.
-Str414& __fastcall Func414550(std::string* self, int, char* first, char* last, const char* s1, const char* s2)
+// The Stage caller uses this as a thiscall member on its string-layout message object.
+StMsg& StMsg::Format(char* first, char* last, const char* fmt, const char* arg)
 {
-    return self->replace(first, last, s1, s2);
+    if (ptr != 0 && ((unsigned char*)ptr)[-1] != 0 &&
+        ((unsigned char*)ptr)[-1] != 0xff) {
+        Grow(len, false);
+    }
+    char* oldPtr = ptr;
+    if (oldPtr != 0)
+        oldPtr[-1] = (char)0xff;
+
+    // Keep the iterator offset in its stack slot, as in the target body.
+    volatile unsigned int pos;
+    if (first == 0)
+        pos = (unsigned int)first;
+    else
+        pos = (unsigned int)(first - ptr);
+    unsigned int sourceLen = (unsigned int)(arg - fmt);
+    unsigned int eraseLen = last == 0 ? 0 : (unsigned int)(last - first);
+    if (len < pos)
+        std::_Xran();
+    if (len - pos < eraseLen)
+        eraseLen = len - pos;
+    if (std::string::npos - sourceLen <= len - eraseLen)
+        std::_Xlen();
+
+    if (oldPtr != 0 && ((unsigned char*)oldPtr)[-1] != 0 &&
+        ((unsigned char*)oldPtr)[-1] != 0xff) {
+        Tidy(true);
+        AssignCall(oldPtr, (unsigned int)strlen(oldPtr));
+    }
+
+    unsigned int baseLen = len - eraseLen;
+    unsigned int suffixLen = baseLen - pos;
+    if (sourceLen < eraseLen) {
+        memmove(ptr + pos + sourceLen, ptr + pos + eraseLen,
+                suffixLen);
+    }
+    unsigned int newLen = baseLen + sourceLen;
+    if (sourceLen > eraseLen || eraseLen != 0) {
+        if (Grow(newLen, false)) {
+            if (sourceLen < eraseLen) {
+                memset(ptr + pos + sourceLen + len - pos - eraseLen, 0,
+                       eraseLen - sourceLen);
+            } else if (sourceLen > eraseLen) {
+                memmove(ptr + pos + sourceLen, ptr + pos + eraseLen,
+                        len - pos - eraseLen);
+            }
+            len = newLen;
+            ptr[newLen] = 0;
+        }
+    }
+    if (ptr != 0 && ptr[-1] != 0 && ptr[-1] != (char)0xff) {
+        unsigned int max = MaxSize();
+        if (max < newLen)
+            std::_Xlen();
+        if (newLen == 0) {
+            ptr[-1]--;
+            Tidy(false);
+        } else if (res < newLen) {
+            Copy(newLen);
+        }
+    }
+    if (ptr != 0)
+        ptr[-1] = (char)0xff;
+    if (sourceLen != 0)
+        memcpy(ptr + pos, fmt, sourceLen);
+    return *this;
 }

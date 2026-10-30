@@ -472,16 +472,17 @@ void CarRain::Update(float)
     __asm fstp dword ptr [eax+4]
 
 // NONMATCHING: RALLYTROPHY 0x46e430
-// 997 bytes both, 16 differing. Reading hoodObject through a volatile lvalue after the liveBody matrix copy
-// matches the target's load schedule. The remaining differences are register choices for the liveBody destination
-// and Multiply arguments; the x87 transform, vertex fill, EH states, and original hood/trunk copy-paste behavior match.
+// 997 bytes both, 2 differing. Binding bodyObject->world to a const reference before the copy shifts register
+// allocation to match the liveBody destination and Multiply arguments. One x87 add operand-order hunk remains at
+// 0x46e6eb; scoped/value temporaries for its right*h operand regress the object substantially.
 void CarRain::Render(RenderDevice* device, Camera* camera)
 {
     if (texture == 0) {
         return;
     }
+    const CarMatrix& bodyWorld = bodyObject->world;
     CarMatrix* body = &liveBody;
-    memcpy(body, &bodyObject->world, sizeof(liveBody));
+    memcpy(body, &bodyWorld, sizeof(liveBody));
     CarBodyObject* hood = *(CarBodyObject* volatile*)&hoodObject;
     if (hood != 0) {
         memcpy(&liveHood, &hood->world, sizeof(liveHood));
