@@ -7,8 +7,83 @@ Vec3 FUN_004203e0(const Vec3& a, const Vec3& b);   // cross product
 #define F(p, o) (*(float*)((char*)(p) + (o)))
 #define BITS(x) (*(int*)&(x))
 
+// Hand-written x87 blocks (inline assembler in the original).
+inline void Xform(float* o, const float* p, const float* m)
+{
+    __asm {
+        mov ecx, p
+        mov edx, m
+        mov eax, o
+        fld dword ptr [ecx]
+        fmul dword ptr [edx]
+        fld dword ptr [ecx]
+        fmul dword ptr [edx+4]
+        fld dword ptr [ecx]
+        fmul dword ptr [edx+8]
+        fld dword ptr [ecx+4]
+        fmul dword ptr [edx+0x10]
+        fld dword ptr [ecx+4]
+        fmul dword ptr [edx+0x14]
+        fld dword ptr [ecx+4]
+        fmul dword ptr [edx+0x18]
+        fxch st(2)
+        faddp st(5), st
+        faddp st(3), st
+        faddp st(1), st
+        fld dword ptr [ecx+8]
+        fmul dword ptr [edx+0x20]
+        fld dword ptr [ecx+8]
+        fmul dword ptr [edx+0x24]
+        fld dword ptr [ecx+8]
+        fmul dword ptr [edx+0x28]
+        fxch st(2)
+        faddp st(5), st
+        faddp st(3), st
+        faddp st(1), st
+        fxch st(2)
+        fadd dword ptr [edx+0x30]
+        fxch st(1)
+        fadd dword ptr [edx+0x34]
+        fxch st(2)
+        fadd dword ptr [edx+0x38]
+        fxch st(1)
+        fstp dword ptr [eax]
+        fstp dword ptr [eax+8]
+        fstp dword ptr [eax+4]
+    }
+}
+
+inline void CrossAsm(float* o, const float* a, const float* b)
+{
+    __asm {
+        mov ecx, a
+        mov edx, b
+        mov eax, o
+        fld dword ptr [ecx+4]
+        fmul dword ptr [edx+8]
+        fld dword ptr [ecx+8]
+        fmul dword ptr [edx]
+        fld dword ptr [ecx]
+        fmul dword ptr [edx+4]
+        fld dword ptr [ecx+8]
+        fmul dword ptr [edx+4]
+        fld dword ptr [ecx]
+        fmul dword ptr [edx+8]
+        fld dword ptr [ecx+4]
+        fmul dword ptr [edx]
+        fxch st(2)
+        fsubp st(5), st
+        fsubp st(3), st
+        fsubp st(1), st
+        fxch st(2)
+        fstp dword ptr [eax]
+        fstp dword ptr [eax+4]
+        fstp dword ptr [eax+8]
+    }
+}
+
 // NONMATCHING: RALLYTROPHY 0x41fc60
-// NONMATCHING: draft, faithful logic; compiler register/stack allocation not verified
+// NONMATCHING: Xform (this+0x15c) and cross-product x87 blocks now inline asm like the original (shape matches); frame already matched; first loop/EH-state structure and slot allocation still differ (1719 of 1861 bytes, 1634 differing).
 void U40A850Body::FUN_0041fc60(void* stage, void* unused)
 {
     int cnt = *(int*)((char*)this + 0x23c);
@@ -64,12 +139,10 @@ void U40A850Body::FUN_0041fc60(void* stage, void* unused)
         Vec3 r(c->pt[0] - F(this, 0x224), c->pt[1] - F(this, 0x228), c->pt[2] - F(this, 0x22c));
         Vec3 n(c->n[0], c->n[1], c->n[2]);
         Vec3 rn = FUN_004203e0(r, n);
-        float ax = rn.z * F(this, 0x17c) + rn.y * F(this, 0x16c) + rn.x * F(this, 0x15c) + F(this, 0x18c);
-        float ay = rn.z * F(this, 0x180) + rn.y * F(this, 0x170) + rn.x * F(this, 0x160) + F(this, 0x190);
-        float az = rn.z * F(this, 0x184) + rn.y * F(this, 0x174) + rn.x * F(this, 0x164) + F(this, 0x194);
-        float cx = ay * r.z - az * r.y;
-        float cy = az * r.x - ax * r.z;
-        float cz = ax * r.y - ay * r.x;
+        float av[3];
+        Xform(av, &rn.x, (float*)((char*)this + 0x15c));
+        CrossAsm(&rn.x, av, &r.x);
+        float cx = rn.x, cy = rn.y, cz = rn.z;
         float inv = DAT_004e1348 / (cx * c->n[0] + cz * c->n[2] + cy * c->n[1] + F(this, 0x130));
         float j = inv * pen + inv * pen;
         float jx = c->n[0] * j, jy = c->n[1] * j, jz = c->n[2] * j;

@@ -60,7 +60,7 @@ def main(argv):
     limit = later[0] - address if later else None
     pe = PE(TARGET_EXE)
     original_relocs = relocations(pe)
-    base = os.path.join(ROOT, "build", "try")
+    base = os.environ.get("RT_TRY_DIR") or os.path.join(ROOT, "build", "try")
     shutil.rmtree(base, ignore_errors=True)
 
     def off(t):

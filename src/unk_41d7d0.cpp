@@ -48,8 +48,55 @@ struct BodyTail {                      // contact bookkeeping at the end of a bo
         hits++; \
     }
 
+// Point times a 3x3 row-vector matrix (rows 0x10 apart) plus translation t, as hand-written x87 (inline assembler in the original).
+inline void XformT(float* o, const float* p, const float* m, const float* t)
+{
+    __asm {
+        mov ecx, p
+        mov edx, m
+        mov eax, o
+        mov ebx, t
+        fld dword ptr [ecx]
+        fmul dword ptr [edx]
+        fld dword ptr [ecx]
+        fmul dword ptr [edx+4]
+        fld dword ptr [ecx]
+        fmul dword ptr [edx+8]
+        fld dword ptr [ecx+4]
+        fmul dword ptr [edx+0x10]
+        fld dword ptr [ecx+4]
+        fmul dword ptr [edx+0x14]
+        fld dword ptr [ecx+4]
+        fmul dword ptr [edx+0x18]
+        fxch st(2)
+        faddp st(5), st
+        faddp st(3), st
+        faddp st(1), st
+        fld dword ptr [ecx+8]
+        fmul dword ptr [edx+0x20]
+        fld dword ptr [ecx+8]
+        fmul dword ptr [edx+0x24]
+        fld dword ptr [ecx+8]
+        fmul dword ptr [edx+0x28]
+        fxch st(2)
+        faddp st(5), st
+        faddp st(3), st
+        faddp st(1), st
+        fxch st(2)
+        fadd dword ptr [ebx]
+        fxch st(1)
+        fadd dword ptr [ebx+4]
+        fxch st(2)
+        fadd dword ptr [ebx+8]
+        fxch st(1)
+        fstp dword ptr [eax]
+        fstp dword ptr [eax+8]
+        fstp dword ptr [eax+4]
+    }
+}
+
 // NONMATCHING: RALLYTROPHY 0x41d7d0
-// NONMATCHING: draft, faithful logic; compiler register/stack allocation not verified
+// NONMATCHING: centre-point Xform x87 block (box+0x1c through mat, pos) now inline asm like the original; frame matches; rest (plane build, triangle loop, register/stack allocation) differs (5502 of 6021 bytes, 5419 differing).
 int U40A850Body::FUN_0041d7d0(U40A850Body* other, int flag)
 {
     float* bx = (float*)box;
@@ -61,9 +108,9 @@ int U40A850Body::FUN_0041d7d0(U40A850Body* other, int flag)
     Vec3& row0 = *(Vec3*)&this->mat[0][0];
     Vec3& row1 = *(Vec3*)&this->mat[1][0];
     Vec3& row2 = *(Vec3*)&this->mat[2][0];
-    float cx = bx[9] * FL(this, 0x40) + bx[8] * FL(this, 0x30) + bx[7] * FL(this, 0x20) + FL(this, 0x14);
-    float cy = bx[9] * FL(this, 0x44) + bx[8] * FL(this, 0x34) + bx[7] * FL(this, 0x24) + FL(this, 0x18);
-    float cz = bx[9] * FL(this, 0x48) + bx[8] * FL(this, 0x38) + bx[7] * FL(this, 0x28) + FL(this, 0x1c);
+    float cc[3];
+    XformT(cc, bx + 7, &this->mat[0][0], this->pos);
+    float cx = cc[0], cy = cc[1], cz = cc[2];
     float rad = bx[10];
 
     // six box planes: +z/-z, +x/-x, +y/-y (box +0xc/+0x18, +4/+0x10, +8/+0x14)

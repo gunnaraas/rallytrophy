@@ -294,33 +294,62 @@ void WrappedGlyphFont::PrintWrapped(RenderDevice* device, float x, float y,
 
 // Transform each coordinate separately into a float before subtracting the two
 // world-space points. These stores are significant on the x87.
-static __forceinline Vec3 BoxWorldPoint(const float* p, const float* m, const float* t)
+static __forceinline void BoxWorldPoint(Vec3* o, const float* p, const float* m, const float* t)
 {
-    Vec3 result;
-    float x = p[0] * m[0];
-    float y = p[0] * m[1];
-    float z = p[0] * m[2];
-    x += p[1] * m[4];
-    y += p[1] * m[5];
-    z += p[1] * m[6];
-    x += p[2] * m[8];
-    y += p[2] * m[9];
-    z += p[2] * m[10];
-    result.x = x + t[0];
-    result.y = y + t[1];
-    result.z = z + t[2];
-    return result;
+    __asm {
+        mov ecx, p
+        mov edx, m
+        mov eax, o
+        mov ebx, t
+        fld dword ptr [ecx]
+        fmul dword ptr [edx]
+        fld dword ptr [ecx]
+        fmul dword ptr [edx+4]
+        fld dword ptr [ecx]
+        fmul dword ptr [edx+8]
+        fld dword ptr [ecx+4]
+        fmul dword ptr [edx+0x10]
+        fld dword ptr [ecx+4]
+        fmul dword ptr [edx+0x14]
+        fld dword ptr [ecx+4]
+        fmul dword ptr [edx+0x18]
+        fxch st(2)
+        faddp st(5), st
+        faddp st(3), st
+        faddp st(1), st
+        fld dword ptr [ecx+8]
+        fmul dword ptr [edx+0x20]
+        fld dword ptr [ecx+8]
+        fmul dword ptr [edx+0x24]
+        fld dword ptr [ecx+8]
+        fmul dword ptr [edx+0x28]
+        fxch st(2)
+        faddp st(5), st
+        faddp st(3), st
+        faddp st(1), st
+        fxch st(2)
+        fadd dword ptr [ebx]
+        fxch st(1)
+        fadd dword ptr [ebx+4]
+        fxch st(2)
+        fadd dword ptr [ebx+8]
+        fxch st(1)
+        fstp dword ptr [eax]
+        fstp dword ptr [eax+8]
+        fstp dword ptr [eax+4]
+    }
 }
 
 // NONMATCHING: RALLYTROPHY 0x4ad1d0
-// All 15 separating axes are implemented; inlined vector transforms, x87 spills and EH layout differ (2799 vs 3131 bytes).
+// All 15 separating axes are implemented. Xform asm helper (BoxWorldPoint, x4) now gives the original ebp frame and the first 100 bytes exactly; 2853 -> 2526 differing bytes (built 2619 vs 3131; inner-scope worldA/worldB redeclared). Still differs: EH states / local layout (original frame 0xf4) and ~500 bytes of code not yet accounted for.
 int FUN_004ad1d0(float* boxA, float* boxB, float* matrixA, float* matrixB,
                  float* positionA, float* positionB)
 {
+    Vec3 worldA, worldB;
     Vec3 delta, extentA, extentB;
     {
-        Vec3 worldA = BoxWorldPoint(boxA + 6, matrixA, positionA);
-        Vec3 worldB = BoxWorldPoint(boxB + 6, matrixB, positionB);
+        BoxWorldPoint(&worldA, boxA + 6, matrixA, positionA);
+        BoxWorldPoint(&worldB, boxB + 6, matrixB, positionB);
         delta.x = worldA.x - worldB.x;
         delta.y = worldA.y - worldB.y;
         delta.z = worldA.z - worldB.z;
@@ -361,8 +390,9 @@ int FUN_004ad1d0(float* boxA, float* boxB, float* matrixA, float* matrixB,
         centerB.y *= DAT_004e138c;
         centerB.z *= DAT_004e138c;
         {
-            Vec3 worldA = BoxWorldPoint(&centerA.x, matrixA, positionA);
-            Vec3 worldB = BoxWorldPoint(&centerB.x, matrixB, positionB);
+            Vec3 worldA, worldB;
+            BoxWorldPoint(&worldA, &centerA.x, matrixA, positionA);
+            BoxWorldPoint(&worldB, &centerB.x, matrixB, positionB);
             delta.x = worldA.x - worldB.x;
             delta.y = worldA.y - worldB.y;
             delta.z = worldA.z - worldB.z;

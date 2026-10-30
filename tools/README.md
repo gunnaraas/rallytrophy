@@ -15,7 +15,16 @@ They expect locally supplied game files and toolchain components; see
 - [`scratch_asm.py`](scratch_asm.py): extract and inspect target instruction
   bytes while analyzing a function.
 - [`try_variants.py`](try_variants.py): compile alternative source forms for
-  one function and report which variants match.
+  one function and report which variants match. `RT_TRY_DIR` moves its
+  scratch directory so parallel runs do not collide.
+- [`permute.py`](permute.py): random hill-climbing permuter over
+  `try_variants.py` (statement swaps, commuted operands, if/else flips,
+  inlined temporaries); never edits the source, writes the best body to
+  `build/permute/<addr>/best.cpp`.
+- [`flag_sweep.py`](flag_sweep.py): score every NONMATCHING function in the
+  given files under alternative compiler flags.
+- [`asm_helpers.py`](asm_helpers.py): list NONMATCHING functions whose
+  original contains inlined x87 `__asm` helpers the build lacks.
 - [`vc6.sh`](vc6.sh): run a VC6 tool through the local Wine/Distrobox setup.
 
 ## Inventory and reports

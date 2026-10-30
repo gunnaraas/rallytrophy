@@ -4,8 +4,55 @@
 extern U40A850Query DAT_00508298;
 Vec3* __cdecl FUN_0040b0c0(Vec3* a, Vec3* out, float s); // original: Vec3::operator*(float) at 0x40b0c0 (cdecl-looking in pseudocode)
 
+// Point times a 3x3 row-vector matrix (rows 0x10 apart) plus translation t, as hand-written x87 (inline assembler in the original).
+inline void XformT(float* o, const float* p, const float* m, const float* t)
+{
+    __asm {
+        mov ecx, p
+        mov edx, m
+        mov eax, o
+        mov ebx, t
+        fld dword ptr [ecx]
+        fmul dword ptr [edx]
+        fld dword ptr [ecx]
+        fmul dword ptr [edx+4]
+        fld dword ptr [ecx]
+        fmul dword ptr [edx+8]
+        fld dword ptr [ecx+4]
+        fmul dword ptr [edx+0x10]
+        fld dword ptr [ecx+4]
+        fmul dword ptr [edx+0x14]
+        fld dword ptr [ecx+4]
+        fmul dword ptr [edx+0x18]
+        fxch st(2)
+        faddp st(5), st
+        faddp st(3), st
+        faddp st(1), st
+        fld dword ptr [ecx+8]
+        fmul dword ptr [edx+0x20]
+        fld dword ptr [ecx+8]
+        fmul dword ptr [edx+0x24]
+        fld dword ptr [ecx+8]
+        fmul dword ptr [edx+0x28]
+        fxch st(2)
+        faddp st(5), st
+        faddp st(3), st
+        faddp st(1), st
+        fxch st(2)
+        fadd dword ptr [ebx]
+        fxch st(1)
+        fadd dword ptr [ebx+4]
+        fxch st(2)
+        fadd dword ptr [ebx+8]
+        fxch st(1)
+        fstp dword ptr [eax]
+        fstp dword ptr [eax+8]
+        fstp dword ptr [eax+4]
+    }
+}
+
 // NONMATCHING: RALLYTROPHY 0x40a850
-// reason: 2131 vs 2098 bytes; original uses an EBP frame (ours ESP-based), keeps this/list in stack locals, different FPU scheduling; logic complete
+// reason: Xform+translation x87 block (mn corner) is now inline asm like the original and the ebp frame matches; remaining: original keeps this/list in stack locals (ebp-0x44/-0x54) with different register allocation and FPU scheduling (1970 vs 2098 bytes, 1692 differing).
 // original: FUN_0040a850
 void U40A850Prop::Fn(int dt)
 {
@@ -51,9 +98,8 @@ void U40A850Prop::Fn(int dt)
         Vec3 ay(ey * a->mat[1][0], ey * a->mat[1][1], ey * a->mat[1][2]);
         float ez = hi.z - lo.z;
         Vec3 az(ez * a->mat[2][0], ez * a->mat[2][1], ez * a->mat[2][2]);
-        Vec3 mn(lo.z * a->mat[2][0] + lo.y * a->mat[1][0] + lo.x * a->mat[0][0] + a->pos[0],
-                lo.z * a->mat[2][1] + lo.y * a->mat[1][1] + lo.x * a->mat[0][1] + a->pos[1],
-                lo.z * a->mat[2][2] + lo.y * a->mat[1][2] + lo.x * a->mat[0][2] + a->pos[2]);
+        Vec3 mn;
+        XformT(&mn.x, &lo.x, &a->mat[0][0], a->pos);
         Vec3 mx(mn.x + ax.x, mn.y + ax.y, mn.z + ax.z);
         if (*(unsigned*)&ax.x & 0x80000000) { mx.x = mn.x; mn.x += ax.x; }
         if (*(unsigned*)&ax.y & 0x80000000) { mx.y = mn.y; mn.y += ax.y; }

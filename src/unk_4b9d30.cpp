@@ -13,7 +13,7 @@ extern double DAT_004e2a18;
 struct V3D { float x, y, z; V3D() {} ~V3D() {} };
 struct V3Sub { float x, y, z; float* Sub(float* out, const float* o) const; }; // 0x414330
 
-// NONMATCHING: RALLYTROPHY 0x4b9d30 (draft: atan2() now replaces the fpatan asm, but the original still has an EBP frame (other inline-asm helpers, EH state 3 + sub esp 0x224) and different dot-product order; 1779 vs 1750 bytes)
+// NONMATCHING: RALLYTROPHY 0x4b9d30 (draft: the world-point transform (centre*matA + pos) is the Xform asm block (frame now ebp as original; 1563 vs 1750 bytes, ~1395 differ mostly from shifts). Remaining: EH state 3 and sub esp 0x224 (ours 2 / 0x210), the original reuses the arg slots [ebp+8..0x14] for temporaries (more asm), different dot-product order in the vertex loop)
 void ShadowUpdater::Update(ShadowBody* body, ShadowBody* cam, const float* centre, float radius)
 {
     Mat4Local invBody, invCam, prod;
@@ -50,9 +50,54 @@ void ShadowUpdater::Update(ShadowBody* body, ShadowBody* cam, const float* centr
     long double ang = atan2((double)(z / len), (double)(x / len));
 
     V3D w;
-    w.x = centre[2] * body->matA[8] + centre[1] * body->matA[4] + centre[0] * body->matA[0] + body->pos[0];
-    w.y = centre[2] * body->matA[9] + centre[1] * body->matA[5] + centre[0] * body->matA[1] + body->pos[1];
-    w.z = centre[2] * body->matA[10] + centre[1] * body->matA[6] + centre[0] * body->matA[2] + body->pos[2];
+    {
+        float* mA = body->matA;
+        float* mT = body->pos;
+        float* mO = &w.x;
+        const float* mP = centre;
+        __asm {
+            mov ecx, mP
+            mov edx, mA
+            mov eax, mO
+            mov ebx, mT
+            fld dword ptr [ecx]
+            fmul dword ptr [edx]
+            fld dword ptr [ecx]
+            fmul dword ptr [edx+4]
+            fld dword ptr [ecx]
+            fmul dword ptr [edx+8]
+            fld dword ptr [ecx+4]
+            fmul dword ptr [edx+0x10]
+            fld dword ptr [ecx+4]
+            fmul dword ptr [edx+0x14]
+            fld dword ptr [ecx+4]
+            fmul dword ptr [edx+0x18]
+            fxch st(2)
+            faddp st(5), st
+            faddp st(3), st
+            faddp st(1), st
+            fld dword ptr [ecx+8]
+            fmul dword ptr [edx+0x20]
+            fld dword ptr [ecx+8]
+            fmul dword ptr [edx+0x24]
+            fld dword ptr [ecx+8]
+            fmul dword ptr [edx+0x28]
+            fxch st(2)
+            faddp st(5), st
+            faddp st(3), st
+            faddp st(1), st
+            fxch st(2)
+            fadd dword ptr [ebx]
+            fxch st(1)
+            fadd dword ptr [ebx+4]
+            fxch st(2)
+            fadd dword ptr [ebx+8]
+            fxch st(1)
+            fstp dword ptr [eax]
+            fstp dword ptr [eax+8]
+            fstp dword ptr [eax+4]
+        }
+    }
     float d[3];
     V3D tmp;
     float* r = ((V3Sub*)&w)->Sub(&tmp.x, cam->pos);

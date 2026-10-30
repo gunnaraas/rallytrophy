@@ -22,6 +22,7 @@ static __forceinline int RoundF(float v)
 
 // NONMATCHING: RALLYTROPHY 0x40f390
 // reason: RoundF applied (EBP frame now from inline asm); built 2391 vs 2340 bytes, 2153 differ, regalloc differs.
+// Tried (2026-10-30): Xform asm block (obj+0xb8 point, obj+0x20 matrix, obj+0x14 translation) for p.x/y/z: 2153 -> 2189 differing bytes, reverted. Original keeps this in esi and has no early [ebp-0x14] spill.
 void StageGrid::FillCells()
 {
     float invW = DAT_004e1348 / cellW;

@@ -16,9 +16,84 @@ extern float DAT_004e13dc;
 // Stage per-surface tables indexed by the triangle's id.
 #define SID(h) (*(short*)(*(char**)&(h)[2] + 0x10))
 
+// Hand-written x87 blocks (inline assembler in the original).
+inline void Xform(float* o, const float* p, const float* m)
+{
+    __asm {
+        mov ecx, p
+        mov edx, m
+        mov eax, o
+        fld dword ptr [ecx]
+        fmul dword ptr [edx]
+        fld dword ptr [ecx]
+        fmul dword ptr [edx+4]
+        fld dword ptr [ecx]
+        fmul dword ptr [edx+8]
+        fld dword ptr [ecx+4]
+        fmul dword ptr [edx+0x10]
+        fld dword ptr [ecx+4]
+        fmul dword ptr [edx+0x14]
+        fld dword ptr [ecx+4]
+        fmul dword ptr [edx+0x18]
+        fxch st(2)
+        faddp st(5), st
+        faddp st(3), st
+        faddp st(1), st
+        fld dword ptr [ecx+8]
+        fmul dword ptr [edx+0x20]
+        fld dword ptr [ecx+8]
+        fmul dword ptr [edx+0x24]
+        fld dword ptr [ecx+8]
+        fmul dword ptr [edx+0x28]
+        fxch st(2)
+        faddp st(5), st
+        faddp st(3), st
+        faddp st(1), st
+        fxch st(2)
+        fadd dword ptr [edx+0x30]
+        fxch st(1)
+        fadd dword ptr [edx+0x34]
+        fxch st(2)
+        fadd dword ptr [edx+0x38]
+        fxch st(1)
+        fstp dword ptr [eax]
+        fstp dword ptr [eax+8]
+        fstp dword ptr [eax+4]
+    }
+}
+
+inline void CrossAsm(float* o, const float* a, const float* b)
+{
+    __asm {
+        mov ecx, a
+        mov edx, b
+        mov eax, o
+        fld dword ptr [ecx+4]
+        fmul dword ptr [edx+8]
+        fld dword ptr [ecx+8]
+        fmul dword ptr [edx]
+        fld dword ptr [ecx]
+        fmul dword ptr [edx+4]
+        fld dword ptr [ecx+8]
+        fmul dword ptr [edx+4]
+        fld dword ptr [ecx]
+        fmul dword ptr [edx+8]
+        fld dword ptr [ecx+4]
+        fmul dword ptr [edx]
+        fxch st(2)
+        fsubp st(5), st
+        fsubp st(3), st
+        fsubp st(1), st
+        fxch st(2)
+        fstp dword ptr [eax]
+        fstp dword ptr [eax+4]
+        fstp dword ptr [eax+8]
+    }
+}
+
 // original: FUN_0041ef60
 // NONMATCHING: RALLYTROPHY 0x41ef60
-// NONMATCHING: first-draft port, not yet compared against the original
+// NONMATCHING: Xform (this+0x15c) and cross-product x87 blocks now inline asm like the original; frame matches; remaining diffs are register/stack allocation and statement order (3107 of 3319 bytes, 2990 differing).
 void RespBody::Respond(void* car, void* stage, int flag)
 {
     if (*(int*)((char*)this + 0x23c) == 0) {
@@ -100,12 +175,10 @@ void RespBody::Respond(void* car, void* stage, int flag)
         Vec3 r(h[3] - BF(0x224), h[4] - BF(0x228), h[5] - BF(0x22c));
         Vec3 nrm(h[6], h[7], h[8]);
         Vec3 rn = FUN_004203e0(r, nrm);
-        float bx = rn.z * BF(0x17c) + rn.y * BF(0x16c) + rn.x * BF(0x15c) + BF(0x18c);
-        float by = rn.z * BF(0x180) + rn.y * BF(0x170) + rn.x * BF(0x160) + BF(0x190);
-        float bz = rn.z * BF(0x184) + rn.y * BF(0x174) + rn.x * BF(0x164) + BF(0x194);
-        float cx = by * r.z - bz * r.y;
-        float cy = bz * r.x - bx * r.z;
-        float cz = bx * r.y - by * r.x;
+        float bv[3];
+        Xform(bv, &rn.x, (float*)((char*)this + 0x15c));
+        CrossAsm(&rn.x, bv, &r.x);
+        float cx = rn.x, cy = rn.y, cz = rn.z;
         float k = DAT_004e1348 / (cy * h[7] + cz * h[8] + cx * h[6] + BF(0x130));
         float imp = k * pen;
 

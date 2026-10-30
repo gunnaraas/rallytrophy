@@ -1,6 +1,7 @@
 // Credits screen helpers (0x425d80-0x426690): global state and credit-text parser.
 #include <string>
 #include <vector>
+#include <math.h>
 #include "unk_481390.h"
 #include "unk_4843e0.h"
 #include "rallytrophy.h"
@@ -380,7 +381,19 @@ void __fastcall FUN_004262b0(int)
     }
 }
 
-extern float DAT_004e1530, DAT_004e13d0, DAT_004e1348, DAT_004e1524, DAT_004e1528, DAT_004e14c0;
+extern float DAT_004e1530, DAT_004e13d0, DAT_004e1348, DAT_004e1524, DAT_004e14c0;
+extern double DAT_004e1528;
+
+// Float to int with the x87 default rounding (inline assembler, as in the original).
+inline int FloatToInt(float f)
+{
+    int i;
+    __asm {
+        fld f
+        fistp i
+    }
+    return i;
+}
 extern DWORD DAT_00508930[4];
 extern unsigned char DAT_0057ba35, DAT_0057ba43, DAT_0057ba48;
 // 0x150-byte TextRenderer: ctor 0x4a9520 (device, font name, scale), dtor 0x4a95d0.
@@ -474,8 +487,9 @@ __declspec(naked) CreditText::~CreditText()
 
 // original: FUN_00425e50 (credits screen main loop)
 // NONMATCHING: RALLYTROPHY 0x425e50
-// Draft: original uses an ebp frame (sub esp,0x40) and a different locals layout; control flow/semantics ported from the
-// pseudocode but not byte-matched (1077 vs 1108 bytes). The font string at 0x4f6940 is a guess (not read from rdata).
+// 1116 vs 1108 bytes: the scroll position uses floor() + inline-asm FloatToInt and a double position, as in the
+// original; the frame is still 4 bytes larger and the early loop-exit flags are scheduled differently.
+// The font string at 0x4f6940 is a guess (not read from rdata).
 void __fastcall FUN_00425e50(MenuGame* game)
 {
     FUN_004262b0((int)game);
@@ -504,8 +518,9 @@ void __fastcall FUN_00425e50(MenuGame* game)
         timer.Update();
         float oldPos = DAT_00508940;
         DAT_00508940 = timer.m_deltaSec * DAT_004e1530 + DAT_00508940;
-        int crossed = (int)DAT_00508940 - (int)oldPos;
-        int slot = (int)oldPos;
+        int now = FloatToInt((float)floor(DAT_00508940));
+        int slot = FloatToInt((float)floor(oldPos));
+        int crossed = now - slot;
         while (crossed > 0) {
             CreditLine* line = DAT_005089b0.begin()[DAT_005089a8++];
             DAT_00508944[(slot + 1) % 25] = line;
@@ -518,12 +533,13 @@ void __fastcall FUN_00425e50(MenuGame* game)
             DAT_00508940 -= DAT_004e13d0;
         if (DAT_0056b0ac->BeginScene()) {
             video->Render(DAT_0056b0ac);
-            float pos = DAT_00508940 + DAT_004e1348;
+            double pos = DAT_00508940 + DAT_004e1348;
             if (pos >= DAT_004e13d0)
                 pos -= DAT_004e13d0;
-            int index = (int)pos;
+            int index = FloatToInt((float)floor(pos));
+            double frac = (pos - floor(pos)) * DAT_004e1528;
             float x = DAT_0056aea8 * DAT_004e1524;
-            float y = DAT_0056aeac * (pos - (float)(int)pos) * DAT_004e1528;
+            float y = DAT_0056aeac * (float)frac;
             for (int n = 25; n != 0; n--) {
                 CreditLine* line = DAT_00508944[index % 25];
                 if (line && line->text) {
