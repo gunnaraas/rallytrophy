@@ -252,6 +252,7 @@ ColHolder::ColHolder(ColOwner* volatile o, int x) : flag(0)
 }
 
 // NONMATCHING: RALLYTROPHY 0x41b8c0
+// Tried 2026-10-30 night: volatile flag store in body (plain or volatile o), comma-expr flag=0 inside At arg, volatile-load-before-store, volatile local; EH zero is set at model position so any volatile store/load pins it above flag store, plain flag=0 sinks flag below EH store (1 insn each way, no scheduling barrier fixes it).
 // The volatile owner pointer plus local alias gives the same 23→22 improvement as the one-argument constructor.
 // SYMBOL: ??0ColHolder@@QAE@PAUColOwner@@HH@Z
 ColHolder::ColHolder(ColOwner* volatile o, int a, int b) : flag(0)
