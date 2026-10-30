@@ -148,12 +148,34 @@ void SkidMarks::Expire()
     }
 }
 
-// Cross product through pointers (the original spills the pointers into the dead argument slots).
+// Cross product through pointers; inline assembler in the original (the pointers are spilled into the dead argument slots).
 inline void Cross(const Vec3* a, const Vec3* b, Vec3* out)
 {
-    out->x = a->y * b->z - a->z * b->y;
-    out->y = a->z * b->x - a->x * b->z;
-    out->z = a->x * b->y - a->y * b->x;
+    __asm {
+        mov ecx, a
+        mov edx, b
+        mov eax, out
+        fld dword ptr [ecx+4]
+        fmul dword ptr [edx+8]
+        fld dword ptr [ecx+8]
+        fmul dword ptr [edx]
+        fld dword ptr [ecx]
+        fmul dword ptr [edx+4]
+        fld dword ptr [ecx+8]
+        fmul dword ptr [edx+4]
+        fld dword ptr [ecx]
+        fmul dword ptr [edx+8]
+        fld dword ptr [ecx+4]
+        fmul dword ptr [edx]
+        fxch st(2)
+        fsubp st(5), st
+        fsubp st(3), st
+        fsubp st(1), st
+        fxch st(2)
+        fstp dword ptr [eax]
+        fstp dword ptr [eax+4]
+        fstp dword ptr [eax+8]
+    }
 }
 
 // NONMATCHING: RALLYTROPHY 0x4746b0

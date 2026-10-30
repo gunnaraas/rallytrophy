@@ -1,6 +1,7 @@
 // RenderBody::Update (0x4b9d30): fpatan-based shadow UV projection over a mesh list.
 #include <math.h>
 #include "unk_4b9d30.h"
+#include "x87_cross.h"
 
 extern float DAT_004e1398;
 extern float DAT_004e1348;
@@ -108,18 +109,15 @@ void ShadowUpdater::Update(ShadowBody* body, ShadowBody* cam, const float* centr
     d[0] = s * d[0];
     d[1] = d[1] * s;
     d[2] = d[2] * s;
+    float up[3] = {0.0f, 1.0f, 0.0f};
     float a[3];
-    a[0] = d[2] * 1.0f - d[1] * 0.0f;
-    a[1] = d[0] * 0.0f - d[2] * 0.0f;
-    a[2] = d[1] * 0.0f - d[0] * 1.0f;
+    X87Cross(a, up, d);
     s = DAT_004e1348 / sqrt(a[2] * a[2] + a[1] * a[1] + a[0] * a[0]);
     a[0] = a[0] * s;
     a[1] = a[1] * s;
     a[2] = a[2] * s;
     float u[3];
-    u[0] = d[1] * a[2] - d[2] * a[1];
-    u[1] = d[2] * a[0] - d[0] * a[2];
-    u[2] = d[0] * a[1] - d[1] * a[0];
+    X87Cross(u, d, a);
     float c0 = cam->pos[0], c2 = cam->pos[2], c1 = cam->pos[1];
     s = DAT_004e1348 / sqrt(u[1] * u[1] + u[2] * u[2] + u[0] * u[0]);
     u[0] = s * u[0];

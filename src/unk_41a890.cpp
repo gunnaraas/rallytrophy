@@ -2,6 +2,7 @@
 #include <string>
 #include "unk_41a890.h"
 #include <math.h>
+#include "x87_cross.h"
 
 extern float DAT_004e1348, DAT_004e138c;
 struct P3 { float x, y, z; P3() {} ~P3() {} P3 operator-(const P3& o) const; }; // operator- is 0x414330
@@ -204,10 +205,7 @@ ColModel::ColModel(void* mesh, int a, int b)
             float* l20 = &s2.x;
             P3 s1 = *(P3*)&t->v[1]->x - *(P3*)&t->v[0]->x;
             float* l28 = &s1.x;
-            float f2 = l28[2], f3 = l20[0], f4 = l28[0], f5 = l20[1], f7 = l20[2], f8 = l28[1];
-            n[0] = f8 * f7 - f2 * f5;
-            n[1] = f2 * f3 - f4 * f7;
-            n[2] = f4 * f5 - f8 * f3;
+            X87Cross(n, l28, l20);
             char* tb = (char*)tris;
             float* ci = (float*)centers;
             float k = DAT_004e1348 / (float)sqrt(*(float*)(tb + off + 0x20) * *(float*)(tb + off + 0x20) + *(float*)(tb + off + 0x1c) * *(float*)(tb + off + 0x1c) + *(float*)(tb + off + 0x18) * *(float*)(tb + off + 0x18));

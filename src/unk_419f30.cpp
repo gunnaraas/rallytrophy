@@ -4,6 +4,7 @@
 #include "unk_419f00.h"
 #include "unk_419f30.h"
 #include "unk_414330.h"
+#include "x87_cross.h"
 
 extern "C" void fun_004bd000(void* p);
 extern float DAT_004e134c, DAT_004e1348;
@@ -147,9 +148,7 @@ ColModel::ColModel(void* meshp, int)
             float u[3], w[3];
             ((S414Vec3*)pc)->Sub(u, pa);
             ((S414Vec3*)pb)->Sub(w, pa);
-            tr->n[0] = w[1] * u[2] - w[2] * u[1];
-            tr->n[1] = w[2] * u[0] - w[0] * u[2];
-            tr->n[2] = w[0] * u[1] - w[1] * u[0];
+            X87Cross(tr->n, w, u);
             float kk = DAT_004e1348 / (float)sqrt(tr->n[2] * tr->n[2] + tr->n[1] * tr->n[1] + tr->n[0] * tr->n[0]);
             tr->n[0] = kk * tr->n[0];
             tr->n[1] = kk * tr->n[1];

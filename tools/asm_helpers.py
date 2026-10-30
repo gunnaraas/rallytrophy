@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """List NONMATCHING functions whose original contains inlined x87 __asm helpers.
 
-The original inlined hand-written __asm math helpers (FloatToInt, Xform/Rot);
+The original inlined hand-written __asm math helpers (FloatToInt, Xform/Rot, Cross);
 any __asm forces an ebp frame and fixed registers, so plain C++ in their place
 cannot match. A function is flagged when the original holds a helper's fixed
 byte pattern more often than our built object (build/obj) does.
@@ -20,6 +20,7 @@ from objcmp import coff_function  # noqa: E402
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PATTERNS = {
     "Xform/Rot": re.compile(re.escape(bytes.fromhex("d901d80ad901d84a04")), re.S),  # fld [ecx]; fmul [edx]; fld [ecx]; fmul [edx+4]
+    "Cross": re.compile(re.escape(bytes.fromhex("d94104d84a08d94108d80a"))),  # fld [ecx+4]; fmul [edx+8]; fld [ecx+8]; fmul [edx]
     "FloatToInt": re.compile(rb"\xd9\x45.\xdb\x5d.", re.S),  # fld [ebp+d8]; fistp [ebp+d8]
 }
 

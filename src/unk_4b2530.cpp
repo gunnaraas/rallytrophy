@@ -442,9 +442,34 @@ extern const float *DAT_0057b9c8,*DAT_0057b9cc,*DAT_0057b9d0;
 static __forceinline int FloatBits(float f) { return *(int*)&f; }
 static __forceinline float Dot(const float* a,const float* b) {return (a[2]*b[2]+a[1]*b[1])+a[0]*b[0];}
 
-static __forceinline Vec3 Cross(const Vec3& a,const Vec3& b)
+// o = a x b; inline assembler in the original (the operands are reloaded from stack locals, which forces an ebp frame).
+inline void Cross(float* o,const float* a,const float* b)
 {
-    return Vec3(a.y*b.z-a.z*b.y,a.z*b.x-a.x*b.z,a.x*b.y-a.y*b.x);
+    __asm {
+        mov ecx, a
+        mov edx, b
+        mov eax, o
+        fld dword ptr [ecx+4]
+        fmul dword ptr [edx+8]
+        fld dword ptr [ecx+8]
+        fmul dword ptr [edx]
+        fld dword ptr [ecx]
+        fmul dword ptr [edx+4]
+        fld dword ptr [ecx+8]
+        fmul dword ptr [edx+4]
+        fld dword ptr [ecx]
+        fmul dword ptr [edx+8]
+        fld dword ptr [ecx+4]
+        fmul dword ptr [edx]
+        fxch st(2)
+        fsubp st(5), st
+        fsubp st(3), st
+        fsubp st(1), st
+        fxch st(2)
+        fstp dword ptr [eax]
+        fstp dword ptr [eax+4]
+        fstp dword ptr [eax+8]
+    }
 }
 #define INTERVAL(V0,V1,V2,D0,D1,D2,A,B,C,X0,X1) \
     if (!(D0*D1<=0.0f)) { A=V2; B=(V0-V2)*D2; C=(V1-V2)*D2; X0=D2-D0; X1=D2-D1; } \
@@ -469,7 +494,7 @@ int Tri3::Overlap(const float* a,const float* b,const float* c,const float* norm
     if (FloatBits((float)fabs(v1))<DAT_004e29b8) v1=0;
     if (FloatBits((float)fabs(v2))<DAT_004e29b8) v2=0;
     if(v0*v1>0 && v0*v2>0) return false;
-    Vec3 direction=Cross(*(const Vec3*)t->n,*(const Vec3*)normal);
+    Vec3 direction;Cross((float*)&direction,t->n,normal);
     float x=(float)fabs(direction.x),y=(float)fabs(direction.y),z=(float)fabs(direction.z);
     unsigned int axis=0; float largest=x;
     // Original converts the absolute-value float bit patterns to signed integers before comparison.
@@ -537,22 +562,22 @@ int TriangleProjection::Point(const float* p,const float* a,const float* b,const
     return 0;
 }
 // NONMATCHING: RALLYTROPHY 0x4b65d0
-// Inlined cross-product temporaries and stack allocation differ.
+// Cross is the inline-asm helper; dot-product load order and the p-v[2] delta copy still differ (24 instructions).
 int TriangleProjection::Contains(const float* p)
 {
+    Vec3 cross;Cross((float*)&cross,n,e);
     Vec3 delta=*(const Vec3*)p;delta-=*(const Vec3*)v[1];
-    Vec3 cross=Cross(*(const Vec3*)n,*(const Vec3*)e);
-    float side=Dot((float*)&cross,(float*)&delta);
-    if(FloatBits(side)&0x80000000)return 0;
+    float side=Dot((float*)&delta,(float*)&cross);
+    if((*(volatile int*)&side)&0x80000000)return 0;
     Vec3 edge=*(const Vec3*)v[2];edge-=*(const Vec3*)v[1];
-    cross=Cross(*(const Vec3*)n,edge);
-    side=Dot((float*)&cross,(float*)&delta);
-    if(FloatBits(side)&0x80000000)return 0;
+    Cross((float*)&cross,n,(float*)&edge);
+    side=Dot((float*)&delta,(float*)&cross);
+    if((*(volatile int*)&side)&0x80000000)return 0;
     delta=*(const Vec3*)p;delta-=*(const Vec3*)v[2];
     edge=*(const Vec3*)v[0];edge-=*(const Vec3*)v[2];
-    cross=Cross(*(const Vec3*)n,edge);
-    side=Dot((float*)&cross,(float*)&delta);
-    return 1-((FloatBits(side)&0x80000000)!=0);
+    Cross((float*)&cross,n,(float*)&edge);
+    side=Dot((float*)&delta,(float*)&cross);
+    return ((*(volatile int*)&side)&0x80000000)==0;
 }
 // NONMATCHING: RALLYTROPHY 0x4b6800
 // Vector temporary lifetimes, endpoint-copy branching and x87 scheduling differ.
