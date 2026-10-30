@@ -15,12 +15,12 @@ _Updated 2026-10-30 by `tools/progress.py` (game code `0x401000`–`0x4bcfc6`)._
 
 | | Functions | Code bytes |
 |---|---|---|
-| Byte-exact | 1824 / 2084 (87.52%) | 335,163 / 742,276 (45.15%) |
-| Written, not yet exact | 260 | 407,113 |
+| Byte-exact | 1825 / 2084 (87.57%) | 335,701 / 742,276 (45.23%) |
+| Written, not yet exact | 259 | 406,575 |
 | Written in total | 2084 / 2084 (100.00%) | 742,276 / 742,276 (100.00%) |
 
 ```
-exact   ██████████████░░░░░░░░░░░░░░░░ 45.15% of code bytes
+exact   ██████████████░░░░░░░░░░░░░░░░ 45.23% of code bytes
 written ██████████████████████████████ 100.00% of code bytes
 ```
 
@@ -101,7 +101,7 @@ Progress by module (ranges in `analysis/modules.csv`):
 | Single-player race mode | `0x4807d0`–`0x481390` | 10 / 13 / 13 | 27.2% | 100.0% | `████████████` |
 | Network race mode | `0x481390`–`0x4843e0` | 48 / 53 / 53 | 59.5% | 100.0% | `████████████` |
 | Networking / DirectPlay | `0x4843e0`–`0x4856e0` | 19 / 19 / 19 | 100.0% | 100.0% | `████████████` |
-| Race-mode base class | `0x4856e0`–`0x48f130` | 98 / 124 / 124 | 32.9% | 100.0% | `████████████` |
+| Race-mode base class | `0x4856e0`–`0x48f130` | 99 / 124 / 124 | 34.3% | 100.0% | `████████████` |
 | Replay race mode | `0x48f130`–`0x48f670` | 11 / 11 / 11 | 100.0% | 100.0% | `████████████` |
 | Ghost race mode | `0x48f670`–`0x48fe20` | 17 / 18 / 18 | 74.3% | 100.0% | `████████████` |
 | Record table (highscores) | `0x48fe20`–`0x490950` | 6 / 11 / 11 | 15.1% | 100.0% | `████████████` |

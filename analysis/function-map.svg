@@ -2,7 +2,7 @@
 <title>Rally Trophy per-function decompilation map</title>
 <rect width="1600" height="1120" rx="8" fill="#0d1117"/>
 <text x="20" y="30" font-size="18" font-weight="600" fill="#e6edf3">Every game function, sized by code bytes and branch complexity</text>
-<text x="20" y="53" fill="#8b949e">1,824 byte-exact · 260 written but not byte-exact · 0 unwritten. Tile area = bytes × (1 + log₂(1 + branch points)); hover for details.</text>
+<text x="20" y="53" fill="#8b949e">1,825 byte-exact · 259 written but not byte-exact · 0 unwritten. Tile area = bytes × (1 + log₂(1 + branch points)); hover for details.</text>
 <g transform="translate(20,72)" fill="#e6edf3">
 <rect width="12" height="12" fill="#3fb950"/><text x="18" y="11">byte-exact</text>
 <rect x="118" width="12" height="12" fill="#e3b341"/><text x="136" y="11">written, not exact</text>
@@ -1421,7 +1421,7 @@
 <rect x="1537.34" y="797.82" width="5.81" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x004884e0 · FUN_004884e0 · Race-mode base class · 177 code bytes · complexity 3 (2 branch points) · byte-exact</title></rect>
 <rect x="1544.15" y="797.82" width="6.03" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x004885a0 · FUN_004885a0 · Race-mode base class · 236 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>
 <rect x="1551.18" y="797.82" width="27.82" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x00488690 · FUN_00488690 · Race-mode base class · 484 code bytes · complexity 8 (7 branch points) · written, not exact</title></rect>
-<rect x="20.00" y="827.64" width="30.72" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x00488880 · FUN_00488880 · Race-mode base class · 538 code bytes · complexity 10 (9 branch points) · written, not exact</title></rect>
+<rect x="20.00" y="827.64" width="30.72" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00488880 · FUN_00488880 · Race-mode base class · 538 code bytes · complexity 10 (9 branch points) · byte-exact</title></rect>
 <rect x="51.72" y="827.64" width="27.83" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x00488aa0 · race-mode base slot 18 (car setup pass + ghost fade; vtable only) · Race-mode base class · 461 code bytes · complexity 12 (11 branch points) · written, not exact</title></rect>
 <rect x="80.55" y="827.64" width="28.94" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x00488c70 · race-mode base slot 22 (slot 18 skipping a car; vtable only) · Race-mode base class · 467 code bytes · complexity 13 (12 branch points) · written, not exact</title></rect>
 <rect x="110.49" y="827.64" width="7.40" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00488e50 · race-mode base slot 19 (car draw pass; vtable only) · Race-mode base class · 154 code bytes · complexity 8 (7 branch points) · byte-exact</title></rect>

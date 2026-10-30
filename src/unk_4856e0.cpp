@@ -2075,32 +2075,77 @@ struct Matrix4 {
     }
 };
 
-// NONMATCHING: RALLYTROPHY 0x488880
-// 500 vs 538 bytes: the original keeps the transform's three pointers and the temporary vectors in
-// stack slots (the inline Transform is not folded into registers); here the optimizer folds it away.
-// The empty __asm block only forces the ebp frame the original has.
+// Hand-written x87 blocks (inline assembler in the original; the pointers live in stack locals).
+// Point times a 4x4 row-vector matrix, translation in row 3.
+inline void RmXform(float* o, const float* p, const float* m)
+{
+    __asm {
+        mov ecx, p
+        mov edx, m
+        mov eax, o
+        fld dword ptr [ecx]
+        fmul dword ptr [edx]
+        fld dword ptr [ecx]
+        fmul dword ptr [edx+4]
+        fld dword ptr [ecx]
+        fmul dword ptr [edx+8]
+        fld dword ptr [ecx+4]
+        fmul dword ptr [edx+0x10]
+        fld dword ptr [ecx+4]
+        fmul dword ptr [edx+0x14]
+        fld dword ptr [ecx+4]
+        fmul dword ptr [edx+0x18]
+        fxch st(2)
+        faddp st(5), st
+        faddp st(3), st
+        faddp st(1), st
+        fld dword ptr [ecx+8]
+        fmul dword ptr [edx+0x20]
+        fld dword ptr [ecx+8]
+        fmul dword ptr [edx+0x24]
+        fld dword ptr [ecx+8]
+        fmul dword ptr [edx+0x28]
+        fxch st(2)
+        faddp st(5), st
+        faddp st(3), st
+        faddp st(1), st
+        fxch st(2)
+        fadd dword ptr [edx+0x30]
+        fxch st(1)
+        fadd dword ptr [edx+0x34]
+        fxch st(2)
+        fadd dword ptr [edx+0x38]
+        fxch st(1)
+        fstp dword ptr [eax]
+        fstp dword ptr [eax+8]
+        fstp dword ptr [eax+4]
+    }
+}
+
+// FUNCTION: RALLYTROPHY 0x488880
+// The transform is the inline-asm Xform block, as in the original; the local declaration order sets the frame layout.
 // Draws name tags over the other players' cars.
 void RaceMode::FUN_00488880(ViewPoint* view)
 {
-    __asm { }
     if (DAT_00501300[3]) {
-        TextRenderer* text = DAT_0056b0c8->text;
-        Vec3Slot positions[6];
         Player* tagged[6];
+        TextRenderer* text = DAT_0056b0c8->text;
         int count = 0;
+        Vec3Slot positions[6];
         for (unsigned int i = 0; i < m_players.size(); i++) {
             Player* player = m_players[i];
             int state = player->unk40;
             if (Slot14(player) && !player->local && state != 3) {
                 CarBody* body = player->car->body;
                 Vec3 local = *(Vec3*)body->unkb8;
+                Vec3 world;
                 local.y = body->unkb0;
-                Vec3 world(local);
-                ((Matrix4*)body->matrix)->Transform(local, world);
+                RmXform(&world.x, &local.x, body->matrix);
                 world.y += 0.5f;
-                positions[count].x = world.x;
-                positions[count].y = world.y;
-                positions[count].z = world.z;
+                Vec3Slot& p = positions[count];
+                p.x = world.x;
+                p.y = world.y;
+                p.z = world.z;
                 tagged[count] = player;
                 count++;
             }
