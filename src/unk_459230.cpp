@@ -73,9 +73,7 @@ typedef void Generated_459250();
 // SYMBOL: _$E19
 typedef void Generated_459260();
 
-// NONMATCHING: RALLYTROPHY 0x459270
-// Same size (1516 with the jump table), four differing bytes. The expanded center copy matches the
-// arithmetic/EH schedule; only the loop-back-edge face/target reload order remains.
+// FUNCTION: RALLYTROPHY 0x459270
 void Car::Draw459270(ViewManager* view, DrawContext* context)
 {
     EnvCar* car = (EnvCar*)this;
@@ -140,7 +138,7 @@ void Car::Draw459270(ViewManager* view, DrawContext* context)
     }
     for (unsigned face = start; face < 6; face += count) {
         EnvVec fwd, up;
-        ((EnvDevice*)DAT_0056b0ac)->BeginFace(target, face, 1, 1);
+        ((EnvDevice*)DAT_0056b0ac)->BeginFace(car->target, face, 1, 1);
         ((RaceDeviceSlots*)DAT_0056b0ac)->Slot24(2);
         switch (face) {
         case 0:
