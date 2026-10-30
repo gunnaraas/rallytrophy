@@ -24,7 +24,8 @@ PATTERNS = {
 }
 
 
-def main():
+def pe_reader():
+    """Return (original exe bytes, function mapping a VA to its file offset)."""
     exe = open(os.path.join(ROOT, "orig", "RallyTrophy.exe"), "rb").read()
     pe = struct.unpack_from("<I", exe, 0x3c)[0]
     count, opt = struct.unpack_from("<H", exe, pe + 6)[0], struct.unpack_from("<H", exe, pe + 20)[0]
@@ -34,6 +35,11 @@ def main():
     def off(va):
         return next(ro + va - base - rva for vs, rva, rs, ro in secs if 0 <= va - base - rva < max(vs, rs))
 
+    return exe, off
+
+
+def main():
+    exe, off = pe_reader()
     for line in open(os.path.join(ROOT, "analysis", "nonmatching-triage.md")):
         cols = [c.strip() for c in line.split("|")]
         if not line.startswith("| 0x"):

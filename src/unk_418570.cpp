@@ -422,7 +422,7 @@ void TriCollector::Gather(TriMesh* m)
 }
 
 // NONMATCHING: RALLYTROPHY 0x4193a0
-// reason: first draft; SEH/temp layout unchecked
+// reason: first draft; SEH/temp layout unchecked. The sphere test is a float bit-compare (*(int*)&d2 <= *(int*)&rr, rr first) on Vec3 copies of pos/lo/hi; the compare alone made it 10 bytes worse without the Vec3 rewrite.
 float TriCollector::Closest(float r, float* pos, float* out, float* nrm)
 {
     float px = pos[0], py = pos[1], pz = pos[2];
@@ -431,8 +431,9 @@ float TriCollector::Closest(float r, float* pos, float* out, float* nrm)
     Tri* tail = 0;
     for (unsigned i = 0; hits.begin() != 0 && i < hits.size(); i++) {
         Tri* t = hits[i];
-        if ((int)((px - t->cx) * (px - t->cx) + (py - t->cy) * (py - t->cy) + (pz - t->cz) * (pz - t->cz)) <=
-            (int)((r + t->r) * (r + t->r))) {
+        float rr = (r + t->r) * (r + t->r);
+        float d2 = (px - t->cx) * (px - t->cx) + (py - t->cy) * (py - t->cy) + (pz - t->cz) * (pz - t->cz);
+        if (*(int*)&d2 <= *(int*)&rr) {
             unsigned s = t->sel;
             if (lx <= t->v[(s >> 2) & 3]->x && t->v[s & 3]->x <= px + r &&
                 ly <= t->v[(s >> 6) & 3]->y && t->v[(s >> 4) & 3]->y <= py + r &&
@@ -503,7 +504,8 @@ float TriCollector::Closest(float r, float* pos, float* out, float* nrm)
     } while (0)
 
 // NONMATCHING: RALLYTROPHY 0x419770
-// reason: first draft; SEH/temp layout unchecked
+// reason: first draft; SEH/temp layout unchecked. The sphere test is a float bit-compare (*(int*)&d2 <= *(int*)&rr, rr first) on Vec3 copies of pos/lo/hi; the compare alone made it 10 bytes worse without the Vec3 rewrite.
+// The (int) compare is a float bit-compare in the original (*(int*)&d2 <= *(int*)&rr, as in Closest); alone it scores 2-8 instructions worse until the Vec3 copies are restored.
 int TriCollector::Contact(float r, float* pos, float* a_, float* b, float* c, int* surf)
 {
     float sx = 0.0f, sy = 0.0f, sz = 0.0f;
@@ -533,7 +535,8 @@ int TriCollector::Contact(float r, float* pos, float* a_, float* b, float* c, in
 }
 
 // NONMATCHING: RALLYTROPHY 0x419be0
-// reason: first draft; SEH/temp layout unchecked
+// reason: first draft; SEH/temp layout unchecked. The sphere test is a float bit-compare (*(int*)&d2 <= *(int*)&rr, rr first) on Vec3 copies of pos/lo/hi; the compare alone made it 10 bytes worse without the Vec3 rewrite.
+// The (int) compare is a float bit-compare in the original (*(int*)&d2 <= *(int*)&rr, as in Closest); alone it scores 2-8 instructions worse until the Vec3 copies are restored.
 int TriCollector::ContactList(float r, float* pos, float* a_, float* b, float* c, int* surf)
 {
     float sx = 0.0f, sy = 0.0f, sz = 0.0f;

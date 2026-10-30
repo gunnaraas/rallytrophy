@@ -108,7 +108,8 @@ float __cdecl TraceNodeSweep(TraceNode* n)
                     unsigned twoSided = ((int*)model)[0x27] & 1;
                     float* p = tv + 6;
                     while (cnt != 0) {
-                        if (twoSided != 0 || (int)(s[9] * tv[0] + p[-5] * s[10] + p[-4] * s[11]) < 1) {
+                        float facing = p[-4] * s[11] + p[-5] * s[10] + s[9] * tv[0];
+                        if (twoSided != 0 || *(int*)&facing <= 0) {
                             float r = p[1];
                             float e = (s[9] * p[-2] + s[10] * p[-1] + s[11] * p[0]) - s[12];
                             if (-r <= e && e <= r + s[13]) {

@@ -523,7 +523,8 @@ int ViewFrustum::TestSphere(const SceneBounds* b, const float* m)
         dx = dx * cam[8] + dy * cam[9] + dz * cam[10];
         if (dx < nearD - b->d)
             return 0;
-        if ((int)(farD + b->d) < (int)dx)
+        float fs = farD + b->d;
+        if (*(int*)&fs < *(int*)&dx)
             return 0;
         int i = 0;
         float* p = &tplanes[0];
@@ -567,13 +568,16 @@ int ViewFrustum::TestBounds(const SceneBounds* b)
         float dy = b->c.y - cam[13];
         float dz = b->c.z - cam[14];
         float d2 = dx * dx + dy * dy + dz * dz;
-        if ((int)(b->d * b->d) <= (int)d2) {
+        float d2b = b->d * b->d;
+        if (*(int*)&d2b <= *(int*)&d2) {
             float r = radius + b->d;
-            if ((int)(r * r) < (int)d2)
+            r = r * r;
+            if (*(int*)&r < *(int*)&d2)
                 return 0;
             float f = dx * cam[8] + dy * cam[9] + dz * cam[10];
             if (nearD - b->d <= f) {
-                if ((int)f <= (int)(farD + b->d)) {
+                float fs = farD + b->d;
+                if (*(int*)&f <= *(int*)&fs) {
                     const float* p = &tplanes[0] + 1;
                     int i = 0;
                     while (p[2] <= b->c.y * p[0] + p[1] * b->c.z + p[-1] * b->c.x + b->d) {
@@ -613,14 +617,17 @@ int ViewFrustum::TestBoundsB(const SceneBounds* b)
         float dy = b->c.y - cam[13];
         float dz = b->c.z - cam[14];
         float d2 = dx * dx + dy * dy + dz * dz;
-        if ((int)(b->d * b->d) <= (int)d2) {
+        float d2b = b->d * b->d;
+        if (*(int*)&d2b <= *(int*)&d2) {
             float r = radius + b->d;
-            if ((int)(r * r) < (int)d2)
+            r = r * r;
+            if (*(int*)&r < *(int*)&d2)
                 return 0;
             float f = dx * cam[8] + dy * cam[9] + dz * cam[10];
             if (f < nearD - b->d)
                 return 0;
-            if ((int)(farD + b->d) < (int)f)
+            float fs = farD + b->d;
+            if (*(int*)&fs < *(int*)&f)
                 return 0;
             const float* p = &tplanes[0] + 1;
             int i = 0;

@@ -12,6 +12,7 @@ usage: try_variants.py [-j N] [-k] SOURCE ADDRESS VARIANT...
   -k     keep build/try/<n>/ (n = variant index) for objcmp.py inspection
 A variant may also be a directory: every *.cpp in it is tried.
 """
+import difflib
 import glob
 import os
 import re
@@ -80,24 +81,26 @@ def main(argv):
         log = "\n".join(l for l in cc.stdout.replace("\r", "").splitlines()
                         if l.strip() and l.strip() != os.path.basename(trial) and " warning " not in l)
         if cc.returncode != 0:
-            return (10 ** 9, 0, 0, variant, "COMPILE FAILED\n" + log)
+            return (10 ** 9, 0, 0, variant, "COMPILE FAILED\n" + log, 0)
         obj = os.path.splitext(trial)[0] + ".obj"
         name = next((f[1] for f in marked_functions(trial) if f[0] == address), None)
         try:
-            _, _, bad, bl, ol = compare(obj, name, pe, original_relocs, address, sizes[address], limit)
+            left, right, bad, bl, ol = compare(obj, name, pe, original_relocs, address, sizes[address], limit)
         except SystemExit as e:
-            return (10 ** 9, 0, 0, variant, str(e)[:200])
-        return (bad, bl, ol, variant, "")
+            return (10 ** 9, 0, 0, variant, str(e)[:200], 0)
+        # aligned instruction distance: unlike the positional byte count, an inserted instruction costs 1, not the rest of the function
+        same = sum(b.size for b in difflib.SequenceMatcher(None, left, right, autojunk=False).get_matching_blocks())
+        return (bad, bl, ol, variant, "", max(len(left), len(right)) - same)
 
     with ThreadPoolExecutor(jobs) as pool:
         results = list(pool.map(run, enumerate(variants)))
-    for bad, bl, ol, variant, note in sorted(results, key=lambda r: (r[0], abs(r[1] - r[2]))):
+    for bad, bl, ol, variant, note, insns in sorted(results, key=lambda r: (r[0], abs(r[1] - r[2]))):
         if note:
             print(f"{os.path.basename(variant)}: {note}")
         elif bad == 0 and bl == ol:
             print(f"{os.path.basename(variant)}: MATCH ({bl} bytes)")
         else:
-            print(f"{os.path.basename(variant)}: DIFF {bad} bytes differ, built {bl} vs original {ol}"
+            print(f"{os.path.basename(variant)}: DIFF {bad} bytes differ, built {bl} vs original {ol}, {insns} insns differ"
                   + (f"  [build/try/{variants.index(variant)}]" if keep else ""))
     if not keep:
         shutil.rmtree(base, ignore_errors=True)
