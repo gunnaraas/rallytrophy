@@ -8,6 +8,7 @@
 #include "unk_46a8a0.h"
 #include <math.h>
 
+extern float DAT_004e13e0;             // 1000000.0f
 extern int DAT_00501308;               // mirror enabled
 extern int DAT_0050130c;
 extern int DAT_00501310;               // HUD gauges enabled
@@ -432,7 +433,7 @@ register IC_Car* car = (IC_Car*)carPtr;
             int p2 = period;
             if (feedback > 0.001f) {
                 float f1 = feedback * 25000.0f;
-                float f2 = (feedback * 0.1f + 0.1) * 1000000.0f;
+                float f2 = (feedback * 0.1f + 0.1) * DAT_004e13e0;
                 if (f1 > 10000.0f) {
                     f1 = 10000.0f;
                 }

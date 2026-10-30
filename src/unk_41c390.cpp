@@ -4,8 +4,8 @@
 #include "unk_41c390.h"
 
 extern float DAT_004e138c;
-extern float DAT_004e1438;
-extern float DAT_004e1430;
+extern double DAT_004e1438; // 0.9999
+extern double DAT_004e1430; // 1.0001
 extern float DAT_004e1348;
 
 static inline const Vec3* Addr(const Vec3& v) { return &v; }

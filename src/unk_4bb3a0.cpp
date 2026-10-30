@@ -58,7 +58,8 @@ struct TraceGuard { ~TraceGuard() {} };
 extern SegmentInfo DAT_00581de8;
 extern int DAT_00581e28;
 extern float DAT_00581e20;
-extern float DAT_004e134c, DAT_004e1348, DAT_004e2a98;
+extern float DAT_004e134c, DAT_004e1348;
+extern double DAT_004e2a98; // 0.0001
 char __cdecl PointInTri(float* pt, float* n, char* a, char* b, char* c);   // original: FUN_004b3ee0
 bool __cdecl TriTestA(void* model, unsigned short* tri, void* verts, float* pt);   // original: FUN_004bba10
 float __cdecl TriTestB(void* model, unsigned short* tri, void* verts, float* pt); // original: FUN_004bbb30

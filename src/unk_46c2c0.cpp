@@ -418,7 +418,7 @@ void Wheel::UpdateForces()
         // Lateral slip tangent, relaxed in the same way.
         unk2f4 = (latVel - unk2f4 * (float)fabs(lonVel)) * unk2e8 * DAT_0050941c + unk2f4;
         if (blendSpeed < 1.0f) {
-            unk2f4 = (1.0f - blendSpeed) * (latVel / ((float)fabs(lonVel) + 0.01f)) + unk2f4 * blendSpeed;
+            unk2f4 = (1.0f - blendSpeed) * (float)(latVel / (fabs(lonVel) + 0.01)) + unk2f4 * blendSpeed;
         }
         float slipTan = unk2f4;
         float alpha = (float)atan(slipTan);

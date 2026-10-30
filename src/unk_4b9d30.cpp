@@ -48,7 +48,7 @@ void ShadowUpdater::Update(ShadowBody* body, ShadowBody* cam, const float* centr
         z = cam->matB[6];
     }
     float len = (float)sqrt(x * x + (long double)z * (long double)z);
-    long double ang = atan2((double)(z / len), (double)(x / len));
+    float ang = (float)((atan2((double)(z / len), (double)(x / len)) + DAT_004e2a20) * DAT_004e2a18);
 
     V3D w;
     {
@@ -150,7 +150,7 @@ void ShadowUpdater::Update(ShadowBody* body, ShadowBody* cam, const float* centr
         ShadowVertex* v = meshes[i]->verts;
         for (unsigned n = meshes[i]->count; n != 0; n--) {
             v->u = q[4] * v->normal[1] + q[8] * v->normal[2] + q[0] * v->normal[0] + f7 * v->pos[0] +
-                   f6 * v->pos[1] + f5 * v->pos[2] + f4 + (float)((ang + DAT_004e2a20) * DAT_004e2a18);
+                   f6 * v->pos[1] + f5 * v->pos[2] + f4 + ang;
             v->v = (f8 - (clip.m[1] * k * v->pos[0] + clip.m[5] * k * v->pos[1] + clip.m[9] * k * v->pos[2])) -
                    (q[5] * v->normal[1] + q[9] * v->normal[2] + q[1] * v->normal[0]);
             v++;

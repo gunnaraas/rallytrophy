@@ -2,7 +2,7 @@
 """Classify NONMATCHING functions by structural difference from the original.
 
 Per function (original vs build/obj) it reports: stack frame size, ebp frame,
-EH state stores (count and highest state), calls, and the instruction
+EH state stores (count and highest state), calls, double-precision FPU operands, and the instruction
 mnemonics the original uses more often than the build. Rows are grouped into
 clusters by which of those differ, largest cluster first.
 
@@ -39,7 +39,8 @@ def shape(blob, eh):
     states = [int(m.group(1), 16) for i in ins if eh and (m := STATE.search(i)) and "ebp-0x4" in i]
     ops = collections.Counter(i.split()[0] for i in ins if i)
     return {"frame": frame, "ebp": ins[:2] == ["push   ebp", "mov    ebp,esp"],
-            "states": len(states), "calls": ops["call"], "ops": ops, "n": len(ins)}
+            "states": len(states), "calls": ops["call"], "ops": ops, "n": len(ins),
+            "double": sum(1 for i in ins if re.match(r"f\w+\s+QWORD PTR", i))}
 
 
 def rows():
@@ -67,6 +68,8 @@ def rows():
             tags.append("eh-states")
         if o["calls"] != b["calls"]:
             tags.append("calls")
+        if o["double"] != b["double"]:
+            tags.append("double")  # float/double literal or variable type differs
         extra = {k: v - b["ops"][k] for k, v in o["ops"].items() if v - b["ops"][k] > 0 and k != "call"}
         yield address, source, name, size, o["n"] - b["n"], tags, o, b, extra
 

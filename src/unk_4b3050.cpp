@@ -91,7 +91,7 @@ LAB_004b3cdb:
   }
   else if (0.0f <= fVar7) {
     if (0.0f <= fVar8) {
-      fVar6 = 1.0f / fVar6;
+      fVar6 = (float)(1.0 / fVar6);
       s = (fVar6 * fVar7);
       t = (fVar6 * fVar8);
       goto LAB_004b3cdb;
