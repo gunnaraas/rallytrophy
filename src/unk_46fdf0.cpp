@@ -637,6 +637,7 @@ inline float Dot(const Vec3& a, const Vec3& b)
 }
 
 // NONMATCHING: RALLYTROPHY 0x470940
+// Tried 2026-10-30: inline-asm Xform at the sphere-centre and corner transforms (the original has both) adds 28-116 differing bytes.
 // 3490 vs 3336 bytes. Same calls, constants, EH states and data flow; the frame differs: the original keeps c at ebp-0x18
 // (ours -0x28), and its inlined point*matrix transforms and cross product keep their pointer arguments in stack temps
 // with the three outputs interleaved; every inline form tried (member, free, Vec3 ctor) is optimised harder.

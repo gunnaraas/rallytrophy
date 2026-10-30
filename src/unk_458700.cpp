@@ -306,6 +306,7 @@ struct IC_Car {
 #define BITS(x) (*(int*)&(x))
 
 // NONMATCHING: RALLYTROPHY 0x458b30
+// Tried 2026-10-30: inline-asm fistp for the p2 blend (the original has it) moves size to 1364 but adds 5 differing bytes.
 // Same code shape and constants (builds 1358 bytes, original 1393); the original keeps `car` in ebx and zero in edi and
 // copies floats through the FPU (fld/fstp), which the source below does not reproduce.
 void CarInput::FUN_00458b30(Car* carPtr, int dtMs, int flag)

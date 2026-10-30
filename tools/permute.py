@@ -4,7 +4,9 @@
 Each round mutates the current best body N ways (statement swaps, commuted
 comparisons, temporaries inlined/hoisted, if/else flips, loop forms), scores every
 variant with try_variants.py and keeps the best. A byte-exact match validates
-itself, so mutations only need to compile; nothing here edits SOURCE. The best
+itself, so mutations only need to compile; nothing here edits SOURCE. Mutations may reorder
+dependent statements, so only a MATCH is safe to apply; a closer non-matching best.cpp is a hint,
+not a change to copy. The best
 body is written to build/permute/<addr>/best.cpp.
 
 usage: permute.py [-r ROUNDS] [-n PER_ROUND] [-s SEED] SOURCE ADDRESS

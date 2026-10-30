@@ -20,7 +20,8 @@ They expect locally supplied game files and toolchain components; see
 - [`permute.py`](permute.py): random hill-climbing permuter over
   `try_variants.py` (statement swaps, commuted operands, if/else flips,
   inlined temporaries); never edits the source, writes the best body to
-  `build/permute/<addr>/best.cpp`.
+  `build/permute/<addr>/best.cpp`. Apply it only on MATCH: mutations can
+  reorder dependent statements.
 - [`flag_sweep.py`](flag_sweep.py): score every NONMATCHING function in the
   given files under alternative compiler flags.
 - [`asm_helpers.py`](asm_helpers.py): list NONMATCHING functions whose
