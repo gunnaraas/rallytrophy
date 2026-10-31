@@ -478,6 +478,7 @@ int Player::FUN_00491f70()
 
 // NONMATCHING: RALLYTROPHY 0x491c10
 // Tried 2026-10-30 night: bool/int copy of copyFrom, inline slopes (worse), ternary offset temps (worse), volatile copy (worse); the mov ecx,[esp+30h]/test still sits after the fsub/fmul pair instead of before them.
+// Tried 2026-10-31 re-pass: volatile copyFrom read at 8 positions (best case moves mov+test one slot too early, 2 insns), split slope decls, plain int copy; permute.py -r 40 found nothing better than the (2,8) baseline.
 // 473 vs 473 bytes, 8 bytes differ: the original loads and tests copyFrom (mov ecx,[esp+30h]; test)
 // one FPU op earlier than any source ordering tried (temps, copy local, reordered stores).
 // Turns the u8 fields of two samples into per-field slopes (per ms) and offsets. cdecl.
