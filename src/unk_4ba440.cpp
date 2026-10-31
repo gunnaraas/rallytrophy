@@ -473,6 +473,7 @@ void SegmentInfo::Update()
 
 // NONMATCHING: RALLYTROPHY 0x4ba620
 // Semantics complete (inline-asm Xform/Rot, EBP frame); original has different local/register allocation (428 bytes differ).
+// Tried 2026-10-30 night: swapped compare form (q < DAT ? a : b), y/z/x dot order, c*c+farD^2+a*a tail, ~25 variants (index loops, no self, counter in param); still 66 insns differ: original keeps one pointer q (esi=this+0x64, vectors at esi-0x64) where VC6 makes a second induction pointer, and keeps tail a/c in stack temps.
 void ViewFrustum::Init(FrustumDevice* device)
 {
     ViewFrustum* self = this;
@@ -482,24 +483,23 @@ void ViewFrustum::Init(FrustumDevice* device)
     int* e = (int*)((char*)this + 0xe8);
     int n = 6;
     for (; n != 0; n--) {
-        P3 t = *(P3*)(q - 0x19) * q[-0x16];
-        float* v = &t.x;
-        const float* m = self->camera;
-        XformSelf(v, v, m);
-        const float* m2 = self->camera;
-        Rot(q - 1, q - 0x19, m2);
-        q[2] = t.x * q[-1] + t.z * q[1] + t.y * q[0];
-        e[-6] = (DAT_004e134c <= q[-1]) ? 3 : 0;
-        e[0] = (DAT_004e134c <= q[0]) ? 4 : 1;
-        e[6] = (DAT_004e134c <= q[1]) ? 5 : 2;
+        P3 t = *(P3*)((char*)q - 100) * q[-0x16];
+        XformSelf(&t.x, &t.x, self->camera);
+        Rot(q - 1, q - 0x19, self->camera);
+        q[2] = t.y * q[0] + t.z * q[1] + t.x * q[-1];
+        e[-6] = (q[-1] < DAT_004e134c) ? 0 : 3;
+        e[0] = (q[0] < DAT_004e134c) ? 1 : 4;
+        e[6] = (q[1] < DAT_004e134c) ? 2 : 5;
         e++;
         q += 4;
     }
     farD = -planes[7];
     nearD = planes[3];
-    float a = planes[10] * farD;
-    float c = planes[18] * farD;
-    radius = (float)sqrt(a * a + farD * farD + c * c);
+    float a = planes[10];
+    float c = planes[18];
+    a = a * farD;
+    c = c * farD;
+    radius = (float)sqrt(c * c + farD * farD + a * a);
 }
 
 // NONMATCHING: RALLYTROPHY 0x4ba830
