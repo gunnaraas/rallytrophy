@@ -1,6 +1,7 @@
 // Collision model constructor (0x419f30): filters triangles of a source mesh, welds vertices, builds the edge table.
 #include <stdexcept>
 #include <math.h>
+#include <string.h>
 #include "unk_419f00.h"
 #include "unk_419f30.h"
 #include "unk_414330.h"
@@ -23,8 +24,14 @@ struct ColTriRaw {
 };
 struct EdgeEnt { int lo, hi, id; };
 
+// Local element types with user ctor+dtor so new[] goes through the EH vector-ctor helper.
+struct LV { int pad; float x, y, z; LV() {} ~LV() {} };
+struct LT { char pad[0x40]; LT() {} ~LT() {} };
+struct LL { float x, y, z; LL() {} ~LL() {} };
+
 // NONMATCHING: RALLYTROPHY 0x419f30
 // reason: logic complete; original uses an ebp frame and 2386 vs 2510 bytes (register allocation differs); throw type/ctor arity (orig takes 1 stack arg) unverified
+// Tried 2026-10-31: memset zeroing, LV/LT/LL vector-ctor new[], volatile reload of the mesh param (VM), per-iteration verts reload, size CSE (630->591 insns); still differs: original keeps 0 in esi, frame 0x74 vs ours 0x80, and the tri-filter keeps p2.y/z in stack temps; Vec3-copy and EH-state variants all landed worse.
 ColModel::ColModel(void* meshp, int)
 {
     ColSrcMesh* mesh = (ColSrcMesh*)meshp;
@@ -32,29 +39,35 @@ ColModel::ColModel(void* meshp, int)
     if (mesh->nVerts == 0 || mesh->nTris == 0) {
         throw std::logic_error("missing collision model");
     }
-    int srcV = mesh->nVerts;
     int srcT = mesh->nTris;
+    ColSrcMesh* volatile* vmp = (ColSrcMesh* volatile*)&meshp;
+#define VM (*vmp)
     pad24 = 1;
     nVerts = 0;
     nTris = 0;
-    int* remap = new int[srcV];
+    int nbv = VM->nVerts * 4;
+    int* remap = (int*)operator new(nbv);
     int* triOk = new int[srcT];
     int i;
-    for (i = 0; i < srcV; i++) remap[i] = 0;
-    for (i = 0; i < srcT; i++) triOk[i] = 0;
-    ColSrcTri* st = mesh->tris;
-    float* sv = mesh->verts;
+    memset(remap, 0, nbv);
+    memset(triOk, 0, srcT * 4);
+    ColSrcTri* st = VM->tris;
     for (i = 0; i < srcT; i++) {
         if (st[i].obj->kind < 0x11) {
-            S414Vec3* p1 = (S414Vec3*)(sv + st[i].a * 3);
-            S414Vec3* p2 = (S414Vec3*)(sv + st[i].b * 3);
-            S414Vec3* p3 = (S414Vec3*)(sv + st[i].c * 3);
-            float dy = p2->y - p1->y, dz = p2->z - p1->z;
-            if (DAT_004e134c < dy * dy + dz * dz + (p2->x - p1->x) * (p2->x - p1->x)) {
-                dy = p3->y - p2->y; dz = p3->z - p2->z;
-                if (DAT_004e134c < dy * dy + dz * dz + (p3->x - p2->x) * (p3->x - p2->x)) {
-                    dy = p1->y - p3->y; dz = p1->z - p3->z;
-                    if (DAT_004e134c < dy * dy + dz * dz + (p1->x - p3->x) * (p1->x - p3->x)) {
+            int ia = st[i].a, ib = st[i].b, ic = st[i].c;
+            float* vb = VM->verts;
+            S414Vec3* p2 = (S414Vec3*)(vb + ib * 3);
+            S414Vec3* p1 = (S414Vec3*)(vb + ia * 3);
+            S414Vec3* p3 = (S414Vec3*)(vb + ic * 3);
+            float ey = p2->y, ez = p2->z;
+            float ex = p2->x - p1->x; ey -= p1->y; ez -= p1->z;
+            if (ey * ey + ez * ez + ex * ex > DAT_004e134c) {
+                ey = p3->y; ez = p3->z;
+                ex = p3->x - p2->x; ey -= p2->y; ez -= p2->z;
+                if (ey * ey + ez * ez + ex * ex > DAT_004e134c) {
+                    ey = p1->y; ez = p1->z;
+                    ex = p1->x - p3->x; ey -= p3->y; ez -= p3->z;
+                    if (ey * ey + ez * ez + ex * ex > DAT_004e134c) {
                         nTris++;
                         triOk[i] = 1;
                         remap[st[i].a] = 1;
@@ -66,20 +79,20 @@ ColModel::ColModel(void* meshp, int)
         }
     }
     int next = 1;
-    for (i = 0; i < srcV; i++) {
+    for (i = 0; i < VM->nVerts; i++) {
         if (remap[i] != 0) {
             remap[i] = next++;
             nVerts++;
         }
     }
-    verts = new ColVert[nVerts];
-    wverts = new ColVert[nVerts];
-    tris = new ColTri[nTris];
-    centers = new ColLocal[nTris];
-    for (i = 0; i < srcV; i++) {
+    ColVert* V = (ColVert*)new LV[nVerts]; verts = V;
+    ColVert* W = (ColVert*)new LV[nVerts]; wverts = W;
+    ColTri* TT = (ColTri*)new LT[nTris]; tris = TT;
+    centers = (ColLocal*)new LL[nTris];
+    for (i = 0; i < VM->nVerts; i++) {
         int id = remap[i];
         if (id != 0) {
-            float* s = sv + i * 3;
+            float* s = VM->verts + i * 3;
             ColVert* lv = &verts[id - 1];
             lv->x = s[0];
             lv->y = s[1];
