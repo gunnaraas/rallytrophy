@@ -123,12 +123,17 @@ inline int FloatToInt(float f)
     return i;
 }
 
-inline float Dot(const Vec3& a, const Vec3& b)
+
+__forceinline void ScaleVec(Vec3& v, float k)
 {
-    return a.x * b.x + a.y * b.y + a.z * b.z;
+    v.x = v.x * k;
+    v.y = v.y * k;
+    v.z = v.z * k;
 }
 
+inline float Dot(const Vec3& a, const Vec3& b) { return (a.y * b.y + a.z * b.z) + a.x * b.x; }
 // NONMATCHING: RALLYTROPHY 0x46ea20
+// Tried 2026-10-30 night: one float t reused for facing/depth/z, float n copy of near/far bits, ScaleVec/Dot helpers (146->52 insns); still differs: v copy/EH-store schedule, normalise y/z fld order, r.x kept on FPU stack, quad p+r operand order, alpha volatile round trip; operand-order swaps in source had no effect.
 // Same algorithm and constants (1101 vs 1124 bytes; 614 differing bytes). The positive near-plane branch
 // emits the target's unordered-aware status-mask test; alpha storage, stack slots, and quad construction
 // still differ.
@@ -144,10 +149,11 @@ void CarLight::Render(RenderDevice* device, Camera* camera)
                           + v.z * camera->forward.z;
     if (forwardDistance > nearPlane) {
         float inv = 1.0f / (float)sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
-        v.x = v.x * inv;
+        v.x = inv * v.x;
         v.y = v.y * inv;
         v.z = v.z * inv;
-        float facing = Dot(Forward(), -v);
+        float t = Dot(-v, Forward());
+        float& facing = t;
         if (*(unsigned*)&facing & 0x80000000) {
             return;
         }
@@ -167,21 +173,22 @@ void CarLight::Render(RenderDevice* device, Camera* camera)
             return;
         }
         const float* m = device->GetViewMatrix();
-        float depth = position[0] * m[2] + position[1] * m[6] + position[2] * m[10] + m[14];
-        if (*(int*)&depth > camera->nearBits && *(int*)&depth < camera->farBits) {
-            float z = depth - size;
-            if (*(int*)&z <= camera->nearBits) {
-                *(int*)&z = camera->nearBits;
+        t = position[0] * m[2] + position[1] * m[6] + position[2] * m[10] + m[14];
+        float& depth = t;
+        float n = *(float*)&camera->nearBits;
+        if (*(int*)&depth > *(int*)&n && (n = *(float*)&camera->farBits, *(int*)&depth < *(int*)&n)) {
+            t = depth - size;
+            float& z = t;
+            n = *(float*)&camera->nearBits;
+            if (*(int*)&z <= *(int*)&n) {
+                z = n;
             }
             Vec3 r(Right());
-            Vec3 p(Position());
             Vec3 u(Up());
-            r.x = r.x * size;
-            r.y = r.y * size;
-            r.z = r.z * size;
-            u.x = u.x * size;
-            u.y = u.y * size;
-            u.z = u.z * size;
+            float s = size;
+            Vec3 p(Position());
+            ScaleVec(r, s);
+            ScaleVec(u, size);
             volatile float alphaScaled = a * 255.0f;
             int c = FloatToInt(alphaScaled) & 0xff;
             DWORD g = c | (c << 8);
