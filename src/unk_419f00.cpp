@@ -235,6 +235,7 @@ void ColModel::BuildTree(int minTris)
 // Volatile `o` plus the local alias moves the flag store ahead of the owner load and reproduces the target's EAX/LEA
 // owner+0x124 setup (23→22 differences). Only the EH-state zero remains scheduled before, rather than after, that setup.
 // Tried 2026-10-30 night: init-list vs body flag=0, local/volatile owner, model() init, split new, At via ColMeshList*; body flag=0 puts the EH-zero correctly but sinks flag store below it, init-list/volatile keep flag first but hoist EH-zero above flag store (1 insn either way).
+// Tried 2026-10-31 re-pass (also applies to 0x41b8c0): ColPtrBase()/ColPtr() inline ctors, model() in init list, volatile/non-volatile owner and this, ColMeshList* local, volatile flag store, dummy int param copies, permute -r 40 (no MATCH, best 1 insn); EH state-0 store always lands before the flag store, original sinks it to just before the At call.
 // SYMBOL: ??0ColHolder@@QAE@PAUColOwner@@H@Z
 ColHolder::ColHolder(ColOwner* volatile o, int x) : flag(0)
 {
