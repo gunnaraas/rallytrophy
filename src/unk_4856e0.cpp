@@ -1694,9 +1694,7 @@ extern DWORD DAT_00508bf0;             // standings colour of the local player
 extern int DAT_00501334;
 extern int DAT_00501454;               // race option: shifts the standings table
 
-// NONMATCHING: RALLYTROPHY 0x487560
-// 566-568 vs 572 bytes: same code, but the original keeps this in ebx and the entry's player in edi
-// (this build swaps them); register assignment did not change over ~10 source forms.
+// FUNCTION: RALLYTROPHY 0x487560
 // Draws the standings table: rank, player name and time per line.
 void RaceMode::FUN_00487560()
 {
@@ -1735,8 +1733,11 @@ void RaceMode::FUN_00487560()
         }
         text->scaleX = DAT_0056aea8 * scale;
         text->Printf(DAT_0056b0ac, xName, y, player->name);
-        text->scaleX = DAT_0056aea8 * 0.65f;
-        text->Printf(DAT_0056b0ac, xTime - text->GetWidth(m_entries[i].time, 0), y, m_entries[i].time);
+        float sx = DAT_0056aea8 * 0.65f;
+        text->scaleX = sx;
+        char* t = m_entries[i].time;
+        float tw = text->GetWidth(t, 0);
+        text->Printf(DAT_0056b0ac, xTime - tw, y, t);
         y += step;
     }
     text->SetScale(DAT_0056aea8, DAT_0056aeac);
