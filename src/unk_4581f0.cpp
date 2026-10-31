@@ -114,6 +114,7 @@ inline void Extend(const Vec3& e, Vec3& mn, Vec3& mx)
 // NONMATCHING: RALLYTROPHY 0x4581f0
 // 931 vs 923 bytes. Logic and EH state order (lo, hi, ax, ay, az, mn, mx, h, sphere) match; the frame layout (h sits above ay in
 // the original) and the sign-test code (original loads the edge component on the FPU before the test) do not.
+// Tried 2026-10-30 night: Extend rewritten as e+mn, local sign words, ptr-select, pre-branch sums, volatile mn/sign (none closer); ay/az sign tests still use test [mem],eax + fld mn/fadd e where the original does mov ecx,[e]; fld e; test; fadd mn, and the frame layout (h above ay) still differs.
 // original: FUN_004581f0
 void Car::FUN_004581f0()
 {
