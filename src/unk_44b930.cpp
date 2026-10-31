@@ -340,6 +340,7 @@ void ReplayMenu::BuildRects()
 // Identical size and instruction mix; only the register for the rally index in the "v -= table[rally]" step differs
 // (original edx with the Game load after the multiply, mine esi with the Game load hoisted; 13 bytes).
 // Named offsets, factored multiplication, an inline rally accessor, and a volatile Game* all emit worse or unchanged code.
+// Tried 2026-10-30 night: rally in a local, offset local, reordered sum, int* base, records[k].rally, permute.py -r 20; all stay at 4 insns (esi reused for rally, Game load hoisted above the multiply; original keeps rec in esi and uses edx).
 // original: FUN_0044c580
 void ReplayMenu::DrawField(int k)
 {
