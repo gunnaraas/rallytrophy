@@ -1483,6 +1483,7 @@ void Car::FUN_0045b900(int dt)
 // the radius-sum FPU stack, and post-collision centre-of-mass update order. Evidence: ev_c92c59602c67fd58248c61d5b8be6532014a74b970e4fb2582dd1e42d5e74d32.
 // One physics step of dt seconds: gravity, aerodynamic drag and downforce, suspension, brakes, drivetrain, tyre
 // forces, rigid body integration and the collision with the stage (restoring the pose when the body hit).
+// Tried 2026-10-31: 24 variants (PassFloat removal/order, volatile posp/rotp, gravity local, radius-sum helpers, Vec3 local order/vel field copy, const-ref f, centre volatile stores); best is field-wise vel copy plus wp declared with wp2 (270->257 insns); EH states, radius-sum FPU stack and Xform temp slots still differ.
 void Car::PhysicsStep(float dt)
 {
     W5_Body* b = V->body;
@@ -1515,7 +1516,9 @@ void Car::PhysicsStep(float dt)
             force += gravity * 0.5f;
         }
     }
-    Vec3 vel = *(Vec3*)b->velocity;
+    Vec3 wp;
+    Vec3 vel;
+    vel.x = b->velocity[0]; vel.y = b->velocity[1]; vel.z = b->velocity[2];
     Vec3 wp2;
     float speed2 = vel.y * vel.y + vel.z * vel.z + vel.x * vel.x;
     float e;
@@ -1525,7 +1528,6 @@ void Car::PhysicsStep(float dt)
         e = (float)exp(s * s * -3.0f);
     }
     {
-        Vec3 wp;
         W5_Xform((const float*)&V->dragPoint, rotp, (float*)&wp, (const float*)posp);
         Vec3 drag = *(Vec3*)&b->rot[4];
         float k = -(e * V->dragScale * speed2);
