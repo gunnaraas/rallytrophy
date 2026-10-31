@@ -1441,6 +1441,7 @@ void ServiceMenu::BuildRects()
 // target's separate tests, but the function remains NONMATCHING. The original loads colour globals into eax where
 // mine picks edx. The status registers now match roles (DAT_00501464 in eax / DAT_00501454 in ecx), but the target
 // loads them in the opposite order and earlier relative to the scale-field stores.
+// Tried 2026-10-30 night: ~30 variants (store orders, locals for title args, volatile colour, guard blocks reordered/merged); best is guard order D458, D454, D464 (65->63 insns); still differs: color/device register choice in the title+rally block and prologue load order of D464/D454 (target eax then ecx), 1016 vs 983 bytes.
 // original: FUN_0044b510 (vtable slot 3, Draw; the jump table 0x44b8e8 is its switch)
 void ServiceMenu::Slot3(int skipPresent)
 {
@@ -1466,19 +1467,19 @@ void ServiceMenu::Slot3(int skipPresent)
             if (DAT_00501458 && !DAT_00501454 && (i == 1 || i == 2)) {
                 continue;
             }
-            if (DAT_00501464) {
-                if (i == 3) {
-                    continue;
-                }
-                if ((DAT_00501464 == 3 || DAT_00501464 == 2) && i == 2) {
-                    continue;
-                }
-            }
             if (DAT_00501454) {
                 if (i == 3) {
                     continue;
                 }
                 if (i == 2 && !DAT_0050145c) {
+                    continue;
+                }
+            }
+            if (DAT_00501464) {
+                if (i == 3) {
+                    continue;
+                }
+                if ((DAT_00501464 == 3 || DAT_00501464 == 2) && i == 2) {
                     continue;
                 }
             }
