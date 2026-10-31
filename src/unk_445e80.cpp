@@ -340,6 +340,7 @@ void ServiceMenu::UnloadTextures()
 // 2806 vs 2806 bytes; 65 differing bytes. The code and every std::string inline/out-of-line decision match; left: the
 // loop prologue schedule (the original keeps the induction start in eax, mine in esi) and the frame slots of the
 // double d / float f temporaries (original -0x1c/-0x14 above the 5-byte text array at -0x24, mine 8 bytes lower).
+// Tried 2026-10-30 night: ~30 variants (decl order of d/f/text/whole/tenth, function-scope vs loop-scope, text[6]/[8], struct text, hoisting text init); slot order never moved (mine d,f,text low-to-high vs original text,d,f) and the eax-vs-esi stageNo+1 prologue is untouched.
 // original: FUN_004470a0 (thiscall, ret 0xc; info.ini loader: per-stage strings)
 void ServiceMenu::Init(int rallyNo, int stageNo, int count)
 {
