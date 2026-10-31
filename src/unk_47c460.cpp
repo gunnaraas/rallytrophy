@@ -399,27 +399,29 @@ void CarParticles::Render(RenderDevice* device, Camera* camera)
 // failure test as `threshold <= randomValue`, reproduces the target's FXCH/FCOMPP compare pair.
 // Stack homes, compare operand/order flags, and the delayed `push edi` still differ; see the log.
 // Tried 2026-10-30 night: sibling E/D shape (named float rr, `!(rr < chance*rate)`) 26->23; chance/slip declaration order, single reused v, hoisted speed/lat, thr local, volatile j2: no gain. Still differs: chance lands in [ebp-0x10] (orig -0x14, shared temp -0x10) and push edi is early.
+// Tried 2026-10-31 re-pass: ONE shared float t (declared before chance, assigned after) for slip/speed/lat fixes stack slots and fstp/fld: 23->1 insns; only `push edi` still lands 3 insns early; nx pool pop, volatile on head/local stores, int-temp copies, permute -r 40 all no better.
 // Spawn core A: emits a particle with probability from the slips and speed.
 Particle* CarParticles::SpawnCoreA(float rate)
 {
     static float kSlip = 1.0f / (SLIP_A_HI - SLIP_A_LO);
     static float kSpeed = 1.0f / (SPEED_A_HI - SPEED_A_LO);
     static float kSlip2 = 1.0f / (SLIP2_A_HI - SLIP2_A_LO);
+    float t;
     float chance = 0.0f;
-    float slip = (float)fabs(PCAR->slipLong);
-    if (slip < SLIP_A_HI) {
-        if (slip > SLIP_A_LO) {
-            chance = (slip - SLIP_A_LO) * SCALE_A * kSlip;
+    t = (float)fabs(PCAR->slipLong);
+    if (t < SLIP_A_HI) {
+        if (t > SLIP_A_LO) {
+            chance = (t - SLIP_A_LO) * SCALE_A * kSlip;
         }
-        float speed = BODY_VELOCITY.Length();
-        if (speed < SPEED_A_HI) {
-            if (speed > SPEED_A_LO) {
-                chance += (speed - SPEED_A_LO) * SCALE_A * kSpeed;
+        t = BODY_VELOCITY.Length();
+        if (t < SPEED_A_HI) {
+            if (t > SPEED_A_LO) {
+                chance += (t - SPEED_A_LO) * SCALE_A * kSpeed;
             }
-            float lat = (float)fabs(PCAR->slipLat);
-            if (lat < SLIP2_A_HI) {
-                if (lat > SLIP2_A_LO) {
-                    chance += (lat - SLIP2_A_LO) * SCALE_A * kSlip2;
+            t = (float)fabs(PCAR->slipLat);
+            if (t < SLIP2_A_HI) {
+                if (t > SLIP2_A_LO) {
+                    chance += (t - SLIP2_A_LO) * SCALE_A * kSlip2;
                 }
             } else {
                 chance = SCALE_A;
