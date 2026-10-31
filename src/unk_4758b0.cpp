@@ -162,6 +162,7 @@ void Sky::AddLayer(const char* path, TextureLoader* loader, float p0, float p1, 
 }
 
 extern const float kHalfPi; // 0x4e1b28
+extern const float kEight; // 0x4e2048 (8.0f)
 extern int DAT_00501428;
 extern int DAT_0050142c;
 
@@ -180,8 +181,8 @@ void Sky::Render(SkyDevice* device, Camera* camera)
     }
     device->ToScreen(&clip);
     int iw = device->width;
-    int ih = device->height;
     float w = (float)iw;
+    int ih = device->height;
     float h = (float)ih;
     float k = kHalfPi / (camera->fov) * w;
     float y = ((SkyDevice*)DAT_0056b0ac)->GetAspect() * w;
@@ -218,6 +219,7 @@ void Sky::Render(SkyDevice* device, Camera* camera)
 // 1437 vs 1441 bytes; call sequence, FPU algorithm and all 18 EH states match. Remaining: camera/this register swap (ebx/esi),
 // the original keeps inv = 1/len in the dead device argument slot, a different scheduling of the argument pushes around the four
 // vertex expressions, and about 110 of 441 instructions differ by order or stack slot (stack slots of P/A/B/vw/vh).
+// Tried 2026-10-30 night: ~40 variants; iw/ih reorder (int iw, float w, int ih, float h) and kEight global fixed registers 179->116; still differs: Length() sum order (z,x,y emitted vs y,x,z), Vec3 temp/quad stack slots, 12 bytes short, EH-state store placement in the quad block.
 void Sky::Update(SkyDevice* device, Camera* camera, SkyWorld* world, float dt)
 {
     int hasLens = camera->hasLens;
@@ -234,15 +236,15 @@ void Sky::Update(SkyDevice* device, Camera* camera, SkyWorld* world, float dt)
         return;
     }
     Vec3 n(clip.x, clip.y, clip.w);
-    float len = n.Length();
+    float len = (float)sqrt(n.y * n.y + n.x * n.x + n.z * n.z);
     float inv = 1.0f / len;
     n.x = inv * n.x;
     n.y = n.y * inv;
     n.z = inv * n.z;
     device->ToScreen(&clip);
     int iw = device->width;
-    int ih = device->height;
     float w = (float)iw;
+    int ih = device->height;
     float h = (float)ih;
     Vec2 half;
     half.x = w * 0.5f;
@@ -259,7 +261,7 @@ void Sky::Update(SkyDevice* device, Camera* camera, SkyWorld* world, float dt)
     float hit = TraceRay(world, &q, &r);
     float t = 1.0f - hit;
     if (hasLens && t < prev) {
-        float lim = prev - 8.0f * dt;
+        float lim = prev - kEight * dt;
         if (t < lim) {
             t = lim;
         }
