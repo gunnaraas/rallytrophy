@@ -1888,6 +1888,7 @@ void RaceMode::FUN_00488690()
 // NONMATCHING: RALLYTROPHY 0x4890e0
 // Same size, 8 bytes differ: in the non-host branch the original emits `add esp,4` (cdecl pop after FUN_00405380)
 // before `mov edi,eax` / the unk40 load; this build schedules it after.
+// Tried 2026-10-30 night: ternary/!=0/|=/comma/local-pointer/reordered forms of the unk40 test; all give the same 1-insn diff (or worse), the cdecl pop placement is not affected by expression shape.
 // Draws the pre-race waiting screen: a status line in the middle (waiting for
 // players / start) and the player list. Returns whether the start can proceed.
 int RaceMode::FUN_004890e0(int unused)
