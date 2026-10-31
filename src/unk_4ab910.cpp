@@ -232,16 +232,17 @@ static __forceinline void ClampChannel(float& v)
 }
 // NONMATCHING: RALLYTROPHY 0x4ac920
 // Bilinear arithmetic is complete; x87 temporaries, clamp expansion and register allocation differ.
+// Tried 2026-10-30 night: byte-struct texels (PxQ), per-channel hi/lo clamp locals in the x loop, bpp branch flip, b ternary/else forms (260->140); j=ix+(ix<w-1) still sbb/neg vs original mov 1/jb/xor, sum order c3..c0 and stack slots still differ.
 void __fastcall FUN_004ac920(ImgW5* img, int edx, unsigned int width, unsigned int height, unsigned int format)
 {
+    struct PxQ { unsigned char b,g,r,a; };
     if (width==(unsigned int)img->width && height==(unsigned int)img->height) return;
     unsigned int oldFormat=img->format;
     unsigned int* src;
-    if (img->bytesPerPixel==4) src=(unsigned int*)img->pixels;
-    else {
+    if (img->bytesPerPixel!=4) {
         src=FUN_004ab910(img,edx);
         PoolFree(img->pixels); PoolFree(img->palette);
-    }
+    } else src=(unsigned int*)img->pixels;
     img->format=7;
     unsigned int* dst=(unsigned int*)PoolAlloc(width*height*4);
     img->pixels=(unsigned char*)dst; img->palette=0;
@@ -249,22 +250,23 @@ void __fastcall FUN_004ac920(ImgW5* img, int edx, unsigned int width, unsigned i
         unsigned int fy=((y<<16)/(height-1))*((unsigned int)img->height-1);
         unsigned int iy=fy>>16;
         unsigned int* a=src+img->width*iy;
-        unsigned int* b=a;
-        if (iy<(unsigned int)img->height-1) b=a+img->width;
+        unsigned int* b;
+        if (iy>=(unsigned int)img->height-1) b=a; else b=a+img->width;
         float ty=(float)(fy&65535)*0.0000152587890625f;
         float sy=1.0f-ty;
         for (unsigned int x=0; x<width; ++x) {
+            float hi0=255.0f,lo0=0.0f,hi1=255.0f,lo1=0.0f,hi2=255.0f,lo2=0.0f,hi3=255.0f,lo3=0.0f;
             unsigned int fx=((x<<16)/(width-1))*((unsigned int)img->width-1);
             unsigned int ix=fx>>16;
-            unsigned int c0=a[ix], j=(ix<(unsigned int)img->width-1)+ix;
-            unsigned int c2=b[ix], c1=a[j], c3=b[j];
+            unsigned int j=(ix<(unsigned int)img->width-1)+ix;
+            PxQ c0=((PxQ*)a)[ix], c1=((PxQ*)a)[j], c2=((PxQ*)b)[ix], c3=((PxQ*)b)[j];
             float tx=(float)(fx&65535)*0.0000152587890625f;
             float w0=(1.0f-tx)*sy, w1=tx*sy, w2=(1.0f-tx)*ty, w3=tx*ty;
-            float blue=(float)(c0&255)*w0+(float)(c1&255)*w1+(float)(c2&255)*w2+(float)(c3&255)*w3+0.5f;
-            float green=(float)(c0>>8&255)*w0+(float)(c1>>8&255)*w1+(float)(c2>>8&255)*w2+(float)(c3>>8&255)*w3+0.5f;
-            float red=(float)(c0>>16&255)*w0+(float)(c1>>16&255)*w1+(float)(c2>>16&255)*w2+(float)(c3>>16&255)*w3+0.5f;
-            float alpha=(float)(c0>>24)*w0+(float)(c1>>24)*w1+(float)(c2>>24)*w2+(float)(c3>>24)*w3+0.5f;
-            ClampChannel(blue); ClampChannel(green); ClampChannel(red); ClampChannel(alpha);
+            float blue=(float)c0.b*w0+(float)c1.b*w1+(float)c2.b*w2+(float)c3.b*w3+0.5f;
+            float green=(float)c0.g*w0+(float)c1.g*w1+(float)c2.g*w2+(float)c3.g*w3+0.5f;
+            float red=(float)c0.r*w0+(float)c1.r*w1+(float)c2.r*w2+(float)c3.r*w3+0.5f;
+            float alpha=(float)c0.a*w0+(float)c1.a*w1+(float)c2.a*w2+(float)c3.a*w3+0.5f;
+            if (*(int*)&blue<*(int*)&lo0) blue=0.0f; else if (*(int*)&blue>*(int*)&hi0) blue=255.0f; if (*(int*)&green<*(int*)&lo1) green=0.0f; else if (*(int*)&green>*(int*)&hi1) green=255.0f; if (*(int*)&red<*(int*)&lo2) red=0.0f; else if (*(int*)&red>*(int*)&hi2) red=255.0f; if (*(int*)&alpha<*(int*)&lo3) alpha=0.0f; else if (*(int*)&alpha>*(int*)&hi3) alpha=255.0f;
             int ib=RoundF(blue), ig=RoundF(green), ir=RoundF(red), ia=RoundF(alpha);
             *dst++=(((ia<<8|ir)<<8|ig)<<8)|ib;
         }
