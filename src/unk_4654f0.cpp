@@ -167,6 +167,7 @@ inline float ByteToUnitF(int b)
 // Semantics complete; 917 vs 926 bytes. Multiplying the spring length by the parenthesized normalized compression
 // byte matches the target's x87 multiply order. Open: scheduling of body copies (the original loads Car+0x24 late)
 // and the hit-array induction pointer (original: Car+0x1e0c + n*12).
+// Tried 2026-10-30 night: handbrake/steerSet/steer/gear/rpm volatile barriers, hn=&hitNormal[0][2] induction pointer (hn-2/hn+18/hn+30 args; grows to 939 bytes with extra spill slots); no gain over 74 insns differ, original also stores tyre in a local and tests the call result with the else arm first.
 void Car::FUN_004658a0(PlayerSample* packet)
 {
     CarStateData* state = (CarStateData*)packet;
