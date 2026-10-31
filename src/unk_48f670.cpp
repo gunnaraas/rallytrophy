@@ -528,6 +528,7 @@ void GhostRace::Draw()
 // NONMATCHING: RALLYTROPHY 0x48fb10
 // Same size (471). Only the rank search loop differs: the original emits `xor edx,edx` for its counter after the
 // `count > 0` test and `inc edx` after `add edi,4`; this build hoists the xor and swaps the two increments.
+// Tried 2026-10-30 night: while/do-while/if-wrapped/unsigned/pointer/global-bound variants of the rank loop; all stay 2 insns off (xor edx hoisted above test, inc order swapped).
 // Rebuilds the standings when the local player passes a split: the leader
 // and the players around the local one, with their time differences.
 void GhostRace::FUN_0048fb10()
