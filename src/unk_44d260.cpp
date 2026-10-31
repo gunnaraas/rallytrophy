@@ -542,6 +542,7 @@ bool SlotStore::LoadRelay()
 // NONMATCHING: RALLYTROPHY 0x44e3e0
 // The original copies each per-player 10-dword block through a stack temporary (frame 0x3c); VC6 elides the temporary
 // here (no source form found), so the frame is 0x28 smaller; the rest of the body is the same shape.
+// Tried 2026-10-30 night: 14 variants (local/block-scope/volatile-pointer stats copies, struct assign vs memcpy, size-sum load orders); VC6 still reads the 2nd copy from the player block (not the stack temp) and spills the buffer differently, so 51 insns remain.
 void SlotStore::SaveRelay(char level, char advance)
 {
     int magic0 = 0x63777472;
