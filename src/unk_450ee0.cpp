@@ -214,6 +214,7 @@ int SoundMenu::Run(MenuGame* game, NetRace* net_)
 // (1, 1) object's stores out of the loop (the original keeps them inside), puts it and the GetScale copy in swapped
 // frame slots (0x44/0x4c), and the scaled constants come out `fld mem; fmul const` instead of `fld const; fmul mem`.
 // Bounded objcmp: 1968-byte COFF span vs 1915-byte inventory, 402 differences. Probes: docs/analysis/sound-menu-frame.md.
+// Tried 2026-10-30 night: 25 variants (function-scope/early HudPoint one, float[2]/int[2]/double/volatile one, partial volatile stores, one.y-first, scale const-ref/split/volatile, title arg order/temps); int[2] one gave 42 insns but only by const-folding a store (different structure), rest 59+; still differs: scale/one stack slots swapped, unit stores hoisted out of loop, fld/fmul operand order.
 int SoundMenu::Frame()
 {
     int done = 0;
