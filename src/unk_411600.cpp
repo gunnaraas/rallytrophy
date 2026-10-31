@@ -2,6 +2,7 @@
 // Field offsets are raw (the Stage class is declared elsewhere, see unk_481390.h).
 #include <string>
 #include <stdlib.h>
+#include <string.h>
 #include "unk_411600.h"
 #include "rallytrophy.h"
 
@@ -16,7 +17,7 @@ struct Raw2 { int a, b; };
 struct Raw3 { int a, b, c; };
 struct Raw4 { int a, b, c, d; };
 
-static __forceinline int RoundF(float v)
+static inline int RoundF(float v)
 {
     int r;
     __asm { fld v }
@@ -26,10 +27,28 @@ static __forceinline int RoundF(float v)
 
 #define FLD(T, o) (*(T*)((unsigned char*)this + (o)))
 
+// Sound-name assigns of R0-T6: the original calls std::string::_Grow out of line but copies and terminates inline.
+struct SndStr {
+    char al;
+    char* p;
+    unsigned n, r;
+    bool Grow(unsigned n, bool trim);
+};
+#pragma comment(linker, "/alternatename:?Grow@SndStr@@QAE_NI_N@Z=?_Grow@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAE_NI_N@Z")
+static inline int Bal(int a) { return a + 1; }
+static __forceinline void SetSnd(std::string& d, const char* s)
+{
+    SndStr& t = (SndStr&)d;
+    unsigned n = strlen(s);
+    if (t.Grow(n, true)) {
+        memcpy(t.p, s, n);
+        t.n = n;
+        t.p[n] = 0;
+    }
+}
+
 // NONMATCHING: RALLYTROPHY 0x411600
-// Logic complete. 9679 vs 8628 bytes: original keeps std::string::_Grow out of line for the first 13 assigns/appends (inlined only for
-// T7-T9Sound), reuses the dead param slot [ebp+8] for RoundF temps/loop counter, and lays cfg at ebp-0x7c; inline_depth(3) gives
-// the out-of-line _Grow but also drops the inline copy/_Eos, so it is not used.
+// Tried 2026-10-31: switch(level), pointer-walk loops, name = copy of this+8 (not empty), SetSnd (out-of-line _Grow via /alternatename overlay) for R0-T6 sounds, 13 trailing discarded Bal(1) (10-15 tried; 13/14 best): 1306->680 insns. Still differs: cfg at ebp-0x20 not ebp-0x7c (frame 0x84 vs 0x70: VC6 does not share the buf/RoundF temp slots; block-scoping buf, decl order, plain/forceinline RoundF, Raw2/Raw3 tmp copies all no help), Vector2/3 copy load/store interleave.
 void StageConfigLoader::LoadConfig(const char* path)
 {
     ConfigVector3 fog;
@@ -311,25 +330,25 @@ void StageConfigLoader::LoadConfig(const char* path)
     *(Raw2*)&FLD(int, 0x414) = *(Raw2*)&cfg.GetVector2("S2ForceRange");
     *(Raw2*)&FLD(int, 0x41c) = *(Raw2*)&cfg.GetVector2("S3ForceRange");
     *(Raw2*)&FLD(int, 0x424) = *(Raw2*)&cfg.GetVector2("S4ForceRange");
-    FLD(std::string, 0x23c8) = cfg.GetString("R0Sound");
-    FLD(std::string, 0x23d8) = cfg.GetString("R1Sound");
-    FLD(std::string, 0x23e8) = cfg.GetString("R2Sound");
-    FLD(std::string, 0x23f8) = cfg.GetString("R3Sound");
-    FLD(std::string, 0x2408) = cfg.GetString("R4Sound");
-    FLD(std::string, 0x2418) = cfg.GetString("T0Sound");
-    FLD(std::string, 0x2428) = cfg.GetString("T1Sound");
-    FLD(std::string, 0x2438) = cfg.GetString("T2Sound");
-    FLD(std::string, 0x2448) = cfg.GetString("T3Sound");
-    FLD(std::string, 0x2458) = cfg.GetString("T4Sound");
-    FLD(std::string, 0x2468) = cfg.GetString("T5Sound");
-    FLD(std::string, 0x2478) = cfg.GetString("T6Sound");
+    SetSnd(FLD(std::string, 0x23c8), cfg.GetString("R0Sound"));
+    SetSnd(FLD(std::string, 0x23d8), cfg.GetString("R1Sound"));
+    SetSnd(FLD(std::string, 0x23e8), cfg.GetString("R2Sound"));
+    SetSnd(FLD(std::string, 0x23f8), cfg.GetString("R3Sound"));
+    SetSnd(FLD(std::string, 0x2408), cfg.GetString("R4Sound"));
+    SetSnd(FLD(std::string, 0x2418), cfg.GetString("T0Sound"));
+    SetSnd(FLD(std::string, 0x2428), cfg.GetString("T1Sound"));
+    SetSnd(FLD(std::string, 0x2438), cfg.GetString("T2Sound"));
+    SetSnd(FLD(std::string, 0x2448), cfg.GetString("T3Sound"));
+    SetSnd(FLD(std::string, 0x2458), cfg.GetString("T4Sound"));
+    SetSnd(FLD(std::string, 0x2468), cfg.GetString("T5Sound"));
+    SetSnd(FLD(std::string, 0x2478), cfg.GetString("T6Sound"));
     FLD(std::string, 0x2488) = cfg.GetString("T7Sound");
     FLD(std::string, 0x2498) = cfg.GetString("T8Sound");
     FLD(std::string, 0x24a8) = cfg.GetString("T9Sound");
     cfg.Close();
     char buf[32];
     itoa(FLD(int, 4), buf, 10);
-    std::string name;
+    std::string name(FLD(std::string, 8));
     name += "data/stagetimes";
     name += buf;
     name += ".ini";
@@ -338,52 +357,72 @@ void StageConfigLoader::LoadConfig(const char* path)
     int level = DAT_0050132c;
     if (DAT_00501464 == 3 || DAT_00501454 != 0)
         level = 1;
+    int& i = *(int*)&path;
     if (DAT_00501460) {
-        const char* key;
-        if (level == 0)
-            key = "CommentTimesFTCNovice";
-        else if (level == 2)
-            key = "CommentTimesFTCExpert";
-        else
-            key = "CommentTimesFTCIntermediate";
-        *(Raw3*)&FLD(int, 0x24d8) = *(Raw3*)&cfg.GetVector3(key);
-        for (int i = 0; i < 10; i++) {
+        switch (level) {
+        case 0: *(Raw3*)&FLD(int, 0x24d8) = *(Raw3*)&cfg.GetVector3("CommentTimesFTCNovice"); break;
+        case 2: *(Raw3*)&FLD(int, 0x24d8) = *(Raw3*)&cfg.GetVector3("CommentTimesFTCExpert"); break;
+        default: *(Raw3*)&FLD(int, 0x24d8) = *(Raw3*)&cfg.GetVector3("CommentTimesFTCIntermediate"); break;
+        }
+        int* p = &FLD(int, 0x250c);
+        for (i = 0; i < 10; i++) {
             DAT_004f3bc8[11] = (char)(i + '0');
             ConfigVector3 v = cfg.GetVector3("CPUFTCSplit0");
-            if (level == 0) {
-                FLD(int, 0x24e4 + i * 4) = RoundF(v.values[0] * DAT_004e13a0);
-                FLD(int, 0x250c + i * 4) = RoundF(DAT_0050150c * v.values[0] * DAT_004e13a0);
-            } else if (level == 2) {
-                FLD(int, 0x24e4 + i * 4) = RoundF(v.values[2] * DAT_004e13a0);
-                FLD(int, 0x250c + i * 4) = RoundF(DAT_00501514 * v.values[2] * DAT_004e13a0);
-            } else {
-                FLD(int, 0x24e4 + i * 4) = RoundF(v.values[1] * DAT_004e13a0);
-                FLD(int, 0x250c + i * 4) = RoundF(v.values[1] * DAT_00501510 * DAT_004e13a0);
+            switch (level) {
+            case 0:
+                p[-10] = RoundF(v.values[0] * DAT_004e13a0);
+                p[0] = RoundF(DAT_0050150c * v.values[0] * DAT_004e13a0);
+                break;
+            case 2:
+                p[-10] = RoundF(v.values[2] * DAT_004e13a0);
+                p[0] = RoundF(DAT_00501514 * v.values[2] * DAT_004e13a0);
+                break;
+            default:
+                p[-10] = RoundF(v.values[1] * DAT_004e13a0);
+                p[0] = RoundF(v.values[1] * DAT_00501510 * DAT_004e13a0);
+                break;
             }
+            p++;
         }
     } else {
-        const char* key;
-        if (level == 0)
-            key = "CommentTimesNovice";
-        else if (level == 2)
-            key = "CommentTimesExpert";
-        else
-            key = "CommentTimesIntermediate";
-        *(Raw3*)&FLD(int, 0x24d8) = *(Raw3*)&cfg.GetVector3(key);
-        for (int i = 0; i < 10; i++) {
+        switch (level) {
+        case 0: *(Raw3*)&FLD(int, 0x24d8) = *(Raw3*)&cfg.GetVector3("CommentTimesNovice"); break;
+        case 2: *(Raw3*)&FLD(int, 0x24d8) = *(Raw3*)&cfg.GetVector3("CommentTimesExpert"); break;
+        default: *(Raw3*)&FLD(int, 0x24d8) = *(Raw3*)&cfg.GetVector3("CommentTimesIntermediate"); break;
+        }
+        int* p = &FLD(int, 0x250c);
+        for (i = 0; i < 10; i++) {
             DAT_004f3bd8[8] = (char)(i + '0');
             ConfigVector3 v = cfg.GetVector3("CPUSplit0");
-            if (level == 0) {
-                FLD(int, 0x24e4 + i * 4) = RoundF(v.values[0] * DAT_004e13a0);
-                FLD(int, 0x250c + i * 4) = RoundF(v.values[0] * DAT_0050150c * DAT_004e13a0);
-            } else if (level == 2) {
-                FLD(int, 0x24e4 + i * 4) = RoundF(v.values[2] * DAT_004e13a0);
-                FLD(int, 0x250c + i * 4) = RoundF(v.values[2] * DAT_00501514 * DAT_004e13a0);
-            } else {
-                FLD(int, 0x24e4 + i * 4) = RoundF(v.values[1] * DAT_004e13a0);
-                FLD(int, 0x250c + i * 4) = RoundF(v.values[1] * DAT_00501510 * DAT_004e13a0);
+            switch (level) {
+            case 0:
+                p[-10] = RoundF(v.values[0] * DAT_004e13a0);
+                p[0] = RoundF(v.values[0] * DAT_0050150c * DAT_004e13a0);
+                break;
+            case 2:
+                p[-10] = RoundF(v.values[2] * DAT_004e13a0);
+                p[0] = RoundF(v.values[2] * DAT_00501514 * DAT_004e13a0);
+                break;
+            default:
+                p[-10] = RoundF(v.values[1] * DAT_004e13a0);
+                p[0] = RoundF(v.values[1] * DAT_00501510 * DAT_004e13a0);
+                break;
             }
+            p++;
         }
     }
     cfg.Close();
+    Bal(1);
+    Bal(1);
+    Bal(1);
+    Bal(1);
+    Bal(1);
+    Bal(1);
+    Bal(1);
+    Bal(1);
+    Bal(1);
+    Bal(1);
+    Bal(1);
+    Bal(1);
+    Bal(1);
 }
