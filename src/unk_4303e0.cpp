@@ -134,6 +134,7 @@ extern "C" void __fastcall FUN_004adf50(void*);
 // State 0-2 share the audio/resource update calls. The target lays the shared block after case 0 so cases 1 and 2 jump
 // backward to it; VC6 places it after cases 1 and 2, changing the dispatch targets. Other small switch-order differences remain.
 // Tried 2026-10-30 night: case order permutations, goto-into-case-0 label, per-case inline tails, if-chain, post-switch tail; moving DAT_00501472=0 before FUN_004a4870 in cases 1/2 fixed store order (28->16 insns); still differs: VC6 always places the shared audio block after case 2, the original has it after case 0 with cases 1/2 jumping back.
+// Tried 2026-10-31 re-pass: 13 more variants (goto-to-shared-label in all 3 cases, if(0){label} block, for/do-while wrapper, case order 1,2,0, volatile state/this barrier before goto, end-of-loop label); all 16+ insns differ, VC6 always tail-merges the audio block after case 2 (last copy), never at case 0; stays 16 insns (over the permuter limit).
 void Game::FUN_004309d0() {
     Config config;
     config.Define(G9_GameIniKeys, 12);
