@@ -2160,6 +2160,7 @@ typedef void Inst_409260();
 // NONMATCHING: RALLYTROPHY 0x409390
 // Header-inline candidate: 372 bytes vs. the 357-byte target; its temporary cleanup EH-state stores differ.
 // Tried 2026-10-30 night: reparenthesised/std::string-wrapped/append-chain variants of the header base-init "File error: "+message+" "+filename (all equal or worse); original omits EH-state stores 7/6/9 around the three operator+ temp dtors and never stores them, built emits them (6 insns differ).
+// Tried 2026-10-31 re-pass: header-ctor variants (member init swap, body assign, right-assoc/left-paren concat, std::string wrap, NRV Msg() helper, dropping the FUN_00402c90 call) all equal or worse (9 diff lines baseline); permute.py -r 40 best stays 6 insns (EH stores 7/6/9 still emitted, 8 placed late).
 // SYMBOL: ??0file_error@@QAE@ABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@0@Z
 // file_error::file_error(filename, message)
 typedef void Inst_409390();
