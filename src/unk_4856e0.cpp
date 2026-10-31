@@ -1868,8 +1868,9 @@ void RaceMode::FUN_00487920()
 }
 
 // NONMATCHING: RALLYTROPHY 0x488690
-// 499 vs 484 bytes: the original's player-collection loop reuses the vector's begin pointer between the
-// size test and the element load and has a 0x1c frame; this build reloads begin and spills one more local.
+// 488 vs 484 bytes, 14 insns differ (was 56): the player-collection loop still loads the element into ebp and
+// re-adds the index (the original keeps the element in eax and the active flag in ebp).
+// Tried 2026-10-31: FUN_00405380 results into locals (fixed arg order), m_players[i] read twice (CSEs begin); int act / volatile / pointer-to-vector / counter-order / loop-var-hoist variants of the collect loop did not change the 14.
 // Builds the table of active players at 0x7b0 and draws "name: status" lines.
 void RaceMode::FUN_00488690()
 {
@@ -1885,9 +1886,8 @@ void RaceMode::FUN_00488690()
     Lock();
     RaceEntry* entry = m_entries;
     for (unsigned int i = 0; i < m_players.size(); i++) {
-        Player* player = m_players[i];
-        if (player->active) {
-            entry->player = player;
+        if (m_players[i]->active) {
+            entry->player = m_players[i];
             count++;
             entry++;
         }
@@ -1902,9 +1902,16 @@ void RaceMode::FUN_00488690()
             text->color = color.value;
             text->Printf(DAT_0056b0ac, x1, y, player->name);
             if (player->state == 4) {
-                text->Printf(DAT_0056b0ac, x2, y, "%s: %i %%", FUN_00405380(0x124), player->unk17ec);
+                const char* s = FUN_00405380(0x124);
+                text->Printf(DAT_0056b0ac, x2, y, "%s: %i %%", s, player->unk17ec);
             } else {
-                text->Print(DAT_0056b0ac, x2, y, FUN_00405380(player->state == 3 ? 0x125 : 0x130), 0, 1.0f, 1.0f);
+                const char* s;
+                if (player->state == 3) {
+                    s = FUN_00405380(0x125);
+                } else {
+                    s = FUN_00405380(0x130);
+                }
+                text->Print(DAT_0056b0ac, x2, y, s, 0, 1.0f, 1.0f);
             }
             y += step;
         }
