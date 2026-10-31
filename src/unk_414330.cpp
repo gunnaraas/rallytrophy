@@ -182,6 +182,7 @@ void S414List::RemoveNode(S414Node* n)
 #pragma comment(linker, "/alternatename:?Copy@StMsg@@QAEXI@Z=?_Copy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEXI@Z")
 
 // NONMATCHING: RALLYTROPHY 0x414550
+// Tried 2026-10-31: a replace-style rewrite (zero-fill after the grow) scored 105 insns but its copy path was not verified; the original has both a rep stos zero-fill of the inserted gap and a final rep movs copy from the source. Existing code kept. The original also reuses the `first`/`arg` parameter slots for pos/newLen.
 // The Stage caller uses this as a thiscall member on its string-layout message object.
 StMsg& StMsg::Format(char* first, char* last, const char* fmt, const char* arg)
 {
