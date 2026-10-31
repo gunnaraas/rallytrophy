@@ -426,6 +426,7 @@ public:
 // 3301 vs 3300 bytes; every string expansion, call and EH state matches. VC6 swaps ebx/ebp from 0x43133d on (`this` in
 // ebx, the original ebp), costing the bl store in .bik's _Eos(0), and the four line sprites' field stores don't interleave.
 // Tried 2026-10-30 night: ys/uiBuilt order, Style reordered/interleaved with Upload, Style via this->line* fields, chained field-major style stores, deferred field assignment; all 182 or worse (original pushes edi early and interleaves the four sprites' style stores field-major across eax/ebx/ebp/edi; no source shape reproduced it).
+// Tried 2026-10-31 second pass: 25 more variants (field-major FM macro/chained/reversed Style = 273 worse, if-wrapped body, volatile -1/self idiom early = worse, declared-first sprites, const locals); stuck at 182: original keeps `push edi` in the first block (we sink it past the new/null branch to the join), which shifts stack offsets by 4 and changes how VC6 interleaves the Style stores.
 // Builds the front-end once: background image, line sprites, cursor, the seven main-menu labels, the embedded
 // screens' Setup, and a random background video data/video/menu<1..11>.bik.
 void G3_Game::FUN_00430f60()
