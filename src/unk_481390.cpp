@@ -126,6 +126,7 @@ void NetRace::Slot4(int mode)
 }
 
 // NONMATCHING: RALLYTROPHY 0x481940
+// Tried 2026-10-30 night: if-not-unk48 else restructure of the first player loop (163->~104 insns, kept); volatile zero stores, split loop index, register hint, counter temps did not help. Still differs: original keeps `started` in ebp and the loop index in memory, ours keeps a cached zero in edi and the index in ebp.
 // 1235 vs 1240 bytes; logic complete. Register allocation differs: this
 // build keeps 0 in edi and the player index in ebp, the original keeps the
 // index in memory and `started` in ebp. Tried other forms of the frame
@@ -184,46 +185,46 @@ void NetRace::Update(int dt)
             if (camera->target != car) {
                 camera = 0;
             }
-            if (unk48) {
-                m_players[i]->unk4c = 0;
-                car->FUN_0045b2c0(camera, time, dt);
-                continue;
-            }
-            int frozen = unk4c;
-            if (m_players[i]->unk30) {
-                frozen = 1;
-            }
-            if (!car) {
-                continue;
-            }
-            if (!local) {
-                m_players[i]->FUN_004916a0(time);
-                if (time > 1000) {
-                    int age = time - m_players[i]->samples.time;
-                    if (m_host && DAT_00501324 && age > DAT_004e2424[DAT_00501324]) {
-                        AddUnk8c0((int)m_players[i]);
-                    }
-                    int ping = 0;
-                    if (age > 450) {
-                        ping = 2;
-                    } else if (age > 250) {
-                        ping = 1;
-                    }
-                    m_players[i]->ping = ping;
-                    int lag = 0;
-                    if (age > 500) {
-                        lag = 2;
-                    } else if (age > 300) {
-                        lag = 1;
-                    }
-                    m_players[i]->unk4c = lag;
-                    if (lag || (m_players[i]->unk50 & localBit)) {
-                        m_players[i]->FUN_00491110(1, time);
+            if (!unk48) {
+                int frozen = unk4c;
+                if (m_players[i]->unk30) {
+                    frozen = 1;
+                }
+                if (!car) {
+                    continue;
+                }
+                if (!local) {
+                    m_players[i]->FUN_004916a0(time);
+                    if (time > 1000) {
+                        int age = time - m_players[i]->samples.time;
+                        if (m_host && DAT_00501324 && age > DAT_004e2424[DAT_00501324]) {
+                            AddUnk8c0((int)m_players[i]);
+                        }
+                        int ping = 0;
+                        if (age > 450) {
+                            ping = 2;
+                        } else if (age > 250) {
+                            ping = 1;
+                        }
+                        m_players[i]->ping = ping;
+                        int lag = 0;
+                        if (age > 500) {
+                            lag = 2;
+                        } else if (age > 300) {
+                            lag = 1;
+                        }
+                        m_players[i]->unk4c = lag;
+                        if (lag || (m_players[i]->unk50 & localBit)) {
+                            m_players[i]->FUN_00491110(1, time);
+                        }
                     }
                 }
-            }
-            car->unk1334 = frozen;
-            if (m_players[i]->unk4c != 2) {
+                car->unk1334 = frozen;
+                if (m_players[i]->unk4c != 2) {
+                    car->FUN_0045b2c0(camera, time, dt);
+                }
+            } else {
+                m_players[i]->unk4c = 0;
                 car->FUN_0045b2c0(camera, time, dt);
             }
         }
