@@ -1661,6 +1661,7 @@ static inline int Bal(int a) { return a + 1; }
 // failure-path string code differs: the target calls _Tidy at 0x402700 and loads the concatenated string data pointer
 // directly into esi, while this candidate routes it through eax; (3) the target keeps mass in st(0) in MomentOfInertia.
 // Tried 2026-10-30 night: Scale3 by-value/inline muls, mass declaration order, wiper-tail LOAD vs COPY forms, inline_depth(0-3), PathString/TextOf throw form (as LoadTiresIni; shifts regalloc, 81 insns). 2026-10-31: trailing Bal(1) x2 discarded calls (as LoadTiresIni; at the start they do nothing) restore the out-of-line _Tidy call 29->23; wiper angle scaling through a Vec2* 23->18; still 18 insns differ: mass reloaded from stack per Scale3 axis instead of fld st(0) (15 forms tried), esi/eax order for the message pointer (c_str/TextOf forms), EH state 7 store before the SteeringSpeeds call instead of after (steer reuse/volatile no help), push 0 vs fcos and store order around hood sin, wiper1Angle COPY2 push placement.
+// Tried 2026-10-31 re-pass: 14 more variants, none better than 18 insns: Bal count 10/12/14, Bal split start/middle/end (6+6, 4+8), mass scale as explicit per-axis *= / mass*x / float* walk / local copy / double / temp-split / volatile mass, `float mass; mass = ...` split; Scale3 forms all give the same reload-from-stack instead of fld st(0).
 void Car::LoadCarIni(const char* path, unsigned int checksum)
 {
     CarIniView* v = (CarIniView*)this;
