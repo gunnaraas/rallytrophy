@@ -200,8 +200,12 @@ void Car::FUN_00469a00(int a, int b)
 }
 
 // NONMATCHING: RALLYTROPHY 0x469a20
-// 998 vs 1009 bytes. Logic and call order match. The original keeps the 3rd argument in edi for the whole body and
-// spills the exhaust level into its stack slot (frame 0x40); the compiler here promotes nothing and uses edi for -1.
+// 1009 bytes, 3 insns differ (142 -> 3). Remaining: the state-0 store sits 5 insns late after the BODY_TRANSFORM
+// pointer setup, the `lea edx,[ebp-0x4c]` for the Forward40()*k temp lands after the float push, and the loop's
+// surface-pointer slot store comes before `lea ebx,[esi+0x28]`.
+// Tried 2026-10-31: fewer uses of `effect` (Spawn(effect - 1)) lets the compiler keep c in edi (frame 0x40), vel2
+// declared after vel's stores matches the EH states, `float thr`/`r` locals give fcomp+fstp, volatile kk gives
+// the double store; permute.py -r 20 found nothing better than 3.
 // Per-frame particle emission of a car: exhaust smoke, spray/debris from the body, and the dust, smoke and
 // spray of each wheel that touches a surface with effects.
 void Car::EmitEffects(float a, float b, float c)
@@ -210,22 +214,26 @@ void Car::EmitEffects(float a, float b, float c)
     if (v->detail) {
         if (v->exhaustOn) {
             float level = v->drive.GetRpmFraction() * v->throttle;
-            if (!((float)rand() * kInv32767 <= 0.5f - level * 0.25f)) {
+            float r = (float)rand() * kInv32767;
+            float thr = 0.5f - level * 0.25f;
+            if (!(r <= thr)) {
                 Vec3 pos;
-                Vec3 vel2;
-                Vec3 vel;
+                const float* trans = (const float*)&v->body->pos;
                 const float* in = (const float*)&v->exhaustPos;
                 const float* mat = v->body->m;
-                const float* trans = (const float*)&v->body->pos;
                 float* out = (float*)&pos;
                 BODY_TRANSFORM();
                 EmitBody* body = v->body;
+                Vec3 vel;
                 vel.x = body->vel.x;
                 vel.y = body->vel.y;
                 vel.z = body->vel.z;
+                Vec3 vel2;
                 vel += body->PointVelocity(pos);
                 vel2 = vel * 0.9f;
-                vel2 -= body->Forward40() * ((float)rand() * kInv32767 * 0.5f + level * 1.8f + 3.0f);
+                float kk;
+                *(volatile float*)&kk = (float)rand() * kInv32767 * 0.5f + level * 1.8f + 3.0f;
+                vel2 -= body->Forward40() * kk;
                 vel2.y += ((float)rand() * kInv32767 + 1.0f) * 0.5f;
                 vel2.x += (1.0f - (float)rand() * kInv32767 * 2.0f) * 0.9f;
                 vel2.y += (1.0f - (float)rand() * kInv32767 * 2.0f) * 0.5f;
@@ -259,10 +267,9 @@ void Car::EmitEffects(float a, float b, float c)
                     v->dust.Spawn(type - 1, b, c, (Car*)w, (CarBody*)v->body);
                 }
                 if (effect) {
-                    effect--;
-                    v->smokeB.Spawn(effect, b, c, (Car*)w, (CarBody*)v->body);
+                                        v->smokeB.Spawn(effect - 1, b, c, (Car*)w, (CarBody*)v->body);
                     if (v->detail == 2) {
-                        v->spray.Spawn(effect, b, c, (Car*)w, (CarBody*)v->body);
+                        v->spray.Spawn(effect - 1, b, c, (Car*)w, (CarBody*)v->body);
                     }
                 }
             }
