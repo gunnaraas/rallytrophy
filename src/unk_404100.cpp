@@ -119,6 +119,7 @@ struct H6Str {
 // 20 bytes: the original jumps to one shared epilogue after the inlined string dtor; VC6 duplicates it here.
 // A result local and an explicit string scope both emit identical bytes; a volatile result grows the body to 473 bytes
 // and 73 differing bytes. Reverted all forms.
+// Tried 2026-10-30 night: ~30 variants (nested-if, result local forms, !=0/ternary/char result, Free() reshapes, inline_depth(0)); none beats 44 bytes/9 insns; the dec-refcount path still gets its own duplicated epilogue instead of jmp to the shared one.
 bool ReplayFiles::SaveReplay(int index, const char* label)
 {
     H6Player* player = DAT_00501450_->player;
