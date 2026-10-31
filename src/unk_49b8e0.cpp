@@ -1699,6 +1699,7 @@ struct AiVelocity {
 
 // NONMATCHING: RALLYTROPHY 0x49f1f0
 // 485 vs 522 bytes, 354 differing bytes; logic complete. The original copies the two velocities into locals in a mixed fld/integer
+// Tried 2026-10-30 night: const refs, component float copies, q-first sqrt(q), reordered Length/q, __forceinline by-value Len/Sq helpers (all 66-86 insns vs 62 baseline); original keeps x1 in FPU with x1*x1 reuse and spills copies at [esp+0x10..0x38], not reproduced.
 // pattern (x1 stays in the FPU, x1*x1 and x2*x2 are reused for the squared speeds) that plain struct copies and a
 // by-value helper (not inlined, EH frame) did not reproduce.
 int AIDriver::FUN_0049f1f0(Player* other)
