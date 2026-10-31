@@ -1315,10 +1315,11 @@ int RaceSession::RunAttract(RaceMode* mode)
 // NONMATCHING: RALLYTROPHY 0x4921d0
 // 3125 vs 3171 bytes; same structure and calls as 0x492e40 plus the demomode and round loops. Differences:
 // register allocation, stack layout (A/B/C slots) and the shared zero register of the loop counters.
+// Tried 2026-10-30 night: ~30 variants; pad[12]/&pad[8] (unused CarInput arg) restores the 0x98 frame (281->260 insns); step ternary forms, block[4] as tasks, local declaration order, volatile rect zero stores no help; still differs: original stack order is result,number,title,{tasks|name|rect},16B unknown,text (ours puts the scoped block lowest), rect built from 4 immediate stores + reload, `unk2c - best` load order.
 // demo != 0: replays data/replay/demomode<N>.rep; else one pass per local player. Returns the last loop result.
 int RaceSession::Run(RaceMode* mode, int demo, BYTE a, BYTE b)
 {
-    int pad[8];
+    int pad[12];
     int result = 1;
     m_unk30 = demo;
     DAT_00565508 = 0;
@@ -1406,7 +1407,7 @@ int RaceSession::Run(RaceMode* mode, int demo, BYTE a, BYTE b)
     m_mode = mode;
     DAT_005654fc = 0;
     DAT_00565500 = 0;
-    m_unk34 = new CarInput(DAT_0056b0cc, &pad[4]);
+    m_unk34 = new CarInput(DAT_0056b0cc, &pad[8]);
     m_unk34->FUN_004588d0();
     if (m_unk30) {
         Player* player = mode->m_localPlayers[0];
