@@ -616,12 +616,13 @@ int TriangleProjection::Contains(const float* p)
     side=(delta.y*cross.y+delta.z*cross.z)+delta.x*cross.x;
     int neg=*(int*)&side&0x80000000;return !neg;
 }
+static __forceinline float EdgeDot(const float* a,const float* b){return (a[1]*b[1]+a[2]*b[2])+a[0]*b[0];}
 // NONMATCHING: RALLYTROPHY 0x4b6800
-// Tried 2026-10-30 night: q-chain dot for da, hand dot for delta with dz copy, early 'return 1' on fabs, per-element endpoint copies (39->4); ~40 operand-order variants and permute -r 20 cannot flip fld/fmul operand order of the z and x terms in da (compiler canonicalizes).
+// Tried 2026-10-30 night: q-chain dot for da, hand dot for delta with dz copy, early 'return 1' on fabs, per-element endpoint copies (39->4); then da via forceinline EdgeDot(a,n)=(a[1]*b[1]+a[2]*b[2])+a[0]*b[0] fixed da (4->2); ~100 more variants (helper arg/factor orders, q-chains, bd local) cannot make the Dot(n,b) term emit z-product before y-product (compiler keeps y first whatever the source order), permute -r 20 best 2 insns.
 float Tri3::EdgeDist(const float* a,const float* b,float* out,float* endpoint)
 {
     TriangleProjection* t=(TriangleProjection*)this;
-    float da;{float q=t->n[1]*a[1];q=t->n[2]*a[2]+q;q=a[0]*t->n[0]+q;da=q+t->d;}
+    float da=EdgeDot(a,t->n)+t->d;
     if((Dot(t->n,b)+t->d)*da<=0) {
         Vec3 delta=*(const Vec3*)b;delta-=*(const Vec3*)a;
         float dz=delta.z;float denom=(dz*t->n[2]+delta.y*t->n[1])+delta.x*t->n[0];
