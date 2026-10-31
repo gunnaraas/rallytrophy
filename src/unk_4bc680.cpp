@@ -47,11 +47,10 @@ DrawQueueX::DrawQueueX()
     c.reserve(0x4000);
 }
 
-// NONMATCHING: RALLYTROPHY 0x4bcb50
-// Register allocation differs (original: ebx=this, edi=0, i in ebp; first size test uses sar, ours test mask); 516 vs 499 bytes.
+// FUNCTION: RALLYTROPHY 0x4bcb50
 void DrawQueueX::Flush(QDevice* device, int flag)
 {
-    if (!a.empty())
+    if (a.size() > 0)
         qsort(&a[0], a.size(), 4, DrawCompare);
     int curMat = 0;
     int curKey = 0;
@@ -64,8 +63,8 @@ void DrawQueueX::Flush(QDevice* device, int flag)
         if (i < na) {
             QItem* it = (QItem*)a[i];
             if (it->key != curKey) {
-                device->SetTexture(it->key);
                 curKey = it->key;
+                device->SetTexture(curKey);
             }
             if (it->matrix != (void*)curMat) {
                 curMat = (int)it->matrix;
