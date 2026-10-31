@@ -5,14 +5,18 @@
 extern char* PTR_s_Out_of_memory_0050216c;
 extern void* __cdecl PoolAlloc(unsigned int);
 extern void __cdecl PoolFree(void*);
+static inline int Bal(int a){return a;}
 // NONMATCHING: RALLYTROPHY 0x4ab910
 // MSVC6 exception temporary layout and per-format loop register allocation differ.
+// Tried 2026-10-31: 6 discarded Bal(1) calls at start restore the out-of-line std::string _Eos/inline budget (348->199 with palette index form + exact 565/5551/4444 expressions from the asm); volatile zero `z` for the null test, h loaded before w: 175. Still differs: original keeps 0 in ebp (cmp esi,ebp in h guards, xor ebp,ebp after the call, not before) and `mov [esp+0x18],edi` spills sit after the alloc args; per-case row/h spill registers differ.
 unsigned int* __fastcall FUN_004ab910(ImgW5* img, int)
 {
-    int w = img->width;
+    Bal(1);Bal(1);Bal(1);Bal(1);Bal(1);Bal(1);
+    int z; *(volatile int*)&z = 0;
     int h = img->height;
+    int w = img->width;
     unsigned int* result = (unsigned int*)PoolAlloc(w*h*4);
-    if (!result) throw std::logic_error(std::string(PTR_s_Out_of_memory_0050216c));
+    if (result == (unsigned int*)z) throw std::logic_error(std::string(PTR_s_Out_of_memory_0050216c));
     unsigned int* d = result;
     unsigned char* row;
     switch (img->format) {
@@ -20,8 +24,8 @@ unsigned int* __fastcall FUN_004ab910(ImgW5* img, int)
         row=img->pixels;
         for (; h>0; --h, row+=img->stride)
             for (int x=0; x<w; ++x) {
-                unsigned char* p=img->palette+row[x]*3;
-                *d++=(((p[2]|0xffffff00)<<8)|p[1])<<8|p[0];
+                int i=row[x]*3; unsigned char* pal=img->palette;
+                *d++=(((pal[i+2]|0xffffff00)<<8)|pal[i+1])<<8|pal[i];
             }
         break;
     case 1:
@@ -39,8 +43,8 @@ unsigned int* __fastcall FUN_004ab910(ImgW5* img, int)
         for (; h>0; --h, row+=img->stride) {
             unsigned short* s=(unsigned short*)row;
             for (int x=w; x>0; --x) {
-                unsigned int v=*s++, r=(v&0xf800)<<8, b=(v&31)<<3;
-                *d++=(((v&0x600)<<4|r&0xffe0001f|b)>>5)|r|(v&0x7e0)<<5|b|0xff000000;
+                unsigned int v=*s++, g=(v&0x7e0)<<5, r=(v&0xf800)<<8, b=(v&31)<<3;
+                *d++=((((g>>1)&0x1fe000)|(r&0xffe0001f)|b)>>5)|r|g|b|0xff000000;
             }
         }
         break;
@@ -63,9 +67,13 @@ unsigned int* __fastcall FUN_004ab910(ImgW5* img, int)
         for (; h>0; --h, row+=img->stride) {
             unsigned short* s=(unsigned short*)row;
             for (int x=w; x>0; --x) {
-                unsigned int v=*s++, a=v&0x8000;
+                unsigned int v=*s++;
+                unsigned int b=(v&31)<<3; b|=b>>5;
+                unsigned int g=(v&0x3e0)<<6; g|=(g>>5)&0xff00;
+                unsigned int r=(v&0x7c00)<<9; r|=(r>>5)&0xff0000;
+                unsigned int a=v&0x8000;
                 if (a) a=0xff000000;
-                *d++=a|(v&0x7c00)<<9|(v&0x7000)<<4|(v&0x3e0)<<6|(v&0x380)<<1|(v&31)<<3|(v&31)>>2;
+                *d++=a|r|g|b;
             }
         }
         break;
@@ -75,7 +83,7 @@ unsigned int* __fastcall FUN_004ab910(ImgW5* img, int)
             unsigned short* s=(unsigned short*)row;
             for (int x=w; x>0; --x) {
                 unsigned int v=*s++, a=(v&0xfffff000)<<16, r=(v&0xf00)<<12, g=(v&0xf0)<<8, b=(v&15)<<4;
-                *d++=((a|r|g|b)>>4)|a|r|g|b;
+                *d++=((r&0xff00000|a&0xf000000f|g&0xff000|b)>>4)|a|r|g|b;
             }
         }
         break;
@@ -88,7 +96,6 @@ unsigned int* __fastcall FUN_004ab910(ImgW5* img, int)
     }
     return result;
 }
-
 // NONMATCHING: RALLYTROPHY 0x4abf30
 // TGA loader exception temporaries, header access widths and RLE loop scheduling differ.
 int __fastcall FUN_004abf30(ImgW5* img, int, const char* name)
