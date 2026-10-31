@@ -93,60 +93,60 @@ inline void CrossAsm(float* o, const float* a, const float* b)
 
 // original: FUN_0041ef60
 // NONMATCHING: RALLYTROPHY 0x41ef60
+// Tried 2026-10-30 night: first loop rewritten with Vec3 v/c locals, direct PointVel pointer use, sign-branch order and negS compare flipped, 24 declaration-order permutations of posS/negS/limit/c (740->734 insns); loops 2-3 differ structurally (original has inlined Vec3 helper/normalize/operator* temps, 3319 vs our 3079 bytes), not reachable by local variants.
 // NONMATCHING: Xform (this+0x15c) and cross-product x87 blocks now inline asm like the original; frame matches; remaining diffs are register/stack allocation and statement order (3107 of 3319 bytes, 2990 differing).
 void RespBody::Respond(void* car, void* stage, int flag)
 {
     if (*(int*)((char*)this + 0x23c) == 0) {
         return;
     }
-    float posS[3], negS[3];
+    float posS[3];
     posS[0] = posS[1] = posS[2] = 0.0f;
-    negS[0] = negS[1] = negS[2] = 0.0f;
     float limit;
     if (car == 0) {
         limit = 1000.0f;
     } else {
         limit = *(float*)((char*)car + 0x1080);
     }
-    float c0 = BF(0x1cc), c1 = BF(0x1d0), c2 = BF(0x1d4);
+    Vec3 c = *(Vec3*)((char*)this + 0x1cc);
+    float negS[3];
+    negS[0] = negS[1] = negS[2] = 0.0f;
     float* h = *(float**)((char*)this + 0x238);
     unsigned int i;
     for (i = 0; i < *(unsigned int*)((char*)this + 0x23c); i++, h += 20) {
-        float vx, vy, vz;
+        Vec3 v;
         if (flag == 0) {
-            vx = h[9];
-            vy = h[10];
-            vz = h[11];
+            v = *(Vec3*)&h[9];
         } else {
-            Vec3 pt(h[3], h[4], h[5]);
-            Vec3 w = FUN_004204f0(pt);
-            vx = c0 + w.x;
-            vy = c1 + w.y;
-            vz = c2 + w.z;
+            v = c;
+            Vec3* w = &FUN_004204f0(*(Vec3*)&h[3]);
+            v.x = c.x + w->x;
+            v.y = c.y + w->y;
+            v.z = c.z + w->z;
         }
-        float d = vz * h[8] + vy * h[7] + vx * h[6];
+        float d = v.z * h[8] + v.y * h[7] + v.x * h[6];
         if (NEG(d) == 0) {
             *(int*)h = 0;
         } else {
             *(int*)h = 1;
             float ax = h[6] * d, ay = h[7] * d, az = h[8] * d;
-            h[10] = vy;
-            h[11] = vz;
-            h[9] = vx;
+            h[10] = v.y;
+            h[11] = v.z;
+            h[9] = v.x;
             h[12] = ax;
             h[13] = ay;
             h[14] = az;
-            if (NEG(ax) == 0) posS[0] = posS[0] + ax; else negS[0] = negS[0] + ax;
-            if (NEG(ay) == 0) posS[1] = posS[1] + ay; else negS[1] = negS[1] + ay;
-            if (NEG(az) == 0) posS[2] = posS[2] + az; else negS[2] = negS[2] + az;
+            if (NEG(ax) != 0) negS[0] = negS[0] + ax; else posS[0] = posS[0] + ax;
+            if (NEG(ay) != 0) negS[1] = negS[1] + ay; else posS[1] = posS[1] + ay;
+            if (NEG(az) != 0) negS[2] = negS[2] + az; else posS[2] = posS[2] + az;
         }
     }
     if (*(int*)&posS[0] < 0x3a83126f) posS[0] = 0.001f;
     if (*(int*)&posS[1] < 0x3a83126f) posS[1] = 0.001f;
     if (*(int*)&posS[2] < 0x3a83126f) posS[2] = 0.001f;
-    if (DAT_004e1448 < negS[0]) negS[0] = -0.001f;
-    if (DAT_004e1448 < negS[1]) negS[1] = -0.001f;
-    if (DAT_004e1448 < negS[2]) negS[2] = -0.001f;
+    if (negS[0] > DAT_004e1448) negS[0] = -0.001f;
+    if (negS[1] > DAT_004e1448) negS[1] = -0.001f;
+    if (negS[2] > DAT_004e1448) negS[2] = -0.001f;
     negS[0] = DAT_004e1348 / negS[0];
     negS[1] = DAT_004e1348 / negS[1];
     negS[2] = DAT_004e1348 / negS[2];
