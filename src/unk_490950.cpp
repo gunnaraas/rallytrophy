@@ -310,6 +310,7 @@ extern int DAT_00501458;
 // Same size and flow; VC6 gives the four live values (a, b, setup, mode) other registers
 // (original: ebx=0x501428 value, edi=0x50142c value, ebp=setup pointer, esi=mode).
 // Tried 2026-10-30 night: local declaration reorders, a/b clamp order and forms, mode/branch/zeroing restructures, Car* temp, permute -r 20 (no MATCH, best 18); register allocation of a/b/setup/mode still differs (22 insns), hand edits only reach 20-21.
+// Tried 2026-10-31 re-pass: ~20 variants (decl order, clamp forms, zeroing-store order, volatile flag, early mode=1); zeroing order setup,flag,b,mode,a gave 22->17; permute -r 40 no MATCH; a/b/setup/mode still get other registers.
 void Player::FUN_00491130()
 {
     if (car || unk40 == 3) {
@@ -331,10 +332,10 @@ void Player::FUN_00491130()
         setup = (BYTE*)DAT_0056b0c8 + 0x139404;
     }
     if (unk40 == 2) {
-        mode = 4;
         setup = 0;
-        b = 0;
         flag = 0;
+        b = 0;
+        mode = 4;
         a = 0;
     }
     car = new Car(setup, unk2c, index, b, flag, a, mode);
