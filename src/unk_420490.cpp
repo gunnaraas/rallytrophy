@@ -636,29 +636,27 @@ extern int DAT_004f6150[];
 // 365 vs 364 bytes, 230 differing bytes. Target assembly Evidence ev_a3f0f27b75ef6e88dbce2684f5a3cd4d41bc5620d3f3edfe7926bc80f165d91f
 // loads 0x501458 before 0x5014cc and keeps the mask in edx; volatile sequencing, a register sel hint, and their combination
 // did not improve it.
+// Tried 2026-10-30 night: cached DAT_00501454 in a local, d==0-first branch order, flipped final compare (42->22); still differs: sel lands in ecx not edx (g loaded into edx, d hoisted above the g test) and the m-path and-tail is not shared; ~25 variants (volatile reads, ternary, load orders, m temp) did not move it.
 void StageScreen::Start(DWORD mask, int a, int b)
 {
     unk238 = a;
     unk248 = b;
     Setup((MenuGame*)mask);
     int i = 0;
-    DWORD sel = DAT_005014cc;
-    if (DAT_00501458 != 0 && DAT_00501454 == 0) {
-        sel = DAT_005014d0;
-    }
-    if (DAT_00501454 != 0) {
-        sel &= DAT_005014e0[DAT_00501320];
-    } else {
-        DWORD m;
+    int g = DAT_00501458;
+    DWORD sel;
+    int d = DAT_00501454;
+    sel = DAT_005014cc;
+    if (g != 0 && d == 0) sel = DAT_005014d0;
+    if (d == 0) {
         if (DAT_00501464 != 3) {
-            m = DAT_005014d4[DAT_0050132c];
+            sel &= DAT_005014d4[DAT_0050132c];
         } else {
-            if (DAT_005014c8 != 0) {
-                goto done;
-            }
-            m = DAT_005014d8;
+            if (DAT_005014c8 != 0) goto done;
+            sel &= DAT_005014d8;
         }
-        sel &= m;
+    } else {
+        sel &= DAT_005014e0[DAT_00501320];
     }
 done:
     unk124[1] = 0;
@@ -688,7 +686,7 @@ done:
             p++;
         } while (i < count);
     }
-    if (unk124[1] <= unk124[0]) {
+    if (unk124[0] >= unk124[1]) {
         unk124[0] = unk124[1] - 1;
     }
     Layout();
