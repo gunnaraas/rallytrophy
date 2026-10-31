@@ -317,6 +317,7 @@ extern float DAT_005012f8;             // draw distance for the ghost fade
 
 // NONMATCHING: RALLYTROPHY 0x488aa0
 // Tried 2026-10-30 night: float S + range*range>S, z*z+y*y, volatile y/z reads + float sq, int expiry, store r via *(volatile float*)&r (461 bytes, 28->10 insns); still differs: d copy uses ecx/edx not edx/eax and the arg push uses eax/ecx not ecx/edx (register choice); permute -r 20 found nothing.
+// Tried 2026-10-31 re-pass: 20 variants (volatile a/expiry/view/car reads, RaceMode* volatile self, late/early d, field-wise/int-bit/block-temp d copies, ghostVisible order/volatile, aa copy of a) + permute -r 40: none beat 10 insns; the ecx/edx/eax choices for the d copy and arg pushes are unchanged.
 // Plain PE disassembly shows the target spills only d.x*d.x and recomputes y*y+z*z+temp for compare and sqrt.
 // A volatile x-square, reversed y/z sums, and an expiry snapshot reduce the baseline from 440/150 to 444/126
 // bytes/differences.
