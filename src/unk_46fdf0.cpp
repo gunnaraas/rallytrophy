@@ -534,6 +534,7 @@ ParallelShadow::~ParallelShadow()
 // unk40 alone gives 165, and volatile unk18/unk24 gives 182.
 // Allocates the shadow texture: a render target when the device can draw into textures, else a texture
 // filled by the software rasteriser through a system-memory copy.
+// Tried 2026-10-30 night: passing size directly instead of w/h locals in CreateRenderTarget (no change, same 8 insns); original hoists the push ebx/ecx/ecx arg pushes into the middle of the field-store run, which no source reorder tried reproduces.
 void ParallelShadow::Create(ShadowEngine* engine, int size)
 {
     ShadowFactory* factory = engine->factory;
