@@ -279,6 +279,7 @@ extern float DAT_00500cfc;
 // NONMATCHING: RALLYTROPHY 0x49c130
 // Target point and lateral offset along the AI path. Logic complete; instruction scheduling and stack slots
 // not matched.
+// Tried 2026-10-31: ~15 variants (member-wise A/B/C init 809->804, z-first init, volatile reads, scoped/reused n1-n3, flat as floats, CopyXZ for A/B/C, D moved into last arm, dead diff removed); original (frame 0x94 vs our 0xb8, ~46 bytes longer) reloads the A/B/C components from memory for each sqrt and shares slots among the Vec3 temps, which no declaration/scoping change reproduced.
 #define POS ((Vec3*)&((CarBodyV*)car->body)->position)
 float AIDriver::FUN_0049c130()
 {
@@ -295,18 +296,18 @@ float AIDriver::FUN_0049c130()
     Vec3Slot* q0 = &seg->unk28[0];
     Vec3Slot* q1 = &seg->unk28[1];
 
-    Vec3 A(q0->x - seg->a->x, 0, q0->z - seg->a->z);
+    Vec3 A; A.x = q0->x - seg->a->x; A.y = 0; A.z = q0->z - seg->a->z;
     float len0 = (float)sqrt(A.z * A.z + A.x * A.x);
     Vec3 nearest;
     FUN_004b3dd0(POS, (Vec3*)seg->a, &A, &nearest);
     A = nearest - *POS;
     A.y = 0;
-    Vec3 B(q1->x - q0->x, 0, q1->z - q0->z);
+    Vec3 B; B.x = q1->x - q0->x; B.y = 0; B.z = q1->z - q0->z;
     float len1 = (float)sqrt(B.z * B.z + B.x * B.x);
     FUN_004b3dd0(POS, (Vec3*)q0, &B, &nearest);
     B = nearest - *POS;
     B.y = 0;
-    Vec3 C(seg->b->x - q1->x, 0, seg->b->z - q1->z);
+    Vec3 C; C.x = seg->b->x - q1->x; C.y = 0; C.z = seg->b->z - q1->z;
     float len2 = (float)sqrt(C.z * C.z + C.x * C.x);
     FUN_004b3dd0(POS, (Vec3*)q1, &C, &nearest);
     C = nearest - *POS;
