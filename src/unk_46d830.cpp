@@ -167,6 +167,7 @@ inline void CarRain::Respawn(CarDrop* drop)
 // 1046 vs 1050 bytes. Same flow and the same int-wise position copies; the original keeps a zero in edi for the
 // whole function (locals, vector-null tests, first GetMeshData(0), `cmp eax,edi` after new) and recomputes
 // n*12 for the memcpy, where this version keeps the zero in ecx (shared with i) and CSEs n*12 into edi.
+// Tried 2026-10-30 night: 17 variants (i declared first/after/via for-loop/while, pointer init forms and order, a named zero int, n/Vec3* temps declared up top); all fold to the same 144-insn output, VC6 still gives the zero to ecx shared with i instead of a separate edi zero with its own xor, which also lets it CSE n*12 across the new call.
 void CarRain::Init(RainScene* scene)
 {
     WindowMeshData* body = 0;
