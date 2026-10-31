@@ -723,6 +723,7 @@ void RaceMode::FUN_0048e840(float x, float y, float w, float h, Color color, int
 // NONMATCHING: RALLYTROPHY 0x48e9b0
 // 369 vs 367 bytes: same scheduling difference as 0x48e840 (this is its mirror
 // cell, uv + 0.125 (double) .. + 0.25).
+// Tried 2026-10-30 night: ~30 variants (store order, operand order, decl order, uv/pos order, volatile barrier, temps); none beat 12 insns differ - original takes y into eax and copies to ecx (x into edx) before the FPU uv math, ours loads x/y in the opposite order.
 void RaceMode::FUN_0048e9b0(float x, float y, float w, float h, Color color, int flag)
 {
     Vec2 uv[4];
