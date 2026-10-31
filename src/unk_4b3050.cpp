@@ -6,6 +6,7 @@ static inline float AbsF(float f) { return (float)fabs(f); }
 
 // NONMATCHING: RALLYTROPHY 0x4b3800
 // MSVC6 elides the original EH frame; region temporaries and x87 scheduling also differ.
+// Tried 2026-10-31: C++-linkage twin via /alternatename gives the EH frame (state store matches) but 295->314; param-slot aliases for s/t/dots (point/origin/e1/e2 slots hold s,t,fVar5,fVar4 in the original), pointer copies, diff.x vs local copies: 306-348; original branch layout/frame (0x24, fVar7/fVar6 spilled only as s/t) still differs.
 float __cdecl fun_004b3800(float* point, float* origin, float* e1, float* e2, float* out)
 {
     Vec3 diff = *(Vec3*)origin - *(Vec3*)point;
