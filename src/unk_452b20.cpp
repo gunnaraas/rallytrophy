@@ -674,6 +674,7 @@ inline void H_Normalize1(float* v)
 // Logic complete (5010 of 5036 bytes; 3310 differing bytes). The trunk and hood angles now match the target's register
 // x87 divides; staged a2/b1 and wrapped-phase locals align the wiper arithmetic schedule. Remaining issues include
 // the 12-byte frame/rotation-local displacement, three inline normalisations, and offset-add operand order.
+// Tried 2026-10-30 night: 336->282 insns via A/B declared B-first and the second dir via a dir2 temp copy (adds the original's extra 12-byte frame slot, but also an extra copy: 5064 vs 5036 bytes); dummy locals, dir-first, loc/d swap, acc/w reorders did nothing; still differs: hole above loc, inlined normalise schedule, x/y order of lenSq.
 void Car::FUN_00453940(float k)
 {
     H_Car* V = (H_Car*)this;
@@ -937,8 +938,8 @@ scaled:
         }
         if (V->part2020) {
             H_Part* q = V->part2020;
-            H_Vec A(q->pos);
             H_Vec B(q->pos);
+            H_Vec A(q->pos);
             A.z = q->boxMin;
             A.x -= t;
             B.z = q->boxMax;
@@ -956,13 +957,14 @@ scaled:
         }
         if (V->part2024) {
             H_Part* q = V->part2024;
-            H_Vec A(q->pos);
             H_Vec B(q->pos);
+            H_Vec A(q->pos);
             A.z = q->boxMin;
             A.x -= t;
             B.z = q->boxMax;
             A.y = A.y - loc.y * 0.024f;
-            H_V3 dir = B - A;
+            H_V3 dir2 = B - A;
+            H_V3 dir = dir2;
             float inv = 1.0f / (float)sqrt(dir.z * dir.z + dir.y * dir.y + dir.x * dir.x);
             dir.x = dir.x * inv;
             dir.y = dir.y * inv;
