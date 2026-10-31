@@ -11,7 +11,7 @@ class ImageFileOps : public File {
 public:
     int Error(); // 0x4a5fa0
     void Skip(int); // 0x4a5f40
-    unsigned char ReadByte(); // 0x4a5ec0
+    int ReadByte(); // 0x4a5ec0
 };
 unsigned int* __fastcall FUN_004ab910(ImgW5*, int);
 int __fastcall FUN_004abf30(ImgW5*, int, const char*);

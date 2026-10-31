@@ -98,83 +98,100 @@ unsigned int* __fastcall FUN_004ab910(ImgW5* img, int)
 }
 // NONMATCHING: RALLYTROPHY 0x4abf30
 // TGA loader exception temporaries, header access widths and RLE loop scheduling differ.
+// Tried 2026-10-31: 395->172: switch() for format/palette depth (cmp/je chain, signed count), pixel[8] (moves it with the string temps), bpp stores before width/height, per-branch row/step setup from a (header[17]>>5)&1 flag, ReadByte declared int (no movzx), n computed inside each RLE arm; Bal(1) sweeps (start/mid/end, 1-13) and throw/ctor forms did not change the third throw. Still differs: stack slots of the exception temps (orig pixel above them), third throw's std::string ctor/copy inlined in the original only, flag/type register swap (cl/dl).
 int __fastcall FUN_004abf30(ImgW5* img, int, const char* name)
 {
     File file(name,0xa1);
     if (((ImageFileOps*)&file)->Error()) throw std::logic_error(std::string("Bitmap not loaded"));
     unsigned char header[18];
-    unsigned char pixel[4];
+    unsigned char pixel[8];
     file.Read(header,18);
     ((ImageFileOps*)&file)->Skip(header[0]);
-    unsigned int count=header[5]|header[6]<<8;
-    img->format=header[16]==16?1:header[16]==24?3:header[16]==32?7:0;
+    int count=header[5]|header[6]<<8;
+    switch (header[16]) { case 16: img->format=1; break; case 24: img->format=3; break; case 32: img->format=7; break; default: img->format=0; }
     if (header[2]==1 || header[2]==9) {
         img->palette=(unsigned char*)PoolAlloc(0x300);
         if (!img->palette) throw std::logic_error(std::string(PTR_s_Out_of_memory_0050216c));
         unsigned char* p=img->palette+(header[3]|header[4]<<8)*3;
-        if (header[7]==16) {
-            for (; count; --count, p+=3) {
+        switch (header[7]) {
+        case 16:
+            for (; count>0; --count, p+=3) {
                 file.Read(pixel,2);
                 unsigned int v=pixel[0]|pixel[1]<<8;
-                p[0]=pixel[0]<<3; p[1]=(v>>2)&0xf8; p[2]=(v>>7)&0xf8;
+                p[0]=(unsigned char)(v<<3); p[1]=(v>>2)&0xf8; p[2]=(v>>7)&0xf8;
             }
-        } else if (header[7]==24) {
-            for (; count; --count, p+=3) {
+            break;
+        case 24:
+            for (; count>0; --count, p+=3) {
                 file.Read(pixel,3);
                 p[0]=pixel[0]; p[1]=pixel[1]; p[2]=pixel[2];
             }
-        } else if (header[7]==32) {
-            for (; count; --count, p+=3) {
+            break;
+        case 32:
+            for (; count>0; --count, p+=3) {
                 file.Read(pixel,4);
                 p[0]=pixel[0]; p[1]=pixel[1]; p[2]=pixel[2];
             }
         }
     }
     img->width=header[12]|header[13]<<8;
-    img->height=header[14]|header[15]<<8;
+    img->height=header[15]<<8|header[14];
     img->bpp=header[16]; img->bytesPerPixel=(img->bpp+7)>>3;
     img->stride=img->width*img->bytesPerPixel;
-    img->pixels=(unsigned char*)PoolAlloc(img->stride*img->height);
+    img->pixels=(unsigned char*)PoolAlloc(img->bytesPerPixel*img->height*img->width);
     if (!img->pixels) throw std::logic_error(std::string(PTR_s_Out_of_memory_0050216c));
-    unsigned char* row=img->pixels;
-    int step=img->stride;
-    if (!(header[17]&0x20)) { row+=step*(img->height-1); step=-step; }
+    unsigned char top=(header[17]>>5)&1;
     if (header[2]==1 || header[2]==2) {
-        if (!(header[17]&0x20)) {
-            for (int y=0; y<img->height; ++y, row-=img->stride) file.Read(row,img->stride);
-        } else file.Read(row,img->bytesPerPixel*img->height*img->width);
+        if (top) file.Read(img->pixels,img->bytesPerPixel*img->height*img->width);
+        else {
+            unsigned char* row=img->pixels+(img->height-1)*img->stride;
+            int stride=img->stride;
+            for (int y=0; y<img->height; row-=stride, ++y) file.Read(row,stride);
+        }
     } else if (header[2]==9) {
-        int x=0, done=0, total=img->width*img->height;
+        int h=img->height; int w=img->width; int total=w*h;
+        int x=0, done=0;
+        unsigned char* row; int step, stride;
+        if (top) { stride=img->stride; step=stride; row=img->pixels; }
+        else { stride=img->stride; row=img->pixels+(h-1)*stride; step=-stride; }
         while (done<total) {
-            unsigned char packet=((ImageFileOps*)&file)->ReadByte();
-            int n=(packet&127)+1;
+            int packet=((ImageFileOps*)&file)->ReadByte();
             if (packet&128) {
+                int n=(packet&127)+1;
+                done+=n;
                 unsigned char v=((ImageFileOps*)&file)->ReadByte();
-                for (int k=n; k; --k) {
+                for (; n>0; --n) {
                     row[x++]=v;
-                    if (x>=img->stride) { x=0; row+=step; }
+                    if (x>=stride) { x=0; row+=step; }
                 }
             } else {
-                for (int k=n; k; --k) {
+                int n=(packet&127)+1;
+                done+=n;
+                for (; n>0; --n) {
                     row[x++]=((ImageFileOps*)&file)->ReadByte();
-                    if (x>=img->stride) { x=0; row+=step; }
+                    if (x>=stride) { x=0; row+=step; }
                 }
             }
-            done+=n;
         }
     } else if (header[2]==10) {
-        int x=0, done=0, total=img->width*img->height;
+        int h=img->height; int w=img->width; int total=w*h;
+        int x=0, done=0;
+        unsigned char* row; int step;
+        if (top) { step=img->stride; row=img->pixels; }
+        else { step=-img->stride; row=img->pixels+(h-1)*img->stride; }
         while (done<total) {
-            unsigned char packet=((ImageFileOps*)&file)->ReadByte();
-            int n=(packet&127)+1;
-            done+=n;
+            int packet=((ImageFileOps*)&file)->ReadByte();
             if (packet&128) {
+                int n=(packet&127)+1;
+                done+=n;
                 file.Read(pixel,img->bytesPerPixel);
-                for (; n; --n) for (int k=0; k<img->bytesPerPixel; ++k) {
+                for (; n>0; --n) for (int k=0; k<img->bytesPerPixel; ++k) {
                     row[x++]=pixel[k];
                     if (x>=img->stride) { x=0; row+=step; }
                 }
             } else {
+                int n=(packet&127)+1;
+                done+=n;
                 n*=img->bytesPerPixel;
                 for (; n>0; --n) {
                     row[x++]=((ImageFileOps*)&file)->ReadByte();
