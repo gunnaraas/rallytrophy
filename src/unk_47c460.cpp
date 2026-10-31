@@ -942,15 +942,17 @@ static const float E_k256 = 256.0f, E_lo0 = 1.0f, E_hi0 = 4.0f, E_lo1 = 2.0f, E_
 
 
 // NONMATCHING: RALLYTROPHY 0x47e8f0
-// 1410 vs 1418 bytes. Same open items as core D (emit test without fxch, jitter spill) plus the
-// AddTo operand order (original loads the temp first: fld [eax]; fadd [esi+0x1c]).
+// 1412 vs 1418 bytes. Open: the x-jitter add is hoisted before the next rand() call (original spills it to
+// [ebp-0x1c] and adds after the y jitter is computed), and AddTo x loads fld [esi+0x1c]; fadd [eax] (original reversed).
+// Tried 2026-10-30 night: emit-test via a named float (rr), lat branch inversion (permuter), jx/jy/jz temps, volatile jx,
+// slot-order of r2/r3/r4, AddTo hand forms; permute -r 20 found nothing further; 6 insns left.
 // Spawn core E (dust-like variant of D, no y damping and no second force term).
 Particle* CarParticles::SpawnCoreE(float rate)
 {
+    float v;
     static float inv0 = 1.0f / (E_hi0 - E_lo0);
     static float inv1 = 1.0f / (E_hi1 - E_lo1);
     static float inv2 = 1.0f / (E_hi2 - E_lo2);
-    float v;
     float chance = 0;
     v = (float)fabs(s_car->slipA);
     if (v < E_hi0) {
@@ -976,7 +978,8 @@ Particle* CarParticles::SpawnCoreE(float rate)
     } else {
         chance = E_k256;
     }
-    if (!((float)(rand() & 0xff) < chance * rate)) {
+    float rr = (float)(rand() & 0xff);
+    if (!(rr < chance * rate)) {
         return 0;
     }
     if (!DAT_0056ae90.head) {
@@ -1008,22 +1011,22 @@ Particle* CarParticles::SpawnCoreE(float rate)
     }
     p->velocity -= s_body->Forward() * s_car->SlipA() * 0.15f * r2;
     float lat = 0;
-    if (s_car->mode == 1 || s_car->mode == 2) {
-        if (s_car->slipB > 0) {
-            lat = s_car->SlipB() * r3 * 0.2f;
-        }
-        lat = lat + f;
-    } else {
+    if (!(s_car->mode == 1 || s_car->mode == 2)) {
         if (s_car->slipB < 0) {
             lat = s_car->SlipB() * r3 * 0.2f;
         }
         lat = lat - f;
+    } else {
+        if (s_car->slipB > 0) {
+            lat = s_car->SlipB() * r3 * 0.2f;
+        }
+        lat = f + lat;
     }
     AddTo(p->velocity, s_body->Right() * lat);
     p->velocity.y = ((float)fabs(s_car->slipB) * 0.2f + f * 4.0f) * r4 + p->velocity.y + 3.0f;
-    r4 = (float)((rand() & 0x3fff) - 0x1fff) * (1.0f / 32768.0f);
+    volatile float jx = (float)((rand() & 0x3fff) - 0x1fff) * (1.0f / 32768.0f);
     float jy = (float)((rand() & 0x3fff) - 0x1fff) * (1.0f / 32768.0f);
-    p->velocity.x += r4;
+    p->velocity.x += jx;
     p->velocity.y += jy;
     p->velocity.z += (float)((rand() & 0x3fff) - 0x1fff) * (1.0f / 32768.0f);
     return p;
