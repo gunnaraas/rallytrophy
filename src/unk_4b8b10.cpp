@@ -971,26 +971,96 @@ void MeshModel::LinkDeformVertices()
     }
 }
 
+#include <memory>
+void __cdecl StageFree(void* p);           // 0x4bd000
+struct ChunkVec {                          // std::vector<MeshChunk**> layout
+    std::allocator<int> allocator;
+    int* first;
+    int* last;
+    int* end;
+    void Insert(int* P, unsigned int M, const int& X);   // 0x4bc680 out of line
+    int* Ucopy(int* f, int* l, int* d);    // 0x424320
+    void Ufill(int* d, unsigned int n, const int* x); // 0x424350
+    void Destroy(int* f, int* l);          // 0x403130
+    unsigned int Size() const { return first == 0 ? 0 : last - first; }
+    unsigned int SizeCall();               // 0x414460 out of line
+};
+void __cdecl StageConstruct(int* p, const int& v); // 0x403140
+static __forceinline void ChunkInsert(ChunkVec* v, int* P, unsigned int M, const int& X)
+{
+    if ((unsigned int)(v->end - v->last) < M) {
+        unsigned int n = v->Size() + (M < v->Size() ? v->Size() : M);
+        int* s = v->allocator.allocate(n, (void*)0);
+        int* q = s;
+        for (int* f = v->first; f != P; ++q, ++f)
+            StageConstruct(q, *f);
+        v->Ufill(q, M, &X);
+        v->Ucopy(P, v->last, q + M);
+        v->Destroy(v->first, v->last);
+        StageFree(v->first);
+        v->end = s + n;
+        v->last = s + v->SizeCall() + M;
+        v->first = s;
+    } else if ((unsigned int)(v->last - P) < M) {
+        v->Ucopy(P, v->last, P + M);
+        v->Ufill(v->last, M - (v->last - P), &X);
+        for (int* p = P; p != v->last; ++p)
+            *p = X;
+        v->last += M;
+    } else {
+        v->Ucopy(v->last - M, v->last, v->last);
+        int* d = v->last;
+        for (int* f = v->last - M; P != f; )
+            *--d = *--f;
+        for (int* p = P; p != P + M; ++p)
+            *p = X;
+        v->last += M;
+    }
+}
+
+struct DefStr {                            // std::string(const char*) as the original expands it: Tidy(false); assign(s, strlen(s))
+    std::allocator<char> alloc;
+    char* ptr;
+    unsigned int len;
+    unsigned int res;
+    void Tidy(bool built);                              // 0x402700
+    void AssignCall(const char* s, unsigned int n);     // 0x404ba0
+    bool Grow(unsigned int n, bool trim);               // 0x402980
+    void Eos(unsigned int n);                           // 0x402960
+    DefStr(const char* s, char, const std::allocator<char>& al = std::allocator<char>()) : alloc(al)
+    {
+        Tidy(false);
+        unsigned int n = strlen(s);
+        if (Grow(n, true)) {
+            std::char_traits<char>::copy(ptr, s, n);
+            Eos(n);
+        }
+    }
+    DefStr(const char* s, const std::allocator<char>& al = std::allocator<char>()) : alloc(al) { Tidy(false); AssignCall(s, strlen(s)); }
+    ~DefStr() { std::string* p = (std::string*)this; p->~basic_string(); }
+};
+
 // NONMATCHING: RALLYTROPHY 0x4b91c0
-// logic complete; EH/vector push_back and operator new array codegen differ
+// logic complete; push_back is a call to out-of-line vector::insert (0x4bc680); string temps now match the original expansion
+// Tried 2026-10-31: DefStr (Tidy+AssignCall / Tidy+Grow+Eos) for the throws, out-of-line Insert, sa/d/sb orders, volatile on dirty/weight/vertex stores; 185->127 insns differ: this lives in ebx (orig ebp), zero hoisted into esi, loop uses one d pointer (orig d and d+0x14, sb spilled).
 // original: FUN_004b91c0
 void MeshModel::SetDeformSource(MeshModel* other)
 {
     if (!other) return;
-    unsigned mine = chunks.empty() ? 0 : chunks.size();
-    unsigned theirs = other->chunks.empty() ? 0 : other->chunks.size();
-    if (mine != theirs) throw std::logic_error(std::string("deformation and visual model batch size doesn't match"));
+    unsigned mine = chunks.size();
+    unsigned theirs = other->chunks.size();
+    if (mine != theirs) throw std::logic_error(*(std::string*)&DefStr("deformation and visual model batch size doesn't match"));
     for (unsigned i = 0; i < chunks.size(); i++) {
         MeshChunk* a = chunks[i];
         MeshChunk* b = other->chunks[i];
-        if (a->count != b->count) throw std::logic_error(std::string("deformation model has invalid vertex count"));
+        if (a->count != b->count) throw std::logic_error(*(std::string*)&DefStr("deformation model has invalid vertex count", 'B'));
         DeformList* l = new DeformList;
         l->count = a->count;
         l->dirty = 1;
         l->verts = new DeformVertex[l->count];
         SceneVertex* sa = a->vertices;
         SceneVertex* sb = b->vertices;
-        deform.push_back(l);
+        { ChunkVec* v = (ChunkVec*)&deform; v->Insert(v->last, 1, *(int*)&l); }
         DeformVertex* d = l->verts;
         for (int n = 0; n < l->count; n++, d++, sa++, sb++) {
             d->dirty = 1;
@@ -1786,52 +1856,6 @@ void MeshModel::Load(const float* src, int count)
 // FUNCTION: RALLYTROPHY 0x4b9b20
 // original: FUN_004b9b20
 ChunkList::~ChunkList() {}
-
-#include <memory>
-void __cdecl StageFree(void* p);           // 0x4bd000
-struct ChunkVec {                          // std::vector<MeshChunk**> layout
-    std::allocator<int> allocator;
-    int* first;
-    int* last;
-    int* end;
-    int* Ucopy(int* f, int* l, int* d);    // 0x424320
-    void Ufill(int* d, unsigned int n, const int* x); // 0x424350
-    void Destroy(int* f, int* l);          // 0x403130
-    unsigned int Size() const { return first == 0 ? 0 : last - first; }
-    unsigned int SizeCall();               // 0x414460 out of line
-};
-void __cdecl StageConstruct(int* p, const int& v); // 0x403140
-static __forceinline void ChunkInsert(ChunkVec* v, int* P, unsigned int M, const int& X)
-{
-    if ((unsigned int)(v->end - v->last) < M) {
-        unsigned int n = v->Size() + (M < v->Size() ? v->Size() : M);
-        int* s = v->allocator.allocate(n, (void*)0);
-        int* q = s;
-        for (int* f = v->first; f != P; ++q, ++f)
-            StageConstruct(q, *f);
-        v->Ufill(q, M, &X);
-        v->Ucopy(P, v->last, q + M);
-        v->Destroy(v->first, v->last);
-        StageFree(v->first);
-        v->end = s + n;
-        v->last = s + v->SizeCall() + M;
-        v->first = s;
-    } else if ((unsigned int)(v->last - P) < M) {
-        v->Ucopy(P, v->last, P + M);
-        v->Ufill(v->last, M - (v->last - P), &X);
-        for (int* p = P; p != v->last; ++p)
-            *p = X;
-        v->last += M;
-    } else {
-        v->Ucopy(v->last - M, v->last, v->last);
-        int* d = v->last;
-        for (int* f = v->last - M; P != f; )
-            *--d = *--f;
-        for (int* p = P; p != P + M; ++p)
-            *p = X;
-        v->last += M;
-    }
-}
 
 // FUNCTION: RALLYTROPHY 0x4b9b50
 // push_back is really an inlined vector::insert(end(), 1, x) with x a reference to the chunk element (see StageInsert in unk_40c280.cpp)
