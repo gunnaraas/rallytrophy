@@ -273,6 +273,9 @@ struct G_Car {
 
 static inline float G_DotV(const Vec3& a, const Vec3& b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
 static inline float G_DotC(const Vec3& a, const Vec3& b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
+static __forceinline void G_Copy(Vec3& d, const Vec3& s) { d.x = s.x; d.y = s.y; d.z = s.z; }
+static __forceinline void G_AddRev(Vec3& d, const Vec3& s) { float a = s.x; d.x = a + d.x; d.y = s.y + d.y; d.z = s.z + d.z; }
+static __forceinline void G_Copy3(Vec3& d, const Vec3& s) { *(int*)&d.y = *(int*)&s.y; *(int*)&d.z = *(int*)&s.z; d.x = s.x; }
 static inline void G_Mul(Vec3& v, float k) { v.x *= k; v.y *= k; v.z *= k; }
 static inline void G_Set(Vec3& v, float x, float y, float z) { v.x = x; v.y = y; v.z = z; }
 #define V ((G_Car*)this)
@@ -282,6 +285,7 @@ static inline void G_Set(Vec3& v, float x, float y, float z) { v.x = x; v.y = y;
 // SpringFollower updates). Open: struct copy of a call result still goes through `mov reg,ebx` (original stores
 // straight through ebx), fadd operand order for ctrl += k*vec, register choice (edx/eax/ecx) for the asm pointer
 // locals, and the load order of the ctrl9/ctrl3 dot products.
+// Tried 2026-10-30 night: forceinline G_Copy (call result stored straight to ctrl), G_AddRev (x via temp for fld order), G_Copy3 (y/z int, x float) and G_Mul for ctrl5/6 took it 147->~51 insns; still differs: ctrl5/ctrl6 copy loads (original reuses edx/ecx, ours uses eax/ecx/edx up front), hoisted `mov eax,[esi+0x24]`, call-arg lea/push order, ctrl8..ctrl11 fadd operand order; int-copy/volatile barrier variants were worse.
 // Body-frame accelerations of the four spring points and the two SpringFollower updates.
 void Car::FUN_00452eb0(float dt)
 {
@@ -304,9 +308,9 @@ void Car::FUN_00452eb0(float dt)
         const float* mat = V->body->mat;
         float* out = (float*)&world;
         G_TRANSFORM_ADD();
-        V->ctrl4 = V->body->FUN_004204f0(world) - V->ctrl4;
+        G_Copy(V->ctrl4, V->body->FUN_004204f0(world) - V->ctrl4);
         G_Mul(V->ctrl4, V->gain);
-        V->ctrl4 += V->ctrl2;
+        G_AddRev(V->ctrl4, V->ctrl2);
     }
     {
         G_Set(p, 0.0f, 0.0f, V->body->unk88);
@@ -315,39 +319,35 @@ void Car::FUN_00452eb0(float dt)
         const float* mat = V->body->mat;
         float* out = (float*)&world;
         G_TRANSFORM_ADD();
-        V->ctrl3 = V->body->FUN_004204f0(world) - V->ctrl3;
+        G_Copy(V->ctrl3, V->body->FUN_004204f0(world) - V->ctrl3);
         G_Mul(V->ctrl3, V->gain);
-        V->ctrl3 += V->ctrl2;
+        G_AddRev(V->ctrl3, V->ctrl2);
     }
     {
-        p = V->vec20d0;
+        G_Copy3(p, V->vec20d0);
         p += V->vec1018;
         const float* trans = V->body->pos;
         const float* in = (const float*)&p;
         const float* mat = V->body->mat;
         float* out = (float*)&world;
         G_TRANSFORM_ADD();
-        V->ctrl5 = V->body->FUN_004204f0(world) - V->ctrl5;
+        G_Copy(V->ctrl5, V->body->FUN_004204f0(world) - V->ctrl5);
         G_Mul(V->ctrl5, V->gain);
-        V->ctrl5 += V->ctrl2;
-        V->ctrl5.x *= factor;
-        V->ctrl5.y *= factor;
-        V->ctrl5.z *= factor;
+        G_AddRev(V->ctrl5, V->ctrl2);
+        G_Mul(V->ctrl5, factor);
     }
     {
-        p = V->vec203c;
+        G_Copy3(p, V->vec203c);
         p += V->vec1024;
         const float* trans = V->body->pos;
         const float* in = (const float*)&p;
         const float* mat = V->body->mat;
         float* out = (float*)&world;
         G_TRANSFORM_ADD();
-        V->ctrl6 = V->body->FUN_004204f0(world) - V->ctrl6;
+        G_Copy(V->ctrl6, V->body->FUN_004204f0(world) - V->ctrl6);
         G_Mul(V->ctrl6, V->gain);
-        V->ctrl6 += V->ctrl2;
-        V->ctrl6.x *= factor;
-        V->ctrl6.y *= factor;
-        V->ctrl6.z *= factor;
+        G_AddRev(V->ctrl6, V->ctrl2);
+        G_Mul(V->ctrl6, factor);
     }
     V->ctrl7.x *= 0.5f;
     V->ctrl7.y *= 0.5f;
