@@ -288,6 +288,7 @@ extern char DAT_005093f8[];            // scratch buffer for the set number
 // digit patching and the per-surface fld/fmul/fstp sequence match; open: the induction pointer is biased to record+0x10
 // (original +0x18), the digit chars are kept in cl/dl (original al), and the runtime_error copy inlines _Tidy (original
 // calls 0x402700).
+// Tried 2026-10-31: byte-cursor induction (sibling 0x45e480 idiom) for all or only the first four stores moves the bias only to +0x14 or breaks ebp allocation; remaining diffs are EH/string setup, digit regs (cl/dl vs al) and fld/fmul operand order of the vec3 scale.
 void Car::FUN_00465e90(int value)
 {
     CarSetupView* v = (CarSetupView*)this;
