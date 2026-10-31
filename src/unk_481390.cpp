@@ -19,6 +19,7 @@ IntVector::iterator IntVector::Erase(iterator first, iterator last) { return era
 // 498 vs 491 bytes. EraseOut gives the original's inline erase with _Destroy (0x403130) as a call, but it
 // reloads end() through `this` ([esi+0x8a8]) where the original reuses the member pointer in edi and keeps a
 // zeroed slot (a resize(0) default argument?); ResizeB(0) drops the degenerate copy loop entirely (466 bytes).
+// Tried 2026-10-30 night: PlayerVector* local + EraseY(0) (size()>0 guard, EraseOut) 24->6 insns, 491 bytes; ~15 resize/default-arg variants and permute -r 20 found nothing better; still differs: zeroed [esp+0x18] slot, a second n<size() check (cmp/jbe), and EH-state/lea-push order, since an unused default arg is elided.
 NetRace::NetRace()
 {
     unk7a8 = 0;
@@ -31,8 +32,9 @@ NetRace::NetRace()
     unk854 = 0;
     unk858 = 0;
     InitializeCriticalSection(&m_lock);
-    if (m_removed.size() > 0) {
-        m_removed.EraseOut(m_removed.begin(), m_removed.end());
+    PlayerVector* r = &m_removed;
+    if (r->size() > 0) {
+        r->EraseY(0);
     }
     unk844 = 0;
     unk880 = 0;

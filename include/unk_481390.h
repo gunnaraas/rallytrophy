@@ -954,6 +954,12 @@ public:
         _Last = s;
         return first;
     }
+    void EraseY(unsigned int n, Player* const& x = (Player*)0)
+    {
+        if (n < size()) {
+            EraseOut(begin() + n, end());
+        }
+    }
     void Erase1(iterator pos)          // erase(pos) with _Destroy out of line
     {
         std::copy(pos + 1, end(), pos);
