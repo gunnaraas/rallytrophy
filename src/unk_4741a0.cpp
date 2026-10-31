@@ -258,10 +258,18 @@ inline void Cross(const Vec3* a, const Vec3* b, Vec3* out)
     }
 }
 
+__forceinline void SkCopy(Vec3& d, const Vec3& r)
+{
+    d.x = r.x;
+    d.y = r.y;
+    d.z = r.z;
+}
+
 // NONMATCHING: RALLYTROPHY 0x4746b0
 // 955 vs 972 bytes, 607 differing bytes. Keep componentwise scaling: REA target evidence
 // ev_67f3ea7db45baa110e290e5d865f5e9d6c3f59005a093d7d924247edaa3d24f2 has no 0x40b0c0 scale-helper call.
 // Ring-advance, corner-base CSE, and Cross/Scale argument homes remain different (PE observations).
+// Tried 2026-10-30 night: 30+ variants; local width + __forceinline SkCopy(dst, a+side) (copies straight from the call's eax pointer) took 90->58 insns; still differs: ebx kept as zero reg in the original (ours hoists lea ebx,&s->b / xor edx later), inv/side scale fld order, fst/fstp pair order, p->b copy scheduling.
 // Appends one tyre-mark quad at pos; pos == 0 closes the current mark.
 void SkidMarks::AddSegment(Vec3* pos, Vec3* axis, Vec3* fallback, float alpha, int newId)
 {
@@ -325,7 +333,9 @@ void SkidMarks::AddSegment(Vec3* pos, Vec3* axis, Vec3* fallback, float alpha, i
     float len = delta.Length();
     lastLength = len;
     if (len < 0.001f) {
-        side = *fallback;
+        side.x = fallback->x;
+        side.y = fallback->y;
+        side.z = fallback->z;
     } else {
         float inv = 1.0f / len;
         delta.x *= inv;
@@ -333,13 +343,14 @@ void SkidMarks::AddSegment(Vec3* pos, Vec3* axis, Vec3* fallback, float alpha, i
         delta.z *= inv;
         Cross(axis, &delta, &side);
     }
-    side.x *= width;
-    side.y *= width;
-    side.z *= width;
-    s->v[0].position = s->a + side;
-    s->v[1].position = s->a - side;
-    s->v[2].position = s->b - side;
-    s->v[3].position = s->b + side;
+    float w = width;
+    side.x *= w;
+    side.y *= w;
+    side.z *= w;
+    SkCopy(s->v[0].position, s->a + side);
+    SkCopy(s->v[1].position, s->a - side);
+    SkCopy(s->v[2].position, s->b - side);
+    SkCopy(s->v[3].position, s->b + side);
     s->v[3].v = s->v[2].v = s->v[0].v + len + len;
     if (linked) {
         SkidSeg* p = prev;
