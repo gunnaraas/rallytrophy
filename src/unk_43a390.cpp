@@ -139,7 +139,8 @@ Screen1378::~Screen1378()
 
 // NONMATCHING: RALLYTROPHY 0x43a490
 // Setup resource initialization and the two Sprite layouts are reconstructed; VC6 EH-state, field-store order,
-// and register allocation remain different (built 426 bytes; original 432; 140 differing bytes).
+// and register allocation remain different (432 bytes, same as original; 12 insns differ).
+// Tried 2026-10-30 night: ~300 store-order/volatile-cast variants; size now matches, but original interleaves the 0xe/0xf/5/6 immediate stores with the second sprite early and VC6 sinks them.
 void Screen1378::Setup(MenuGame* game)
 {
     if (m_state) {
@@ -150,33 +151,33 @@ void Screen1378::Setup(MenuGame* game)
     static_cast<Sprite*>(unk24)->texture = new Texture("data/menu/network_box1.tga", 0x841, 1);
     static_cast<Sprite*>(unk28)->texture = new Texture("data/menu/network_box2.tga", 0x841, 1);
 
-    volatile Sprite* first = static_cast<Sprite*>(unk24);
-    volatile Sprite* second = static_cast<Sprite*>(unk28);
+    Sprite* first = static_cast<Sprite*>(unk24);
+    Sprite* second = static_cast<Sprite*>(unk28);
     first->unk9c = 0xe;
-    second->unk9c = 0xe;
     first->unk98 = 0xf;
     first->unk60[0] = 1.0f;
     first->unk60[1] = 1.0f;
     first->unk60[2] = 1.0f;
     first->unk60[3] = 1.0f;
-    first->unk18 = 5;
+    ((volatile Sprite*)first)->unk18 = 5;
+    ((volatile Sprite*)first)->unk1c = 6;
+    first->unk40[0] = 1.0f;
+    first->unk40[1] = 1.0f;
+    first->unk40[2] = 1.0f;
+    first->unk40[3] = 1.0f;
+    ((volatile Sprite*)first)->unk24 = 2;
+    second->unk9c = 0xe;
     second->unk98 = 0xf;
     second->unk60[0] = 1.0f;
     second->unk60[1] = 1.0f;
     second->unk60[2] = 1.0f;
     second->unk60[3] = 1.0f;
-    first->unk40[0] = 1.0f;
-    first->unk40[1] = 1.0f;
-    first->unk40[2] = 1.0f;
-    first->unk40[3] = 1.0f;
-    first->unk1c = 6;
+    second->unk18 = 5;
+    second->unk1c = 6;
     second->unk40[0] = 1.0f;
     second->unk40[1] = 1.0f;
     second->unk40[2] = 1.0f;
     second->unk40[3] = 1.0f;
-    second->unk18 = 5;
-    second->unk1c = 6;
-    first->unk24 = 2;
     second->unk24 = 2;
     first->texture->Upload(DAT_0056b0ac);
     second->texture->Upload(DAT_0056b0ac);
