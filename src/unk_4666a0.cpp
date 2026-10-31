@@ -64,6 +64,7 @@ ConfigKey SoundKeys[25] = {
     } while (0)
 
 // NONMATCHING: RALLYTROPHY 0x4666a0
+// Tried 2026-10-30 night: store order/split, comma-in-arg, stores before SetVolume, volatile loop/priority stores (162->154 bytes only, kept out); the loop-byte store sinks between the two float pushes in the original but lands before or after both here.
 // Same size (2361) and instruction stream; only the scheduling of the is3D/loop byte stores differs in the
 // six SetRange blocks of the slot and crash sources (the original places the first store between the two
 // float pushes, this build after them). The first loop, strings, EH states and registers all match.
