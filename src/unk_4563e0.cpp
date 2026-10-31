@@ -1449,6 +1449,7 @@ void ViewManager::FUN_004578c0(float* eye, float* look)
 }
 
 // The message text of a temporary string (the original tests the pointer after loading the empty literal).
+static inline int G3InlineBalance(int a) { return a + 1; }
 static inline const char* G3TextOf(const TmpString& s)
 {
     const char* text = "";
@@ -1456,10 +1457,15 @@ static inline const char* G3TextOf(const TmpString& s)
     return text;
 }
 
-// NONMATCHING: RALLYTROPHY 0x457b10
-// 1599 vs 1730 bytes. The key table, the nine preset reads and the epilogue match (same instructions, esp offsets
-// shifted by one push); only the throw path differs: the std::runtime_error copy inlines _Tidy/assign here (the original
-// calls 0x402700 / 0x4024f0), which hoists a zero into ebx. Same open item as 0x465e90 and 0x4634e0.
+#pragma comment(linker, "/alternatename:?Tidy@PathString@@QAEX_N@Z=?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z")
+#pragma comment(linker, "/alternatename:?Grow@PathString@@QAE_NI_N@Z=?_Grow@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAE_NI_N@Z")
+#pragma comment(linker, "/alternatename:?Eos@PathString@@QAEXI@Z=?_Eos@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEXI@Z")
+#pragma comment(linker, "/alternatename:?Tidy@TmpString@@QAEX_N@Z=?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z")
+#pragma comment(linker, "/alternatename:?MissingText@@YA?AVTmpString@@ABVPathString@@PBD@Z=??Hstd@@YA?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@0@ABV10@PBD@Z")
+
+// FUNCTION: RALLYTROPHY 0x457b10
+// The discarded G3InlineBalance calls before the macro (14) spend the inliner budget so the runtime_error copy keeps
+// its out-of-line _Tidy/assign calls (same trick as Car::LoadTiresIni); fewer than ~13 leave the copy inlined.
 // original: FUN_00457b10 (stdcall; ViewManager camera.txt loader)
 void FUN_00457b10()
 {
@@ -1469,6 +1475,20 @@ void FUN_00457b10()
         throw std::runtime_error(AsString(
             PathString(G3TextOf(MissingText(PathString("Missing variables in file: "), "data/settings/camera.txt")))));
     }
+    G3InlineBalance(1);
+    G3InlineBalance(1);
+    G3InlineBalance(1);
+    G3InlineBalance(1);
+    G3InlineBalance(1);
+    G3InlineBalance(1);
+    G3InlineBalance(1);
+    G3InlineBalance(1);
+    G3InlineBalance(1);
+    G3InlineBalance(1);
+    G3InlineBalance(1);
+    G3InlineBalance(1);
+    G3InlineBalance(1);
+    G3InlineBalance(1);
 #define G3_LOAD(n) \
     do { \
         CameraPreset* p_ = &CameraTable::presets[n - 1]; \
