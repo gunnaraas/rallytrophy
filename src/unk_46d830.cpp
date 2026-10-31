@@ -475,6 +475,7 @@ void CarRain::Update(float)
 // 997 bytes both, 2 differing. Binding bodyObject->world to a const reference before the copy shifts register
 // allocation to match the liveBody destination and Multiply arguments. One x87 add operand-order hunk remains at
 // 0x46e6eb; scoped/value temporaries for its right*h operand regress the object substantially.
+// Tried 2026-10-30 night: volatile color/position stores before vertex 2, += operators, inline per-component x/y/z adds, local copy of right*h, up/right copy order; none fixes the x-component fadd operand order of vertex 2 (others regress to 10-75 insns).
 void CarRain::Render(RenderDevice* device, Camera* camera)
 {
     if (texture == 0) {
