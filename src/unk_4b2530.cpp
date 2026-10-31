@@ -507,16 +507,17 @@ inline void Cross(float* o,const float* a,const float* b)
         fstp dword ptr [eax+8]
     }
 }
-#define INTERVAL(V0,V1,V2,D0,D1,D2,A,B,C,X0,X1) \
-    if (!(D0*D1<=0.0f)) { A=V2; B=(V0-V2)*D2; C=(V1-V2)*D2; X0=D2-D0; X1=D2-D1; } \
-    else if (!(D0*D2<=0.0f)) { A=V1; B=(V0-V1)*D1; C=(V2-V1)*D1; X0=D1-D0; X1=D1-D2; } \
+#define INTERVAL(V0,V1,V2,D0,D1,D2,P01,P02,A,B,C,X0,X1) \
+    if (P01>0.0f) { A=V2; B=(V0-V2)*D2; C=(V1-V2)*D2; X0=D2-D0; X1=D2-D1; } \
+    else if (P02>0.0f) { A=V1; B=(V0-V1)*D1; C=(V2-V1)*D1; X0=D1-D0; X1=D1-D2; } \
     else if (D1*D2>0.0f || D0!=0.0f) { A=V0; B=(V1-V0)*D0; C=(V2-V0)*D0; X0=D0-D1; X1=D0-D2; } \
     else if (D1!=0.0f) { A=V1; B=(V0-V1)*D1; C=(V2-V1)*D1; X0=D1-D0; X1=D1-D2; } \
-    else if (D2!=0.0f) { A=V2; B=(V0-V2)*D2; C=(V1-V2)*D2; X0=D2-D0; X1=D2-D1; } \
-    else return t->Coplanar();
+    else if (D2==0.0f) return t->Coplanar(); \
+    else { A=V2; B=(V0-V2)*D2; C=(V1-V2)*D2; X0=D2-D0; X1=D2-D1; }
 
 // NONMATCHING: RALLYTROPHY 0x4b59b0
 // Interval temporaries, x87 scheduling and exception-frame allocation differ.
+// Tried 2026-10-30 night: 319->146 insns via preloaded axis values, shared product temps pu1/pu2 (u1*u0,u2*u0) reused by INTERVAL, x reused as running max with (float)bits(y)>x, final arm as D2==0?Coplanar:arm; still differs: arms 2 and 5 laid out-of-line (VC6 merges the duplicated V1/V2 arms), Vec3 direction at -0x40 not -0x48 (frame 0x34 vs 0x3c), tail x87 store slots.
 int Tri3::Overlap(const float* a,const float* b,const float* c,const float* normal,float plane)
 {
     TriangleProjection* t=(TriangleProjection*)this;
@@ -524,21 +525,25 @@ int Tri3::Overlap(const float* a,const float* b,const float* c,const float* norm
     if (FloatBits((float)fabs(u0))<DAT_004e29b8) u0=0;
     if (FloatBits((float)fabs(u1))<DAT_004e29b8) u1=0;
     if (FloatBits((float)fabs(u2))<DAT_004e29b8) u2=0;
-    if(u0*u1>0 && u0*u2>0) return false;
-    float v0=Dot(normal,t->v[0])-plane,v1=Dot(normal,t->v[1])-plane,v2=Dot(normal,t->v[2])-plane;
+    float pu1=u1*u0,pu2=u2*u0;
+    if(pu1>0 && pu2>0) return false;
+    float v0=((t->v[0][2]*normal[2]+t->v[0][1]*normal[1])+t->v[0][0]*normal[0])-plane,v1=((t->v[1][2]*normal[2]+t->v[1][1]*normal[1])+t->v[1][0]*normal[0])-plane,v2=((t->v[2][2]*normal[2]+t->v[2][1]*normal[1])+normal[0]*t->v[2][0])-plane;
     if (FloatBits((float)fabs(v0))<DAT_004e29b8) v0=0;
     if (FloatBits((float)fabs(v1))<DAT_004e29b8) v1=0;
     if (FloatBits((float)fabs(v2))<DAT_004e29b8) v2=0;
-    if(v0*v1>0 && v0*v2>0) return false;
+    float pv1=v1*v0,pv2=v2*v0;
+    if(pv1>0 && pv2>0) return false;
     Vec3 direction;Cross((float*)&direction,t->n,normal);
     float x=(float)fabs(direction.x),y=(float)fabs(direction.y),z=(float)fabs(direction.z);
-    unsigned int axis=0; float largest=x;
+    unsigned int axis=0;
     // Original converts the absolute-value float bit patterns to signed integers before comparison.
-    if(x<(float)FloatBits(y)) {axis=1;largest=y;} if(largest<(float)FloatBits(z)) axis=2;
-    DAT_0057b9d0=a;DAT_0057b9cc=b;DAT_0057b9c8=c;
+    if((float)*(int*)&y>x) {axis=1;x=y;} if((float)*(int*)&z>x) axis=2;
     float aa,bb,cc,xx0,xx1,dd,ee,ff,yy0,yy1;
-    INTERVAL(t->v[0][axis],t->v[1][axis],t->v[2][axis],v0,v1,v2,aa,bb,cc,xx0,xx1)
-    INTERVAL(a[axis],b[axis],c[axis],u0,u1,u2,dd,ee,ff,yy0,yy1)
+    float p0=t->v[0][axis],p1=t->v[1][axis],p2=t->v[2][axis];
+    DAT_0057b9d0=a;DAT_0057b9cc=b;DAT_0057b9c8=c;
+    INTERVAL(p0,p1,p2,v0,v1,v2,pv1,pv2,aa,bb,cc,xx0,xx1)
+    float q0=a[axis],q1=b[axis],q2=c[axis];
+    INTERVAL(q0,q1,q2,u0,u1,u2,pu1,pu2,dd,ee,ff,yy0,yy1)
     float xx=xx1*xx0,yy=yy1*yy0;
     float base=yy*xx*aa;
     float i0=yy*xx1*bb+base,i1=yy*xx0*cc+base;
