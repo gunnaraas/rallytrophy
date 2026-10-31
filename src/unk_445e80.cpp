@@ -1025,6 +1025,7 @@ void ServiceMenu::DrawInfo()
 // NONMATCHING: RALLYTROPHY 0x449860
 // Logic and instruction stream ~88% aligned (3024 vs 3004 bytes incl. jump table). Open: the original keeps the -1 colour
 // in ebp (or ebp,-1 / mov [slot],ebp / push ebp) and has its EH Color slot above pos[]/uv[] (frame 0x90, mine 0x78).
+// Tried 2026-10-31: buf[16]->buf[40] matches the original frame size 0x90 (279->229); 720 decl-order permutations of uv/pos/color/buf/i/unused, x/y swap, separate j counter, color.value=-1, volatile z did not beat it; still differs: uv/pos/color/i slot order (original: i low, uv/pos above, Color above them) and -1 held in ebp.
 // original: FUN_00449860 (page 1, the Tune tab)
 void ServiceMenu::DrawTune()
 {
@@ -1035,7 +1036,7 @@ void ServiceMenu::DrawTune()
     HudPoint uv[4];
     HudPoint pos[4];
     Color color(0xFFFFFFFF);
-    char buf[16];
+    char buf[40];
     int i;
     uv[0].x = uv[3].x = 0.0f;
     uv[1].x = uv[2].x = 1.0f;
