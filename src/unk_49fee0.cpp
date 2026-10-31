@@ -388,25 +388,31 @@ static inline void NormalizeXZ(Vec3* v)
     v->z = inv * v->z;
 }
 
-// NONMATCHING: RALLYTROPHY 0x4a0e60
-// Logic complete (472 vs 494 bytes). The original keeps the lateral axis in memory, so the y term of each corner
-// dot product survives and the 1/length divide is `fdiv` on a kept length; VC6 folds lat.y == 0 here. The second
+// FUNCTION: RALLYTROPHY 0x4a0e60
+// lat.y is read through a volatile cast so the y term of each dot product survives (original keeps it); the second
 // parameter is unused (a Vec3* the caller passes).
 float AIDriver::FUN_004a0e60(Obstacle* ob, Vec3* unused)
 {
     Vec3Slot box[4];
     float hi = -100.0f;
     float lo = 100.0f;
-    AiBody* own = (AiBody*)player->car->body;
+    Car* car = player->car;
+    AiBody* own;
     Vec3 lat;
+    own = (AiBody*)car->body;
+    lat.x = own->vz;
     lat.y = 0;
     lat.z = -own->vx;
-    lat.x = own->vz;
-    NormalizeXZ(&lat);
+    float len = (float)sqrt(lat.z * lat.z + lat.x * lat.x);
+    float inv = 1.0f / len;
+    lat.x = inv * lat.x;
+    lat.z = inv * lat.z;
     Vec3* pl = &lat;
     for (int i = 0; i < 8; i++) {
         Vec3 t = *(Vec3*)&ob->corners[i] - own->position;
-        float d = t.y * pl->y + t.z * pl->z + t.x * pl->x;
+        float d = t.y * ((volatile Vec3*)pl)->y;
+        d = t.z * pl->z + d;
+        d = t.x * pl->x + d;
         if (d > hi) {
             hi = d;
         }
@@ -420,7 +426,7 @@ float AIDriver::FUN_004a0e60(Obstacle* ob, Vec3* unused)
     }
     Vec3 d = *(Vec3*)&ob->unk0 - own->position;
     d.y = 0;
-    return (float)sqrt(d.z * d.z + d.x * d.x);
+    return (float)sqrt(d.x * d.x + d.z * d.z);
 }
 
 // Transforms *point in place by the 4x4 matrix (row vectors, translation in row 3); the same
