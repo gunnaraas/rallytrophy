@@ -333,6 +333,7 @@ void Car::FUN_00469ea0(float k)
 // the track-id test, the compiler here promotes the wheel pointer to ebx. A per-iteration EmitWheel* alias raises
 // the diff 55→62; an offset alias based at wheel.position expands it to 348; a volatile pointer object gives 523/384.
 // All three probes were reverted.
+// Tried 2026-10-30 night: 17 variants (mark declared/hoisted/split/unsigned/volatile, surf inlined, i declared outside, !! and !(>=) forms, mark reused in the call); all stay at 35 insns or worsen; still differs: wheel pointer takes ebx instead of the track-id test value (original ebx=mark, ecx=wheel) and VC6 gives no source-level handle on that.
 // Stamps a tyre mark for each wheel on a marked surface whose slip exceeds 2.5, or ends its mark.
 void Car::UpdateTyreTracks()
 {
