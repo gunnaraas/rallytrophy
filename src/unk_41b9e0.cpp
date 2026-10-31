@@ -1537,6 +1537,7 @@ CarBody::~CarBody()
 
 // NONMATCHING: RALLYTROPHY 0x41bab0
 // NONMATCHING: by-value SetScale argument copy and statement scheduling differ (EH state set matches)
+// Tried 2026-10-30 night: explicit inertia stores (not loop) + DWORD* up copy took 89->19 insns; ~14 variants of the SetScale temp (local DV3, brace init, hoisted, reordered) not better; original copy is interleaved with the zero stores and registers an EH temp slot ([esp+0x4c]=esp) that we never emit.
 CarBody::CarBody(const CarBody* proto, float m, const DWORD* s, const DWORD* u)
 {
     float inv = DAT_004e1348 / m;
@@ -1549,9 +1550,10 @@ CarBody::CarBody(const CarBody* proto, float m, const DWORD* s, const DWORD* u)
     angMom.z = 0; angMom.y = 0; angMom.x = 0;
     invMass = inv;
     SetScale(*(DV3*)s);
-    *(DWORD*)&up.x = u[0];
-    *(DWORD*)&up.y = u[1];
-    *(DWORD*)&up.z = u[2];
+    DWORD* pu = (DWORD*)&up;
+    pu[0] = u[0];
+    pu[1] = u[1];
+    pu[2] = u[2];
     centre = pos + up.Rot(&rot);
     force.z = 0; force.y = 0; force.x = 0;
     torque.z = 0; torque.y = 0; torque.x = 0;
@@ -1561,9 +1563,10 @@ CarBody::CarBody(const CarBody* proto, float m, const DWORD* s, const DWORD* u)
     mesh.Insert(((CarBody*)proto)->mesh.At(0), 0.0f);
     CopyMeshTransform();
     src14c.Init(&rot);
-    for (int i = 0; i < 16; i++) {
-        inertia.m[i] = 0;
-    }
+    inertia.m[3] = 0; inertia.m[2] = 0; inertia.m[1] = 0;
+    inertia.m[7] = 0; inertia.m[6] = 0; inertia.m[4] = 0;
+    inertia.m[11] = 0; inertia.m[9] = 0; inertia.m[8] = 0;
+    inertia.m[14] = 0; inertia.m[13] = 0; inertia.m[12] = 0;
     inertia.m[0] = inertia.m[5] = inertia.m[10] = inertia.m[15] = 1.0f;
     FUN_0041bed0();
     elems = new BodyElem[0x100];
