@@ -2614,9 +2614,8 @@ void NetRace::DrawMessages()
     }
 }
 
-// NONMATCHING: RALLYTROPHY 0x484190
-// Same 488-byte size. A volatile kind read, split Color initialization and reversed w/h declaration order reduce
-// the diff from 54 to 19 bytes; the remaining mismatch is in x87 position calculations.
+// FUNCTION: RALLYTROPHY 0x484190
+// Right/bottom edges are stored in place (not via SetQuad) so x+w is computed before y+h; w is declared first.
 // Draws one 16x16 icon from the 2x2 sheet at unk8f8 (kind 0..2).
 void NetRace::DrawEntry(float x, float y, int kind)
 {
@@ -2632,9 +2631,12 @@ void NetRace::DrawEntry(float x, float y, int kind)
     } else {
         SetQuad(uv, 0.0f, 0.0f, 0.5f, 0.5f);
     }
-    float h = DAT_0056aeac * 16.0f;
     float w = DAT_0056aea8 * 16.0f;
-    SetQuad(position, x, y, x + w, y + h);
+    float h = DAT_0056aeac * 16.0f;
+    position[0].x = position[3].x = x;
+    position[0].y = position[1].y = y;
+    position[1].x = position[2].x = x + w;
+    position[2].y = position[3].y = y + h;
     ((RaceDeviceSlots*)DAT_0056b0ac)->SetTexture(m_pingSprite);
     ((RaceDeviceSlots*)DAT_0056b0ac)->DrawQuad(position, uv, color, 1.0f, 1.0f);
 }
