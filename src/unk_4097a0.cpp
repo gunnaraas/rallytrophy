@@ -5,15 +5,19 @@
 #include "unk_481390.h"
 #include "unk_4097a0.h"
 
-typedef int (__stdcall *BinkFnA)(int);
-typedef int (__stdcall *BinkFnB)(void*, int);
-typedef int (__stdcall *BinkFnC)(void*, void*);
-extern void* DAT_0059b2f8; // Bink import slot
+extern "C" {
+__declspec(dllimport) int __stdcall BinkSetSoundTrack(int);
+__declspec(dllimport) int __stdcall BinkSetIOSize(int);
+__declspec(dllimport) void* __stdcall BinkOpen(const char*, int);
+__declspec(dllimport) int __stdcall BinkSetVolume(void*, int);
+__declspec(dllimport) int __stdcall BinkGetSummary(void*, void*);
+}
 extern int DAT_00501448;   // volume setting (0..100 scaled)
 #define F(T, o) (*(T*)((BYTE*)this + (o)))
 
 // NONMATCHING: RALLYTROPHY 0x4097a0
 // reason: first draft; exception handling (std::logic_error vs original string-exception class 0x4e2c78) and new-expression scheduling unverified
+// Tried 2026-10-30 night: real binkw32 dllimports (BinkSetSoundTrack/SetIOSize/Open/SetVolume/GetSummary) replace the DAT_0059b2f8 casts, int volume divide, std::string+logic_error throw forms, inline_depth 0-8; imports/divide now match but the throw string temp (original _Grow+out-of-line _Eos then exception ctor) and the new-expression/EH-state layout still differ (337 insns, 2276 vs 2203 bytes).
 BinkVideo::BinkVideo(const char* name, RenderDevice* device, int flags)
 {
     F(int, 0xa8) = 0;
@@ -21,19 +25,19 @@ BinkVideo::BinkVideo(const char* name, RenderDevice* device, int flags)
     F(int, 0xa0) = 0;
     int bf = 0;
     if (flags == 0) {
-        ((BinkFnA)DAT_0059b2f8)(-1);
+        BinkSetSoundTrack(-1);
         bf = 0x4000;
     }
-    ((BinkFnA)DAT_0059b2f8)(0x400000);
-    void* h = (void*)((BinkFnB)DAT_0059b2f8)((void*)name, bf | 0x1000000);
+    BinkSetIOSize(0x400000);
+    void* h = BinkOpen(name, bf | 0x1000000);
     F(void*, 0x9c) = h;
     if (h == 0) {
         throw std::logic_error("Cannot open video");
     }
     if (flags != 0) {
-        ((BinkFnB)DAT_0059b2f8)(h, (int)(((__int64)DAT_00501448 << 15) / 100));
+        BinkSetVolume(h, (DAT_00501448 << 15) / 100);
     }
-    ((BinkFnC)DAT_0059b2f8)(h, (BYTE*)this + 0x20);
+    BinkGetSummary(h, (BYTE*)this + 0x20);
     int width = F(int, 0x20);
     int height = F(int, 0x24);
     VidDevice* dev = *(VidDevice**)((BYTE*)device + 0x20);
