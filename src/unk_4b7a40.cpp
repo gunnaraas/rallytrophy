@@ -56,7 +56,7 @@ void __stdcall RegisterDrawFrustumExit()
 }
 
 // NONMATCHING: RALLYTROPHY 0x4b7c80
-// Original duplicates the inline list-grow code per case and shares only the tails; ours is 43 bytes shorter.
+// Tried 2026-10-30 night: default-case if/else order, depth <= 0, push via local copies, volatile barrier on each prologue store, prologue store permutations; 70->~4 insns differ (only prologue push/mov ecx scheduling and loop-top lea/store order remain).
 void DrawContext::CullViews(DrawDevice* device, int)
 {
     solids.m_end = solids.m_data;
@@ -103,12 +103,12 @@ void DrawContext::CullViews(DrawDevice* device, int)
                 break;
             default:
                 if ((node->flags & 3) == 0) {
-                    if ((node->flags & 4) == 0) {
-                        if (DAT_0057bc88.TestSphere(&node->boundsA, &node->world)) {
+                    if (node->flags & 4) {
+                        if (DAT_0057bc88.TestBoundsA(&node->boundsA)) {
                             normals.Add(node);
                             node->stamp = DAT_00502470;
                         }
-                    } else if (DAT_0057bc88.TestBoundsA(&node->boundsA)) {
+                    } else if (DAT_0057bc88.TestSphere(&node->boundsA, &node->world)) {
                         normals.Add(node);
                         node->stamp = DAT_00502470;
                     }
@@ -118,16 +118,20 @@ void DrawContext::CullViews(DrawDevice* device, int)
             if (next == 0 || skip) {
                 node = node->next;
                 if (node == 0) {
-                    if (depth < 1)
+                    if (depth <= 0)
                         break;
                     depth--;
                     sp--;
                     node = (*sp)->next;
                 }
             } else {
-                *sp = node;
-                sp++;
-                depth++;
+                SceneNode** q = sp;
+                int d = depth;
+                *q = node;
+                d++;
+                q++;
+                depth = d;
+                sp = q;
                 node = next;
             }
         }
