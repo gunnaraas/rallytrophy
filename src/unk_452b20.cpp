@@ -1362,6 +1362,7 @@ struct LoadDriverStr {
 // 3651 vs 3651 bytes; 10 bytes differ: the operand order of five `lea ebp,[m+len]` / `lea edi,[ptr+len]` pairs in the
 // hand-expanded std::string::append sites (the original puts the old length in the index register). Everything else
 // (call sequence, EH states 0..0x12, string literals, scheduling) matches.
+// Tried 2026-10-30 night: n = len+m / m+len / casts / this->len, copy(len+ptr)/&ptr[len]/temp dst, early len copy in AppendA/AppendB, permute.py -r 20; none changed the lea operand order (the compiler canonicalises the commutative add), so the original source form is still unknown.
 // Car::LoadDriver(dir): loads <dir>driver.bmf and co_driver.bmf (driver / co-driver body and head objects and their
 // pivots), then the optional arm and transmission models.
 void Car::LoadDriver(const char* dir)
