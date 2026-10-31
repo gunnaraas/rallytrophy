@@ -543,50 +543,46 @@ static inline int Negative(float f)
 }
 
 // NONMATCHING: RALLYTROPHY 0x4ba9d0
-// Logic complete; not compared in detail.
+// Tried 2026-10-31: TestSphere shape (flags&1 first, brace-init dv, dz/dy/dx sums, tplanes[8]+1 loop), int i=0 before e/p (fixed the edi/ebx regs: 54->10 insns); still differs: original keeps 0x80000000 in ecx and loads all three bf[] before multiplying (fxch), plane-loop y term is fld c.y/fmul p[0] (ours fld p[0]/fmul c.y); ~45 variants + permute -r 20 found no match.
 int ViewFrustum::TestBounds(const SceneBounds* b)
 {
     const float* bf = (const float*)b;
-    if ((b->flags & 1) == 0) {
-        if (b->flags & 2) {
-            const int* e = &idx[0] + 0;
-            e = (const int*)((const char*)this + 0xe8);
-            const float* p = (const float*)((const char*)this + 100);
-            for (int i = 0; i < 6; i++) {
-                if (Negative((bf[e[0]] * p[0] + bf[e[-6]] * p[-1] + bf[e[6]] * p[1]) - p[2]))
-                    return 0;
-                e++;
-                p += 4;
-            }
-        }
-    } else {
+    if (b->flags & 1) {
+        FrVec dv = {b->c.x, b->c.y, b->c.z};
         const float* cam = camera;
-        float dx = b->c.x - cam[12];
-        float dy = b->c.y - cam[13];
-        float dz = b->c.z - cam[14];
-        float d2 = dx * dx + dy * dy + dz * dz;
+        dv.x = dv.x - cam[12];
+        dv.y = dv.y - cam[13];
+        dv.z = dv.z - cam[14];
+        float d2 = dv.z * dv.z + dv.y * dv.y + dv.x * dv.x;
         float d2b = b->d * b->d;
-        if (*(int*)&d2b <= *(int*)&d2) {
-            float r = radius + b->d;
-            r = r * r;
-            if (*(int*)&r < *(int*)&d2)
-                return 0;
-            float f = dx * cam[8] + dy * cam[9] + dz * cam[10];
-            if (nearD - b->d <= f) {
-                float fs = farD + b->d;
-                if (*(int*)&f <= *(int*)&fs) {
-                    const float* p = &tplanes[0] + 1;
-                    int i = 0;
-                    while (p[2] <= b->c.y * p[0] + p[1] * b->c.z + p[-1] * b->c.x + b->d) {
-                        i++;
-                        p += 4;
-                        if (3 < i)
-                            return 1;
-                    }
-                }
-                return 0;
-            }
+        if (*(int*)&d2 < *(int*)&d2b)
+            return 1;
+        float r = radius + b->d;
+        r = r * r;
+        if (*(int*)&d2 > *(int*)&r)
             return 0;
+        float f = dv.z * cam[10] + dv.y * cam[9] + dv.x * cam[8];
+        if (f < nearD - b->d)
+            return 0;
+        float fs = farD + b->d;
+        if (*(int*)&f > *(int*)&fs)
+            return 0;
+        int i = 0;
+        const float* p = &tplanes[8] + 1;
+        for (; i < 4; i++, p += 4) {
+            if (b->c.x * p[-1] + b->c.z * p[1] + b->c.y * p[0] + b->d < p[2])
+                return 0;
+        }
+        return 1;
+    }
+    if (b->flags & 2) {
+        int i = 0;
+        const int* e = (const int*)((const char*)this + 0xe8);
+        const float* p = (const float*)((const char*)this + 100);
+        for (; i < 6; i++, e++, p += 4) {
+            float v = (bf[e[0]] * p[0] + (bf[e[6]] * p[1] + bf[e[-6]] * p[-1])) - p[2];
+            if (Negative(v))
+                return 0;
         }
     }
     return 1;
@@ -606,7 +602,7 @@ int ViewFrustum::TestBoundsB(const SceneBounds* b)
         const int* e = (const int*)((const char*)this + 0xe8);
         const float* p = (const float*)((const char*)this + 100);
         for (int i = 0; i < 6; i++, e++, p += 4) {
-            float v = (bf[e[-6]] * p[-1] + bf[e[6]] * p[1] + bf[e[0]] * p[0]) - p[2];
+            float v = (bf[e[0]] * p[0] + (bf[e[6]] * p[1] + bf[e[-6]] * p[-1])) - p[2];
             if (*(unsigned*)&v & 0x80000000)
                 return 0;
         }
