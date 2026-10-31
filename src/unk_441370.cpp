@@ -563,6 +563,7 @@ TrackSelectMenu::~TrackSelectMenu()
 // 4714 vs 4683 bytes; the call sequence, EH state numbering and frame size (0x150) match. Left: the original keeps the
 // rally index in ebp and the RallyInfo pointer in esi (mine swaps them, so ebp is pushed lazily), and some frame slots
 // and store schedules follow from that. original: FUN_004418d0 (vtable slot 1, ret 4)
+// Tried 2026-10-30 night: 26 variants (info/r declaration order and position, while/pointer/hoisted-count loops, r1 and r10 temps, volatile start value, const pointers); none moved r into ebp/esi swap (best stays 306 insns); the allocator ranks r above info and the original also pushes ebp function-wide, cause unknown.
 void TrackSelectMenu::Setup(MenuGame* game)
 {
     if (m_state) {
