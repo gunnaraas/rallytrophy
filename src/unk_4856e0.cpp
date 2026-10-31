@@ -827,16 +827,19 @@ void RaceMode::FUN_00487200()
     ((RaceDeviceSlots*)DAT_0056b0ac)->DrawQuad(position, uv, color, 1.0f, 1.0f);
 }
 
-// NONMATCHING: RALLYTROPHY 0x4873b0
+// FUNCTION: RALLYTROPHY 0x4873b0
 // Same as 0x487200 with DAT_00565460 and m_barsLeft.
 void RaceMode::FUN_004873b0()
 {
-    float sx = DAT_0056b0ac->m_width * 0.0009765625f;
-    float sy = DAT_0056b0ac->m_height * 0.0013020834f;
+    float sx = DAT_0056b0ac->GetWidth() * 0.0009765625f;
+    float sy = DAT_0056b0ac->GetHeight() * 0.0013020834f;
     Vec2 uv[4];
     Vec2 position[4];
     float x = DAT_00565468.x * sx; float y = DAT_00565468.y * sy; float w = DAT_00565460.x * sx; float h = DAT_00565460.y * sy;
-    SetQuad(position, x, y, x + w, y + h);
+    position[0].x = x; position[0].y = y;
+    position[1].x = x + w; position[1].y = y;
+    position[2].x = x + w; position[2].y = y + h;
+    position[3].x = x; position[3].y = y + h;
     SetQuad(uv, 0.0f, 0.0f, 1.0f, 1.0f);
     Color color(0xffffffff);
     ((RaceDeviceSlots*)DAT_0056b0ac)->SetTexture(m_barsLeft);
