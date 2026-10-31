@@ -575,6 +575,7 @@ static float H4c_trim = 20.0f;     // 0x4e1654
 // original: FUN_0042d710 (creates the hit rectangles)
 // NONMATCHING: RALLYTROPHY 0x42d710
 // last push_back is inlined in the original (inline size math); ours emits an extra out-of-line size() call (+7 bytes)
+// Tried 2026-10-30 night: ~35 variants (last-block statement orders, insert(end(),1,x) forms, local/ref temps, inline_depth/recursion/auto_inline pragmas) plus permute -r 20; none beats 13 insns/1711 bytes; original inlines vector::insert(P,1,X) only at the last site with size() CSE-d in the max() branch, ours re-calls size() there (inliner budget).
 void GameScreen1E9C::BuildRects()
 {
     H4c_Point a;
