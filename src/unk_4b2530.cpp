@@ -2,9 +2,45 @@
 #include <math.h>
 #include <string.h>
 #include "unk_468c40.h"
+#include "unk_40c280.h"
 
-// NONMATCHING: RALLYTROPHY 0x4b2530
-// VC6 vector insertion helper expansion and register allocation differ.
+void __cdecl StageConstruct(int* p, const int& v); // 0x403140
+
+struct ObjVec : StageIntVec { unsigned int SizeCall(); }; // 0x414460 out of line
+
+static __forceinline void ObjInsert(ObjVec* v, int* P, unsigned int M, const int& X)
+{
+    if ((unsigned int)(v->end - v->last) < M) {
+        unsigned int n = v->Size() + (M < v->Size() ? v->Size() : M);
+        int* s = v->allocator.allocate(n, (void*)0);
+        int* q = s;
+        for (int* f = v->first; f != P; ++f, ++q)
+            StageConstruct(q, *f);
+        v->Ufill(q, M, &X);
+        v->Ucopy(P, v->last, q + M);
+        v->Destroy(v->first, v->last);
+        StageFree(v->first);
+        v->end = s + n;
+        v->last = s + v->SizeCall() + M;
+        v->first = s;
+    } else if ((unsigned int)(v->last - P) < M) {
+        v->Ucopy(P, v->last, P + M);
+        v->Ufill(v->last, M - (v->last - P), &X);
+        for (int* p = P; p != v->last; ++p)
+            *p = X;
+        v->last += M;
+    } else {
+        v->Ucopy(v->last - M, v->last, v->last);
+        int* d = v->last;
+        for (int* f = v->last - M; P != f; )
+            *--d = *--f;
+        for (int* p = P; p != P + M; ++p)
+            *p = X;
+        v->last += M;
+    }
+}
+
+// FUNCTION: RALLYTROPHY 0x4b2530
 void ModelLoader::Attach(void* obj, int parent)
 {
     if (parent) ((ModelPart*)obj)->SetParent((*(std::vector<void*>*)((char*)this+0x48))[parent-1]);
@@ -12,8 +48,8 @@ void ModelLoader::Attach(void* obj, int parent)
         MeshVec* roots=(MeshVec*)((char*)this+0x28);
         roots->Ins(roots->end(),1,(EntryMesh* const&)obj);
     }
-    std::vector<void*>& objects=*(std::vector<void*>*)((char*)this+0x48);
-    objects.push_back(obj);
+    ObjVec* objects=(ObjVec*)((char*)this+0x48);
+    ObjInsert(objects,objects->last,1,(int&)obj);
 }
 
 extern unsigned int DAT_004e1340;
