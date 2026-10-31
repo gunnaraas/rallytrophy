@@ -1206,12 +1206,13 @@ void ServiceMenu::DrawTune()
 // Same structure and constants (built 2206 vs 2256 bytes). VC6 hoists the zero constant into ebx for the entry block
 // (the loop index reuses it) where the original keeps -1 in ebx and the loop index in ebp, so registers and frame slots
 // differ (the original also has a separate memory loop counter for the damage loop).
+// Tried 2026-10-30 night: 277->176 via damage loop on a separate int j with float* dp walking damage[] (repair read as dp[-14], same data), x/y decl swap, bool selected; still differs: original keeps -1 in ebx (or ebx,-1 / push ebx) where we push imm, and first-loop index/pointer regs (ebp/ebx) are swapped; z=-1 volatile store, white locals, Color/int variants did not move it.
 // original: FUN_0044a420 (page 2 of Draw)
 void ServiceMenu::DrawRepair()
 {
     TextRenderer* text = m_game->text;
-    float x = DAT_0056aea8 * 339.0f;
     float y = DAT_0056aeac * 262.0f;
+    float x = DAT_0056aea8 * 339.0f;
     HudPoint uv[4];
     HudPoint pos[4];
     Color col;
@@ -1230,7 +1231,7 @@ void ServiceMenu::DrawRepair()
         DAT_0056b0ac->vf35(&partSprites[SMH_PartSprite[unk2c]]);
         ((RaceDeviceSlots*)DAT_0056b0ac)->DrawQuad((Vec2*)pos, (Vec2*)uv, col, 1.0f, 1.0f);
         for (i = 0; i < 7; i++) {
-            int selected = (unk2c == i);
+            bool selected = (unk2c == i);
             col.value = selected ? DAT_00508c0c : DAT_00508c04;
             text->color = col.value;
             text->Print(DAT_0056b0ac, x, y, FUN_00405380(SMH_PartText[i]), 0, 1.0f, 1.0f);
@@ -1240,18 +1241,19 @@ void ServiceMenu::DrawRepair()
         x = DAT_0056aea8 * 601.0f;
         col.value = -1;
         y = DAT_0056aeac * 248.0f;
-        for (i = 0; i < 7; i++) {
-            if (damage[i] > 0.0f) {
+        int j; float* dp = damage;
+        for (j = 0; j < 7; j++) {
+            if (dp[j] > 0.0f) {
                 pos[0].x = pos[3].x = x;
                 pos[1].x = pos[2].x = DAT_0056aea8 * 32.0f + x;
                 pos[0].y = pos[1].y = y;
                 pos[2].y = pos[3].y = DAT_0056aeac * 65.0f + y;
                 int level;
-                if (repair[i]) {
+                if (*(int*)(dp - 14)) {
                     level = 0;
-                } else if (damage[i] > 0.66f) {
+                } else if (dp[j] > 0.66f) {
                     level = 3;
-                } else if (damage[i] > 0.33f) {
+                } else if (dp[j] > 0.33f) {
                     level = 2;
                 } else {
                     level = 1;
@@ -1287,7 +1289,7 @@ void ServiceMenu::DrawRepair()
         pos[1].x = pos[2].x = d * DAT_0056aea8 * 402.0f + x;
         pos[2].y = pos[3].y = DAT_0056aeac * 22.0f + y;
         DAT_0056b0ac->vf35(&damageBar);
-        DAT_0056b0ac->vf66(pos, uv, -1, 1.0f, 1.0f);
+        DAT_0056b0ac->vf66(pos, uv, col.value, 1.0f, 1.0f);
         pos[0].x = pos[3].x = x - DAT_0056aea8;
         pos[0].y = pos[1].y = y;
         uv[0].x = uv[3].x = 0.0f;
@@ -1296,7 +1298,7 @@ void ServiceMenu::DrawRepair()
         uv[2].y = uv[3].y = 1.0f;
         pos[1].x = pos[2].x = DAT_0056aea8 * 403.0f + x;
         pos[2].y = pos[3].y = DAT_0056aeac * 32.0f + y;
-        DAT_0056b0ac->vf66(pos, uv, -1, 1.0f, 1.0f);
+        DAT_0056b0ac->vf66(pos, uv, col.value, 1.0f, 1.0f);
         TextRenderer* text2 = SMH_FONT2(m_game);
         float ty = DAT_0056aeac * 580.0f;
         col.value = 0xff000000;
