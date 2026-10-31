@@ -381,7 +381,7 @@ void Car::FUN_00465e90(int value)
         cp[9] *= scale->xFriction.v[1];
         cp += 16;
     }
-    Bal(1); Bal(1); Bal(1); Bal(1); Bal(1); Bal(1); 
+    Bal(1); Bal(1); Bal(1); Bal(1); Bal(1); Bal(1);
 }
 
 // original: FUN_00466500
