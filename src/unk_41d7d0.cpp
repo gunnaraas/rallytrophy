@@ -259,4 +259,3 @@ int U40A850Body::FUN_0041d7d0(U40A850Body* other, int flag)
     }
     return hits;
 }
-
