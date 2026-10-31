@@ -53,6 +53,7 @@ struct MsgError : std::exception {                   // std::logic_error layout:
 // 1186 vs 1213 bytes; the call sequence matches (20 calls) and the message string is a twin shaped like the
 // original (Tidy call, inline assign/append around _Grow). Left: register allocation (the original keeps `this`
 // in a slot and re-reads `frames` for every allocation) and the frame layout (0x48 vs 0x40).
+// Tried 2026-10-30 night: LoadBal(1) inline-budget calls N=2..20 (no effect: Tidy/Grow/_Xlen/Assign are already calls here, the string is not the cause); volatile `frames` reads (hoisting `new MV[fr]` size and `nf` via `*(volatile int*)&frames` -> 1207 bytes, count loop and prologue then match but 234 insns differ); count/pp/k loop-form variants. Still differs: this/file registers (esi/edi in original, `this` spilled at [esp+0x18]), pp[k] not strength-reduced in original (index + [esp+0x1c]), second-loop temporaries in stack slots, EH-state store position inside the message string build, frame 0x48.
 void MeshSetLoader::Load(MSModelFile* file)
 {
     frames = file->parts.size();
