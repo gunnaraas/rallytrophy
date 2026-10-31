@@ -745,6 +745,7 @@ public:
         }
     }
     void AppendCall(const char* s) { Append(s, strlen(s)); }
+    void AppendStd(const char* s) { ((std::string*)this)->append(s); }
     const char* c_str() const { return ptr ? ptr : ""; }
     std::allocator<char> alloc;
     char* ptr;
@@ -868,35 +869,36 @@ extern void __cdecl FUN_004239c0(StageScreen* s, short sel, StageEntry* e, int s
 
 // NONMATCHING: RALLYTROPHY 0x423b90
 // NONMATCHING: inline std::string append/assign expansions are approximated with string methods
+// Tried 2026-10-31: Load(path,1,0,0) was already right; dir/path as StagePathText, 2nd char buf[32], pointer loop, if/else per unit (tail-merged), Length/Width AppendCall + Height/Weight std append, float factors (228->132); still differs: local layout (orig order num,path,buf,ini,dir; ours num,buf,ini,path,dir, decl order has no effect) and Weight's inline-vs-call _Eos split.
 void StageScreen::RefreshUnits()
 {
-    for (int i = 0; i < count; i++) {
-        StageEntry* e = &entries[i];
-        IniFile ini;
+    int n = count;
+    StageEntry* e = entries;
+    for (int i = 0; i < n; i++, e++) {
+        char buf[32];
         char num[32];
+        IniFile ini;
         ini.Open((const char*)&PTR_DAT_004f6078, 0xb);
         FUN_004c1902(i + 1, num, 10);                         // car number i + 1
-        std::string dir("data/cars/car_");
-        dir.append(num);
-        std::string path(dir);
-        path.append("/info.ini");
+        StagePathText dir;
+        dir.AppendCall("data/cars/car_");
+        dir.AppendCall(num);
+        StagePathText path;
+        path.AssignString(*(std::string*)&dir, 0, std::string::npos);
+        path.AppendCall("/info.ini");
         ini.Load(path.c_str(), true, false, 0);
-#define S(f) (*(std::string*)&e->f)
-#define UNIT(field, key, mm, inch, plain)                     \
+#define S(f) (*(StagePathText*)&e->f)
+#define UNIT(field, key, mm, inch, AP, K)                       \
         { int v = ini.Find(key);                             \
-        if (DAT_00501300[0] != 0) FUN_004c19bc();             \
-        FUN_004c1902(v, num, 10);                             \
-        S(field).assign(num);                                 \
-        if (DAT_00501300[0] == 0) {                           \
-            S(field).append(FUN_00405380(mm));                \
-        } else {                                              \
-            S(field).append(DAT_004f2e40);                    \
-            S(field).append(FUN_00405380(inch));              \
-        } }
-        UNIT(a, "Length", 0x12, 0x13, 0)
-        UNIT(b, "Width", 0x12, 0x13, 0)
-        UNIT(c, "Height", 0x12, 0x13, 0)
-        UNIT(d, "Weight", 0x10, 0x11, 0)
+        if (DAT_00501300[0] != 0) v = (int)((float)v * K); \
+        FUN_004c1902(v, buf, 10);                             \
+        S(field).AssignGrow(buf);                             \
+        if (DAT_00501300[0] != 0) { S(field).AP(DAT_004f2e40); S(field).AP(FUN_00405380(inch)); } \
+        else S(field).AP(FUN_00405380(mm)); }
+        UNIT(a, "Length", 0x12, 0x13, AppendCall, 0.0393701f)
+        UNIT(b, "Width", 0x12, 0x13, AppendCall, 0.0393701f)
+        UNIT(c, "Height", 0x12, 0x13, AppendStd, 0.0393701f)
+        UNIT(d, "Weight", 0x10, 0x11, AppendStd, 2.2046225f)
 #undef UNIT
 #undef S
     }
