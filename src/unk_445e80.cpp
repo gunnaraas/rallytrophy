@@ -32,8 +32,6 @@ ConfigKey SMA_Keys[12] = {
 
 // The inline Sprite set-up of the constructor (the same field writes as the ping-indicator sprite).
 #define SMA_SPRITE(s, last) \
-    (s).unk9c = (last); \
-    (s).unk98 = 15; \
     (s).unk60[0] = 1.0f; \
     (s).unk60[1] = 1.0f; \
     (s).unk60[2] = 1.0f; \
@@ -45,7 +43,9 @@ ConfigKey SMA_Keys[12] = {
     (s).unk18 = 5; \
     (s).unk1c = 6; \
     (s).unk24 = 2; \
-    (s).unk20 = 2;
+    (s).unk20 = 2; \
+    (s).unk9c = (last); \
+    (s).unk98 = 15;
 
 
 // ---- from group draft V2 ----
@@ -183,6 +183,7 @@ extern int DAT_004f9ca8[];             // tab text ids {120, 121, 122, 124, 23, 
 // Same size (1603) and same call/EH skeleton; only the store scheduling of the inline Sprite field writes differs: the
 // original issues the 1.0f stores of the first sprites ahead of the mode/int blocks and delays the 5/6/2/0xf int stores
 // (the sprite order damageIcons, damageBar, tuneSelectors, repair, tune, info, startRace, load is right). original: FUN_00445e80
+// Tried 2026-10-30 night: reordered SMA_SPRITE stores (floats+ints first, unk98/unk9c last: 82->69 insns), pointer loops, per-loop macros, 6 other orders; the original schedules sprite int stores in a different interleave and its loop base is sprite+0x68 (ours +0x98), not reachable from source order.
 ServiceMenu::ServiceMenu()
 {
     m_selected = 0;
