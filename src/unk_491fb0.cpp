@@ -1178,6 +1178,7 @@ public:
 // NONMATCHING: RALLYTROPHY 0x492e40
 // 2034 vs 2050 bytes; same instruction stream and calls, ~290 bytes differ in register choice and in the
 // stack slot of `done` (the original reuses the dead `mode` argument slot); `pad`/`block` mimic the frame.
+// Tried 2026-10-30 night: volatile zero stores of rect.v[1..3] (62->46 insns; original keeps 4 immediate stores + reload of v0); itoa arg locals, unk2c cache, 8 more rect variants worse; still differs in register picks (eax/ecx/edx), rect copy and EH-state store placement.
 // Variant of Run for the alternative Game entry (0x434300): loads the stage, plays the first local player.
 int RaceSession::RunAttract(RaceMode* mode)
 {
@@ -1293,6 +1294,9 @@ int RaceSession::RunAttract(RaceMode* mode)
     }
     {
         RectArg rect(0, 0, 0, 0);
+        ((volatile int*)rect.v)[1] = 0;
+        ((volatile int*)rect.v)[2] = 0;
+        ((volatile int*)rect.v)[3] = 0;
         ((RaceDeviceSlots*)DAT_0056b0ac)->SetViewport(rect);
         ((RaceDeviceSlots*)DAT_0056b0ac)->Slot24(1);
         ((RaceDeviceSlots*)DAT_0056b0ac)->Present();
