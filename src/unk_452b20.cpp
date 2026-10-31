@@ -1113,16 +1113,18 @@ inline void F2_Cross(const F2_V* a, const F2_V* b, F2_V* dst)
     }
 }
 
+__forceinline void F2_Copy3(F2_V& d, const F2_V& s) { *(int*)&d.y = *(int*)&s.y; *(int*)&d.z = *(int*)&s.z; d.x = s.x; }
+
 // NONMATCHING: RALLYTROPHY 0x454d10
 // 867 vs 843 bytes, 512 differing bytes. Separate x/y/z square accumulation recovers the target's x, y, z
 // component loads and initial square sequence. Remaining differences include the x87 addition/normalization order,
 // and the first part's y/z position stores; the function static (0x508c60, atexit 0x455060) is in place.
+// Tried 2026-10-30 night: ~35 variants (sum/normalise order, F2_Copy3 y/z int-copy + x float store, d.z/d.x tail order; 98->49 insns). Still differs: y/z load order and spilled x/y stay in the opposite order at the top (z loaded before y), the x-first normalise form re-enregisters y/z, and the F2_Cross call takes lea edi/push edi instead of an in-place esi add.
 void Car::FUN_00454d10()
 {
     F2_CarView* c = (F2_CarView*)this;
     F2_V v = c->ctrl;
-    float len2 = v.x * v.x;
-    len2 += v.y * v.y;
+    float len2 = v.x * v.x + v.y * v.y;
     len2 += v.z * v.z;
     if (len2 > 196.0f) {
         float s = 1.0f / v.Length();
@@ -1151,7 +1153,7 @@ void Car::FUN_00454d10()
         t.x = t.x - d.x * 0.024f;
         t.y = t.y - d.y * 0.024f;
         t.z = t.z - d.z * 0.016f;
-        a->pos = t;
+        F2_Copy3(a->pos, t);
         a->pos.x += c->lamp1.x;
         a->pos.y += c->lamp1.y;
         a->pos.z += c->lamp1.z;
@@ -1162,16 +1164,16 @@ void Car::FUN_00454d10()
         t.x = t.x - d.x * 0.024f;
         t.y = t.y - d.y * 0.02f;
         t.z = t.z - d.z * 0.02f;
-        q->pos = t;
+        F2_Copy3(q->pos, t);
         q->pos.x += c->lamp1.x;
         q->pos.y += c->lamp1.y;
         q->pos.z += c->lamp1.z;
-        float ax = d.x * -0.3f;
-        float cz = d.z * -0.2f;
-        float inv = 1.0f / (float)sqrt(cz * cz + ax * ax + 1.0f);
-        d.x = ax * inv;
+        d.z = d.z * -0.2f;
+        d.x = d.x * -0.3f;
+        float inv = 1.0f / (float)sqrt(d.z * d.z + d.x * d.x + 1.0f);
+        d.x = d.x * inv;
         d.y = inv;
-        d.z = cz * inv;
+        d.z = d.z * inv;
         static Vec3 axis(0.0f, 0.0f, 1.0f);
         F2_Cross(&d, (const F2_V*)&axis, &q->rot.r0);
         q->rot.r1 = d;
