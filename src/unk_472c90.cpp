@@ -47,9 +47,10 @@ static inline void ClearVec(Vec3* p)
 // base/EH initialization. Other open differences: the original does not forward the
 // new[] results (m->vertices / m->indices are re-read from the mesh after the index loop; ours keeps them in
 // a stack temp), keeps the index loop counter in memory, and stores queryKind (0x11) right after the vector init.
+// Tried 2026-10-31: plain queryKind store (90->89), local for vertices, int/unsigned/WORD w, pre-zeroed vertices; the vtable/EH-state stores still land before queryKind and the new[] ternary result still goes through a stack temp.
 RainEffect::RainEffect(TextureLoader* loader, int dropCount_, int splashCount_)
 {
-    *(volatile int*)&queryKind = 0x11;
+    queryKind = 0x11;
     dropCount = dropCount_;
     dropDrawCount = dropCount_;
     splashCount = splashCount_;
