@@ -3732,6 +3732,9 @@ struct G13_WarpPoint {
 // Tried 2026-10-30 night: G14-style draw block (Color + shared x,y declared first), String::Append with a named grow-size
 // local and char_traits::copy, ClearKeys before the final stores, local declaration orders, permute -r 20; only the
 // `mov edi,1 / xor ebx,0` order after the string dtor at the loop back-edge still differs (2 insns, no source cause found).
+// Tried 2026-10-31: 100+ variants (all 48 orders of wait/choice/first/color/x,y declarations, Refcnt-style dtor, c_str via std::string cast,
+// volatile stores, separate init statements, permute -r 20): declaring choice first fixes the back-edge `mov edi,1 / xor ebx,ebx` order but then the
+// prologue stores [esp+10]/[esp+1c] swap; the original has wait,choice order in the prologue and edi,ebx at the back-edge, which no single declaration order gives.
 // Modal "question / Yes / No" dialog: Left/Right or the mouse pick the answer, Enter or a click confirms, Esc cancels.
 // Returns 1 for Yes (class Game in the merged header). original: FUN_00436250
 int GameObj::FUN_00436250(MenuScreen* screen)
