@@ -800,6 +800,7 @@ void Player::FUN_00491950(int t)
 
 // NONMATCHING: RALLYTROPHY 0x491e20
 // Tried 2026-10-30 night: ~25 variants (pointer-stepped loops, bi temp, regrouping, declaration order) stay at 15 insns. Swapping target/base scores 13 but is wrong: the original reads t from unk250c ([ebp-4]) and base from unk24e4.
+// Tried 2026-10-31 re-pass: explicit byte-offset base (off = base - target) and tp++ walkers (18 insns, shrinks to 324 bytes), base/target declaration reorders (18-20), volatile target read, permute.py -r 40 (best stays 15/42); VC6 still picks the 0x24e4 array as the induction pointer.
 // 331 vs 331 bytes, 42 differ: same code, but VC6 picks the other array as the primary induction
 // variable of the loop (original steps the 0x250c array and adds a runtime offset to reach 0x24e4).
 // Computes the stage times of a simulated opponent from its skill table: each of the ten
