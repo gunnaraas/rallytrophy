@@ -409,6 +409,7 @@ int Screen1378::Frame()
 // NONMATCHING: RALLYTROPHY 0x43ad80
 // 532/532 bytes, 15 differences: second-panel coordinate stores versus material loads.
 // Draws two textured panels; the separate Layout function builds hit boxes.
+// Tried 2026-10-30 night: all 24 orders of the four second-panel pos stores, local declaration orders, inlined w/h, permute.py -r 20 (no MATCH, best stays 4); 4 insns differ: the pos[1].x/pos[2].x store pair and fld st(1) are scheduled differently after the first fst [esp+0xc].
 void Screen1378::BuildRects()
 {
     HudPoint uv[4];
