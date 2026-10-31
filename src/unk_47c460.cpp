@@ -398,6 +398,7 @@ void CarParticles::Render(RenderDevice* device, Camera* camera)
 // 1233 bytes, 52 differing bytes. Naming `randomValue` and `threshold`, then expressing the
 // failure test as `threshold <= randomValue`, reproduces the target's FXCH/FCOMPP compare pair.
 // Stack homes, compare operand/order flags, and the delayed `push edi` still differ; see the log.
+// Tried 2026-10-30 night: sibling E/D shape (named float rr, `!(rr < chance*rate)`) 26->23; chance/slip declaration order, single reused v, hoisted speed/lat, thr local, volatile j2: no gain. Still differs: chance lands in [ebp-0x10] (orig -0x14, shared temp -0x10) and push edi is early.
 // Spawn core A: emits a particle with probability from the slips and speed.
 Particle* CarParticles::SpawnCoreA(float rate)
 {
@@ -429,9 +430,8 @@ Particle* CarParticles::SpawnCoreA(float rate)
     } else {
         chance = SCALE_A;
     }
-    int randomValue = rand() & 0xff;
-    float threshold = chance * rate;
-    if (threshold <= (float)randomValue) {
+    float rr = (float)(rand() & 0xff);
+    if (!(rr < chance * rate)) {
         return 0;
     }
     if (!DAT_0056ae90.head) {
