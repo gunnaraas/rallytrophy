@@ -4196,7 +4196,7 @@ struct G15_Str {
 };
 
 // NONMATCHING: RALLYTROPHY 0x437220
-// Tried 2026-10-30 night: 14 return-shape variants (goto/result var/ternary/braced string scope); `int r = -1; if (closed) r = sel; return r;` gives 34->23 (single cleanup, 1311 vs 1346 bytes); original duplicates the string cleanup per return yet shares one epilogue, which no source shape reproduced.
+// Tried 2026-10-30 night: 14 return-shape variants (goto/result var/ternary/braced string scope); `int r = -1; if (closed) r = sel; return r;` gives 34->23 (single cleanup, 1311 vs 1346 bytes); original duplicates the string cleanup per return yet shares one epilogue, which no source shape reproduced. Retried with the twin's shape (early `if (closed) return sel/v->confirmSel; return -1;`, `!closed` form, ternary, no sel local, color/x order, decl order): 30-43 insns and 1384 bytes (cleanup and epilogue both duplicated), worse than 23.
 // original: FUN_00437220 (fastcall; confirmation dialog, -1 while open, else the chosen answer)
 int Game::FUN_00437220(int a)
 {
