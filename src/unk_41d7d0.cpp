@@ -97,55 +97,61 @@ inline void XformT(float* o, const float* p, const float* m, const float* t)
 
 // NONMATCHING: RALLYTROPHY 0x41d7d0
 // NONMATCHING: centre-point Xform x87 block (box+0x1c through mat, pos) now inline asm like the original; frame matches; rest (plane build, triangle loop, register/stack allocation) differs (5502 of 6021 bytes, 5419 differing).
+// Tried 2026-10-31: plane n/d via Vec3 view with the original d sum load order, Vec3 cc/p + 2 dead Vec3 (EH state 3), rad next to cc, cull compare as int bits (dx*dx+dz*dz+dy*dy) 1399->1348 insns; still differs: this/box register roles (orig ebx/esi), EH state-0 store before plane ctor, temps at -0xd0/-0xe0, loop induction vars, frame 0x284.
 int U40A850Body::FUN_0041d7d0(U40A850Body* other, int flag)
 {
     float* bx = (float*)box;
     if (bx == 0) {
         return 0;
     }
-    Plane planes[6];
     Vec3& pos_ = *(Vec3*)&this->pos[0];
     Vec3& row0 = *(Vec3*)&this->mat[0][0];
     Vec3& row1 = *(Vec3*)&this->mat[1][0];
     Vec3& row2 = *(Vec3*)&this->mat[2][0];
-    float cc[3];
-    XformT(cc, bx + 7, &this->mat[0][0], this->pos);
-    float cx = cc[0], cy = cc[1], cz = cc[2];
-    float rad = bx[10];
-
-    // six box planes: +z/-z, +x/-x, +y/-y (box +0xc/+0x18, +4/+0x10, +8/+0x14)
+    Plane planes[6];
+    float rad;
+    Vec3 cc;
+    Vec3 p;
+    Vec3 q;
+    Vec3 q2;
+    XformT(&cc.x, bx + 7, &this->mat[0][0], this->pos);
+    float cx = cc.x, cy = cc.y, cz = cc.z;
+    rad = bx[10];
     {
-        Vec3 p = bx[3] * row2 + pos_;
-        planes[0].n[0] = row2.x; planes[0].n[1] = row2.y; planes[0].n[2] = row2.z;
-        planes[0].d = planes[0].n[1] * p.y + planes[0].n[2] * p.z + planes[0].n[0] * p.x;
+        p = bx[3] * row2 + pos_;
+        Vec3& N = *(Vec3*)planes[0].n;
+        N = row2;
+        planes[0].d = N.y * p.y + N.z * p.z + N.x * p.x;
     }
     {
-        Vec3 p = bx[6] * row2 + pos_;
-        Vec3 nn = -row2;
-        planes[1].n[0] = nn.x; planes[1].n[1] = nn.y; planes[1].n[2] = nn.z;
-        planes[1].d = planes[1].n[1] * p.y + planes[1].n[2] * p.z + planes[1].n[0] * p.x;
+        p = bx[6] * row2 + pos_;
+        Vec3& N = *(Vec3*)planes[1].n;
+        N = -row2;
+        planes[1].d = N.y * p.y + N.z * p.z + N.x * p.x;
     }
     {
-        Vec3 p = bx[1] * row0 + pos_;
-        planes[2].n[0] = row0.x; planes[2].n[1] = row0.y; planes[2].n[2] = row0.z;
-        planes[2].d = p.z * planes[2].n[2] + planes[2].n[1] * p.y + planes[2].n[0] * p.x;
+        p = bx[1] * row0 + pos_;
+        Vec3& N = *(Vec3*)planes[2].n;
+        N = row0;
+        planes[2].d = N.z * p.z + N.y * p.y + N.x * p.x;
     }
     {
-        Vec3 p = bx[4] * row0 + pos_;
-        Vec3 nn = -row0;
-        planes[3].n[0] = nn.x; planes[3].n[1] = nn.y; planes[3].n[2] = nn.z;
-        planes[3].d = p.y * planes[3].n[1] + p.z * planes[3].n[2] + planes[3].n[0] * p.x;
+        p = bx[4] * row0 + pos_;
+        Vec3& N = *(Vec3*)planes[3].n;
+        N = -row0;
+        planes[3].d = N.y * p.y + N.z * p.z + N.x * p.x;
     }
     {
-        Vec3 p = bx[2] * row1 + pos_;
-        planes[4].n[0] = row1.x; planes[4].n[1] = row1.y; planes[4].n[2] = row1.z;
-        planes[4].d = p.y * planes[4].n[1] + p.z * planes[4].n[2] + planes[4].n[0] * p.x;
+        p = bx[2] * row1 + pos_;
+        Vec3& N = *(Vec3*)planes[4].n;
+        N = row1;
+        planes[4].d = N.y * p.y + N.z * p.z + N.x * p.x;
     }
     {
-        Vec3 p = bx[5] * row1 + pos_;
-        Vec3 nn = -row1;
-        planes[5].n[0] = nn.x; planes[5].n[1] = nn.y; planes[5].n[2] = nn.z;
-        planes[5].d = p.y * planes[5].n[1] + p.z * planes[5].n[2] + planes[5].n[0] * p.x;
+        p = bx[5] * row1 + pos_;
+        Vec3& N = *(Vec3*)planes[5].n;
+        N = -row1;
+        planes[5].d = N.y * p.y + N.z * p.z + N.x * p.x;
     }
 
     // cull the other body's triangles against this body's box
@@ -163,8 +169,11 @@ int U40A850Body::FUN_0041d7d0(U40A850Body* other, int flag)
     for (i = 0; i < ntris; i++) {
         CTri* t = &tris[i];
         float r2 = (rad + t->r) * (rad + t->r);
-        float d2 = (cy - t->c[1]) * (cy - t->c[1]) + (cz - t->c[2]) * (cz - t->c[2]) + (cx - t->c[0]) * (cx - t->c[0]);
-        if (d2 <= r2) {
+        float dx = cx - t->c[0];
+        float dy = cy - t->c[1];
+        float dz = cz - t->c[2];
+        float d2 = dy * dy + dz * dz + dx * dx;
+        if (*(int*)&d2 <= *(int*)&r2) {
             unsigned int m0, m1, m2;
             if (*t->v[0] == 0) { m0 = FUN_0041ba60((float*)planes, (float*)(t->v[0] + 1)); *t->v[0] = m0 | 0x100; } else { m0 = *t->v[0] & 0x3f; }
             if (*t->v[1] == 0) { m1 = FUN_0041ba60((float*)planes, (float*)(t->v[1] + 1)); *t->v[1] = m1 | 0x100; } else { m1 = *t->v[1] & 0x3f; }
@@ -250,3 +259,4 @@ int U40A850Body::FUN_0041d7d0(U40A850Body* other, int flag)
     }
     return hits;
 }
+
