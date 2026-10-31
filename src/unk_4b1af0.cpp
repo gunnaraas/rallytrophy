@@ -8,6 +8,22 @@
 struct FileNameView { void* stream; std::string name; };
 static __forceinline const std::string& FName(File* f) { return ((FileNameView*)f)->name; }
 
+struct Tmp3 { Tmp3() {} ~Tmp3() {} unsigned int r[11]; };
+struct V11 { unsigned int f[11]; };
+struct BStr {
+    std::allocator<char> alloc; char* ptr; unsigned int len; unsigned int res;
+    void Tidy(bool b);
+    bool Grow(unsigned int n, bool trim);
+    BStr(const char* s, const std::allocator<char>& al = std::allocator<char>()) : alloc(al) {
+        Tidy(false);
+        unsigned int n = strlen(s);
+        if (Grow(n, true)) { memcpy(ptr, s, n); len = n; ptr[n] = 0; }
+    }
+    ~BStr() { Tidy(true); }
+};
+#pragma comment(linker, "/alternatename:?Tidy@BStr@@QAEX_N@Z=?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z")
+#pragma comment(linker, "/alternatename:?Grow@BStr@@QAE_NI_N@Z=?_Grow@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAE_NI_N@Z")
+
 struct PStr {
     std::allocator<char> alloc; char* ptr; unsigned int len; unsigned int res;
     void AssignCall(const char* s, unsigned int n);
@@ -22,23 +38,22 @@ struct PStr {
     DynamicMesh* mesh = new DynamicMesh;                                                   \
     BmfVertex* v = new BmfVertex[nverts];                                                  \
     unsigned short* idx = (unsigned short*)operator new(ntris * 6);                        \
-    unsigned int* d = (unsigned int*)v;                                                    \
+    V11* dv = (V11*)v;                                                                   \
+    Tmp3 tmp; unsigned int* r = tmp.r;                                                     \
     int i;                                                                                 \
     for (i = nverts; i > 0; i--) {                                                     \
-        unsigned int r[11];                                                                \
         file->Read(r, REC);                                                                \
-        d[0] = r[0]; d[1] = r[1]; d[2] = r[2]; d[3] = r[3]; d[4] = r[4]; d[5] = r[5];      \
-        d[6] = r[6] | 0xff000000; d[7] = r[7]; d[8] = r[8]; d[9] = r[7]; d[10] = r[8];     \
-        d += 11;                                                                           \
+        dv->f[0] = r[0]; dv->f[1] = r[1]; dv->f[2] = r[2]; dv->f[3] = r[3]; dv->f[4] = r[4]; dv->f[5] = r[5];      \
+        dv->f[6] = r[6] | 0xff000000; dv->f[7] = r[7]; dv->f[8] = r[8]; dv->f[9] = r[7]; dv->f[10] = r[8];     \
+        dv++;                                                                              \
     }                                                                                      \
     unsigned short* p = idx;                                                               \
     for (i = 0; i < ntris; i++) {                                                      \
         unsigned short t[4];                                                               \
         file->Read(t, TRI);                                                                \
-        p[0] = t[0]; p[1] = t[1]; p[2] = t[2];                                             \
-        if (t[0] >= nverts || t[1] >= nverts || t[2] >= nverts)                            \
-            throw file_error(FName(file), std::string("BMF batch chunk failed due to illegal vertex index")); \
-        p += 3;                                                                            \
+        *p = t[0]; p++; *p = t[1]; p++; *p = t[2]; p++;                                             \
+        if ((*(volatile int*)&t[0] & 0xffff) >= nverts || (*(volatile int*)&t[1] & 0xffff) >= nverts || (*(volatile int*)&t[2] & 0xffff) >= nverts)                          \
+            throw file_error(FName(file), *(std::string*)&BStr("BMF batch chunk failed due to illegal vertex index")); \
     }                                                                                      \
     *(short*)((char*)mesh + 0xe) = ntris;                                                  \
     *(short*)((char*)mesh + 0xc) = nverts;                                                 \
@@ -48,6 +63,7 @@ struct PStr {
     out->batches.push_back(mesh);
 
 // NONMATCHING: RALLYTROPHY 0x4b1af0 (inlined std::string/throw construction differs from original)
+// Tried 2026-10-31: BStr (hand ctor: out-of-line _Tidy/_Grow via alternatename, inline copy; matches the original's string construction and EH states), Tmp3 empty-dtor record local (state 2), *(volatile int*)&t[k] & 0xffff compares (t slot), p++ steps, Bal budget calls (no effect), volatile stores/decl-order variants; 132->91 insns. Still differs: file/ntris in ebp/ebx swapped, vertex-loop base offset (esi+0x14 vs +8) and r[7]/r[8] reload, tri-loop load/store interleave, tail mesh-field store order.
 void ModelFile::ReadBatch(File* file, ModelOut* out)
 {
     BMF_BATCH_BODY(0x2c, 8)
