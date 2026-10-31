@@ -361,27 +361,29 @@ struct PlaceRec {
     float radius, radius2;             // 0x40, 0x44
 };
 
+__forceinline const char* CS(PlaceStr* s) { return s->ptr ? s->ptr : ""; }
+
 // NONMATCHING: RALLYTROPHY 0x4150b0
-// 680 vs 697 bytes; asm blocks and the dir/normalize FPU code match. Open: the original reloads the name pointer
-// for the second c_str (here it is cached in ebx), so its frame is 4 bytes larger and the asm pointer slots differ.
+// Tried 2026-10-31: CS() forceinline helper (reloads the name pointer), no pos local, ext.z before ext.y, n+1 temp: 72 -> 31 insns.
+// Still differs: ext/asm-slot store order, pos/dir copies (original loads z early, no lea base) and the original
+// keeps ext.y/z on the FPU across Length(); variants of copies, Length, volatile stores did not move it.
 void StageSounds::FUN_004150b0(PlaceObj* o)
 {
-    if (strlen(o->name.ptr ? o->name.ptr : "") < 8)
+    if (strlen(CS(&o->name)) < 8)
         return;
-    const char* t = o->name.ptr ? o->name.ptr : "";
+    const char* t = CS(&o->name);
     int n = t[6] * 10 + t[7] - 0x210;
     PlaceRec* rec = (PlaceRec*)&placed[n * 0x12];
-    PlaceVec* pos = (PlaceVec*)&o->f[5];
-    PlaceVec ext;
+        PlaceVec ext;
     ext.x = o->f[40];
-    ext.y = 0.0f;
     ext.z = 0.0f;
-    PlaceTransform(&ext.x, &o->f[8], &rec->start.x, &pos->x);
+    ext.y = 0.0f;
+    PlaceTransform(&ext.x, &o->f[8], &rec->start.x, &o->f[5]);
     rec->start.y = o->f[6];
     ext.x = o->f[43];
-    PlaceTransform(&ext.x, &o->f[8], &rec->end.x, &pos->x);
+    PlaceTransform(&ext.x, &o->f[8], &rec->end.x, &o->f[5]);
     rec->end.y = o->f[6];
-    rec->pos = *pos;
+    rec->pos = *(PlaceVec*)&o->f[5];
     rec->dir = rec->end;
     rec->dir -= rec->start;
     float len = rec->dir.Length();
@@ -392,12 +394,12 @@ void StageSounds::FUN_004150b0(PlaceObj* o)
     up.y = 1.0f;
     up.z = 0.0f;
     PlaceCross(&rec->dir.x, &up.x, &rec->side.x);
-    n++;
     float rad = ext.Length() * 1.1f;
     rec->radius = rad;
     rec->radius2 = rad * rad;
-    if (AT(int, 0x130c) < n)
-        AT(int, 0x130c) = n;
+    int m = n + 1;
+    if (m > AT(int, 0x130c))
+        AT(int, 0x130c) = m;
 }
 
 // FUNCTION: RALLYTROPHY 0x416000
