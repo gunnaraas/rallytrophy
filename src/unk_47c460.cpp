@@ -557,6 +557,7 @@ void CarParticles::Kind3(float scale, float age)
 // and places `push edi` earlier. The `Vec3 jit` local is what makes VC6 keep the x jitter in
 // a stack temp across the second rand() call like the original.
 // Tried 2026-10-30 night: head pop moved after local.x/local.y copy, cached PCAR local, Next-first temp, and permute.py -r 20 (no MATCH); all stay at 3-5 insns differ, the PCAR-before-head load order and pop/push edi placement are not steerable from source.
+// Tried 2026-10-31 re-pass: permute.py -r 40 reached 2 insns differ (applied: nested !() on the HI tests, branch arms swapped, declarations moved); volatile head store, PCAR local, head-store position variants stay at 3; remaining diff is PCAR load before head load + push edi one slot late.
 // Spawn core B: like core A with an integer 0..256 chance and no rate argument.
 Particle* CarParticles::SpawnCoreB(float rate)
 {
@@ -565,10 +566,10 @@ Particle* CarParticles::SpawnCoreB(float rate)
     static float kSlip2 = 1.0f / (SLIP2_B_HI - SLIP2_B_LO);
     int chance = 0;
     float slip = (float)fabs(PCAR->slipLong);
-    if (slip < SLIP_B_HI) {
+    if (!(!(!(!(slip < SLIP_B_HI))))) {
         if (slip > SLIP_B_LO) {
-            slip = (slip - SLIP_B_LO) * kSlip * 256.0f;
             int a;
+            slip = (slip - SLIP_B_LO) * kSlip * 256.0f;
             __asm {
                 fld slip
                 fistp a
@@ -576,10 +577,12 @@ Particle* CarParticles::SpawnCoreB(float rate)
             chance = a;
         }
         float speed = BODY_VELOCITY.Length();
-        if (speed < SPEED_B_HI) {
+        if (!(!(!(speed < SPEED_B_HI)))) {
+            chance = 0x100;
+        } else {
             if (speed > SPEED_B_LO) {
-                float t = (speed - SPEED_B_LO) * kSpeed * 256.0f;
                 int b;
+                float t = (speed - SPEED_B_LO) * kSpeed * 256.0f;
                 __asm {
                     fld t
                     fistp b
@@ -600,8 +603,6 @@ Particle* CarParticles::SpawnCoreB(float rate)
             } else {
                 chance = 0x100;
             }
-        } else {
-            chance = 0x100;
         }
     } else {
         chance = 0x100;
@@ -612,9 +613,9 @@ Particle* CarParticles::SpawnCoreB(float rate)
     if (!DAT_0056ae90.head) {
         DAT_0056ae90.Grow();
     }
+    Vec3 local;
     Particle* p = DAT_0056ae90.head;
     DAT_0056ae90.head = p->next;
-    Vec3 local;
     local.x = PCAR->position.x;
     local.y = PCAR->position.y;
     local.z = PCAR->position.z;
@@ -637,8 +638,8 @@ Particle* CarParticles::SpawnCoreB(float rate)
     p->velocity += BODY_RIGHT * lat * 0.1f;
     p->velocity.y += 1.0f;
     float j1 = (float)((rand() & 0x3fff) - 0x1fff) * 9.1552734375e-5f;
-    float j2 = (float)(rand() & 0x3fff) * 9.1552734375e-5f;
     Vec3 jit;
+    float j2 = (float)(rand() & 0x3fff) * 9.1552734375e-5f;
     jit.x = j1;
     jit.y = j2;
     p->velocity.x += jit.x;
