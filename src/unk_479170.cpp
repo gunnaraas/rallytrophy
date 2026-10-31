@@ -709,10 +709,7 @@ float CarEmitterB::SpawnCore4(float a, float b)
 
 static const float F5_k256 = 256.0f, F5_lo0 = 1.0f, F5_hi0 = 4.0f, F5_lo1 = 2.0f, F5_hi1 = 30.0f, F5_lo2 = 1.0f, F5_hi2 = 4.0f;
 
-// NONMATCHING: RALLYTROPHY 0x47af50
-// 1331 vs 1330 bytes; same two open scheduling differences as core 4 (alpha term order, ecx/edx
-// swap around the pool pop) plus WCAR being re-read one instruction earlier before the side jitter.
-// Tried 2026-10-30 night: ~35 variants; split alpha (`float alpha = c0*k; alpha = m2*k + alpha;`) fixes the alpha fild order (24->22 insns); still open: b/pos.x ecx/edx swap around the pool pop and s_car reload hoisted above the rand result use (+1 byte); pool-store reorders, volatile on age/unk0/next, int-copy of b, side/px forms do not help (a volatile read of p->next gave 7 insns but +4 bytes).
+// FUNCTION: RALLYTROPHY 0x47af50
 // Spawn core 5: decides from wheel slip and body speed whether to emit; fills a particle.
 float CarEmitterB::SpawnCore5(float a, float b)
 {
@@ -761,13 +758,15 @@ float CarEmitterB::SpawnCore5(float a, float b)
         m2 = 256;
     }
     float alpha = c0 * 0.0013476562f;
-    alpha = m2 * 0.0025390624f + alpha;
+    alpha = 0.0025390624f * m2 + alpha;
     if (!DAT_0056ae90.head) {
         DAT_0056ae90.Grow();
     }
     Particle* p = DAT_0056ae90.head;
-    p->age = b;
-    DAT_0056ae90.head = p->next;
+    Particle* nx = p->next;
+    int ab = *(volatile int*)&b;
+    DAT_0056ae90.head = nx;
+    *(int*)&p->age = ab;
     p->unk0 = 0;
     p->lifetime = 2.0f;
     Vec3 local = WCAR->pos;
