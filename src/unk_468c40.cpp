@@ -324,6 +324,7 @@ void Car::FUN_004691e0(int cockpit)
 
 // NONMATCHING: RALLYTROPHY 0x4693a0
 // Same size (543); restore branch and damaged-loop stores follow the target order. 18 register-assignment bytes remain.
+// Tried 2026-10-30 night: ~25 variants (a/b decl order, loop forms while/for/swapped cond, o declared late/hoisted/inlined, const locals for 1/2, volatile barriers); always 16-17 insns differ, original puts a=edx,b=esi,2=ebp,1=edi,o=ebp but we get a=esi,b=edi,2=edx,1=ebp.
 void Car::FUN_004693a0(int mode)
 {
     CarModelView* v = (CarModelView*)this;
