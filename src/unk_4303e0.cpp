@@ -133,6 +133,7 @@ extern "C" void __fastcall FUN_004adf50(void*);
 // NONMATCHING: RALLYTROPHY 0x4309d0
 // State 0-2 share the audio/resource update calls. The target lays the shared block after case 0 so cases 1 and 2 jump
 // backward to it; VC6 places it after cases 1 and 2, changing the dispatch targets. Other small switch-order differences remain.
+// Tried 2026-10-30 night: case order permutations, goto-into-case-0 label, per-case inline tails, if-chain, post-switch tail; moving DAT_00501472=0 before FUN_004a4870 in cases 1/2 fixed store order (28->16 insns); still differs: VC6 always places the shared audio block after case 2, the original has it after case 0 with cases 1/2 jumping back.
 void Game::FUN_004309d0() {
     Config config;
     config.Define(G9_GameIniKeys, 12);
@@ -173,10 +174,10 @@ void Game::FUN_004309d0() {
                 FUN_004adf50((char*)this + 0x139424);
                 break;
             case 1:
-                FUN_004a4870("data/settings/game.ini"); DAT_00501472 = 0; DAT_00501458 = 1; DAT_0050145c = 0; DAT_00501473 = 0;
+                DAT_00501472 = 0; FUN_004a4870("data/settings/game.ini"); DAT_00501458 = 1; DAT_0050145c = 0; DAT_00501473 = 0;
                 FUN_00433bc0(this); goto G2_update_audio;
             case 2:
-                FUN_004a4870("data/settings/game.ini"); DAT_00501472 = 0; DAT_00501458 = 0; DAT_0050145c = 1; DAT_00501473 = 0;
+                DAT_00501472 = 0; FUN_004a4870("data/settings/game.ini"); DAT_00501458 = 0; DAT_0050145c = 1; DAT_00501473 = 0;
                 FUN_00434a50(this); goto G2_update_audio;
             case 3: FUN_00434df0(this); break;
             case 4: FUN_00432b00(this); FUN_00425e50(this); ((GameView*)this)->FUN_00432b30(0, 0); break;
