@@ -842,6 +842,7 @@ void CarParticles::Kind9(float scale, float age)
 // store/reload of jy.
 // Tried 2026-10-30 night: sibling E shapes (rr, inverted mode branch, volatile jx -> slot [ebp+8] wrong), jx plain, volatile jy
 // (best), cast stores, sqrt term orders, bv copy/ref, f/r2-r4 moves; all worse or equal.
+// Tried 2026-10-31: spawner recipe (pool pop first already used), forceinline Len3 helper and local vz/vy/vx loads with every sum order (all identical output; original loads z,y,x and squares z in place, we load x first), permute.py -r 40 best 17 insns, no MATCH.
 // Spawn core D: decides from wheel slip and body speed whether to emit, takes a particle from the
 // pool and sets position and velocity (the kind functions fill in the rest).
 Particle* CarParticles::SpawnCoreD(float rate)
