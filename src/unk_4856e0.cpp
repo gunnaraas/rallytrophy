@@ -725,7 +725,7 @@ void RaceMode::FUN_0048e840(float x, float y, float w, float h, Color color, int
 // NONMATCHING: RALLYTROPHY 0x48e9b0
 // 369 vs 367 bytes: same scheduling difference as 0x48e840 (this is its mirror
 // cell, uv + 0.125 (double) .. + 0.25).
-// Tried 2026-10-30 night: ~30 variants (store order, operand order, decl order, uv/pos order, volatile barrier, temps); none beat 12 insns differ - original takes y into eax and copies to ecx (x into edx) before the FPU uv math, ours loads x/y in the opposite order.
+// Tried 2026-10-30 night: ~40 variants; copying y as an int (iy) for both position y stores improved 12 -> 9 insns (y now eax -> ecx like the original); int copies of x, store/decl/uv order, volatile were equal or worse. Remaining: original issues the DAT_0056b0ac load before the second y store and stores x straight from edx twice (ours copies x to eax).
 void RaceMode::FUN_0048e9b0(float x, float y, float w, float h, Color color, int flag)
 {
     Vec2 uv[4];
@@ -735,7 +735,8 @@ void RaceMode::FUN_0048e9b0(float x, float y, float w, float h, Color color, int
     uv[1].x = uv[2].x = v + 0.25f;
     uv[0].y = uv[1].y = 0.5f;
     uv[2].y = uv[3].y = 0.75f;
-    position[1].y = position[0].y = y;
+    int iy = *(int*)&y;
+    *(int*)&position[0].y = iy; *(int*)&position[1].y = iy;
     position[2].x = position[1].x = x + w;
     position[3].x = position[0].x = x;
     position[3].y = position[2].y = y + h;
