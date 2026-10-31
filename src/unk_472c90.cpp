@@ -262,6 +262,7 @@ TriVector::iterator TriVector::Erase(iterator first, iterator last) { return era
 // NONMATCHING: RALLYTROPHY 0x473470
 // 3318 vs 3324 bytes; same calls, EH states and FPU code. Open: register assignment (original this=ebx saved to
 // [ebp-0x124], vertex/device=edi; here this=edi) and the lo/hi/sphere setup and tri-pick temporaries of the splash part.
+// Tried 2026-10-30 night: local `r=&tris` pointer (449->443), step/right/world declaration orders, late step, size/begin locals in the tri pick; whole-function reg allocation still differs (orig spills this, size in ebx; wind slot 0x14 higher).
 void RainEffect::Update(RenderDevice* device, Camera* camera, int a, int b, float dt)
 {
     if (DAT_00501428 == 0) {
@@ -380,6 +381,7 @@ void RainEffect::Update(RenderDevice* device, Camera* camera, int a, int b, floa
     queryMax.y = hi.y;
     queryMax.z = hi.z;
     float eyeDot = camera->eyePosition.z * fwd->z + camera->eyePosition.y * fwd->y + camera->eyePosition.x * fwd->x;
+    std::vector<CollTri*>* r = &tris;
     bool searched = false;
     bool found = false;
     int shown = 0;
@@ -389,7 +391,7 @@ void RainEffect::Update(RenderDevice* device, Camera* camera, int a, int b, floa
             if (!searched) {
                 searched = true;
                 ((TrackGrid*)b)->CollectNear(Tris(), &sphere);
-                if (tris.size()) {
+                if (r->size() > 0) {
                     found = true;
                 }
             }
@@ -397,7 +399,7 @@ void RainEffect::Update(RenderDevice* device, Camera* camera, int a, int b, floa
                 continue;
             }
             s->delay &= 0xff;
-            CollTri* tri = tris[rand() % tris.size()];
+            CollTri* tri = (*r)[rand() % r->size()];
             Vec3 e = tri->v1->pos;
             e -= tri->v0->pos;
             float inv = 1.0f / (float)sqrt(e.z * e.z + e.y * e.y + e.x * e.x);
