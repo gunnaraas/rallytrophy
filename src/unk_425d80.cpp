@@ -10,7 +10,18 @@
 
 // 0x5089b0: vector of credit lines (allocator byte, start, finish, end of storage)
 struct CreditVector : std::vector<CreditLine*> {
-    void Reset() { if (_First != 0 && size() != 0) _Last = _First; }
+    iterator Erase(iterator first, iterator last); // 0x484380
+    void Resize(unsigned int n, CreditLine* const& x = (CreditLine*)0)
+    {
+        if (size() < n) {
+            insert(end(), n - size(), x);
+        } else if (n < size()) {
+            iterator f = begin() + n;
+            Erase(f, end());
+            _Last = f;
+        }
+    }
+    void Reset() { Resize(0); }
 };
 static std::vector<CreditLine*> DAT_005089b0;
 #define CREDIT_RESET() ((CreditVector&)DAT_005089b0).Reset()
@@ -487,14 +498,16 @@ __declspec(naked) CreditText::~CreditText()
 
 // original: FUN_00425e50 (credits screen main loop)
 // NONMATCHING: RALLYTROPHY 0x425e50
-// 1116 vs 1108 bytes: the scroll position uses floor() + inline-asm FloatToInt and a double position, as in the
-// original; the frame is still 4 bytes larger and the early loop-exit flags are scheduled differently.
+// 1106 vs 1108 bytes: only one instruction differs (the original copies the post-incremented DAT_005089a8 through
+// eax: `mov eax,ecx; mov eax,[esi+eax*4]`; every other difference is a shifted jump offset).
+// Tried 2026-10-31: begin()[a8++] as operator[], pointer arithmetic, int/unsigned k temps, a line local, split increment
+// and permute.py -r 20 (best 17 insns, no MATCH); none produces the extra register copy.
 // The font string at 0x4f6940 is a guess (not read from rdata).
 void __fastcall FUN_00425e50(MenuGame* game)
 {
     FUN_004262b0((int)game);
     BinkVideo* video = new BinkVideo("data/video/credits.bik", DAT_0056b0ac, 0);
-    DAT_0056b0b8->FUN_0048e660();
+    ((T_56b0b8*)video)->FUN_0048e660();
     CreditText* text = new CreditText(DAT_0056b0ac, "data/global/fonts/mpfont32ariel", DAT_0056aea8, DAT_0056aeac);
     int done = 0;
     int first = 1;
@@ -517,14 +530,13 @@ void __fastcall FUN_00425e50(MenuGame* game)
         video->Update();
         timer.Update();
         float oldPos = DAT_00508940;
-        DAT_00508940 = timer.m_deltaSec * DAT_004e1530 + DAT_00508940;
+        DAT_00508940 = timer.m_deltaSec * 1.5f + DAT_00508940;
         int now = FloatToInt((float)floor(DAT_00508940));
         int slot = FloatToInt((float)floor(oldPos));
         int crossed = now - slot;
         while (crossed > 0) {
-            CreditLine* line = DAT_005089b0.begin()[DAT_005089a8++];
-            DAT_00508944[(slot + 1) % 25] = line;
-            if (DAT_005089b0.begin() == 0 || (unsigned)DAT_005089b0.size() <= (unsigned)DAT_005089a8)
+            DAT_00508944[(slot + 1) % 25] = DAT_005089b0.begin()[DAT_005089a8++];
+            if (DAT_005089b0.begin() == 0 || !((unsigned)DAT_005089a8 < (unsigned)DAT_005089b0.size()))
                 DAT_005089a8 = 0;
             crossed--;
             slot++;
@@ -533,18 +545,18 @@ void __fastcall FUN_00425e50(MenuGame* game)
             DAT_00508940 -= DAT_004e13d0;
         if (DAT_0056b0ac->BeginScene()) {
             video->Render(DAT_0056b0ac);
-            double pos = DAT_00508940 + DAT_004e1348;
-            if (pos >= DAT_004e13d0)
-                pos -= DAT_004e13d0;
+            double pos = DAT_00508940 + DAT_004e1348 >= DAT_004e13d0 ? DAT_00508940 + DAT_004e1348 - DAT_004e13d0 : DAT_00508940 + DAT_004e1348;
             int index = FloatToInt((float)floor(pos));
             double frac = (pos - floor(pos)) * DAT_004e1528;
             float x = DAT_0056aea8 * DAT_004e1524;
-            float y = DAT_0056aeac * (float)frac;
+            float y = DAT_0056aeac * frac;
             for (int n = 25; n != 0; n--) {
                 CreditLine* line = DAT_00508944[index % 25];
                 if (line && line->text) {
-                    text->color = DAT_00508930[line->color];
-                    text->Print(DAT_0056b0ac, x, y, line->text, 0, 1.0f, 1.0f);
+                    const char* s = line->text;
+                    unsigned c = DAT_00508930[line->color];
+                    text->color = c;
+                    text->Print(DAT_0056b0ac, x, y, s, 0, 1.0f, 1.0f);
                 }
                 index++;
                 y = DAT_0056aeac * DAT_004e14c0 + y;
@@ -558,7 +570,7 @@ void __fastcall FUN_00425e50(MenuGame* game)
         operator delete(video);
     }
     delete text;
-    for (unsigned i = 0; DAT_005089b0.begin() != 0 && i < DAT_005089b0.size(); i++) {
+    for (unsigned i = 0; i < DAT_005089b0.size(); i++) {
         operator delete(DAT_005089b0.begin()[i]->text);
         operator delete(DAT_005089b0.begin()[i]);
     }
