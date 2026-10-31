@@ -4,7 +4,7 @@
 #define UNK_4B83A0_H
 #include <vector>
 
-class EntryMesh { public: ~EntryMesh(); };           // 0x4baf90 (copy ctor 0x4baf70 is used by operator=)
+class EntryMesh { public: char pad[0x38]; EntryMesh(const EntryMesh&); ~EntryMesh(); };           // 0x4baf90 (copy ctor 0x4baf70 is used by operator=)
 struct EntryVec3 { float x, y, z; EntryVec3() {} ~EntryVec3() {} };      // 12 bytes
 struct EntryMat { float m[15]; EntryMat() {} ~EntryMat() {} };           // 0x3c bytes
 struct EntryMatSet { EntryMat* mats; int count; int extra; };            // 12 bytes
@@ -32,6 +32,7 @@ class SceneEntry : public EntryBase {
 public:
     SceneEntry();                                    // 0x4b8640
     SceneEntry& operator=(const SceneEntry& o);      // 0x4b8680
+    SceneEntry& LinkDeformVertices();                    // 0x4b9170 (MeshModel layout)
     ~SceneEntry();                                   // 0x4b89f0
     EntryMeshList ml;                                // 0x2c: flag, meshes at 0x30
     int count40, count44;                            // 0x40 (vertex count), 0x44
