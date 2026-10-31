@@ -303,6 +303,7 @@ void Wheel::Reset()
 
 // NONMATCHING: RALLYTROPHY 0x46c790
 // original: FUN_0046c790
+// Tried 2026-10-30 night: ~16 variants (load int local 433->420, vel field-wise, Vec3/array localPos, decl order, volatile S/ld, slip copy, fy/L2 split); remaining diff is frame size 0xfc vs 0xe4 (asm pointer temps share float slots in the original), missing EH-state store timing, and x87 lifetimes.
 // 3506 vs 3573 bytes (2843 differing bytes). Stiction vector declaration groups reproduce target EH transitions 8,
 // 0xb and 0xd before the scale, subtraction, and output stages (REA Evidence
 // ev_e435fac9d046ad9215a458d11ef7434b9660e6fc42ca1f6de1e8904630099a6d). Remaining differences include stack slots
@@ -317,7 +318,8 @@ void Wheel::UpdateForces()
     unk2fc = 0.0f;
     unk304 = 0.0f;
     unk308 = 0.0f;
-    if (active != 0 && *(const int*)&load > *(const int*)&kMinLoad) {
+    int ld = *(const int*)&load;
+    if (active != 0 && ld > *(const int*)&kMinLoad) {
         Vec3 lat, lon, contact, vel;
 
         // Contact point and its velocity in world space.
