@@ -808,18 +808,19 @@ void RaceMode::FUN_0048ee00(int* value, int delta)
     }
 }
 
-// NONMATCHING: RALLYTROPHY 0x487200
-// 426 bytes (size equal) but ordering differs: the original computes both
-// int->float scale factors before the array constructors via int temporaries and
-// keeps the four rect products on the FPU stack. Draws the m_bars image.
+// FUNCTION: RALLYTROPHY 0x487200
+// Draws the m_bars image; the quad corners are stored in order, not via SetQuad.
 void RaceMode::FUN_00487200()
 {
-    float sx = DAT_0056b0ac->m_width * 0.0009765625f;
-    float sy = DAT_0056b0ac->m_height * 0.0013020834f;
+    float sx = DAT_0056b0ac->GetWidth() * 0.0009765625f;
+    float sy = DAT_0056b0ac->GetHeight() * 0.0013020834f;
     Vec2 uv[4];
     Vec2 position[4];
     float x = DAT_00565478.x * sx; float y = DAT_00565478.y * sy; float w = DAT_00565470.x * sx; float h = DAT_00565470.y * sy;
-    SetQuad(position, x, y, x + w, y + h);
+    position[0].x = x; position[0].y = y;
+    position[1].x = x + w; position[1].y = y;
+    position[2].x = x + w; position[2].y = y + h;
+    position[3].x = x; position[3].y = y + h;
     SetQuad(uv, 0.0f, 0.0f, 1.0f, 1.0f);
     Color color(0xffffffff);
     ((RaceDeviceSlots*)DAT_0056b0ac)->SetTexture(m_bars);
