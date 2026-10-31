@@ -4247,6 +4247,7 @@ int RaceMode::FUN_0048b080(int award)
 // switch table and cursor call (HudPoint by value) as the original. Differences: the original keeps 0 in edi and
 // never CSEs -1, reads the Color back from its stack slot in the button loop (this build folds it to an
 // immediate and swaps the color/result slots), and orders a few register loads differently.
+// Tried 2026-10-30 night: unk238 as a byte (cast), result declared just before the RETURN test (108 -> 67 insns); Color/position declaration orders and split init worsened it; still differs in the SetQuad store interleave and the Color slot (original [esp+0x28], ours [esp+0x14]).
 // Replay control bar: seven buttons below the picture (hit-tested against the mouse, moved with the
 // left/right keys) and the driver's name, time and position. Sets unk23c to the chosen action (0-4);
 // returns -1 for "leave", 1 for "continue". With `reset` set the selection is cleared first.
@@ -4256,15 +4257,14 @@ int RaceMode::FUN_0048b620(int reset)
     if (reset) {
         unk24c = 0;
         unk23c = -1;
-        unk238 = 0;
+        *(char*)&unk238 = 0;
     }
     if (DAT_0057ba28[VK_TAB]) {
-        unk238 = !unk238;
+        *(char*)&unk238 = !*(char*)&unk238;
     }
-    if (unk238) {
+    if (*(char*)&unk238) {
         return 0;
     }
-    int result = 0;
     Vec2 mouse = (*(Vec2*)&DAT_0057ba00);
     char over = 0;
     if (mouse.y >= DAT_0056aeac * 720.0f && mouse.y <= DAT_0056aeac * 752.0f) {
@@ -4294,6 +4294,7 @@ int RaceMode::FUN_0048b620(int reset)
         mouse.x = (DAT_004ff078[unk24c] * 32.0f + 726.0f) * DAT_0056aea8;
         ((MouseInput*)DAT_0056b0c0)->SetPosition(&mouse);
     }
+    int result = 0;
     if (DAT_0057ba28[VK_RETURN] || (over && DAT_0057ba20)) {
         switch (unk24c) {
         case 0:
