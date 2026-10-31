@@ -227,6 +227,7 @@ void BitmapOps::Downsample(int xShift, int yShift, int outputFormat)
 
 // NONMATCHING: RALLYTROPHY 0x4aa690
 // Wrapping and draw dispatch are complete; local lifetimes, stack layout and x87 scheduling differ (818 vs 816 bytes).
+// Tried 2026-10-30 night: memcpy(char-count) for the three word copies (now 816 bytes, 141->114 insns differ); memmove/char_traits/std::copy/wcsncpy/<<1/unsigned sizes, all 24 decl orders of positions/uvs/tint/alpha, POD/volatile tint; still differs: original copy is shr ecx,1/rep movsd/adc/rep movsw (we get shr 2/movsb), ColorArg EH state 2 vs original 1, register assignment ebp/ebx swapped.
 void WrappedGlyphFont::PrintWrapped(RenderDevice* device, float x, float y,
                                    const unsigned short* text, int flags, float sx, float sy)
 {
@@ -258,7 +259,7 @@ void WrappedGlyphFont::PrintWrapped(RenderDevice* device, float x, float y,
                 if (word + (float)advance >= wrapWidth) {
                     word = 0.0f;
                     if (start < i) {
-                        wmemcpy((wchar_t*)DAT_00577bcc + out, (const wchar_t*)text + start, i - start);
+                        memcpy(DAT_00577bcc + out, text + start, (i - start) * sizeof(unsigned short));
                         out += i - start;
                     }
                     DAT_00577bcc[out++] = 10;
@@ -272,7 +273,7 @@ void WrappedGlyphFont::PrintWrapped(RenderDevice* device, float x, float y,
                     line = line + word + (float)advance;
                     word = 0.0f;
                     if (start < i) {
-                        wmemcpy((wchar_t*)DAT_00577bcc + out, (const wchar_t*)text + start, i - start);
+                        memcpy(DAT_00577bcc + out, text + start, (i - start) * sizeof(unsigned short));
                         out += i - start;
                     }
                     DAT_00577bcc[out++] = text[i];
@@ -282,7 +283,7 @@ void WrappedGlyphFont::PrintWrapped(RenderDevice* device, float x, float y,
         }
         if (word + line >= wrapWidth) DAT_00577bcc[out++] = 10;
         if (start < i) {
-            wmemcpy((wchar_t*)DAT_00577bcc + out, (const wchar_t*)text + start, i - start);
+            memcpy(DAT_00577bcc + out, text + start, (i - start) * sizeof(unsigned short));
             out += i - start;
         }
         DAT_00577bcc[out] = 0;
