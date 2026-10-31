@@ -20,7 +20,7 @@ struct SfxRec {            // sound table entry (stride 0x20) in the Game object
     const char* ptr;       // +4
     unsigned int len;      // +8
     unsigned int res;      // +0xc
-    int pad10;
+    float height;          // +0x10
     int volume;            // +0x14
     float nearDist;        // +0x18
     float farDist;         // +0x1c
@@ -71,6 +71,20 @@ struct SndPath {
             ptr[len = n] = 0;
         }
     }
+    void AppendS(const SfxRec* x)                                        // append(*(string*)x, 0, npos)
+    {
+        unsigned int n = std::string::npos;
+        unsigned int k = x->len;
+        if (k < n) n = k;
+        if (std::string::npos - len <= n) {
+            std::_Xlen();
+        }
+        unsigned int e;
+        if (0 < n && Grow(e = n + len, false)) {
+            memcpy(len + ptr, x->ptr == 0 ? "" : x->ptr, n);
+            ptr[len = e] = 0;
+        }
+    }
     const char* c_str() const { return ptr == 0 ? "" : ptr; }
     std::allocator<char> alloc;
     char* ptr;
@@ -79,20 +93,22 @@ struct SndPath {
 };
 
 // NONMATCHING: RALLYTROPHY 0x416260
-// 1797 vs 1822 bytes; the call sequence (56 calls) and cleanup states match the original: one path string
-// reused for data/stage<N>.npf, data/stage<N>.spf and the data/soundfx/ sample names, two File slots (the second
-// at function scope behind the early return), the record array through the EH vector constructor. Left:
-// register roles (`this` in ebp and zero in ebx in the original) and the scalar slot layout (frame 0x813c vs 0x812c).
+// Tried 2026-10-31: found pos.y += r->height, append(*(string*)r,0,npos), per-iteration Vector3 (EH state 5), float pos/ints declared at top
+// (229->162; 142 if num is char[4], which the original frame implies but we keep char[8] in its own blocks); still differs:
+// `this` in ebx / zero in ebp (original swapped), NpfRec loop strength-reduced (original steps a plain pointer), and the
+// path dtor exit ordering. Volatile zero/self, pointer loops, i++/src++ placement, decl orders did not flip ebx/ebp.
 void StageSoundLoader::LoadSoundFiles()
 {
+    int idx, count2, ver, magic;
     AT(NpfRec*, 0x24c8) = 0;
     AT(int, 0x24cc) = 0;
-    char num[8];
-    int magic, ver, count, tmp, idx;
     SndPath path(AT(std::string, 8));
     path.AppendOut("data/stage", strlen("data/stage"));
-    _itoa(AT(int, 4), num, 10);
-    path.AppendOut(num, strlen(num));
+    {
+        char num[8];
+        _itoa(AT(int, 4), num, 10);
+        path.AppendOut(num, strlen(num));
+    }
     path.AppendA(".npf");
     if (File::Exists(path.c_str())) {
         File f;
@@ -100,12 +116,14 @@ void StageSoundLoader::LoadSoundFiles()
         f.Read(&magic, 4);
         f.Read(&ver, 4);
         if (magic == 0x1234 && ver == 100) {
+            int count;
             f.Read(&count, 4);
             AT(int, 0x24cc) = count;
             NpfRec* recs = new NpfRec[count];
             AT(NpfRec*, 0x24c8) = recs;
             for (int i = 0; i < count; i++) {
                 for (int j = 0; j < 4; j++) {
+                    int tmp;
                     f.Read(&tmp, 4);
                     recs[i].id[j] = (char)tmp;
                     if (tmp != -1)
@@ -119,35 +137,38 @@ void StageSoundLoader::LoadSoundFiles()
     }
     path.Assign(AT(std::string, 8), 0, std::string::npos);
     path.AppendA("data/stage");
-    _itoa(AT(int, 4), num, 10);
-    path.AppendA(num);
+    {
+        char num[8];
+        _itoa(AT(int, 4), num, 10);
+        path.AppendA(num);
+    }
     path.AppendA(".spf");
     if (!File::Exists(path.c_str()))
         return;
-    File f2;                                   // function scope: its slot does not overlap the first File
-    Vector3 pos;
+    File f2;
     f2.Open(path.c_str(), 0x81);
     f2.Read(&magic, 4);
     f2.Read(&ver, 4);
     if (magic == 0x3100 && ver == 100) {
-        f2.Read(&count, 4);
-        AT(int, 0x24d0) = count;
-        SoundSource* src = new SoundSource[count];
+        f2.Read(&count2, 4);
+        AT(int, 0x24d0) = count2;
+        SoundSource* src = new SoundSource[count2];
         AT(SoundSource*, 0x24d4) = src;
-        for (int i = 0; i < AT(int, 0x24d0); i++) {
+        for (int i = 0; i < AT(int, 0x24d0); i++, src++) {
+            Vector3 pos;
             f2.Read(&pos, 0xc);
             f2.Read(&idx, 4);
             SfxRec* r = (SfxRec*)(DAT_0056b0c8 + idx * 0x20 + 0x139490);
             path.AssignB("data/soundfx/");
-            path.AppendB(r->ptr, r->len);
+            path.AppendS(r);
             src->is3D = true;
             src->loop = true;
             src->SetSample(DAT_0056b0b0->LoadSample(path.c_str()));
             src->SetVolume(r->volume * DAT_0050143c / 100);
             src->SetRange(r->nearDist, r->farDist);
+            pos.y = pos.y + r->height;
             src->SetPosition(&pos);
             DAT_0056b0b0->AddSource(src);
-            src++;
         }
     }
     f2.Close();
