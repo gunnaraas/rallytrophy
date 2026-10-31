@@ -404,6 +404,7 @@ static const float C3_mixB = 0.00253906241f, C3_mixA = 0.00134765625f; // 0x4e22
 // rand chain match. Open: n2/total land in esi/edi swapped (original total=esi, n2=edi), so the mix terms are
 // emitted r-first; the y-velocity temp lives at [ebp-0x20] (original reuses [ebp-0x14]) and the x jitter is not
 // spilled, so the j1/j2 order differs; pool-head store and final pops are scheduled differently.
+// Tried 2026-10-30 night: split mix, copy `local` before pool-pop stores, `t2 = n2 + n1` temp (57->29 insns); decl order, operand order, age/local order, yv split no better (swapping j1/j2 rand order scores 18 but changes behaviour). Still open: original pops the pool before s_car is loaded for the position copy, s_car reloaded after the rand result, esi/edi swap of total/n2 gone but jitter y/x merge differs.
 // Spawn core 2 (tyre-slip dust): emission amount from slip, speed and lateral slip, one particle.
 float CarEmitterB::SpawnCore2(float a, float b)
 {
@@ -436,8 +437,8 @@ float CarEmitterB::SpawnCore2(float a, float b)
     } else {
         n2 = 0x100;
     }
-    n2 += n1;
-    int total = n2 + n0;
+    int t2 = n2 + n1;
+    int total = t2 + n0;
     if (total > 0x100) {
         total = 0x100;
     }
@@ -446,23 +447,24 @@ float CarEmitterB::SpawnCore2(float a, float b)
     if ((rand() & 0xff) >= total / 2) {
         return ret;
     }
-    int r = n2;
+    int r = t2;
     if (n0 > 0x100) {
         n0 = 0x100;
     }
     if (r > 0x100) {
         r = 0x100;
     }
-    float mix = (float)n0 * C2_mixA + (float)r * C2_mixB;
+    float mix = n0 * C2_mixA;
+    mix = r * C2_mixB + mix;
     if (!DAT_0056ae90.head) {
         DAT_0056ae90.Grow();
     }
     Particle* p = DAT_0056ae90.head;
     DAT_0056ae90.head = p->next;
+    Vec3 local(s_car->position);
     p->age = b;
     p->unk0 = 0;
     p->lifetime = 3.5f;
-    Vec3 local(s_car->position);
     float off = (float)(rand() & 0xff) * C_off;
     if (s_car->position.x > 0.0f) {
         off = -off;
