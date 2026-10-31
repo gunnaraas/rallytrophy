@@ -54,6 +54,8 @@ inline void Xform(float* o, const float* p, const float* m)
         fstp dword ptr [eax+4]
     }
 }
+__forceinline void AddTo(Vec3& a, const Vec3& b) { a.x = a.x + b.x; a.y = a.y + b.y; a.z = a.z + b.z; }
+struct GV3 { float v[3]; GV3() {} ~GV3() {} };
 struct TraceGuard { ~TraceGuard() {} };
 extern SegmentInfo DAT_00581de8;
 extern int DAT_00581e28;
@@ -66,14 +68,16 @@ float __cdecl TriTestB(void* model, unsigned short* tri, void* verts, float* pt)
 
 // NONMATCHING: RALLYTROPHY 0x4bb3a0
 // Logic complete; original keeps the node in ebx and 0 in edi, and orders the translation dot-products differently (1662 vs 1635 bytes).
-float __cdecl TraceNodeSweep(TraceNode* n)
+// Tried 2026-10-30 night: AddTo inline vec add, copy-init Vec3, switch(DAT_00581e28), d/e/facing in dead param slot, GV3 memory diff vectors, TraceMeshPart nTris at 0x0e, guard first, reversed dot order; still differs: original keeps 0 in edi (i=0 CSE'd with push 0/cmp), c/rad reloaded from [ebx+0xc4] without address CSE, translation dot loads w[14] first, stack slot order.
+float __cdecl TraceNodeSweep(TraceNode* nParam)
 {
+    TraceNode* n = nParam;
+    TraceGuard g;
     float* nf = (float*)n;
     std::vector<float*>* list = n->triData;
     TraceMeshSet* set = ((TraceMeshOwner*)&n->pad124)->At(0);
     SegmentInfo* seg = &DAT_00581de8;
     SegmentInfo loc;
-    TraceGuard g;
     if (list != 0 && set != 0) {
         if ((n->flags & 4) == 0) {
             if ((n->flags & 8) == 0)
@@ -91,15 +95,17 @@ float __cdecl TraceNodeSweep(TraceNode* n)
         }
         float* s = (float*)seg;
         float* c = &nf[0x2e];              // sphere center 0xb8
-        float rad = nf[0x31];              // sphere radius 0xc4
-        float d = (c[0] * s[9] + c[1] * s[10] + c[2] * s[11]) - s[12];
+        float* radp = &nf[0x31]; float& rad = *radp;
+        float& d = *(float*)&nParam;
+        d = (c[2] * s[11] + c[1] * s[10] + c[0] * s[9]) - s[12];
         if (-rad <= d && d <= s[13] + rad) {
-            Vec3 q(s[3], s[4], s[5]);
-            q = q + d * *(Vec3*)(s + 9);
-            float dx = q.x - c[0], dy = q.y - c[1], dz = q.z - c[2];
-            if (dy * dy + dz * dz + dx * dx <= rad * rad) {
+            Vec3 q = *(Vec3*)(s + 3);
+            AddTo(q, d * *(Vec3*)(s + 9));
+            GV3 dfv; float* df = dfv.v;
+            df[0] = q.x - c[0]; df[1] = q.y - c[1]; df[2] = q.z - c[2];
+            if (df[1] * df[1] + df[2] * df[2] + df[0] * df[0] <= rad * rad) {
                 float best = 1.0f;
-                for (unsigned i = 0; list->size() > 0 && i < list->size(); i++) {
+                for (unsigned i = 0; i < list->size(); i++) {
                     TraceMeshPart* part = set->parts[i];
                     float* tv = (*list)[i];
                     unsigned cnt = part->nTris;
@@ -109,32 +115,37 @@ float __cdecl TraceNodeSweep(TraceNode* n)
                     unsigned twoSided = ((int*)model)[0x27] & 1;
                     float* p = tv + 6;
                     while (cnt != 0) {
-                        float facing = p[-4] * s[11] + p[-5] * s[10] + s[9] * tv[0];
-                        if (twoSided != 0 || *(int*)&facing <= 0) {
+                        d = p[-4] * s[11] + p[-5] * s[10] + s[9] * tv[0];
+                        if (twoSided != 0 || *(int*)&d <= 0) {
                             float r = p[1];
-                            float e = (s[9] * p[-2] + s[10] * p[-1] + s[11] * p[0]) - s[12];
-                            if (-r <= e && e <= r + s[13]) {
-                                Vec3 w(s[3], s[4], s[5]);
-                                w = w + e * *(Vec3*)(s + 9);
-                                float ex = w.x - p[-2], ey = w.y - p[-1], ez = w.z - p[0];
+                            d = (s[9] * p[-2] + s[10] * p[-1] + s[11] * p[0]) - s[12];
+                            if (-r <= d && d <= r + s[13]) {
+                                Vec3 w = *(Vec3*)(s + 3);
+                                AddTo(w, d * *(Vec3*)(s + 9));
+                                GV3 efv; float* ef = efv.v;
+                                ef[0] = w.x - p[-2]; ef[1] = w.y - p[-1]; ef[2] = w.z - p[0];
                                 float t;
                                 float den;
-                                if (ey * ey + ez * ez + ex * ex <= r * r
+                                if (ef[1] * ef[1] + ef[2] * ef[2] + ef[0] * ef[0] <= r * r
                                     && (t = (tv[0] * s[3] + s[4] * p[-5] + s[5] * p[-4]) - p[-3],
                                         ((s[6] * tv[0] + s[7] * p[-5] + s[8] * p[-4]) - p[-3]) * t <= DAT_004e134c)
                                     && (den = s[0] * tv[0] + s[1] * p[-5] + s[2] * p[-4], DAT_004e2a98 <= (float)fabs(den))
                                     && (t = -(t / den), DAT_004e134c <= t && t <= DAT_004e1348)) {
-                                    Vec3 hit(s[3], s[4], s[5]);
-                                    hit = hit + t * *(Vec3*)s;
+                                    Vec3 hit = *(Vec3*)(s + 3);
+                                    AddTo(hit, t * *(Vec3*)s);
                                     if (PointInTri(&hit.x, tv, verts + tri[0] * 0x2c, verts + tri[1] * 0x2c, verts + tri[2] * 0x2c)) {
-                                        if (DAT_00581e28 == 0) {
+                                        switch (DAT_00581e28) {
+                                        case 0:
                                             if (t < best)
                                                 best = t;
-                                        } else if (DAT_00581e28 == 1) {
+                                            break;
+                                        case 1:
                                             if (t < best && TriTestA(model, tri, verts, &hit.x))
                                                 best = t;
-                                        } else if (DAT_00581e28 == 2) {
+                                            break;
+                                        case 2:
                                             DAT_00581e20 = TriTestB(model, tri, verts, &hit.x) + DAT_00581e20;
+                                            break;
                                         }
                                         if (DAT_004e1348 <= DAT_00581e20)
                                             return DAT_004e134c;

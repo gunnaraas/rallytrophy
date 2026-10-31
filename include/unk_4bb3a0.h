@@ -5,7 +5,7 @@
 #include "scene_object.h"
 #include "unk_4ba440.h"
 
-struct TraceMeshPart { void* model; SceneVertex* verts; unsigned short* tris; int pad; unsigned short pad0c; unsigned short nTris; };
+struct TraceMeshPart { void* model; SceneVertex* verts; unsigned short* tris; unsigned short pad0c; unsigned short nTris; };
 struct TraceMeshSet { BYTE pad[0x34]; TraceMeshPart** parts; };
 class TraceMeshOwner { public: TraceMeshSet* At(int i); };   // original: FUN_004a6800
 class TraceNode : public SceneNode {
