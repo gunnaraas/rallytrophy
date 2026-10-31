@@ -545,6 +545,7 @@ void Player::FUN_00491620(const void* packet)
 // 388 vs 388 bytes, logic complete. The original keeps `size` in eax from the start (the default case
 // returns it) and switches on ecx; case 2 then differs in register allocation (time/total swapped,
 // the Stage lives in ebp and is spilled around the idiv).
+// Tried 2026-10-30 night: ~25 variants (decl order, size reuse, case 4 as length=3;break); length=3;break took 36->25 insns differ (380 vs 388 bytes); case 2 still allocates time/total swapped and the original spills the Stage into the size arg slot [esp+0x18], not reproduced.
 // Handles one network message about this player and returns its length.
 int Player::FUN_00491490(const void* data, int size)
 {
@@ -602,7 +603,8 @@ int Player::FUN_00491490(const void* data, int size)
         return 8;
     case 4:
         unk17ec = p[2];
-        return 3;
+        length = 3;
+        break;
     }
     return length;
 }
