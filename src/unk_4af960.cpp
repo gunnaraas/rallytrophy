@@ -9,6 +9,22 @@ struct BmfFileName { void* stream; std::string name; };
 static __forceinline const std::string& Name(File* f) { return ((BmfFileName*)f)->name; }
 #define WORD(p,n) (((unsigned int*)(p))[n])
 #define FLOAT(p,n) (((float*)(p))[n])
+struct BStr {
+    std::allocator<char> alloc; char* ptr; unsigned int len; unsigned int res;
+    void Tidy(bool b);
+    bool Grow(unsigned int n, bool trim);
+    void Eos(unsigned int n);
+    BStr(const char* s, const std::allocator<char>& al = std::allocator<char>()) : alloc(al) {
+        Tidy(false);
+        unsigned int n = strlen(s);
+        if (Grow(n, true)) { memcpy(ptr, s, n); Eos(n); }
+    }
+    ~BStr() { Tidy(true); }
+};
+#pragma comment(linker, "/alternatename:?Tidy@BStr@@QAEX_N@Z=?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z")
+#pragma comment(linker, "/alternatename:?Eos@BStr@@QAEXI@Z=?_Eos@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEXI@Z")
+#pragma comment(linker, "/alternatename:?Grow@BStr@@QAE_NI_N@Z=?_Grow@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAE_NI_N@Z")
+static inline int Bal(int a) { return a; }
 
 // std::string built from a C string in one class: _Tidy (0x402700) and assign(s, n) (0x404ba0) as calls, the
 // object's cleanup state set after the assign returns.
@@ -248,7 +264,7 @@ void ModelFile::ReadBlock(File* file, unsigned int* size)
 }
 
 // NONMATCHING: RALLYTROPHY 0x4b0e90
-// Record/matrix copy scheduling, x87 temporaries, and stack layout differ.
+// Tried 2026-10-30 night: 220->7 insns (size equal): thiscall-style fixes, Bal(1) x5 at end, throw-first `!= "MODEL"` with BStr (+Eos) message, `double ls = sqrt(..); scale.x = (float)ls;` per row, row 0 via `float* m` and rows 1,2 via object->local.m, record->value passed directly to Attach, int pair stores lo-first; still differs: the first position copy lacks its `mov [ebp+0x18],edx` before rep movs (VC6 defers it), shifting 5 later stores; volatile on every copy store and int/float position forms changed the inline budget or got worse.
 void ModelFile::ReadMesh(File* file)
 {
     ModelPartRecord* record = FUN_004af730(file);
@@ -257,43 +273,42 @@ void ModelFile::ReadMesh(File* file)
     ((ModelRecordString*)&object->name)->Assign(*(std::string*)record, 0, std::string::npos);
     object->flags |= (unsigned char)FUN_004af890(*(std::string*)record);
     unsigned int* w = (unsigned int*)object;
-    object->position.x = FLOAT(record,0x15); object->position.z = FLOAT(record,0x17); object->position.y = FLOAT(record,0x16);
+    object->position = *(ScenePoint*)((char*)record + 0x54);
     *(Matrix*)&object->local = record->transform;
-    w[0x16] = w[0x15] = w[0x14] = 0;
-    object->position.x = FLOAT(record,0x15); object->position.z = FLOAT(record,0x17); object->position.y = FLOAT(record,0x16);
-    w[0x29] = WORD(record,0x21); w[0x28] = WORD(record,0x20);
-    w[0x2b] = WORD(record,0x23); w[0x2a] = WORD(record,0x22);
-    w[0x2d] = WORD(record,0x25); w[0x2c] = WORD(record,0x24);
-    w[0x2f] = WORD(record,0x1d); w[0x2e] = WORD(record,0x1c);
-    w[0x31] = WORD(record,0x1f); w[0x30] = WORD(record,0x1e);
+    w[0x14] = w[0x15] = w[0x16] = 0;
+    object->position = *(ScenePoint*)((char*)record + 0x54);
+    w[0x28] = WORD(record,0x20); w[0x29] = WORD(record,0x21);
+    w[0x2a] = WORD(record,0x22); w[0x2b] = WORD(record,0x23);
+    w[0x2c] = WORD(record,0x24); w[0x2d] = WORD(record,0x25);
+    w[0x2e] = WORD(record,0x1c); w[0x2f] = WORD(record,0x1d);
+    w[0x30] = WORD(record,0x1e); w[0x31] = WORD(record,0x1f);
     if (record->flags & 1) object->boundsA.flags |= 1;
     if (record->flags & 2) object->boundsA.flags |= 2;
     EntryVec3 scale;
     float* m = object->local.m;
-    scale.x = (float)sqrt(m[2]*m[2] + m[1]*m[1] + m[0]*m[0]);
-    scale.y = (float)sqrt(m[6]*m[6] + m[5]*m[5] + m[4]*m[4]);
-    scale.z = (float)sqrt(m[10]*m[10] + m[9]*m[9] + m[8]*m[8]);
+    double ls = sqrt(m[2]*m[2] + m[1]*m[1] + m[0]*m[0]); scale.x = (float)ls;
+    double ls1 = sqrt(object->local.m[6]*object->local.m[6] + object->local.m[5]*object->local.m[5] + object->local.m[4]*object->local.m[4]); scale.y = (float)ls1;
+    double ls2 = sqrt(object->local.m[10]*object->local.m[10] + object->local.m[9]*object->local.m[9] + object->local.m[8]*object->local.m[8]); scale.z = (float)ls2;
     float k = 1.0f / (float)sqrt(m[2]*m[2] + m[1]*m[1] + m[0]*m[0]);
     m[0] = k*m[0]; m[1] = k*m[1]; m[2] = k*m[2];
-    int parent = record->value;
-    k = 1.0f / (float)sqrt(m[6]*m[6] + m[5]*m[5] + m[4]*m[4]);
-    m[4] = k*m[4]; m[5] = k*m[5]; m[6] = k*m[6];
-    k = 1.0f / (float)sqrt(m[10]*m[10] + m[9]*m[9] + m[8]*m[8]);
-    m[8] = k*m[8]; m[9] = k*m[9]; m[10] = k*m[10];
-    ((ModelLoader*)this)->Attach(object, parent);
+    k = 1.0f / (float)sqrt(object->local.m[6]*object->local.m[6] + object->local.m[5]*object->local.m[5] + object->local.m[4]*object->local.m[4]);
+    object->local.m[4] = k*object->local.m[4]; object->local.m[5] = k*object->local.m[5]; object->local.m[6] = k*object->local.m[6];
+    k = 1.0f / (float)sqrt(object->local.m[10]*object->local.m[10] + object->local.m[9]*object->local.m[9] + object->local.m[8]*object->local.m[8]);
+    object->local.m[8] = k*object->local.m[8]; object->local.m[9] = k*object->local.m[9]; object->local.m[10] = k*object->local.m[10];
+    ((ModelLoader*)this)->Attach(object, record->value);
     int start = FUN_004a5fc0(file);
     ModelNamedValue* chunk = FUN_004af560(file);
     BmfTag tag(*chunk);
-    if ((*(std::string*)&tag) == "MODEL") {
-        tag.value += start - FUN_004a5fc0(file);
-        SceneEntry* entry = ((ModelLoader*)this)->ReadMesh(file, tag.value);
-        ((MeshModel*)entry)->Translate((float*)((char*)record + 0x60));
-        ((MeshModel*)entry)->Scale(&scale.x);
-        if (!(object->boundsA.flags & 3)) ((MeshModel*)entry)->ComputeBoundsAndSphere();
-        object->meshes.Insert(entry, 0.0f);
-        delete entry;
-    } else {
-        std::string message("BMF mesh chunk read failed");
-        throw file_error(Name(file), message);
+    if ((*(std::string*)&tag) != "MODEL") {
+        BStr message("BMF mesh chunk read failed");
+        throw file_error(Name(file), *(std::string*)&message);
     }
+    tag.value += start - FUN_004a5fc0(file);
+    SceneEntry* entry = ((ModelLoader*)this)->ReadMesh(file, tag.value);
+    ((MeshModel*)entry)->Translate((float*)((char*)record + 0x60));
+    ((MeshModel*)entry)->Scale(&scale.x);
+    if (!(object->boundsA.flags & 3)) ((MeshModel*)entry)->ComputeBoundsAndSphere();
+    object->meshes.Insert(entry, 0.0f);
+    delete entry;
+    Bal(1); Bal(1); Bal(1); Bal(1); Bal(1);  
 }
