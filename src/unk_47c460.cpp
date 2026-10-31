@@ -958,6 +958,7 @@ static const float E_k256 = 256.0f, E_lo0 = 1.0f, E_hi0 = 4.0f, E_lo1 = 2.0f, E_
 // [ebp-0x1c] and adds after the y jitter is computed), and AddTo x loads fld [esi+0x1c]; fadd [eax] (original reversed).
 // Tried 2026-10-30 night: emit-test via a named float (rr), lat branch inversion (permuter), jx/jy/jz temps, volatile jx,
 // slot-order of r2/r3/r4, AddTo hand forms; permute -r 20 found nothing further; 6 insns left.
+// Tried 2026-10-31 re-pass: SpawnCore4/5 recipe (nx pool pop; no age/position-last analogue here) 4 insns unchanged; hand AddTo with x as p.x+rl.x or temps, jitter order/volatile variants, permute -r 40 (best 4 insns) all no better; still 4 insns (AddTo x operand order, jy spilled to [ebp+8]).
 // Spawn core E (dust-like variant of D, no y damping and no second force term).
 Particle* CarParticles::SpawnCoreE(float rate)
 {
