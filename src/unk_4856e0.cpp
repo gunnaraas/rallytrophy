@@ -3325,6 +3325,7 @@ public:
 // and the 0x117/0x11d label selection, which the original lays out after the string destructor.
 // Stage results table: collects the players that finished every stage (sorted by FUN_00491f70), writes
 // their place to Player+0x1a58/0x1a5c and draws title, rows (rank, country, name, time) and the prompt.
+// Tried 2026-10-30 night: volatile store of DAT_00565490=0 (keeps the original's early dead store, 183->171) and volatile-read copies of x184/x510 before the row loop (->165); plain/int copies, decl-order swaps, buffer size gave no gain; original frame 0xa0 vs 0xbc-ish still differs in float slot order (sx at +0x1c, sy +0x18).
 // Returns 1 when the continue key was pressed and the results are final.
 int RaceMode::FUN_0048a070(int recompute)
 {
@@ -3336,8 +3337,8 @@ int RaceMode::FUN_0048a070(int recompute)
         goto draw;
     }
     {
-        DAT_00565490 = 0;
-        int count = 0;
+        int count;
+        *(volatile int*)&DAT_00565490 = count = 0;
         int unfinished = 0;
         Player** out = DAT_00565494;
         for (unsigned int j = 0; j < m_players.size(); j++) {
@@ -3409,6 +3410,7 @@ draw:
     if (DAT_00565490) {
         refTime = DAT_00565494[0]->FUN_00491f70();
     }
+    float cx184 = *(volatile float*)&x184, cx510 = *(volatile float*)&x510;
     int i = 0;
     if (DAT_00565490 > 0) {
         Player* local = m_localPlayer;
@@ -3435,11 +3437,11 @@ draw:
             }
             char rank[12];
             _itoa(i + 1, rank, 10);
-            text->Print(DAT_0056b0ac, x184 - text->GetWidth(rank, 0), y, rank, 0, 1.0f, 1.0f);
-            text->Print(DAT_0056b0ac, x510, y, FUN_00405380(DAT_00565494[i]->unk2c + 0x138), 0, 1.0f, 1.0f);
+            text->Print(DAT_0056b0ac, cx184 - text->GetWidth(rank, 0), y, rank, 0, 1.0f, 1.0f);
+            text->Print(DAT_0056b0ac, cx510, y, FUN_00405380(DAT_00565494[i]->unk2c + 0x138), 0, 1.0f, 1.0f);
             text->Print(DAT_0056b0ac, x894 - text->GetWidth(timeText, 0), y, timeText, 0, 1.0f, 1.0f);
             text->scaleX = 1.0f;
-            float scale = (x510 - x234 - 10.0f) / text->GetWidth(DAT_00565494[i]->name, 0);
+            float scale = (cx510 - x234 - 10.0f) / text->GetWidth(DAT_00565494[i]->name, 0);
             if (scale > 0.85f) {
                 scale = 0.85f;
             }
