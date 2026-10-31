@@ -89,6 +89,7 @@ static __forceinline void GridInsert(GridPtrVec* v, int* P, const int& X)
 #pragma optimize("a", off)
 // NONMATCHING: RALLYTROPHY 0x40fcc0
 // 1720 vs 1716 bytes: logic, calls and x87 blocks match; inline-asm helper argument stack slots and the loop-invariant ebx=0 register differ.
+// Tried 2026-10-30 night: 292->187 via `float r2 = rr*rr; if (len < r2)` and local GridPtrVec* r/a for the two Ins calls; loop forms/goto/declaration order/pragma flags (a,g,w,t,y,s) no effect; still differs: original loops are unrotated (head test once, i/ebx=0 in regs) and GridInsert block layout/slots.
 // original: FUN_0040fcc0
 void StageGrid::Build()
 {
@@ -118,16 +119,18 @@ void StageGrid::Build()
             d.z -= p.z;
             float len = d.z * d.z + d.y * d.y + d.x * d.x;
             float rr = f->boundsA.d + o->boundsA.d;
-            bool apart = rr * rr <= len;
-            if (!apart) {
+            float r2 = rr * rr;
+            if (len < r2) {
                 o->AttachTo(f);
                 attached = 1;
             }
         }
         if (!attached) {
             made = new GridRef(o);
-            cell->refs.Ins((GridRef**)cell->refs.last, 1, &made);
-            allRefs.Ins((GridRef**)allRefs.last, 1, &made);
+            GridPtrVec* r = &cell->refs;
+            GridPtrVec* a = &allRefs;
+            r->Ins((GridRef**)r->last, 1, &made);
+            a->Ins((GridRef**)a->last, 1, &made);
         }
         label->SetProgress((float)(int)(i + 1) / (float)(unsigned int)(objFirst == 0 ? 0 : objLast - objFirst) * DAT_0050846c + DAT_00508468);
         i++;
