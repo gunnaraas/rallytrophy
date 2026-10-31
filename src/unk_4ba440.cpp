@@ -645,35 +645,32 @@ int ViewFrustum::TestBoundsB(const SceneBounds* b)
 // A vector with an empty destructor and the out-of-line operator- (0x414330): the live copy gives the original its EH frame.
 struct FrVec { float x, y, z; ~FrVec() {} FrVec operator-(const FrVec& o) const; };
 
-// NONMATCHING: RALLYTROPHY 0x4bad30
-// EH frame from the FrVec copy (live across the out-of-line subtract). Open: the copy/result slots are swapped and the compares
-// are inverted (fcompp vs fcomp).
+// FUNCTION: RALLYTROPHY 0x4bad30
 int ViewFrustum::TestSphereMargin(const SceneBounds* b, const float* m, float margin)
 {
     if (b->flags & 1) {
         float rr = margin + b->d;
-        FrVec pt = *(const FrVec*)&b->c;
+        FrVec pt = {b->c.x, b->c.y, b->c.z};
         XformSelf(&pt.x, &pt.x, m);
         const float* cam = camera;
         FrVec dv = pt - *(const FrVec*)(cam + 12);
         float d2 = dv.x * dv.x + dv.z * dv.z + dv.y * dv.y;
-        if (rr * rr <= d2) {
+        if (d2 < rr * rr) return 1;
+        {
             float r = rr + radius;
-            if (r * r < d2)
+            if (d2 > r * r)
                 return 0;
             float f = dv.x * cam[8] + dv.z * cam[10] + dv.y * cam[9];
             if (f < nearD - rr)
                 return 0;
-            if (rr + farD < f)
+            if (f > rr + farD)
                 return 0;
-            const float* p = &tplanes[0] + 1;
             int i = 0;
-            do {
+            const float* p = &tplanes[8] + 1;
+            for (; i < 4; i++, p += 4) {
                 if (pt.y * p[0] + pt.x * p[-1] + pt.z * p[1] + rr < p[2])
                     return 0;
-                i++;
-                p += 4;
-            } while (i < 4);
+            }
         }
     }
     return 1;
