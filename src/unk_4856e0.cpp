@@ -1995,10 +1995,8 @@ void RaceMode::FUN_00487e00()
     text->SetScale(DAT_0056aea8, DAT_0056aeac);
 }
 
-// NONMATCHING: RALLYTROPHY 0x4880f0
-// 807 vs 812 bytes: same logic and layout; the original copies the second checkpoint vector with a
-// different address form (`mov ecx,[eax+0x14]; add eax,0x14`), stores z back (`fst`) and sums the
-// squares in another order for the second distance; no source form found for those three spots.
+// FUNCTION: RALLYTROPHY 0x4880f0
+// The second distance copies the vector field by field and subtracts z through a local (stored back to delta).
 // Draws the local player's standing "N/6" with its label.
 void RaceMode::FUN_004880f0()
 {
@@ -2052,9 +2050,14 @@ void RaceMode::FUN_004880f0()
                     if (otherCurrent > current) {
                         rank++;
                     } else if (otherCurrent == current) {
-                        delta = *(Vec3*)other->body->unk14;
-                        delta -= m_stage->FUN_00414fb0(otherNext)->position;
-                        if (delta.x * delta.x + delta.y * delta.y + delta.z * delta.z < distance) {
+                        Vec3& src = *(Vec3*)other->body->unk14;
+                        delta.x = src.x; delta.y = src.y; delta.z = src.z;
+                        Vec3& e = m_stage->FUN_00414fb0(otherNext)->position;
+                        delta.x -= e.x;
+                        delta.y -= e.y;
+                        float z = delta.z - e.z;
+                        delta.z = z;
+                        if (delta.x * delta.x + delta.y * delta.y + z * z < distance) {
                             rank++;
                         }
                     }
