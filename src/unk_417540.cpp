@@ -92,6 +92,7 @@ struct AnimTrace {                                      // the hit collector at 
 #define REC(i) ((float*)(F(0x13ac, int) + (i) * 0x24))
 
 // NONMATCHING: RALLYTROPHY 0x417540
+// Tried 2026-10-30 night: int tests for rec[8], <=0 / !(<) guards, d > inner, dz*dz+dx*dx order (423->410), volatile off, int idx, car decl position; original keeps idx in ebx and i in edi with no record-pointer strength reduction, ours spills idx and hoists edi, so the whole register map and frame (0x90 vs 0xa0) differ.
 // 2256 vs 2332 bytes; the nine calls and the cleanup states (0, 3, 5, 8 stored; nine Vec3-like locals in the
 // original's order: dv, lo, hi, sphere, a, b, n1, n2, down) match, and the record lerp / box / sample points are
 // vector operations as in the original. Left: register allocation (the original keeps the record pointer in edi
@@ -109,13 +110,13 @@ void Stage::FUN_00417540(Player* player, int time, int dt)
     if (F(0x136c, int) == -1) {
         unsigned int i = 0;
         if (F(0x13ec, int) == 2) {
-            if (F(0x13f0, int) < 1) goto tail;
-            if (F(0x13f0, int) <= F(0x13f4, int)) F(0x13f4, int) = 0;
+            if (F(0x13f0, int) <= 0) goto tail;
+            if (!(F(0x13f4, int) < F(0x13f0, int))) F(0x13f4, int) = 0;
             int k = F(0x13f4, int);
             int tk = F(0x13fc + k * 8, int);
             if (time + dt <= tk) goto tail;
             idx = F(0x13f8 + k * 8, unsigned int);
-            if (REC(idx)[8] == 0) goto tail;
+            if (*(int*)&REC(idx)[8] == 0) goto tail;
             local30 = (time - tk) + dt;
             F(0x13f4, int) = k + 1;
         } else {
@@ -129,10 +130,10 @@ void Stage::FUN_00417540(Player* player, int time, int dt)
             for (; F(0x13ac, int) != 0 && i < (unsigned int)((F(0x13b0, int) - F(0x13ac, int)) / 0x24); i++) {
                 float* p = (float*)(F(0x13ac, int) + off);
                 if (*(int*)(F(0x13ac, int) + 0x20 + off) != 0) {
-                    float z = p[2];
+                    float dz = p[2] - pz;
                     float dx = p[0] - px;
-                    float d = dx * dx + (z - pz) * (z - pz);
-                    if (d < r2 && inner < d && d < best) {
+                    float d = dz * dz + dx * dx;
+                    if (d < r2 && d > inner && d < best) {
                         idx = i;
                         best = d;
                     }
