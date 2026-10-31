@@ -740,6 +740,7 @@ void RaceMode::FUN_0048e840(float x, float y, float w, float h, Color color, int
 // 369 vs 367 bytes: same scheduling difference as 0x48e840 (this is its mirror
 // cell, uv + 0.125 (double) .. + 0.25).
 // Tried 2026-10-30 night: ~40 variants; copying y as an int (iy) for both position y stores improved 12 -> 9 insns (y now eax -> ecx like the original); int copies of x, store/decl/uv order, volatile were equal or worse. Remaining: original issues the DAT_0056b0ac load before the second y store and stores x straight from edx twice (ours copies x to eax).
+// Re-pass 2026-10-31: caching DAT_0056b0ac in a local (7 positions, plain/volatile), volatile y/position stores, swapped chain orders: all 11-47 insns (worse than 9); permute.py -r 40 stuck at 9. Original loads DAT_0056b0ac into eax before the y copy store and reloads it for DrawQuad.
 void RaceMode::FUN_0048e9b0(float x, float y, float w, float h, Color color, int flag)
 {
     Vec2 uv[4];
