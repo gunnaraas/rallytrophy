@@ -165,6 +165,7 @@ void BitmapOps::Blit(VidImage*, int, int, int, int, int, int)
 
 // NONMATCHING: RALLYTROPHY 0x4acd60
 // Downsampling and logic_error path are complete; loop scheduling, register allocation and EH layout differ (939 vs 933 bytes).
+// Tried 2026-10-30 night: `if (bpp != 4)` first (161->158 insns differ), decl orders of w/h/dx/dy/pw/ph, per-channel order, dst/out pointer forms, inline bottom/right, tail if/else with junk edx, oldFormat placement; still differs: whole-function register allocation (orig this=esi,w=edi,h=ebx; ours this=edi,w=ebp,h=esi) and orig passes no edx to ConvertImageFormat.
 void BitmapOps::Downsample(int xShift, int yShift, int outputFormat)
 {
     int shift = xShift + yShift;
@@ -179,11 +180,10 @@ void BitmapOps::Downsample(int xShift, int yShift, int outputFormat)
             throw std::logic_error(std::string("Trying to downsample bitmap which isn't power of 2."));
         int oldFormat = format;
         unsigned* src;
-        if (bpp == 4) src = (unsigned*)data;
-        else {
+        if (bpp != 4) {
             src = fun_004ab910(this);
             fun_004bd000(data);
-        }
+        } else src = (unsigned*)data;
         fun_004bd000(palette);
         format = 7;
         unsigned* dst = (unsigned*)fun_004c1276(h * w * 4);
