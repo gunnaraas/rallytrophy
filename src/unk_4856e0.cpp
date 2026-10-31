@@ -3819,6 +3819,7 @@ extern float DAT_0057ba00;
 // objects of later scopes (dir block position, loop scale), and keeps -1 in ebp (`or ebp,-1` in both arms of
 // the ESC test). Named floats / inline expressions / a minusOne local did not reproduce either.
 // Tried 2026-10-30 night: reordering scaleX/scaleY declarations (93), HudPoint declared at top reusing scaleX as position.x (179, worse); original shows position.x reusing the scaleX slot [0x1c] while scaleY stays at [0x24], not reproducible; no QWORD operands seen in the diff (all constants are DWORD).
+// Tried 2026-10-31 second pass (~30 variants, best 89 insns): the original shares slots (scaleX/dir position at [0x1c], scaleY/loop position at [0x24], loop scale back at [0x1c]) and writes position.x/y before its EH state 5; px/py temps (kept, 90->89), 120 declaration-order permutations, position at top aliased by scaleX, float sc[3], 8-byte POD holders, HudPoint-typed scales, volatile self/z/minusOne/scale copies and literal -1 were no better; y already lands in the dead init slot; frame stays 4 bytes larger.
 // The race options menu: five entries (four volume sliders with +/- arrows,
 // and "back"), driven by the keyboard and the mouse. `init` re-selects the entry
 // under the mouse. Returns -1 when the menu is closed, otherwise 1.
@@ -3866,9 +3867,11 @@ int RaceMode::FUN_0048d7f0(bool init)
         }
         int x = (int)(m_ui[unk24c]->GetTopLeft().x + (m_ui[unk24c]->GetBottomRight().x - m_ui[unk24c]->GetTopLeft().x) * 0.5f);
         int y = (int)(m_ui[unk24c]->GetTopLeft().y + (m_ui[unk24c]->GetBottomRight().y - m_ui[unk24c]->GetTopLeft().y) * 0.5f);
+        float px = x * scaleX;
+        float py = y * scaleY;
         HudPoint position;
-        position.x = x * scaleX;
-        position.y = y * scaleY;
+        position.y = py;
+        position.x = px;
         ((MouseHud*)DAT_0056b0c0)->SetPosition(&position);
     }
     for (i = 0; i < 5; i++) {
