@@ -211,7 +211,7 @@ Sprite* BmfReader::ReadMaterial(File* file)
     else materials->m_head = node;
     materials->m_tail = node;
     ++materials->m_count;
-    Bal(1); Bal(1); Bal(1); 
+    Bal(1); Bal(1); Bal(1);
     return result;
 }
 
