@@ -190,6 +190,7 @@ static float Pacejka(float x, float B, float C, float D, float E);
 // Same size (317). Making only normal.y volatile reduces the mismatch from 66 to 27 bytes, but the target reloads ecx
 // before the three stores and pops edi between z and y; this build reloads ecx and pops edi afterward. Volatile x or z
 // individually, with y volatile, leaves the 27-byte diff unchanged. Plain objcmp.
+// Tried 2026-10-30 night: volatile on x/z/y/touching/active in 14 combos plus reorders of the normal stores; best stays 27 bytes (y volatile only), none moves the ecx reload or pop edi.
 Wheel::Wheel()
 {
     tire.SetParent(this);
