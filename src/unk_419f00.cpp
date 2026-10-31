@@ -177,46 +177,42 @@ void ColModel::FreeVerts()
 
 #define AXIS(o, minv, maxv, mini, maxi) \
     { \
-        float lo = ((float*)v0)[o]; \
-        float hi = lo; \
+        lo = ((float*)v0)[o]; \
+        hi = ((float*)v0)[o]; \
         maxi = 0; \
         mini = 0; \
-        if (lo <= ((float*)v1)[o]) { \
-            if (hi < ((float*)v1)[o]) { hi = ((float*)v1)[o]; maxi = 1; } \
-        } else { \
+        if (lo > ((float*)v1)[o]) { \
             mini = 1; \
             lo = ((float*)v1)[o]; \
-        } \
-        if (lo <= ((float*)v2)[o]) { \
-            if (hi < ((float*)v2)[o]) maxi = 2; \
         } else { \
+            if (((float*)v1)[o] > hi) { hi = ((float*)v1)[o]; maxi = 1; } \
+        } \
+        if (lo > ((float*)v[1])[o]) { \
             mini = 2; \
+        } else { \
+            if (((float*)v[1])[o] > hi) maxi = 2; \
         } \
     }
 
 // NONMATCHING: RALLYTROPHY 0x41b590
-// Current candidate is 385 bytes vs. 412; entry loads, frame setup and axis-selection code still differ substantially.
+// Tried 2026-10-30 night: swapped compare shape (`lo > v1` else-arm, `v1 > hi`), hi loaded separately from lo, shared lo/hi locals, int mins/maxes, partial result kept in maxx, pointer-based loop, v2 re-read from v[]; 115->61 insns differ; still differs: original keeps the tri pointer in ebp with the counter spilled, ours spills the pointer; x/y/z register reuse (esi/edi/ebx) differs.
 void ColModel::ComputeSel()
 {
-    int n = nTris;
-    if (n != 0) {
-        ColTri* t = tris;
-        do {
-            TVert** v = (TVert**)((char*)t + 0x28);
-            TVert* v0 = v[0];
-            TVert* v1 = v[1];
-            TVert* v2 = v[2];
-            unsigned short minx, miny;
-            short maxx, maxy;
-            unsigned char minz, maxz;
-            AXIS(1, lox, hix, minx, maxx)
-            AXIS(2, loy, hiy, miny, maxy)
-            AXIS(3, loz, hiz, minz, maxz)
-            *(unsigned short*)((char*)t + 0x12) =
-                (unsigned short)(unsigned char)(maxz << 2 | minz) << 8 | maxx << 2 | minx | (maxy * 4 | miny) << 4;
-            t++;
-            n--;
-        } while (n != 0);
+    ColTri* t = tris;
+    for (int n = nTris; n != 0; n--) {
+        TVert** v = (TVert**)((char*)t + 0x2c);
+        TVert* v0 = v[-1];
+        TVert* v1 = v[0];
+        int minx, miny, maxx, maxy;
+        int minz, maxz;
+        float lo, hi;
+        AXIS(1, lox, hix, minx, maxx)
+        maxx = maxx << 2 | minx;
+        AXIS(2, loy, hiy, miny, maxy)
+        maxx |= (maxy * 4 | miny) << 4;
+        AXIS(3, loz, hiz, minz, maxz)
+        *(unsigned short*)((char*)v - 0x1a) = (unsigned short)(unsigned char)(maxz << 2 | minz) << 8 | maxx;
+        t++;
     }
 }
 
