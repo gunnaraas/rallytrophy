@@ -159,6 +159,7 @@ static __forceinline int RoundF(float v)
 }
 
 // NONMATCHING: RALLYTROPHY 0x4021b0 (union mirrors the target reuse of the spline double slot high dword for an index; 836 vs 824 bytes, 564 differing bytes; remaining frame/register layout differs)
+// Tried 2026-10-30 night: plain double/int locals, cached frames, volatile stores, b-load sinking; best is union word only for the first RoundF + separate idx local + volatile reads of d[3..5] (177->151); still differs in register assignment (idx/frames swap esi/ebx), spilled offset slots and an extra 12-byte frame.
 void MeshSet::Interp(float t)
 {
     if (owner == 0)
@@ -172,7 +173,7 @@ void MeshSet::Interp(float t)
         t = 1.0f;
     union IndexSplineSlot { double spline; int words[2]; } indexSpline;
     float f;
-    int prev, nxt, nxt2;
+    int idx, prev, nxt, nxt2;
     indexSpline.spline = (frames - 1) * t;
     f = (float)(indexSpline.spline - floor(indexSpline.spline));
     if (*(int*)&f < 0)
@@ -180,19 +181,20 @@ void MeshSet::Interp(float t)
     else if (*(int*)&f > 0x3f800000)
         f = 1.0f;
     indexSpline.words[1] = RoundF((float)floor(indexSpline.spline));
+    idx = indexSpline.words[1];
 
     if (loop != 0) {
         indexSpline.spline = frames * t;
-        indexSpline.words[1] = RoundF((float)floor(indexSpline.spline));
-        if (indexSpline.words[1] == frames) {
+        idx = RoundF((float)floor(indexSpline.spline));
+        if (idx == frames) {
             f = DAT_004e134c;
-            indexSpline.words[1] = 0;
+            idx = 0;
         } else {
             f = (float)(indexSpline.spline - floor(indexSpline.spline));
         }
-        prev = indexSpline.words[1] - 1;
-        nxt = indexSpline.words[1] + 1;
-        nxt2 = indexSpline.words[1] + 2;
+        prev = idx - 1;
+        nxt = idx + 1;
+        nxt2 = idx + 2;
         if (prev < 0)
             prev = frames - 1;
         if (frames <= nxt)
@@ -200,43 +202,44 @@ void MeshSet::Interp(float t)
         if (frames <= nxt2)
             nxt2 -= frames;
     } else {
-        if (indexSpline.words[1] < 0)
-            indexSpline.words[1] = 0;
+        if (idx < 0)
+            idx = 0;
         int last = frames - 1;
-        if (last <= indexSpline.words[1]) {
-            indexSpline.words[1] = frames - 2;
+        if (last <= idx) {
+            idx = frames - 2;
             f = DAT_004e1348;
         }
-        if (indexSpline.words[1] < 1)
+        if (idx < 1)
             prev = 0;
         else
-            prev = indexSpline.words[1] - 1;
-        nxt = indexSpline.words[1] + 1;
+            prev = idx - 1;
+        nxt = idx + 1;
         nxt2 = nxt;
         if (nxt < last)
-            nxt2 = indexSpline.words[1] + 2;
+            nxt2 = idx + 2;
     }
     Vec3Slot sp;
     sp.x = f;
     sp.y = f * f;
     sp.z = f * f * f;
     MeshElem* e = elems;
-    indexSpline.words[1] *= 12;
+    idx *= 12;
     prev *= 12;
     nxt *= 12;
     nxt2 *= 12;
-    int oc = indexSpline.words[1], op = prev, on = nxt, on2 = nxt2;
+    int oc = idx, op = prev, on = nxt, on2 = nxt2;
     for (int k = count; k > 0; k--, e++) {
         float* d = e->dst;
         char* a = (char*)e->a;
-        char* b = (char*)e->b;
         d[0] = sp.Spline(*(float*)(a + op), *(float*)(a + oc), *(float*)(a + on), *(float*)(a + on2));
         d[1] = sp.Spline(*(float*)(a + 4 + op), *(float*)(a + 4 + oc), *(float*)(a + 4 + on), *(float*)(a + 4 + on2));
         d[2] = sp.Spline(*(float*)(a + 8 + op), *(float*)(a + 8 + oc), *(float*)(a + 8 + on), *(float*)(a + 8 + on2));
+        char* b = (char*)e->b;
         d[3] = sp.Spline(*(float*)(b + op), *(float*)(b + oc), *(float*)(b + on), *(float*)(b + on2));
         d[4] = sp.Spline(*(float*)(b + 4 + op), *(float*)(b + 4 + oc), *(float*)(b + 4 + on), *(float*)(b + 4 + on2));
         d[5] = sp.Spline(*(float*)(b + 8 + op), *(float*)(b + 8 + oc), *(float*)(b + 8 + on), *(float*)(b + 8 + on2));
-        float q = d[5] * d[5] + d[4] * d[4] + d[3] * d[3];
+        volatile float* vd = d;
+        float q = vd[5] * vd[5] + vd[4] * vd[4] + vd[3] * vd[3];
         int bits = *(int*)&q;
         int r = DAT_00573bc0[(bits >> 12) & 0xfff] + 0x3f800000 + (-(int)((bits * 2 + 0x81000001U) & 0xfe000000) >> 2);
         r &= 0x7fffffff;
