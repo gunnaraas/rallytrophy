@@ -1215,6 +1215,7 @@ public:
 // NONMATCHING: RALLYTROPHY 0x422fc0
 // original: FUN_00422fc0. Loads the 8 hit-test rectangles from data/menu/carmenu.ini.
 // Tried 2026-10-30 night: three UIRect* locals (sites 5 and 6 use their own, as in the original) cut 158->62 insns; still differs: the 8th push_back is an inlined insert(end(),1,x) whose end() load is scheduled before the rect spill in the original, ours after (std::vector inline expansion; insert/end()/volatile/temp variants did not help).
+// Tried 2026-10-31: one or two discarded Bal(1) at every statement position (no change at 5..19, worse 78/155 after the last site; only the 8th push_back inlines in both, so the count is already right); 8th site as block temp / push_back(ra = new) / own rb or rc local all worse (62 -> 70..84).
 void StageScreen::LoadLayout()
 {
     Config config;
