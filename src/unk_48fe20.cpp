@@ -100,12 +100,13 @@ RecordEntry* RecordTable::FUN_00490010(int a, int b, int c, int d)
 // NONMATCHING: RALLYTROPHY 0x490050
 // Insert by the 0x54 time into the list of the stage and the list of the car class.
 // Same structure and size as the original; register allocation differs (key/record/first end up in other registers).
+// Tried 2026-10-30 night: declaring i after result (i gets ebx) and `!a ? 0 : a*11+2` (jne layout) took 70->61; indexed loops, key/first order, self pointer, tp++ walkers did not help; original keeps this in ebp, key in esi, first in edi, ours allocates them differently (330 vs 341 bytes).
 int RecordTable::FUN_00490050(ScoreRecord* record, int a, int b)
 {
     int result = 0;
-    int i = 0;
-    int list = a ? a * 11 + 2 : 0;
+    int list = !a ? 0 : a * 11 + 2;
     list += b + 3;
+    int i = 0;
     int key = record->splits[9];
     ScoreRecord* first = (ScoreRecord*)records + list * 230;
     int* time = &first->splits[9];
@@ -146,7 +147,7 @@ int RecordTable::FUN_004901b0(ScoreRecord* record, int a, int b)
 {
     int result = 0;
     int i = 0;
-    int list = a ? a * 11 + 2 : 0;
+    int list = !a ? 0 : a * 11 + 2;
     list += b + 3;
     int key = record->time;
     ScoreRecord* first = (ScoreRecord*)records + list * 230;
@@ -188,7 +189,7 @@ int RecordTable::FUN_00490310(ScoreRecord* record, int a, int b)
 {
     int result = 0;
     int i = 0;
-    int list = a ? a * 11 + 2 : 0;
+    int list = !a ? 0 : a * 11 + 2;
     list += b;
     int key = record->time;
     ScoreRecord* first = (ScoreRecord*)records + list * 230;
