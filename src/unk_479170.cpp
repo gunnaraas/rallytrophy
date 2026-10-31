@@ -706,6 +706,7 @@ static const float F5_k256 = 256.0f, F5_lo0 = 1.0f, F5_hi0 = 4.0f, F5_lo1 = 2.0f
 // NONMATCHING: RALLYTROPHY 0x47af50
 // 1331 vs 1330 bytes; same two open scheduling differences as core 4 (alpha term order, ecx/edx
 // swap around the pool pop) plus WCAR being re-read one instruction earlier before the side jitter.
+// Tried 2026-10-30 night: ~35 variants; split alpha (`float alpha = c0*k; alpha = m2*k + alpha;`) fixes the alpha fild order (24->22 insns); still open: b/pos.x ecx/edx swap around the pool pop and s_car reload hoisted above the rand result use (+1 byte); pool-store reorders, volatile on age/unk0/next, int-copy of b, side/px forms do not help (a volatile read of p->next gave 7 insns but +4 bytes).
 // Spawn core 5: decides from wheel slip and body speed whether to emit; fills a particle.
 float CarEmitterB::SpawnCore5(float a, float b)
 {
@@ -753,7 +754,8 @@ float CarEmitterB::SpawnCore5(float a, float b)
     if (bc > 256) {
         m2 = 256;
     }
-    float alpha = m2 * 0.0025390624f + c0 * 0.0013476562f;
+    float alpha = c0 * 0.0013476562f;
+    alpha = m2 * 0.0025390624f + alpha;
     if (!DAT_0056ae90.head) {
         DAT_0056ae90.Grow();
     }
