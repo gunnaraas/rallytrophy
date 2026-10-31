@@ -608,6 +608,7 @@ static const float F4_k256 = 256.0f, F4_lo0 = 1.0f, F4_hi0 = 5.0f, F4_lo1 = 5.0f
 // 1347 vs 1346 bytes; registers, locals and all x87 sequences match. Open: VC6 emits the two alpha
 // fild terms in the opposite order (m2 term first) whatever the source order, and schedules the
 // pool pop / age store with ecx and edx swapped.
+// Tried 2026-10-30 night: ~25 variants (alpha term order/temps/casts, m0/m2 copies, clamp order, ternary, side-jitter forms, volatile on age/unk0, store reorders); all stay at 13 insns differ, alpha term order is independent of source order, and s_car is hoisted before the rand result use (edx vs original eax, +1 byte).
 // Spawn core 4: decides from wheel slip and body speed whether to emit; fills a particle.
 float CarEmitterB::SpawnCore4(float a, float b)
 {
