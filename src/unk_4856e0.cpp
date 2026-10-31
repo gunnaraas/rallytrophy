@@ -151,6 +151,7 @@ UIRect::~UIRect() {}
 // Same size (848); only the order of the stores to the sprite fields and the hoisted `push` of the next
 // allocation size differ (74 bytes). Permutations of the field-store order did not change that.
 // Tried 2026-10-30 night: volatile on unk1c (worse, 10 insns) or unk40[0] (no change) stores, permute.py -r 20 (no match); the push of the next new size sinks after the unk40 stores in all four blocks instead of sitting before them.
+// Tried 2026-10-31 re-pass: volatile reads of unk40[0..3] (cursor) or replay unk40[3] (moves the push later still), `RaceMode* volatile self` (reloads this+field before every store, far worse), permute.py -r 40 (best 4 insns, no match); 4 diffs = the next-alloc `push` (0xd4,0xd4,0x68 sits after unk40 stores, original has it right after unk1c; replay block 0x48 original is after the unk40 stores, ours before).
 // Loads the cursor, the on-screen bar sprites, the replay buttons and the in-game image.
 void RaceMode::LoadOverlays()
 {
