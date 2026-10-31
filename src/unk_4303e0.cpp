@@ -1593,6 +1593,7 @@ public:
 // NONMATCHING: RALLYTROPHY 0x433220
 // 2456 vs 2435 bytes; control flow, calls, EH states and stack arrays match. Register allocation differs (the
 // original keeps &trackSelect in ebp/[esp+0x38] across the rally loop and this in ebp in the stage loop; frame 8 bytes larger).
+// Tried 2026-10-30 night: 20 variants (local declaration/order incl. per-rally locals and limit/rallies, tracks alias/reference/none/early, this-volatile/const alias, MenuGame* alias, for-loop, stage=rally init); none beat 380 insns (limit-first gave 377 by breaking the loop shape); VC6 keeps this=edi/state=esi/1=ebx where the original has esi/ebp/edi plus two more frame dwords.
 // Front-end race start: runs the mode / career / name / car / track screens as a state machine, creates the
 // players and runs every stage of the selected rallies (service area before each pair of stages).
 int GameG7::StartRace()
