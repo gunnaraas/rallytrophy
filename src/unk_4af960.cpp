@@ -161,7 +161,7 @@ Sprite* BmfReader::ReadMaterial(File* file)
     WORD(result,5) = b;
     WORD(result,7) = d;
     WORD(result,0x1f) = 0;
-    
+
     Set3(&FLOAT(result,0x1c), c0.x, c0.y, c0.z);
     WORD(result,0x1f) = 0;
     Set4(&FLOAT(result,0x10), c1.x, c1.y, c1.z, *(float*)&h);
