@@ -32,6 +32,16 @@ inline void AddRev(Vec3* dst, const Vec3& o)
     dst->z = o.z + dst->z;
 }
 
+// AddRev with the x add built from two separate float temps (flips VC6's fadd operand order for x).
+static __forceinline void AddRevX(Vec3* d, const Vec3& o)
+{
+    float a = o.x;
+    float b = d->x;
+    d->x = b + a;
+    d->y = o.y + d->y;
+    d->z = o.z + d->z;
+}
+
 // Copies a Vec3 through integer registers.
 inline void CopyBits(Vec3* dst, const Vec3& src)
 {
@@ -473,11 +483,7 @@ void CarRain::Update(float)
     __asm fstp dword ptr [eax+8] \
     __asm fstp dword ptr [eax+4]
 
-// NONMATCHING: RALLYTROPHY 0x46e430
-// 997 bytes both, 2 differing. Binding bodyObject->world to a const reference before the copy shifts register
-// allocation to match the liveBody destination and Multiply arguments. One x87 add operand-order hunk remains at
-// 0x46e6eb; scoped/value temporaries for its right*h operand regress the object substantially.
-// Tried 2026-10-30 night: volatile color/position stores before vertex 2, += operators, inline per-component x/y/z adds, local copy of right*h, up/right copy order; none fixes the x-component fadd operand order of vertex 2 (others regress to 10-75 insns).
+// FUNCTION: RALLYTROPHY 0x46e430
 void CarRain::Render(RenderDevice* device, Camera* camera)
 {
     if (texture == 0) {
@@ -525,7 +531,7 @@ void CarRain::Render(RenderDevice* device, Camera* camera)
         v->color = color.value;
         v++;
         CopyBits(&v->position, pos);
-        AddRev(&v->position, up * s);
+        AddRevX(&v->position, up * s);
         AddRev(&v->position, right * h);
         v->color = color.value;
         v++;
