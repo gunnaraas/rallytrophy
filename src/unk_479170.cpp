@@ -505,6 +505,7 @@ float CarEmitterB::SpawnCore2(float a, float b)
 // NONMATCHING: RALLYTROPHY 0x47a4c0
 // 1332 vs 1330 bytes. Same open items as core 2 (esi/edi swap of total and n2, mix term order, pool-head
 // store scheduling, final pops); the single y *= 0.1 and the two jitter terms match.
+// Tried 2026-10-30 night: split mix (`float mix = n0*kA; mix = r*kB + mix;`), copy `local` before the pool pop, `t2 = n2 + n1` temp (41->13 insns); other tries (decl order, named totalF, volatile age/unk0/lifetime, int-copy of b, store reorders, per-field local copy) no better. Still open: original pops the pool before copying the car position (ecx/edx swap on b and head), s_car reloaded after the rand result, and 1332 vs 1330 bytes.
 // Spawn core 3: like core 2 with longer slow particles (size 0.5, no y jitter).
 float CarEmitterB::SpawnCore3(float a, float b)
 {
@@ -537,8 +538,8 @@ float CarEmitterB::SpawnCore3(float a, float b)
     } else {
         n2 = 0x100;
     }
-    n2 += n1;
-    int total = n2 + n0;
+    int t2 = n2 + n1;
+    int total = t2 + n0;
     if (total > 0x100) {
         total = 0x100;
     }
@@ -547,23 +548,24 @@ float CarEmitterB::SpawnCore3(float a, float b)
     if ((rand() & 0xff) >= total / 2) {
         return ret;
     }
-    int r = n2;
+    int r = t2;
     if (n0 > 0x100) {
         n0 = 0x100;
     }
     if (r > 0x100) {
         r = 0x100;
     }
-    float mix = (float)n0 * C3_mixA + (float)r * C3_mixB;
+    float mix = n0 * C3_mixA;
+    mix = r * C3_mixB + mix;
     if (!DAT_0056ae90.head) {
         DAT_0056ae90.Grow();
     }
     Particle* p = DAT_0056ae90.head;
     DAT_0056ae90.head = p->next;
+    Vec3 local(s_car->position);
     p->age = b;
     p->unk0 = 0;
     p->lifetime = 2.0f;
-    Vec3 local(s_car->position);
     float off = (float)(rand() & 0xff) * C_off;
     if (s_car->position.x > 0.0f) {
         off = -off;
