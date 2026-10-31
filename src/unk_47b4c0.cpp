@@ -200,6 +200,7 @@ extern float DAT_00561d78[];
 // NONMATCHING: RALLYTROPHY 0x47b730
 // 2113 vs 2113 bytes, same structure, but stack slots/registers differ (frame 0x208 vs 0x204; the original keeps
 // the camera in esi, device in edi, the view matrix only in memory) and several commutative fadd/fmul operand orders are flipped.
+// Tried 2026-10-30 night: dropped the alias local for GetViewMatrix (224->170 insns), ~20 variants (camera/device locals, nearZ/farZ hoists, scale=DAT_004e1348, depth term order); still differs: original keeps device in edi/camera in esi before the virtual calls, scale lives on the FPU stack into 0.03f/scale (fld 1.0 / fdiv st,st(1)) and k in the dead camera param slot [ebp+0xc].
 // Draws every live particle as a streak (a quad stretched along its screen-space velocity).
 void CarEmitterC::Render(RenderDevice* device, Camera* camera)
 {
@@ -224,8 +225,7 @@ void CarEmitterC::Render(RenderDevice* device, Camera* camera)
     v[3].normal.x = 0;
     v[3].normal.y = 0;
     v[3].normal.z = 0;
-    const ViewMat* vm = (const ViewMat*)device->GetViewMatrix();
-    const float* view = vm->m;
+    const float* view = (const float*)device->GetViewMatrix();
     const float* viewB = device->GetMatrixB();
     ViewMat cam;
     float scale;
@@ -261,7 +261,10 @@ void CarEmitterC::Render(RenderDevice* device, Camera* camera)
     int farZ = camera->farBits;
     for (; p; p = p->next) {
         const Vec3* pos = &p->position;
-        float depth = p->position.z * view[10] + p->position.y * view[6] + p->position.x * view[2] + view[14];
+        float depth = p->position.z * view[10];
+        depth = p->position.y * view[6] + depth;
+        depth = p->position.x * view[2] + depth;
+        depth += view[14];
         if (*(int*)&depth > nearZ && *(int*)&depth < farZ) {
             Vec3 w1, w2, pt;
             const float* in = (const float*)pos;
