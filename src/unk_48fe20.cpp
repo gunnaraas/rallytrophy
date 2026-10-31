@@ -33,6 +33,7 @@ RecordTable::RecordTable()
 // NONMATCHING: RALLYTROPHY 0x48fe40
 // 382 vs 386 bytes. Same loops and stores; the original strength-reduces the loop pointer to &record->unk1f (edx) and
 // keeps the record base in ebp for the name/time/unk5c accesses, this build uses the record itself.
+// Tried 2026-10-30 night: walk a char* at &unk1f with record = p-0x1f (49->16 insns); ebp/edx roles still swapped (p in ebp, record in edx), unk5c store placed before the add; ~14 variants and permute.py -r 20 stayed at 16.
 void RecordTable::FUN_0048fe40()
 {
     SYSTEMTIME now;
@@ -53,13 +54,15 @@ void RecordTable::FUN_0048fe40()
                     car = 1;
                 }
                 ScoreRecord* record = (ScoreRecord*)records + ((base + h) * 23 + k) * 10;
-                for (int e = 0; e < 10; e++, record++) {
+                char* p = &record->unk1f;
+                for (int e = 0; e < 10; e++, p += sizeof(ScoreRecord)) {
+                    record = (ScoreRecord*)(p - 0x1f);
                     memset(record, 0, sizeof(ScoreRecord));
                     strcpy(record->name, DAT_005070b0);
-                    record->date = now;
-                    record->unk1e = 0;
-                    record->unk1f = car;
-                    int* split = record->splits;
+                    *(SYSTEMTIME*)(p + 1) = now;
+                    p[-1] = 0;
+                    p[0] = car;
+                    int* split = (int*)(p + 0x11);
                     for (int t = 0x8ca0; t < 0x60ae0; t += 0x8ca0) {
                         *split++ = t;
                     }
