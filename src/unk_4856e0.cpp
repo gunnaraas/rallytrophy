@@ -703,6 +703,7 @@ void RaceMode::FUN_0048e4c0(HudPoint mouse)
 // 361 vs 359 bytes: only scheduling/register choice differs (the original loads y
 // before x and keeps the uv base in the FPU). Position stores written out by hand.
 // Draws one 1/8-wide glyph cell of the HUD texture (flag selects the right half).
+// Tried 2026-10-30 night: ~35 variants; copying y as an int (iy) for both position y stores improved 13 -> 9 insns (y now goes eax -> ecx like the original); int copies of x, SetQuad forms, local copies, store reorders were equal or worse. Remaining: original issues the DAT_0056b0ac load before the second y store and stores x straight from edx twice.
 void RaceMode::FUN_0048e840(float x, float y, float w, float h, Color color, int flag)
 {
     Vec2 uv[4];
@@ -712,7 +713,8 @@ void RaceMode::FUN_0048e840(float x, float y, float w, float h, Color color, int
     uv[1].x = uv[2].x = v + 0.125f;
     uv[0].y = uv[1].y = 0.5f;
     uv[2].y = uv[3].y = 0.75f;
-    position[1].y = position[0].y = y;
+    int iy = *(int*)&y;
+    *(int*)&position[0].y = iy; *(int*)&position[1].y = iy;
     position[2].x = position[1].x = x + w;
     position[3].x = position[0].x = x;
     position[3].y = position[2].y = y + h;
