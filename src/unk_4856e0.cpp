@@ -686,6 +686,7 @@ int RaceMode::GetStageValue()
 // 364 bytes, EH tables and arrays match. The original keeps -1 in edi (colour store
 // and push) and has a 4-byte larger frame; this build stores the immediate.
 // Draws the 32x32 quad (uv inset 0.01) of the sprite at +0x250. x is a Coord param.
+// Tried 2026-10-30 night: ~15 variants; hand-written position stores (y stored last, as in 0x48e840) improved 16 -> 14 insns; int copies of x/y (iy/ix), late Color decl and store reorders were equal or worse (33+ insns). Remaining: original keeps -1 in edi emitted after the position math and loads y into eax first; ours emits the colour first.
 void RaceMode::FUN_0048e4c0(HudPoint mouse)
 {
     float x = mouse.x;
@@ -693,7 +694,10 @@ void RaceMode::FUN_0048e4c0(HudPoint mouse)
     Vec2 uv[4];
     Vec2 position[4];
     Color color(0xffffffff);
-    SetQuad(position, x, y, x + DAT_0056aea8 * 32.0f, y + DAT_0056aeac * 32.0f);
+    position[2].x = position[1].x = x + DAT_0056aea8 * 32.0f;
+    position[3].x = position[0].x = x;
+    position[3].y = position[2].y = y + DAT_0056aeac * 32.0f;
+    position[1].y = position[0].y = y;
     SetQuad(uv, 0.01f, 0.01f, 0.99f, 0.99f);
     ((RaceDeviceSlots*)DAT_0056b0ac)->SetTexture(m_cursor);
     ((RaceDeviceSlots*)DAT_0056b0ac)->DrawQuad(position, uv, color, 1.0f, 1.0f);
