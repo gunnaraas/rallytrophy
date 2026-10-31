@@ -596,9 +596,7 @@ int __cdecl FUN_004aac50(unsigned v)
     }
 }
 
-// NONMATCHING: RALLYTROPHY 0x4aa9c0
-// VC6 drops the redundant second `n > 0` test the original keeps; 2 bytes short. Testing the member `glyphCount` there
-// expands to 510 bytes / 60 differences; making the two local guards sequential compiles to the baseline 506/73.
+// FUNCTION: RALLYTROPHY 0x4aa9c0
 void GlyphFont::Load(const char* name)
 {
     char path[256];
@@ -620,19 +618,9 @@ void GlyphFont::Load(const char* name)
     glyphs = (FontGlyph*)operator new(n * 0x1c);
     int m = mapCount;
     map = (unsigned short*)operator new(m * 2);
-    if (n > 0) {
-        unsigned short* p = ids2;
-        int c = n;
-        do { f->Read(p, 2); p++; c--; } while (c != 0);
-        if (n > 0) {
-            FontGlyph* g = glyphs;
-            do { f->Read(g, 0x1c); g++; n--; } while (n != 0);
-        }
-    }
-    if (m > 0) {
-        unsigned short* p = map;
-        do { f->Read(p, 2); p++; m--; } while (m != 0);
-    }
+    for (int i = 0; i < n; i++) f->Read(ids2 + i, 2);
+    for (int j = 0; j < n; j++) f->Read(glyphs + j, 0x1c);
+    for (int k = 0; k < m; k++) f->Read(map + k, 2);
     f->Close();
     delete f;
 }
