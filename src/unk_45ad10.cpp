@@ -1808,6 +1808,7 @@ void Car::SetupBrakes()
 // orientation `world`, drop it onto the terrain and settle the suspension with 100 physics steps)
 // NONMATCHING: RALLYTROPHY 0x45cc30
 // Current candidate: 3635/3623 bytes, 1947 differing bytes outside relocations (baseline: 3581/3623, 2573 differences).
+// Tried 2026-10-30 night: k1414/v1408 store order swapped, wheel-reset loop forms (ptr/dec/block counter), hoisting best/h/mn/mx/rr decls (worse), sphere decl moved after pos (262->253 insns); first-loop counter still gets its own slot (orig shares ebp-0x14 with the h pointer) and query-box store schedule still differs.
 // A volatile induction pointer to &hitNormal[0].z (passing normalZ-2) aligns the final wheel loop and target frame;
 // aliasing volatile hit bytes to the dead `world` argument home reproduces [ebp+index+0xc] and improves the prior
 // hit-array form by three bytes. Volatile mode/pointer stores make the query setup follow the target schedule;
@@ -1864,12 +1865,12 @@ void Car::FUN_0045cc30(StartPosition* start, void* world)
     v->v13e4[0] = v->v13e4[1] = v->v13e4[2] = 0;
     v->v13f0[0] = v->v13f0[1] = v->v13f0[2] = 0;
     v->v13fc[0] = v->v13fc[1] = v->v13fc[2] = 0;
-    v->k1414[0] = 0.02f;
-    v->k1414[1] = 0.02f;
-    v->k1414[2] = 0.02f;
     ((volatile float*)v->v1408)[2] = 0.0f;
     ((volatile float*)v->v1408)[1] = 0.0f;
     ((volatile float*)v->v1408)[0] = 0.0f;
+    v->k1414[0] = 0.02f;
+    v->k1414[1] = 0.02f;
+    v->k1414[2] = 0.02f;
     v->z20ac[0] = v->z20ac[1] = v->z20ac[2] = 0;
     v->z20a8 = 0;
     v->z20b8[0] = v->z20b8[1] = v->z20b8[2] = 0;
@@ -1880,7 +1881,6 @@ void Car::FUN_0045cc30(StartPosition* start, void* world)
         v->wheel[i].Reset();
 
     Vec3 pos = *(Vec3*)start;
-    W7_Sphere sphere;
     pos += *(Vec3*)((BYTE*)world + 0x10);
     memcpy(&body->right, world, 64);
     body->pos.x = pos.x;
@@ -1889,6 +1889,7 @@ void Car::FUN_0045cc30(StartPosition* start, void* world)
     body->trans[0] = 0;
     body->trans[1] = 0;
     body->trans[2] = 0;
+    W7_Sphere sphere;
     Vec3 top(pos);
     Vec3 bottom(pos);
     bottom -= *(Vec3*)((BYTE*)world + 0x10) * W7_kRay;
