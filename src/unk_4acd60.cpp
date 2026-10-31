@@ -343,6 +343,7 @@ static __forceinline void BoxWorldPoint(Vec3* o, const float* p, const float* m,
 
 // NONMATCHING: RALLYTROPHY 0x4ad1d0
 // All 15 separating axes are implemented. Xform asm helper (BoxWorldPoint, x4) now gives the original ebp frame and the first 100 bytes exactly; 2853 -> 2526 differing bytes (built 2619 vs 3131; inner-scope worldA/worldB redeclared). Still differs: EH states / local layout (original frame 0xf4) and ~500 bytes of code not yet accounted for.
+// Tried 2026-10-30 night: flat "if (fabs(p) > sum) return 0;" chain (all 15 tests), float/double temps for sum/fabs, !(<=) and empty-then forms, volatile r/a locals: 617-653 insns differ, worse than nested form (573). Original is an OBB-OBB test (not image code) whose compares are fxch/fcomp st(1)/fstp st(0), a00..a22 and r00..r22 in real frame slots (-0xb4.., -0xfc..) and fail blocks cross-jumped in groups of three; none of that reproduced.
 int FUN_004ad1d0(float* boxA, float* boxB, float* matrixA, float* matrixB,
                  float* positionA, float* positionB)
 {
