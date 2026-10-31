@@ -138,30 +138,25 @@ ReplayMenu::~ReplayMenu()
     Release();
 }
 
-// NONMATCHING: RALLYTROPHY 0x44ba30
-// 452 bytes; 8 differ in the shared y/y2 temporary and inline-assign pointer slots (target +0x20/+0x18, ours swapped).
-// Early declarations of y or y2 and a named nonvolatile text pointer change no bytes. Hoisting y2's computation
-// gives 144 differences, volatile x gives 28, and a volatile title pointer gives 313.
-// Computing y2 after the second label assignment expands the diff to 173; a scope around the original block is unchanged.
-// Writing label 1's y before x to mirror the target's stores raises the diff 8→11 bytes.
-// Plain objcmp observations.
-// original: FUN_0044ba30 (slot 1)
+// FUNCTION: RALLYTROPHY 0x44ba30
+// original: FUN_0044ba30 (slot 1). y is declared after m_state = 1 and reused for label 1, which swaps the
+// shared y temporary and the inline-assign pointer stack slots into the original order.
 void ReplayMenu::Setup(MenuGame* game)
 {
     if (m_state) {
         return;
     }
     float x = DAT_0056aea8 * FA1_LEFT;
-    float y = DAT_0056aeac * FA1_TOP;
     m_game = game;
     m_state = 1;
+    float y = DAT_0056aeac * FA1_TOP;
     labels[0].text = FUN_00405380(0x19f);
     labels[0].x = x;
     labels[0].y = y;
-    float y2 = FA1_BACKY * DAT_0056aeac;
+    y = FA1_BACKY * DAT_0056aeac;
     labels[1].text = FUN_00405380(0x18);
     labels[1].x = x;
-    labels[1].y = y2;
+    labels[1].y = y;
     BuildRects();
 }
 
