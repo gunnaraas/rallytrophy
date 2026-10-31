@@ -12,6 +12,7 @@ void IntVec::Resize(unsigned int n, const int& x)
 
 // NONMATCHING: RALLYTROPHY 0x4b8640
 // reason: original loads the uninitialised allocator byte into dl twice; ours uses cl then dl
+// Tried 2026-10-30 night: zeroing-statement orders, ml()/sets()/SetVec() init forms, explicit allocator args, plain std::vector sets; all 2-5 insns differ, ours hoists the sets allocator load into dl and uses cl for the meshes one.
 SceneEntry::SceneEntry() : sets()
 {
     count44 = 0;
