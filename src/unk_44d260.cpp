@@ -422,9 +422,10 @@ loaded:
 }
 
 // NONMATCHING: RALLYTROPHY 0x44deb0
-// The target explicitly closes the file before deleting it on bad headers; this source now preserves that sequence.
+// The target deletes the file (dtor 0x4a4d90 + operator delete, no Close call) on bad headers; it Closes only on success.
 // Candidate is 1259/1321 bytes with 947 differing bytes. The target uses a 0x48 frame and local failure epilogues;
-// candidate uses a 0x44 frame and merges some exits. Both use the per-player 10-dword stack temporary.
+// candidate uses a 0x44 frame and merges the three failure exits into one shared tail. Both use the per-player 10-dword stack temporary.
+// Tried 2026-10-31: 132 insns now (was 142: per-use car->snapshot[2] and a local CarSnapshot* per buffer block, dropped the bogus Close on bad headers). No source form stopped the failure-exit tail merge (return 0 vs false, nested else, goto, cipher/race decl positions, race copies per branch); int return (xor eax,eax) is right per the callers but changing the header affects other files.
 bool SlotStore::LoadRelay()
 {
     DAT_00501472 = 0;
@@ -436,7 +437,6 @@ bool SlotStore::LoadRelay()
     int magic1;
     file->Read(&magic0, 4);
     if (magic0 != 0x63777472 || (file->Read(&magic1, 4), magic1 != 0x20020109)) {
-        file->Close();
         delete file;
         return false;
     }
@@ -487,24 +487,26 @@ bool SlotStore::LoadRelay()
         }
     } else {
         CarSnapView* car = (CarSnapView*)player->car;
-        CarSnapshot* snap = &car->snapshot[2];
-        snap->Clear();
-        *snap = *(CarSnapshot*)in;
+                car->snapshot[2].Clear();
+        car->snapshot[2] = *(CarSnapshot*)in;
         in += 0x8c;
-        if (snap->size[0]) {
-            snap->buffer[0] = new BYTE[snap->size[0] * 4];
-            memcpy(snap->buffer[0], in, snap->size[0] * 4);
-            in += snap->size[0] * 4;
+        if (car->snapshot[2].size[0]) {
+            CarSnapshot* s = &car->snapshot[2];
+            s->buffer[0] = new BYTE[s->size[0] * 4];
+            memcpy(s->buffer[0], in, s->size[0] * 4);
+            in += s->size[0] * 4;
         }
-        if (snap->size[1]) {
-            snap->buffer[1] = new BYTE[snap->size[1] * 4];
-            memcpy(snap->buffer[1], in, snap->size[1] * 4);
-            in += snap->size[1] * 4;
+        if (car->snapshot[2].size[1]) {
+            CarSnapshot* s = &car->snapshot[2];
+            s->buffer[1] = new BYTE[s->size[1] * 4];
+            memcpy(s->buffer[1], in, s->size[1] * 4);
+            in += s->size[1] * 4;
         }
-        if (snap->size[2]) {
-            snap->buffer[2] = new BYTE[snap->size[2] * 4];
-            memcpy(snap->buffer[2], in, snap->size[2] * 4);
-            in += snap->size[2] * 4;
+        if (car->snapshot[2].size[2]) {
+            CarSnapshot* s = &car->snapshot[2];
+            s->buffer[2] = new BYTE[s->size[2] * 4];
+            memcpy(s->buffer[2], in, s->size[2] * 4);
+            in += s->size[2] * 4;
         }
         ((Car*)car)->FUN_0046be50(2);
         int tmp[10];
