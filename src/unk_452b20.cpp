@@ -112,8 +112,8 @@ struct F_CarView {
     { F_Vec* r = c->body->FUN_004204f0(&t, &w); (dst).x = r->x; (dst).y = r->y; (dst).z = r->z; }
 
 // NONMATCHING: RALLYTROPHY 0x452b20
-// 897 bytes, same size; volatile compound updates of p.x/p.z at lamp0 and p.x/p.y at lamp1 reduce 179→145 differing
-// bytes by constraining the FP/call-result schedule. Remaining component load/store scheduling differs.
+// Tried 2026-10-30 night: ~80 variants (struct copy, += forms, x as one expression, volatile on copy/add/expr per axis); best is x as a
+// volatile expression + volatile y/z adds (23->17); the original delays the y/z fstp past the argument setup, which no form reproduces.
 void Car::FUN_00452b20()
 {
     F_CarView* c = (F_CarView*)this;
@@ -126,20 +126,10 @@ void Car::FUN_00452b20()
     F_Set(p, 0.0f, 0.0f, c->body->unka8);
     c->body->ToWorld(&w, &p);
     F_STORE(c->point0);
-    p.x = c->driverB.x;
-    p.y = c->driverB.y;
-    p.z = c->driverB.z;
-    *(volatile float*)&p.x += c->lamp0.x;
-    p.y += c->lamp0.y;
-    *(volatile float*)&p.z += c->lamp0.z;
+    *(volatile float*)&p.x = c->driverB.x + c->lamp0.x; p.y = c->driverB.y; *(volatile float*)&p.y += c->lamp0.y; p.z = c->driverB.z; *(volatile float*)&p.z += c->lamp0.z; 
     c->body->ToWorld(&w, &p);
     F_STORE(c->point2);
-    p.x = c->driverA.x;
-    p.y = c->driverA.y;
-    p.z = c->driverA.z;
-    *(volatile float*)&p.x += c->lamp1.x;
-    *(volatile float*)&p.y += c->lamp1.y;
-    p.z += c->lamp1.z;
+    *(volatile float*)&p.x = c->driverA.x + c->lamp1.x; p.y = c->driverA.y; *(volatile float*)&p.y += c->lamp1.y; p.z = c->driverA.z; *(volatile float*)&p.z += c->lamp1.z; 
     c->body->ToWorld(&w, &p);
     F_STORE(c->point3);
 }
