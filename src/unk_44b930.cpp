@@ -427,6 +427,7 @@ void ReplayMenu::RefreshRecords()
 // NONMATCHING: RALLYTROPHY 0x44cfb0
 // Same shape, 625 vs 632 bytes: the original spills `this` (saved at entry) and keeps the label and record pointers in
 // ebp/ebx; mine keeps `this` in ebx and spills the record pointer; the SEH prologue also schedules differently.
+// Tried 2026-10-30 night: pointer-induction locals for labels/records, self copy of this, cached m_selected, label x/y via float/int temps or const char* first, reordered game/text; all stay 50+ insns (compiler normalizes pointers; temps change size to 640/624); original spills this and keeps label x/y in stack temps across the c_str() select, not reproduced.
 // original: FUN_0044cfb0 (vtable slot 3, Draw)
 void ReplayMenu::Slot3(int skipPresent)
 {
