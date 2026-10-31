@@ -1207,23 +1207,31 @@ public:
         m_items.push_back(rect); \
     } while (0)
 
+#define C_ADDR(rect, ul, lr) \
+    do { \
+        rect = (UIRect*)new C_Rect(*(const C_Point*)&config.GetVector2(ul), *(const HudPoint*)&config.GetVector2(lr)); \
+        m_items.push_back(rect); \
+    } while (0)
 // NONMATCHING: RALLYTROPHY 0x422fc0
 // original: FUN_00422fc0. Loads the 8 hit-test rectangles from data/menu/carmenu.ini.
+// Tried 2026-10-30 night: three UIRect* locals (sites 5 and 6 use their own, as in the original) cut 158->62 insns; still differs: the 8th push_back is an inlined insert(end(),1,x) whose end() load is scheduled before the rect spill in the original, ours after (std::vector inline expansion; insert/end()/volatile/temp variants did not help).
 void StageScreen::LoadLayout()
 {
     Config config;
-    UIRect* rect;
+    UIRect* ra;
+    UIRect* rb;
+    UIRect* rc;
     config.Define(DAT_004f60d0, 0x10);
     C_String path("data/menu/carmenu.ini");
     config.Load(path.c_str(), true, false, 0);
-    C_ADD("CarSelectionText_UpperLeft", "CarSelectionText_LowerRight");
-    C_ADD("TransmissionSelectionText_UpperLeft", "TransmissionSelectionText_LowerRight");
-    C_ADD("ContinueText_UpperLeft", "ContinueText_LowerRight");
-    C_ADD("BackText_UpperLeft", "BackText_LowerRight");
-    C_ADD("CarSelectionArrow1_UpperLeft", "CarSelectionArrow1_LowerRight");
-    C_ADD("CarSelectionArrow2_UpperLeft", "CarSelectionArrow2_LowerRight");
-    C_ADD("TransmissionSelectionArrow1_UpperLeft", "TransmissionSelectionArrow1_LowerRight");
-    C_ADD("TransmissionSelectionArrow2_UpperLeft", "TransmissionSelectionArrow2_LowerRight");
+    C_ADDR(ra, "CarSelectionText_UpperLeft", "CarSelectionText_LowerRight");
+    C_ADDR(ra, "TransmissionSelectionText_UpperLeft", "TransmissionSelectionText_LowerRight");
+    C_ADDR(ra, "ContinueText_UpperLeft", "ContinueText_LowerRight");
+    C_ADDR(ra, "BackText_UpperLeft", "BackText_LowerRight");
+    C_ADDR(rb, "CarSelectionArrow1_UpperLeft", "CarSelectionArrow1_LowerRight");
+    C_ADDR(rc, "CarSelectionArrow2_UpperLeft", "CarSelectionArrow2_LowerRight");
+    C_ADDR(ra, "TransmissionSelectionArrow1_UpperLeft", "TransmissionSelectionArrow1_LowerRight");
+    C_ADDR(ra, "TransmissionSelectionArrow2_UpperLeft", "TransmissionSelectionArrow2_LowerRight");
 }
 
 // A colour built from four float channels (each converted to a byte), with an empty destructor.
