@@ -310,5 +310,5 @@ void ModelFile::ReadMesh(File* file)
     if (!(object->boundsA.flags & 3)) ((MeshModel*)entry)->ComputeBoundsAndSphere();
     object->meshes.Insert(entry, 0.0f);
     delete entry;
-    Bal(1); Bal(1); Bal(1); Bal(1); Bal(1);  
+    Bal(1); Bal(1); Bal(1); Bal(1); Bal(1);
 }
