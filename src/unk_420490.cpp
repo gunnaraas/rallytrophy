@@ -905,28 +905,24 @@ void StageScreen::RefreshUnits()
 }
 
 // NONMATCHING: RALLYTROPHY 0x421fa0
-// NONMATCHING: draft; stack frame, inline strings and the argument lists of 0x423670/0x4239c0/DrawSelector are guesses
-// TODO: restore the first-iteration iStack_84 block (colour 0xff740000, text 0x71) the draft dropped as dead.
+// Tried 2026-10-31: rewrote from the disassembly (local sx/sy, DrawPhoto/DrawBook(entry, avail), second text renderer at game+0x1390bc, per-iteration std::string, k-switch for the entry fields, avail0 colour/0x71 block) 842->683 insns; tried ~35 variants (decl order of scalars has no effect, bool/int selected, volatile/addressed first/avail0, m_game vs cached game, float vs int scale copies); still differs: original keeps 0 in esi/ebx as one shared constant register and the frame is 0xc bytes smaller (locals sx 0x1c, sy 0x28, y 0x18, x tmp 0x14), register allocation drifts the whole body.
 int StageScreen::Layout()
 {
-    MenuGame* game = m_game;
-    int exitFlag = 0, done = 0;
+    int exitFlag = 0;
     DAT_0056b0ac->SetRenderState(5, 0);
     DAT_0056b0ac->vf42(8);
     float sx = DAT_0056b0ac->GetWidth() * 0.0009765625f;
     float sy = DAT_0056b0ac->GetHeight() * 0.0013020834f;
+    int done = 0;
     DAT_0056b0bc->ClearKeys();
-    TextRenderer* text = game->text;
-    RenderDevice* dev = DAT_0056b0ac;
-    RenderDevice* waitDev = 0;
-    int first = 1;
-    RenderDevice* wait = 0;
-    unk244 = DAT_0059b2f8();
+    TextRenderer* text2 = *(TextRenderer**)((BYTE*)m_game + 0x1390bc);
+    TextRenderer* text = m_game->text;
     RefreshUnits();
-    unsigned avail0 = Fun_004242a0(list[unk124[0]].car);
+    unk244 = DAT_0059b2f8();
+    int first = 1;
+    int avail0 = Fun_004242a0(list[unk124[0]].car);
     int avail = list[unk124[0]].flag;
-    (void)avail0;
-    (void)waitDev;
+    RenderDevice* wait = 0;
     while (FUN_004b69f0((int)wait) && !exitFlag && !done) {
         if (unk248) {
             ((NetRace*)unk248)->ServiceNetwork();
@@ -942,21 +938,22 @@ int StageScreen::Layout()
                 }
             }
         }
-        if (!dev->m_active) {
-            wait = dev;
+        if (!DAT_0056b0ac->m_active) {
+            wait = DAT_0056b0ac;
             continue;
         }
         wait = 0;
         if (DAT_0057ba28[VK_RETURN]) {
-            if (m_selected == 2) {
+            int s = m_selected;
+            if (s == 2) {
                 if (avail) {
-                    game->Play(1);
+                    m_game->Play(1);
                     done = 1;
                     continue;
                 }
-                game->Play(3);
+                m_game->Play(3);
             }
-            if (m_selected == 3) {
+            if (s == 3) {
                 exitFlag = 1;
                 continue;
             }
@@ -972,7 +969,7 @@ int StageScreen::Layout()
         if (dir != 0) {
             int sel = m_selected + dir;
             m_selected = sel;
-            game->Play(0);
+            m_game->Play(0);
             if (sel < 0) {
                 m_selected = 0;
             } else if (sel > 3) {
@@ -992,27 +989,26 @@ int StageScreen::Layout()
             delta++;
         }
         if (DAT_0057ba20) {
-            HudPoint mouse = *(HudPoint*)&DAT_0057ba00;
-            if (m_items[4]->Contains(mouse)) {
+            if (m_items[4]->Contains(*((MouseInput*)DAT_0056b0c0)->GetPosition())) {
                 delta--;
             }
-            if (m_items[5]->Contains(mouse)) {
+            if (m_items[5]->Contains(*((MouseInput*)DAT_0056b0c0)->GetPosition())) {
                 delta++;
             }
-            if (m_items[6]->Contains(mouse)) {
+            if (m_items[6]->Contains(*((MouseInput*)DAT_0056b0c0)->GetPosition())) {
                 delta--;
             }
-            if (m_items[7]->Contains(mouse)) {
+            if (m_items[7]->Contains(*((MouseInput*)DAT_0056b0c0)->GetPosition())) {
                 delta++;
             }
             int s = m_selected;
             if (s == 2) {
                 if (avail) {
-                    game->Play(1);
+                    m_game->Play(1);
                     done = 1;
                     continue;
                 }
-                game->Play(3);
+                m_game->Play(3);
             }
             if (s == 3) {
                 exitFlag = 1;
@@ -1020,130 +1016,152 @@ int StageScreen::Layout()
             }
         }
         if (delta != 0) {
-            if (m_selected == 0) {
+            switch (m_selected) {
+            case 0: {
                 int nv = delta + unk124[0];
-                if (nv < unk124[1] && -1 < nv) {
+                int cnt = unk124[1];
+                if (nv < cnt && nv >= 0) {
                     unk244 = DAT_0059b2f8();
                 }
-                AdjustValue(&unk124[0], delta, 0, unk124[1] - 1);
-                Fun_004242a0(list[unk124[0]].car);
+                AdjustValue(&unk124[0], delta, 0, cnt - 1);
+                avail0 = Fun_004242a0(list[unk124[0]].car);
                 avail = list[unk124[0]].flag;
-            } else if (m_selected == 1) {
-                if (avail == 0) {
-                    game->Play(3);
-                } else {
+                break;
+            }
+            case 1:
+                if (avail) {
                     AdjustValue(&unk22c, delta, 0, 1);
+                } else {
+                    m_game->Play(3);
                 }
+                break;
             }
         }
         for (int i = 0; i < 4; i++) {
             if (m_selected != i && m_items[i]->Contains(*((MouseInput*)DAT_0056b0c0)->GetPosition())) {
                 m_selected = i;
-                game->Play(0);
+                m_game->Play(0);
             }
         }
-        if (dev->BeginScene()) {
-            dev->vf38(0);
-            game->Update();
-            game->DrawVideo(0);
-            float xs = DAT_0056aea8, ys = DAT_0056aeac;
-            text->scaleX = xs + xs;
-            text->scaleY = ys + ys;
+        if (DAT_0056b0ac->BeginScene()) {
+            DAT_0056b0ac->vf38(0);
+            m_game->Update();
+            m_game->DrawVideo(0);
+            text->scaleX = DAT_0056aea8 + DAT_0056aea8;
             text->color = DAT_00508bfc;
-            text->Print(dev, 54.0f * xs, 142.0f * ys, FUN_00405380(0x65), 0, 1.0f, 1.0f);
+            text->scaleY = DAT_0056aeac + DAT_0056aeac;
+            text->Print(DAT_0056b0ac, 54.0f * DAT_0056aea8, 142.0f * DAT_0056aeac, FUN_00405380(0x65), 0, 1.0f, 1.0f);
+            text->scaleX = DAT_0056aea8;
             StageEntry* entry = &entries[list[unk124[0]].car];
-            text->scaleX = xs;
-            text->scaleY = ys;
-            FUN_00423670(this, (short)unk124[0], entry, sy);
-            FUN_004239c0(this, (short)unk124[0], entry, (int)sy);
-            float y = 262.0f * ys;
+            text->scaleY = DAT_0056aeac;
+            DrawPhoto(entry, avail);
+            DrawBook(entry, avail);
+            float y = 262.0f * sy;
             for (int r4 = 0; r4 < 4; r4++) {
-                int selected = (m_selected == r4);
+                bool selected = (m_selected == r4);
                 text->color = selected ? DAT_00508c0c : DAT_00508c04;
+                std::string s;
                 switch (r4) {
                 case 0: {
-                    text->Print(dev, 54.0f * xs, y, strB.ptr ? strB.ptr : "", 0, 1.0f, 1.0f);
-                    char b1[32], b2[32];
-                    sprintf(b1, "%d", unk124[0] + 1);  // guess: "current/total"
-                    sprintf(b2, "%d", unk124[1]);
-                    std::string s(b1);
-                    s.append("/");
-                    s.append(b2);
-                    DrawSelector(text, &s, 350.0f * xs, y, 130.0f * xs, selected, 0, 0, 1);
+                    text->Print(DAT_0056b0ac, 54.0f * sx, y, strB.ptr ? strB.ptr : "", 0, 1.0f, 1.0f);
+                    int cur = unk124[0];
+                    char buf[32];
+                    FUN_004c1902(cur + 1, buf, 10);
+                    s = buf;
+                    s += "/";
+                    int cnt = unk124[1];
+                    FUN_004c1902(cnt, buf, 10);
+                    s += buf;
+                    DrawSelector(text, &s, 350.0f * sx, y, 130.0f * sx, selected, cur, 0, cnt - 1);
                     break;
                 }
                 case 1:
                     if (!avail) {
                         text->color = DAT_00508c08;
                     }
-                    text->Print(dev, 54.0f * xs, y, strC.ptr ? strC.ptr : "", 0, 1.0f, 1.0f);
+                    text->Print(DAT_0056b0ac, 54.0f * sx, y, strC.ptr ? strC.ptr : "", 0, 1.0f, 1.0f);
                     if (!avail) {
                         Color c(DAT_00508c08);
-                        DrawSpinner(text, &pair[unk22c], 250.0f * xs, y, 230.0f * xs, 1, c, 0, 0, 1);
+                        DrawSpinner(text, &pair[unk22c], 250.0f * sx, y, 230.0f * sx, 1, c, 0, 0, 0);
                     } else {
-                        DrawSelector(text, &pair[unk22c], 250.0f * xs, y, 230.0f * xs, selected, 0, 0, 1);
+                        DrawSelector(text, &pair[unk22c], 250.0f * sx, y, 230.0f * sx, selected, unk22c, 0, 1);
                     }
                     break;
                 case 2:
                     if (!avail) {
                         text->color = DAT_00508c08;
                     }
-                    y = 42.0f * ys + y;
-                    text->Print(dev, 54.0f * xs, y, strA.ptr ? strA.ptr : "", 0, 1.0f, 1.0f);
+                    y = 42.0f * sy + y;
+                    text->Print(DAT_0056b0ac, 54.0f * sx, y, strA.ptr ? strA.ptr : "", 0, 1.0f, 1.0f);
                     text->color = selected ? DAT_00508c0c : DAT_00508c04;
                     break;
                 case 3:
-                    y = 610.0f * ys;
-                    text->Print(dev, 54.0f * xs, y, strD.ptr ? strD.ptr : "", 0, 1.0f, 1.0f);
+                    y = 610.0f * sy;
+                    text->Print(DAT_0056b0ac, 54.0f * sx, y, strD.ptr ? strD.ptr : "", 0, 1.0f, 1.0f);
                     break;
                 }
-                y = 42.0f * ys + y;
+                y = 42.0f * sy + y;
             }
-            float a0 = text->scaleX, b0 = text->scaleY;
+            int ia = *(int*)&text->scaleX;
             text->color = DAT_0050892c;
-            text->scaleX = a0 * 0.85f;
-            text->scaleY = b0 * 0.85f;
+            text2->color = DAT_0050892c;
+            int ib = *(int*)&text->scaleY;
+            text->scaleX = *(float*)&ia * 0.85f;
+            text->scaleY = *(float*)&ib * 0.85f;
             if (avail) {
-                text->Print(dev, 576.0f * xs, 424.0f * ys, entry->s1.ptr ? entry->s1.ptr : "", 0, 1.0f, 1.0f);
+                text->Print(DAT_0056b0ac, 576.0f * sx, 424.0f * sy, entry->s1.ptr ? entry->s1.ptr : "", 0, 1.0f, 1.0f);
             }
-            text->scaleX = a0;
-            text->scaleY = b0;
-            y = 450.0f * ys;
+            if (avail0) {
+                text->SetColor(0xff740000);
+                text->Print(DAT_0056b0ac, 760.0f * sx - text->GetWidth(FUN_00405380(0x71), 0) * 0.5f, 633.0f * sy,
+                            FUN_00405380(0x71), 0, 1.0f, 1.0f);
+            }
+            y = 450.0f * sy;
+            *(int*)&text->scaleX = ia;
+            *(int*)&text->scaleY = ib;
+            float sa = *(float*)&ia * 1.25f;
+            float sb = *(float*)&ib * 1.25f;
             for (int k = 0; k < 4; k++) {
-                text->Print(dev, 575.0f * xs, y, names[k].c_str(), 0, 1.0f, 1.0f);
-                text->Print(dev, 798.0f * xs, y, names[4 + k].c_str(), 0, 1.0f, 1.0f);
-                StrT* v = &entry->s2 + k;                    // 0x20 + i * 0x10
-                OutStr* u = &entry->a + k;                   // 0x60 + i * 0x10
-                text->scaleX = a0 * 1.25f;
-                text->scaleY = b0 * 1.25f;
-                float y2 = 15.0f * ys + y;
-                text->Print(dev, 600.0f * xs, y2, v->ptr ? v->ptr : "", 0, 1.0f, 1.0f);
-                text->Print(dev, 823.0f * xs, y2, u->ptr ? u->ptr : "", 0, 1.0f, 1.0f);
-                y = 48.0f * ys + y;
-                text->scaleX = a0;
-                text->scaleY = b0;
+                StrT* v;
+                OutStr* u;
+                text2->Print(DAT_0056b0ac, 575.0f * sx, y, names[k].c_str(), 0, 1.0f, 1.0f);
+                text2->Print(DAT_0056b0ac, 798.0f * sx, y, names[4 + k].c_str(), 0, 1.0f, 1.0f);
+                switch (k) {
+                case 0: v = &entry->s2; u = &entry->a; break;
+                case 1: v = &entry->s3; u = &entry->b; break;
+                case 2: v = &entry->s4; u = (OutStr*)&entry->c; break;
+                case 3: v = &entry->s5; u = &entry->d; break;
+                }
+                text2->scaleX = sa;
+                text2->scaleY = sb;
+                float y2 = 15.0f * sy + y;
+                text2->Print(DAT_0056b0ac, (25.0f + 575.0f) * sx, y2, v->ptr ? v->ptr : "", 0, 1.0f, 1.0f);
+                text2->Print(DAT_0056b0ac, (25.0f + 798.0f) * sx, y2, u->ptr ? u->ptr : "", 0, 1.0f, 1.0f);
+                y = 48.0f * sy + y;
+                *(int*)&text2->scaleX = ia;
+                *(int*)&text2->scaleY = ib;
             }
             if (DAT_00501334 > 1) {
-                text->scaleX = xs * 0.75f;
-                text->scaleY = ys * 0.75f;
+                text->scaleX = DAT_0056aea8 * 0.75f;
+                text->scaleY = DAT_0056aeac * 0.75f;
                 text->color = 0x99000000;
-                text->Printf(dev, 58.0f * xs, 184.0f * ys, "%s %i: %s", FUN_00405380(0x94), DAT_00501334,
-                             (char*)DAT_00501300 + 0x38); // guess: arguments
-                text->scaleX = xs;
-                text->scaleY = ys;
+                text->Printf(DAT_0056b0ac, DAT_0056aea8 * 58.0f, DAT_0056aeac * 184.0f, "%s %i: %s", FUN_00405380(0x94),
+                             unk238 + 1, (char*)DAT_00501300 + 0x38 + unk238 * 30);
+                text->scaleX = DAT_0056aea8;
+                text->scaleY = DAT_0056aeac;
             }
             ((MenuGame*)DAT_0056b0c8)->FUN_00435b60(1, 2, 0, 0, 1, -1.0f);
             ((MenuGame*)DAT_0056b0c8)->FUN_00435b60(4, 1, 0, 1, 1, -1.0f);
             DrawCursor(*((MouseInput*)DAT_0056b0c0)->GetPosition());
-            dev->EndScene();
-            dev->Present();
+            DAT_0056b0ac->EndScene();
+            DAT_0056b0ac->Present();
         }
         DAT_0056b0bc->ClearKeys();
         DAT_0057ba20 = 0;
         DAT_0057ba24 = 0;
     }
     if (exitFlag || DAT_0057b9f4) {
-        game->Play(2);
+        m_game->Play(2);
         return -1;
     }
     return 1;
