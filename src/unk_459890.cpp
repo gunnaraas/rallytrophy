@@ -304,6 +304,7 @@ void Car::AddContact(Vec3* a, Vec3* b, float strength)
 }
 
 // NONMATCHING: RALLYTROPHY 0x459910
+// Tried 2026-10-31: the float constants are already literals (values checked against the exe); what remains is stack/register allocation, the record cursor register and trunk/hood x87 order.
 // 3695 vs 3722 bytes; logic complete (every branch, constant and call in the original is present). Delaying the
 // recs pointer, separating both PartMatrix lifetimes, using volatile translation reads and a by-reference Z, and
 // reusing the body pointer reduced objcmp's differing-byte count from 3070 to 2722. Open: register/stack allocation,
