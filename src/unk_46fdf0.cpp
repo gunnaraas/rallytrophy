@@ -483,6 +483,7 @@ __declspec(naked) void BuildColourLuts(const Vec3* light)
 // with `register Mesh* m` or volatile field stores; the retained mismatch is register/SIB selection around the
 // two vertex-base pointers. Combining the index-array assignment and volatile vertex-pointer read in one comma
 // expression shifts the whole frame/register layout (380 bytes / 181 differences), so those statements stay split.
+// Tried 2026-10-30 night: int-first address sums (offset + (int)ptr), volatile Mesh* cast reads, declaration order; all stay at 7 insns (nonvolatile ptr: 20); original loads vertices into ecx before `add esp,4` and uses eax as the SIB base, ours reloads into edx and spills -1 into edi.
 ParallelShadow::ParallelShadow()
 {
     sysTexture = 0;
