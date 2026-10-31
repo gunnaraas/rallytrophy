@@ -62,6 +62,7 @@ void ModelCacheState::Add(void* mesh)
 
 // NONMATCHING: RALLYTROPHY 0x4ae1f0
 // Register allocation, list unlink scheduling and vector resize inlining differ.
+// Tried 2026-10-30 night: out-of-line Size()/Erase() resize twins (ResizeB for the two-call sites), PopHead with hoisted prev, per-site node/count vars, loop shapes, one permute run (no MATCH); still differs: phase-2 count/entries regs (esi/edi vs edi/ebp), prologue push order, lea vs mov+add in count sums, unlink cmp scheduling.
 void ModelCacheState::Reload(RenderDevice* renderer)
 {
     device = renderer;
@@ -69,7 +70,7 @@ void ModelCacheState::Reload(RenderDevice* renderer)
     int flags = -1;
     CachePendingList pending;
     List<void*>::Node* node;
-    for (node = entries.m_head; node; node = node->next) pending.AddTail(node->data);
+    for (node = entries.m_head; node; node = node->next) { void* d = node->data; pending.AddTail(d); }
     CacheBatch batch;
     while (pending.m_head) {
         void* mesh = pending.m_head->data;
@@ -80,31 +81,31 @@ void ModelCacheState::Reload(RenderDevice* renderer)
             count = nextCount;
             flags = nextFlags;
             batch.Insert(batch.end(), mesh);
-            pending.RemoveHead();
+            pending.PopHead();
         } else {
             BuildVertices(count, (unsigned char)flags, &batch);
-            batch.resize(0);
+            batch.Resize(0);
             count = 0;
             flags = -1;
         }
     }
     BuildVertices(count, (unsigned char)flags, &batch);
-    for (node = entries.m_head; node; node = node->next) pending.AddTail(node->data);
-    batch.resize(0);
-    count = 0;
+    for (node = entries.m_head; node; node = node->next) { void* d = node->data; pending.AddTail(d); }
+    unsigned count2 = 0;
+    batch.ResizeB(0);
     while (pending.m_head) {
         void* mesh = pending.m_head->data;
-        unsigned nextCount = count + *(unsigned short*)((char*)mesh + 0xe) * 3;
+        unsigned nextCount = count2 + *(unsigned short*)((char*)mesh + 0xe) * 3;
         if (nextCount < 65000) {
-            count = nextCount;
+            count2 = nextCount;
             batch.Insert(batch.end(), mesh);
-            pending.RemoveHead();
+            pending.PopHead();
         } else {
-            BuildIndices(count, &batch);
-            batch.resize(0);
-            count = 0;
+            BuildIndices(count2, &batch);
+            batch.ResizeB(0);
+            count2 = 0;
         }
     }
-    BuildIndices(count, &batch);
+    BuildIndices(count2, &batch);
     ((CacheInsertList*)&entries)->Reset();
 }

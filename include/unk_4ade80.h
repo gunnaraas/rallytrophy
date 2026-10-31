@@ -32,10 +32,45 @@ class CacheBatch : public std::vector<void*> {
 public:
     ~CacheBatch(); // 0x401bb0
     void Insert(iterator where, void* const& mesh); // 0x4293c0
+    unsigned int Size() const;                      // 0x414460
+    iterator Erase(iterator first, iterator last);  // 0x484380
+    void ResizeB(unsigned int n, void* const& x = (void*)0)
+    {
+        if (Size() < n) {
+            insert(end(), n - Size(), x);
+        } else if (n < Size()) {
+            Erase(begin() + n, end());
+        }
+    }
+    void Resize(unsigned int n, void* const& x = (void*)0)
+    {
+        if (n && Size() < n) {
+            insert(end(), n - Size(), x);
+        } else if (n < Size()) {
+            Erase(begin() + n, end());
+        }
+    }
 };
 class CachePendingList : public List<void*> {
 public:
     ~CachePendingList(); // 0x49ad30: destroys active and recycled nodes
+    void PopHead()
+    {
+        Node* node = m_head;
+        Node* prev;
+        m_head = node->next;
+        prev = node->prev;
+        if (node == m_tail) {
+            m_tail = prev;
+        } else {
+            node->next->prev = prev;
+        }
+        node->next = m_free;
+        node->prev = 0;
+        m_free = node;
+        m_freeCount++;
+        m_count--;
+    }
 };
 class CacheBufferDevice {
 public:
