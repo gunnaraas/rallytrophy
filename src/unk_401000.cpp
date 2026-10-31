@@ -389,8 +389,10 @@ extern float DAT_004e1338;
 #define CARF(c, off) (*(float*)((BYTE*)(c) + (off)))
 
 // NONMATCHING: RALLYTROPHY 0x4013c0. Sampling/playback behavior matches the observed PE paths; current candidate is 558/579 bytes with 451 differing bytes, primarily frame and register allocation. Plain PE/object comparison.
+// Tried 2026-10-30 night: volatile self copy of this (spill slot), else-arm cur=0, volatile c->time compare, >=0x28 (169->59 insns); still differs: car/clock registers swapped (ebx/ebp), 'mov dl' byte load vs dword, so the Lerp8 arg reloads differ.
 void RecPool::Push(Car* car, int clock)
 {
+    RecPool* volatile self = this;
     if (mode == 0)
         return;
     BYTE* player = *(BYTE**)((BYTE*)car + 0x1becc);
@@ -398,12 +400,13 @@ void RecPool::Push(Car* car, int clock)
         int last = clock - 0x28;
         if (tail)
             last = *(int*)tail;
-        if (clock - last > 0x27) {
+        if (clock - last >= 0x28) {
             RecSlot* s = Alloc();
             car->GetState((CarState*)s);
             *(int*)(s->data + 0x58) = *(int*)(player + 0x44);
             *(int*)s = clock;
-            s->data[0x57] = (BYTE) * (int*)(player + 0x50);
+            int pv = *(int*)(player + 0x50);
+            s->data[0x57] = (BYTE)pv;
             Insert(s);
             lastTime = clock;
             count++;
@@ -419,25 +422,27 @@ void RecPool::Push(Car* car, int clock)
     for (; nx && *(int*)nx <= clock; nx = nx->next)
         cur = nx;
     RecSlot* c = cur;
-    if (*(int*)c == clock) {
+    if (*(volatile int*)c == clock) {
         car->FUN_004658a0((PlayerSample*)c);
-        if ((float)(clock - *(int*)(c->data + 0x58)) < DAT_004e133c)
-            ((Player*)player)->FUN_00491110(1, *(int*)(c->data + 0x58));
-    } else if (nx == 0) {
-        cur = 0;
-    } else {
+        int tm = *(int*)(c->data + 0x58);
+        if ((float)(clock - tm) < DAT_004e133c)
+            ((Player*)player)->FUN_00491110(1, tm);
+    } else if (nx != 0) {
         float t = (float)(clock - *(int*)c) / (float)(*(int*)nx - *(int*)c);
         float s0 = (float)(c->data[8] - 0x80) * DAT_004e1338;
         float s1 = (float)(nx->data[8] - 0x80) * DAT_004e1338;
+        float r = (s1 - s0) * t + s0;
         CARF(car, 0x1338) = Lerp8(t, c->data[4], nx->data[4]);
         car->FUN_0045da60(Lerp8(t, c->data[5], nx->data[5]));
         CARF(car, 0x1340) = Lerp8(t, c->data[5], nx->data[5]);
-        CARF(car, 0x134c) = (s1 - s0) * t + s0;
+        CARF(car, 0x134c) = r;
         *((BYTE*)car + 0x1350) = 1;
         CARF(car, 0x20a0) = Lerp8(t, c->data[0x56], nx->data[0x56]);
         CARF(car, 0xf80) = Lerp8(t, c->data[7], nx->data[7]);
         int tm = *(int*)(c->data + 0x58);
         if ((float)(clock - tm) < DAT_004e133c)
             ((Player*)player)->FUN_00491110(1, tm);
+    } else {
+        self->cur = 0;
     }
 }
