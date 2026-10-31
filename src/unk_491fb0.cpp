@@ -262,6 +262,7 @@ inline void SetViewColor(RaceDeviceSlots* device, float x, float y, float z)
 // identical after masking registers/stack slots; built 5608 vs 5672 bytes (the orig has two ladder copies for
 // states 1/9 sharing tails differently), local slot order and awards/ebx allocation differ. No jump-table bytes
 // are counted in the 5605 listed size (tables at 0x494c38 / 0x494c4c follow the code).
+// Tried 2026-10-31: ~30 variants, 597->534 insns differ: one shared `if (awards) state = 8;` after the single/loop award branches (597->551), state 1 as switch(r) (->540), first=0 before SetVolume in its -2/-1 arms (->534). Frame (0x204) already matches; declaration order of locals has no effect on slots (usage-count driven), so quit/result, wait/accum, phase/timer/ringIndex slots stay swapped; state 9 as switch and arm reorders did not help; orig keeps per-arm SetVolume/first=0 tails and interleaves quit/result stores between push 0x7f and the call.
 int RaceSession::FUN_00493650(int demo)
 {
     int quit = 0;
@@ -666,9 +667,6 @@ int RaceSession::FUN_00493650(int demo)
                                         if (first & 2) {
                                             awards |= 0x40;
                                         }
-                                        if (awards) {
-                                            state = 8;
-                                        }
                                     }
                                 } else {
                                     for (int i = 0; i < (int)m->m_localPlayers.size(); i++) {
@@ -718,9 +716,10 @@ int RaceSession::FUN_00493650(int demo)
                                         DAT_00565508 = 2;
                                         state = 10;
                                         awards = 0;
-                                    } else if (awards) {
-                                        state = 8;
                                     }
+                                }
+                                if (awards) {
+                                    state = 8;
                                 }
                             }
                             first = 1;
@@ -824,17 +823,20 @@ int RaceSession::FUN_00493650(int demo)
                             m_unk18 = 0;
                         }
                         int r = m_mode->FUN_00489300(first);
-                        if (r == -2) {
+                        switch (r) {
+                        case -2:
                             quit = 1;
                             result = -2;
-                            DAT_0056b0b0->SetVolume(0x7f);
                             first = 0;
-                        } else if (r == -1) {
+                            DAT_0056b0b0->SetVolume(0x7f);
+                            break;
+                        case -1:
                             quit = 1;
                             result = -1;
-                            DAT_0056b0b0->SetVolume(0x7f);
                             first = 0;
-                        } else if (r == 1) {
+                            DAT_0056b0b0->SetVolume(0x7f);
+                            break;
+                        case 1:
                             m_unk34->FUN_00458940();
                             m_unk18 = 0;
                             state = 0;
@@ -847,11 +849,14 @@ int RaceSession::FUN_00493650(int demo)
                                 DAT_0056b0b0->SetVolume(0x7f);
                                 first = 0;
                             }
-                        } else if (r == 0) {
+                            break;
+                        case 0:
                             first = 0;
-                        } else {
+                            break;
+                        default:
                             DAT_0056b0b0->SetVolume(0x7f);
                             first = 0;
+                            break;
                         }
                         break;
                     }
