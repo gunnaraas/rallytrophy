@@ -369,6 +369,8 @@ int MenuScreen2A8::Run(MenuGame* game, NetRace* net_)
 
 // Module end: guard-bit initialiser of the STL header statics and its atexit registration.
 
+static float MS2A8_COLW = 400.0f; // value column width (non-const so the original fld K; fmul sx order is kept)
+
 // NONMATCHING: RALLYTROPHY 0x42a330
 // 2976 vs 2988 bytes; 783 differing bytes. Combining rows 6/7 matches the original shared case tail; remaining open items:
 // Frame of the 9-row options screen (rows 0-7 sliders/selectors, row 8 Back; 16 arrow rects at m_items[9..24]).
@@ -376,6 +378,7 @@ int MenuScreen2A8::Run(MenuGame* game, NetRace* net_)
 // -1 / `dir` register in ebx, mine swaps them (also seen in 0x43cc50); (2) mine hoists nothing but gives `fld mem; fmul
 // 400.0` for the width instead of `fld 400.0; fmul sx`; (3) the original tail-merges draw cases 7 and 6 (shared `fld`
 // tail, pushes of value/4/0 in the head); (4) (1, 1) object and scale copy sit in swapped frame slots.
+// Tried 2026-10-30 night: 30 variants (dir/zero/loop-var decl order, volatile zero, split dir, one/scale slot order, per-site point); only a plain static float for 400.0 helped (222->218 insns); ebx/ebp swap (zero vs dir) and the 6/7 tail-merge still differ, allocator priority not found.
 int MenuScreen2A8::Frame()
 {
     int done = 0;
@@ -568,23 +571,23 @@ int MenuScreen2A8::Frame()
                     DrawSlider(pos.x, pos.y, DAT_00501418[0], m_selected == 0);
                     break;
                 case 1:
-                    DrawToggle(text, values1f4, pos.x, pos.y, 400.0f * sx, m_selected == 1, DAT_00501418[1], 0, 3);
+                    DrawToggle(text, values1f4, pos.x, pos.y, MS2A8_COLW * sx, m_selected == 1, DAT_00501418[1], 0, 3);
                     break;
                 case 6:
                 case 7:
-                    DrawToggle(text, values284, pos.x, pos.y, 400.0f * sx, m_selected == i, DAT_00501418[9 - i], 0, 4);
+                    DrawToggle(text, values284, pos.x, pos.y, MS2A8_COLW * sx, m_selected == i, DAT_00501418[9 - i], 0, 4);
                     break;
                 case 5:
-                    DrawToggle(text, values3c8, pos.x, pos.y, 400.0f * sx, m_selected == 5, DAT_00501418[4], 0, 2);
+                    DrawToggle(text, values3c8, pos.x, pos.y, MS2A8_COLW * sx, m_selected == 5, DAT_00501418[4], 0, 2);
                     break;
                 case 2:
-                    DrawToggle(text, values380, pos.x, pos.y, 400.0f * sx, m_selected == 2, DAT_00501418[6], 0, 1);
+                    DrawToggle(text, values380, pos.x, pos.y, MS2A8_COLW * sx, m_selected == 2, DAT_00501418[6], 0, 1);
                     break;
                 case 3:
-                    DrawToggle(text, onOff, pos.x, pos.y, 400.0f * sx, m_selected == 3, DAT_00501418[7], 0, 1);
+                    DrawToggle(text, onOff, pos.x, pos.y, MS2A8_COLW * sx, m_selected == 3, DAT_00501418[7], 0, 1);
                     break;
                 case 4:
-                    DrawToggle(text, values434, pos.x, pos.y, 400.0f * sx, m_selected == 4, DAT_00501418[5], 0, unk4a4);
+                    DrawToggle(text, values434, pos.x, pos.y, MS2A8_COLW * sx, m_selected == 4, DAT_00501418[5], 0, unk4a4);
                     break;
                 }
             }
