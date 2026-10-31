@@ -1672,6 +1672,7 @@ void Car::ApplySuspensionForces()
 // rideHeight directly instead of caching rideBase reduces the frame and mismatch count. Constructor initialization
 // for local and caching ly-r[-3] as a spring-minimum local were worse. Other open differences: local-y x87 stack use
 // and hoisting zero in ECX for the contact flag. Evidence: ev_af5f5586f35ae18eb2ec962f2895369e53df17277d2c787e5bd8b75f92d812f0.
+// Tried 2026-10-30 night: Surface() args fixed to nz-2/nz+0x78/4/nz+0x48/4 (original disasm: base-8,+0x48,+0x78; was off by 8 bytes); rideHeight int-copy, lx/lz int-copy loads, local/world hoisted, dir default-ctor, swapped surfP/nz decls, nz-2 cast forms: no gain (176 insns); still differs: orig keeps only nz (not nz-2) as loop pointer, EH state 3 at Trace (ours 2), dist<rideTop branch layout without hoisted xor ecx.
 // Per wheel: ground ray cast, suspension integration step (explicit spring/damper/bump stop), surface lookup.
 void Car::UpdateWheelContact()
 {
@@ -1767,7 +1768,7 @@ void Car::UpdateWheelContact()
             world.x -= tmp.x;
             world.y -= tmp.y;
             world.z -= tmp.z;
-            if (!c->query.Surface(radius + 0.01f, &world, nz - 2, nz + 0x78 / 4 - 2, nz + 0x48 / 4 - 2, surfP)) {
+            if (!c->query.Surface(radius + 0.01f, &world, nz - 2, nz + 0x78 / 4, nz + 0x48 / 4, surfP)) {
                 ((int*)wp)[0x16c / 4] = 0;
             } else {
                 W6_Stage* st = c->stage;
