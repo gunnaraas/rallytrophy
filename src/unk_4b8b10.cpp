@@ -1213,9 +1213,14 @@ void MeshModel::Repair()
     }
 }
 
+struct RfV { float p[3]; float n[3]; };
+#define RV ((RfV*)d->vertex)
+struct RfPod { float x, y, z; };
+struct RfDir { RfPod* Scale(RfPod* out, float k) const; };           // 0x40b0c0 (Vec3::operator*(float)), hidden POD result
 // NONMATCHING: RALLYTROPHY 0x4b95b0
 // logic complete; float/int fast-rsqrt and Vec scale temporaries differ in codegen
 // original: FUN_004b95b0
+// Tried 2026-10-31: scale temps as a POD hidden-result call (no EH frame, matches stack size 0x48 and call shapes) + per-use d->vertex reloads; 106->~40 insns differ. Left: deform[i] pointer reuse at loop top (orig esi/ebx split), fadd operand order of the nrmB add, fst vs fstp+fld of z and x*x+y*y+z*z load order.
 void MeshModel::Refresh()
 {
     if (dirtyCount == 0) return;
@@ -1229,25 +1234,25 @@ void MeshModel::Refresh()
                     float w = d->weight;
                     float iw = 1.0f - w;
                     d->dirty = 1;
-                    ScenePoint t = d->posA * iw;
-                    d->vertex->position = t;
-                    ScenePoint t2 = d->posB * w;
-                    d->vertex->position.x += t2.x;
-                    d->vertex->position.y += t2.y;
-                    d->vertex->position.z += t2.z;
+                    RfPod t; RfPod* pt = ((RfDir*)&d->posA)->Scale(&t, iw);
+                    d->vertex->position.x = pt->x; d->vertex->position.y = pt->y; d->vertex->position.z = pt->z;
+                    RfPod t2; RfPod* pt2 = ((RfDir*)&d->posB)->Scale(&t2, w);
+                    d->vertex->position.x += pt2->x;
+                    d->vertex->position.y += pt2->y;
+                    d->vertex->position.z += pt2->z;
+                    RfPod t3; RfPod* pt3 = ((RfDir*)&d->nrmA)->Scale(&t3, iw);
                     float* nv = &d->vertex->position.x + 3;
-                    ScenePoint t3 = d->nrmA * iw;
-                    nv[0] = t3.x; nv[1] = t3.y; nv[2] = t3.z;
-                    ScenePoint t4 = d->nrmB * w;
-                    nv[0] += t4.x; nv[1] += t4.y; nv[2] += t4.z;
-                    float q = nv[2] * nv[2] + nv[1] * nv[1] + nv[0] * nv[0];
+                    nv[0] = pt3->x; nv[1] = pt3->y; nv[2] = pt3->z;
+                    RfPod t4; RfPod* pt4 = ((RfDir*)&d->nrmB)->Scale(&t4, w);
+                    RV->n[0] += pt4->x; RV->n[1] += pt4->y; RV->n[2] += pt4->z;
+                    float q = RV->n[0] * RV->n[0] + RV->n[1] * RV->n[1] + RV->n[2] * RV->n[2];
                     int bits = *(int*)&q;
                     int r = DAT_00573bc0[(bits >> 12) & 0xfff] + 0x3f800000 + (-(int)((bits * 2 + 0x81000001U) & 0xfe000000) >> 2);
                     r &= 0x7fffffff;
                     float inv = *(float*)&r;
-                    nv[0] = inv * nv[0];
-                    nv[1] = inv * nv[1];
-                    nv[2] = inv * nv[2];
+                    RV->n[0] = inv * RV->n[0];
+                    RV->n[1] = inv * RV->n[1];
+                    RV->n[2] = inv * RV->n[2];
                 }
             }
         }
