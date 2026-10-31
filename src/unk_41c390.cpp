@@ -117,8 +117,13 @@ void PhysBody::FUN_0041c390()
     Rot(&v1d8.x, &v1a8.x, basis);
 }
 
+struct QuatTmp {
+    float x, y, z, w;
+    ~QuatTmp() {}
+};
+
 // NONMATCHING: RALLYTROPHY 0x41c540
-// NONMATCHING: logic complete; original keeps the v1cc*dt temp without a pointer local and adds it to v224 in a separate pass (frame 0x40 vs ours 0x34)
+// NONMATCHING: logic complete; improved 116->74 insns (QuatTmp dq with dtor gives the 2nd EH state, off+pos at the end, 0.5f literal). Tried 2026-10-31: forceinline Quat* helper (gives ecx addressing but forwards q fields and shrinks code), volatile v224 stores, k chain; still differs: original reloads q fields via ecx with no store forwarding and runs the v224 += dv and += off passes unfused.
 void PhysBody::FUN_0041c540()
 {
     Vec3 w = v1d8;
@@ -127,23 +132,30 @@ void PhysBody::FUN_0041c540()
     v224[0] = *(DWORD*)&pos.x;
     v224[1] = *(DWORD*)&pos.y;
     v224[2] = *(DWORD*)&pos.z;
+    Vec3* V = (Vec3*)v224;
     const Vec3* dv = Addr(*(Vec3*)v1cc * dt);
-    *(float*)&v224[0] = *(float*)&v224[0] + dv->x;
-    *(float*)&v224[1] = dv->y + *(float*)&v224[1];
-    *(float*)&v224[2] = dv->z + *(float*)&v224[2];
-    *(float*)&v224[0] = off.x + *(float*)&v224[0];
-    *(float*)&v224[1] = off.y + *(float*)&v224[1];
-    *(float*)&v224[2] = off.z + *(float*)&v224[2];
-    float t1 = w.z * q.w + w.y * q.x - w.x * q.y;
+    V->x = V->x + dv->x;
+    V->y = dv->y + V->y;
+    V->z = dv->z + V->z;
+    V->x = off.x + V->x;
+    V->y = off.y + V->y;
+    V->z = off.z + V->z;
+    float P = w.y * q.w + w.x * q.z - w.z * q.x;
+    float t1 = w.y * q.x + w.z * q.w - w.x * q.y;
     float t2 = -(w.x * q.x) - w.y * q.y - w.z * q.z;
-    float k = dt * DAT_004e138c;
-    float x0 = q.x;
-    q.x = k * ((w.x * q.w + w.z * q.y) - w.y * q.z) + q.x;
-    q.y = k * ((w.x * q.z + w.y * q.w) - w.z * x0) + q.y;
-    q.z = k * t1 + q.z;
-    q.w = k * t2 + q.w;
+    float D = w.z * q.y + w.x * q.w - w.y * q.z;
+    float k;
+    QuatTmp dq;
+    dq.x = (k = dt * 0.5f) * D;
+    dq.y = P * k;
+    dq.z = t1 * k;
+    dq.w = t2 * k;
+    q.x = dq.x + q.x;
+    q.y = dq.y + q.y;
+    q.z = dq.z + q.z;
+    q.w = dq.w + q.w;
     float n = q.w * q.w + q.z * q.z + q.y * q.y + q.x * q.x;
-    if (n < DAT_004e1438 || DAT_004e1430 < n) {
+    if (n < DAT_004e1438 || n > DAT_004e1430) {
         float s = DAT_004e1348 / (float)sqrt(n);
         q.x = s * q.x;
         q.y = s * q.y;
@@ -158,7 +170,7 @@ void PhysBody::FUN_0041c540()
     pos.x -= off.x;
     pos.y -= off.y;
     pos.z -= off.z;
-    const DWORD* r = (const DWORD*)Addr(*dv + pos);
+    const DWORD* r = (const DWORD*)Addr(off + pos);
     v224[0] = r[0];
     v224[1] = r[1];
     v224[2] = r[2];
