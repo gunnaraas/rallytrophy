@@ -16,6 +16,7 @@ extern "C" void fun_004c1998();
 // NONMATCHING: RALLYTROPHY 0x4766d0
 // 916 vs 924 bytes / 369 differing bytes. Continuous field streams, a guarded do/while, and delayed UV offsets
 // approach the target quad layout; FPU/store scheduling still differs.
+// Tried 2026-10-30 night: ~25 variants (volatile/plain vertices+color, guard placement, store/zero-reg order, u1/v1 hoist, tail store reorder); only the tail store order helped (49->45); the quad loop interleaves FPU stores across vertices and the 8-byte size gap is unexplained.
 WindowRain::WindowRain(int count)
 {
     drops = 0;
@@ -95,19 +96,19 @@ WindowRain::WindowRain(int count)
             normal += 11; color += 11; u += 11; v += 11; u2 += 11; v2 += 11;
         } while (++i < count);
     }
-    sprite.unk18 = 5;
-    sprite.unk1c = 6;
-    sprite.unk24 = 4;
-    sprite.unk98 = 0xd;
-    sprite.unk9c = 2;
+    sprite.unk60[2] = 1.0f;
     sprite.unk60[0] = 1.0f;
     sprite.unk60[1] = 1.0f;
-    sprite.unk60[2] = 1.0f;
     sprite.unk60[3] = 1.0f;
+    sprite.unk98 = 0xd;
+    sprite.unk9c = 2;
+    sprite.unk18 = 5;
+    sprite.unk1c = 6;
     sprite.unk70[0] = 0.0f;
     sprite.unk70[1] = 0.0f;
     sprite.unk70[2] = 0.0f;
     sprite.unk70[3] = 0.0f;
+    sprite.unk24 = 4;
     viewCount = 0;
     unk8 = 0;
 }
