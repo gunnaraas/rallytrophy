@@ -4157,6 +4157,7 @@ typedef void Generated_48b050();
 // ---- big draw functions ----
 
 // NONMATCHING: RALLYTROPHY 0x48b080
+// Tried 2026-10-31: 188->152 insns with `RaceMode* volatile self = this` (this reloaded from its slot) and a volatile-stored zero `z` used for every flags argument (the original keeps 0 in ebp); volatile/int copies of xRank/xCar/xPoints, count/min forms, decl-order swaps and plain z (constant-folded) gave nothing more; still differs in frame size (0x48 vs 0x58) and the float local slots.
 // 1390 vs 1422 bytes. Logic and all call sequences match; the original spills `this` to [esp+0x28] from entry,
 // keeps count/min in ebx/ebp, keeps 0 in ebp for every flags argument, and has a 0x58 frame (this build 0x48). It
 // also copies several float locals (xRank/xCar/xPoints) through integer registers at the loop entry and places
@@ -4166,6 +4167,7 @@ typedef void Generated_48b050();
 // press ends the screen.
 int RaceMode::FUN_0048b080(int award)
 {
+    RaceMode* volatile self = this;
     TextRenderer* text = DAT_0056b0c8->text;
     if (award) {
         int count = DAT_00565490;
@@ -4183,29 +4185,31 @@ int RaceMode::FUN_0048b080(int award)
             DAT_00565494[k]->unk1a60 = k + 1;
         }
     }
+    int z;
+    *(volatile int*)&z = 0;
     float sx = DAT_0056b0ac->GetWidth() * 0.0009765625f;
     float sy = DAT_0056b0ac->GetHeight() * 0.0013020834f;
-    m_image->Draw(DAT_0056b0ac, 0);
+    self->m_image->Draw(DAT_0056b0ac, z);
     Color color(0xffffffff);
     text->color = color.value;
     text->SetScale(sx, sy);
     static Vec2 title;                    // original: function-local static with an empty ctor/dtor
     title.y = 27.0f;
-    title.x = DAT_0056b0ac->GetWidth() * 0.5f - text->GetWidth(FUN_00405380(0x10c), 0) * 0.5f;
-    text->Print(DAT_0056b0ac, title.x, title.y * sy, FUN_00405380(0x10c), 0, 1.0f, 1.0f);
+    title.x = DAT_0056b0ac->GetWidth() * 0.5f - text->GetWidth(FUN_00405380(0x10c), z) * 0.5f;
+    text->Print(DAT_0056b0ac, title.x, title.y * sy, FUN_00405380(0x10c), z, 1.0f, 1.0f);
     float sxs = sx * 0.85f;
     text->SetScale(sxs, sy * 0.85f);
     float xRank = sx * 184.0f;
     float yHead = sy * 76.0f;
-    text->Print(DAT_0056b0ac, xRank, yHead, FUN_00405380(0x95), 0, 1.0f, 1.0f);
+    text->Print(DAT_0056b0ac, xRank, yHead, FUN_00405380(0x95), z, 1.0f, 1.0f);
     float xCar = sx * 510.0f;
-    text->Print(DAT_0056b0ac, xCar, yHead, FUN_00405380(0x61), 0, 1.0f, 1.0f);
+    text->Print(DAT_0056b0ac, xCar, yHead, FUN_00405380(0x61), z, 1.0f, 1.0f);
     float xPoints = sx * 794.0f;
-    text->Print(DAT_0056b0ac, xPoints, yHead, FUN_00405380(0x10d), 0, 1.0f, 1.0f);
+    text->Print(DAT_0056b0ac, xPoints, yHead, FUN_00405380(0x10d), z, 1.0f, 1.0f);
     float y = sy * 116.0f;
     float xName = sx * 234.0f;
     if (DAT_00565490 > 0) {
-        Player* local = m_localPlayer;
+        Player* local = self->m_localPlayer;
         float room = xCar - xName - 10.0f;
         for (int i = 0; i < DAT_00565490; i++) {
             char points[12];
@@ -4214,16 +4218,16 @@ int RaceMode::FUN_0048b080(int award)
             text->color = color.value;
             _itoa(DAT_00565494[i]->unk1a54, points, 10);
             _itoa(i + 1, rank, 10);
-            text->Print(DAT_0056b0ac, xRank - text->GetWidth(rank, 0), y, rank, 0, 1.0f, 1.0f);
-            text->Print(DAT_0056b0ac, xCar, y, FUN_00405380(DAT_00565494[i]->unk2c + 0x138), 0, 1.0f, 1.0f);
-            text->Print(DAT_0056b0ac, xPoints, y, points, 0, 1.0f, 1.0f);
+            text->Print(DAT_0056b0ac, xRank - text->GetWidth(rank, z), y, rank, z, 1.0f, 1.0f);
+            text->Print(DAT_0056b0ac, xCar, y, FUN_00405380(DAT_00565494[i]->unk2c + 0x138), z, 1.0f, 1.0f);
+            text->Print(DAT_0056b0ac, xPoints, y, points, z, 1.0f, 1.0f);
             text->scaleX = 1.0f;
-            float scale = room / text->GetWidth(DAT_00565494[i]->name, 0);
+            float scale = room / text->GetWidth(DAT_00565494[i]->name, z);
             if (scale > 0.85f) {
                 scale = 0.85f;
             }
             text->scaleX = scale * sx;
-            text->Print(DAT_0056b0ac, xName, y, DAT_00565494[i]->name, 0, 1.0f, 1.0f);
+            text->Print(DAT_0056b0ac, xName, y, DAT_00565494[i]->name, z, 1.0f, 1.0f);
             text->scaleX = sxs;
             DAT_0056b0c8->FUN_004360c0(DAT_0056aea8 * 194.0f, y + sy * 6.0f, 32.0f, 16.0f, DAT_00565494[i]->unk20);
             y += sy * 28.0f;
@@ -4242,8 +4246,8 @@ int RaceMode::FUN_0048b080(int award)
         DAT_0056b0bc->ClearKeys();
     }
     text->SetScale(sx, sy);
-    text->Print(DAT_0056b0ac, DAT_0056b0ac->GetWidth() * 0.5f - text->GetWidth(FUN_00405380(0x117), 0) * 0.5f, sy * 710.0f,
-                FUN_00405380(0x117), 0, 1.0f, 1.0f);
+    text->Print(DAT_0056b0ac, DAT_0056b0ac->GetWidth() * 0.5f - text->GetWidth(FUN_00405380(0x117), z) * 0.5f, sy * 710.0f,
+                FUN_00405380(0x117), z, 1.0f, 1.0f);
     return result;
 }
 
