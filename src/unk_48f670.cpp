@@ -529,6 +529,7 @@ void GhostRace::Draw()
 // Same size (471). Only the rank search loop differs: the original emits `xor edx,edx` for its counter after the
 // `count > 0` test and `inc edx` after `add edi,4`; this build hoists the xor and swaps the two increments.
 // Tried 2026-10-30 night: while/do-while/if-wrapped/unsigned/pointer/global-bound variants of the rank loop; all stay 2 insns off (xor edx hoisted above test, inc order swapped).
+// Tried 2026-10-31 re-pass: ~25 more rank-loop forms (pointer pp++, block-scoped n, volatile count/localPlayer/n, operand flips, if(count>0)+do-while) and permute.py -r 40; pointer form keeps 2 insns off, if-wrapped forms worsen to 20-40; init (xor edx / mov edi) stays hoisted above the count test.
 // Rebuilds the standings when the local player passes a split: the leader
 // and the players around the local one, with their time differences.
 void GhostRace::FUN_0048fb10()
