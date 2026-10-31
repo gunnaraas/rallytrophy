@@ -27,6 +27,7 @@ extern "C" long __cdecl _ftol(void);
 // 821 vs 824 bytes, 326 differing bytes. Strided field cursors model the PE-observed six per-field vertex
 // pointers (+0x2c steps), with a volatile mesh-field reload; count/array setup and tail stores remain open.
 // Tried 2026-10-30 night: volatile idx reload (helped), box.y before count_/=8 (helped), if(n>0) wrap, plain v, volatile unk24/primitiveCount; still differs: add esp/cmp placement after new WORD[] and vertex-pointer lea hoist before the test.
+// Tried 2026-10-31 re-pass: declaring the six vertex pointers in reverse order (pV2..pColor) matched the lea order, 16->10 insns; ~25 more variants (unk24 volatile/reordered, fl/nv temps, this-copy, if(n>0) wrap, field-order swaps) and permute -r 40 no gain; still differs: add esp/cmp slot after new WORD[], test/jle before the vertex lea block (guard wrap adds 14 bytes), this in ebx vs esi at the tail.
 SnowFall::SnowFall(TextureLoader* loader, int count_)
 {
     if (DAT_00501428 == 2) {
@@ -80,12 +81,12 @@ SnowFall::SnowFall(TextureLoader* loader, int count_)
         *idx++ = b + 3;
     }
     EffectVertex* v = *(EffectVertex* volatile*)&m->vertices;
-    DWORD* pColor = &v[0].color;
-    float* pNormal = &v[0].normal.x;
-    float* pU = &v[0].u;
-    float* pV = &v[0].v;
-    float* pU2 = &v[0].u2;
     float* pV2 = &v[0].v2;
+    float* pU2 = &v[0].u2;
+    float* pV = &v[0].v;
+    float* pU = &v[0].u;
+    float* pNormal = &v[0].normal.x;
+    DWORD* pColor = &v[0].color;
     for (int j = 0; j < n; j++) {
         *pColor = -1;
         pColor += 11;
