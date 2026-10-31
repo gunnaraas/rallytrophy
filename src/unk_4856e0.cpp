@@ -150,6 +150,7 @@ UIRect::~UIRect() {}
 // NONMATCHING: RALLYTROPHY 0x486240
 // Same size (848); only the order of the stores to the sprite fields and the hoisted `push` of the next
 // allocation size differ (74 bytes). Permutations of the field-store order did not change that.
+// Tried 2026-10-30 night: volatile on unk1c (worse, 10 insns) or unk40[0] (no change) stores, permute.py -r 20 (no match); the push of the next new size sinks after the unk40 stores in all four blocks instead of sitting before them.
 // Loads the cursor, the on-screen bar sprites, the replay buttons and the in-game image.
 void RaceMode::LoadOverlays()
 {
