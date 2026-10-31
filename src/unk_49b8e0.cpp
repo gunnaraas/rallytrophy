@@ -1235,11 +1235,14 @@ float AIDriver::FUN_0049d950(float unused)
     return (skill[2] + tuning[3]) * (unk110 - unk34) * unk124;
 }
 
+__forceinline static void CopyXZ(Vec3& d, const Vec3& s) { d.x = s.x; d.z = s.z; }
+
 // NONMATCHING: RALLYTROPHY 0x49d970
 // 2560 vs 2631 bytes; logic complete (racing-line target: spline point, look-ahead point, lateral target, steer
 // inputs unk34/unkc8/unkd4). Differences: stack layout of the Vec3 locals (vel/fwd/vel2 at +0xb0/+0xa4/+0x88 in the
 // original), the original copies only x and z into dir2 and keeps dir.y/dir2.y in the length sums (the build folds the
 // zero stores away), and keeps the look-ahead sums in memory instead of the FPU stack.
+// Tried 2026-10-30 night: ~50 variants; CopyXZ for dir2 (tail-merges the three operator- calls like the original), volatile k (separate k1) gave 372->319; original keeps phase/k1/acc/dir2 spill slots above pts and car above fwd (frame 0xe8 vs 0xf0) and no declaration order/volatile combination reproduced that layout.
 float AIDriver::FUN_0049d970()
 {
     Vec3Slot sideways;
@@ -1249,8 +1252,8 @@ float AIDriver::FUN_0049d970()
     unk140.y = 0;
     Vec2 pts[5];
     float w[4];
-    Player* owner = player;
     unk28 = 0;
+    Player* owner = player;
     Car* car = owner->car;
     AiPath* path = owner->FUN_00491e10();
     int index = owner->unk1a7c;
@@ -1259,12 +1262,12 @@ float AIDriver::FUN_0049d970()
     CarBody* body = car->body;
     Vec3 vel;
     vel.x = body->velocity[0];
-    vel.y = 0;
     vel.z = body->velocity[2];
+    vel.y = 0;
     Vec3 fwd;
     fwd.x = body->forward[0];
-    fwd.y = body->forward[1];
     fwd.z = body->forward[2];
+    fwd.y = body->forward[1];
     Vec3 vel2;
     vel2.x = body->velocity[0];
     vel2.y = body->velocity[1];
@@ -1281,22 +1284,22 @@ float AIDriver::FUN_0049d970()
             look = 36.0f;
         }
     }
-    int k = index;
+    volatile int k = index;
     int phase = unkc0;
     Vec3 dir;
     Vec3 dir2;
     switch (phase) {
     case 0:
         dir = *(Vec3*)&seg->unk28[0] - *(Vec3*)seg->a;
-        dir2 = *(Vec3*)&seg->unk28[1] - *(Vec3*)&seg->unk28[0];
+        CopyXZ(dir2, *(Vec3*)&seg->unk28[1] - *(Vec3*)&seg->unk28[0]);
         break;
     case 1:
         dir = *(Vec3*)&seg->unk28[1] - *(Vec3*)&seg->unk28[0];
-        dir2 = *(Vec3*)seg->b - *(Vec3*)&seg->unk28[1];
+        CopyXZ(dir2, *(Vec3*)seg->b - *(Vec3*)&seg->unk28[1]);
         break;
     case 2:
         dir = *(Vec3*)seg->b - *(Vec3*)&seg->unk28[1];
-        dir2 = *(Vec3*)&next->unk28[0] - *(Vec3*)seg->b;
+        CopyXZ(dir2, *(Vec3*)&next->unk28[0] - *(Vec3*)seg->b);
         break;
     }
     int k1 = k + 1;
@@ -1315,15 +1318,15 @@ float AIDriver::FUN_0049d970()
         switch (phase) {
         case 0:
             dir = *(Vec3*)&seg->unk28[0] - *(Vec3*)seg->a;
-            dir2 = *(Vec3*)&seg->unk28[1] - *(Vec3*)&seg->unk28[0];
+            CopyXZ(dir2, *(Vec3*)&seg->unk28[1] - *(Vec3*)&seg->unk28[0]);
             break;
         case 1:
             dir = *(Vec3*)&seg->unk28[1] - *(Vec3*)&seg->unk28[0];
-            dir2 = *(Vec3*)seg->b - *(Vec3*)&seg->unk28[1];
+            CopyXZ(dir2, *(Vec3*)seg->b - *(Vec3*)&seg->unk28[1]);
             break;
         case 2:
             dir = *(Vec3*)seg->b - *(Vec3*)&seg->unk28[1];
-            dir2 = *(Vec3*)&next->unk28[0] - *(Vec3*)seg->b;
+            CopyXZ(dir2, *(Vec3*)&next->unk28[0] - *(Vec3*)seg->b);
             break;
         }
         dir.y = 0;
