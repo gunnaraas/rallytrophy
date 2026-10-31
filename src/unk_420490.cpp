@@ -1229,6 +1229,7 @@ struct FColor {
         c[i] = (BYTE)n;
     }
     FColor(float cb, float cg, float cr, float ca) { Set(0, cb); Set(1, cg); Set(2, cr); Set(3, ca); }
+    FColor() { Set(0, 255.0f); Set(1, 255.0f); Set(2, 255.0f); Set(3, 255.0f); }
     ~FColor() {}
 };
 
@@ -1276,21 +1277,26 @@ void StageScreen::DrawPhoto(StageEntry* e, int flag)
 
 
 // NONMATCHING: RALLYTROPHY 0x4239c0
-// original: FUN_004239c0 (thiscall, ret 8). Draws the car book page: the placeholder (+0x230) when flag is 0, else the
-// entry's book sprite (+0xa4).
+// Tried 2026-10-30 night: FColor default ctor with inline Sets, reversed chains, hand-ordered pos/uv stores, int-copy of C/D, ternary/dev-local/SetTexture variants, permuter; 9 insns differ: original loads the vtable before the sprite ternary and sets EH state 2 after it.
 void StageScreen::DrawBook(StageEntry* e, int flag)
 {
     Vec2 pos[4];
     Vec2 uv[4];
-    FColor color(255.0f, 255.0f, 255.0f, 255.0f);
-    DAT_0056b0ac->vf35((Sprite*)(flag == 0 ? (void*)unk230 : (void*)e->h1));
-    pos[0].x = pos[3].x = DAT_0056aea8 * DAT_004e1490;
-    pos[0].y = pos[1].y = DAT_0056aeac * DAT_004e1494;
-    pos[1].x = pos[2].x = (DAT_004e1490 + DAT_004e14e8) * DAT_0056aea8;
-    pos[2].y = pos[3].y = (DAT_004e1494 + DAT_004e14e0) * DAT_0056aeac;
-    uv[0].x = uv[3].x = 0.0f;
-    uv[0].y = uv[1].y = 0.0f;
-    uv[1].x = uv[2].x = 1.0f;
-    uv[2].y = uv[3].y = 1.0f;
+    FColor color;
+    RaceDeviceSlots* dev = (RaceDeviceSlots*)DAT_0056b0ac;
+    dev->SetTexture(flag ? e->h1 : unk230);
+    float x, y;
+    pos[0].x = x = DAT_0056aea8 * DAT_004e1490;
+    pos[0].y = y = DAT_0056aeac * DAT_004e1494;
+    float c = (DAT_004e1490 + DAT_004e14e8) * DAT_0056aea8;
+    int ic = *(int*)&c;
+    pos[1].x = c; *(int*)&pos[2].x = ic;
+    pos[1].y = y;
+    float d = (DAT_004e1494 + DAT_004e14e0) * DAT_0056aeac;
+    int id = *(int*)&d;
+    pos[2].y = d; *(int*)&pos[3].y = id;
+    pos[3].x = x;
+    uv[3].x = 0.0f; uv[1].y = 0.0f; uv[0].y = 0.0f; uv[0].x = 0.0f;
+    uv[1].x = 1.0f; uv[3].y = 1.0f; uv[2].y = 1.0f; uv[2].x = 1.0f;
     ((RaceDeviceSlots*)DAT_0056b0ac)->DrawQuad(pos, uv, *(Color*)&color, 1.0f, 1.0f);
 }
