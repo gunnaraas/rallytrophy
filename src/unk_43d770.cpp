@@ -230,6 +230,7 @@ int PlayerNameMenu::Open(MenuGame* game, NetRace* net_)
 // The temporary selected index reduces the original candidate's 1,691 differences to 1,669 at the target's 3,832-byte
 // size. The target stores after the first increment and uses an unconditional loop back edge; this form emits a body
 // compare and conditional back edge. The title Print device load and draw-loop induction-pointer order also differ.
+// Tried 2026-10-30 night: ~12 variants of the selection-skip loop (while/for(;;)/goto/lim local/m_selected+=vert) and volatile device or title-string local at the title Print; VC6 always rotates the loop with a duplicated bottom cmp+jg (original is a single top cmp with unconditional jmp back and the m_selected store before dec ecx), and all forms grew the build to 3836 bytes; title Print device load still lands after fstp instead of before the second fmul.
 // original: FUN_0043df70
 int PlayerNameMenu::Run()
 {
