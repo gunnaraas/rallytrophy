@@ -689,6 +689,7 @@ void SlotMenu::DrawCaret(RenderDevice* device, float x, float y, Color color)
 // Capturing the title device before Print reduces the bounded object diff 358→272 bytes and moves its global load
 // ahead of the float arguments; it currently uses ebp instead of the target's eax. The loop still allocates the
 // label cursor to ebp and index to a stack slot, opposite the target.
+// Tried 2026-10-30 night: 22 variants (no title-device local, pointer cursor with i,p++ in several forms, register/volatile, x/y load order, while loop, arg temps); base stays best at 37 insns; target keeps index in ebp and cursor spilled to [esp+0x14], VC6 always picks the opposite allocation.
 // original: FUN_00450be0 (vtable slot 3, Draw)
 void SlotMenu::Slot3(int skipPresent)
 {
