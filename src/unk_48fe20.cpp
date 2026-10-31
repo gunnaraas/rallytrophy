@@ -143,12 +143,13 @@ int RecordTable::FUN_00490050(ScoreRecord* record, int a, int b)
 // NONMATCHING: RALLYTROPHY 0x4901b0
 // Insert by the 0x58 time.
 // Same structure and size as the original; register allocation differs (key/record/first end up in other registers).
+// Tried 2026-10-31: i declared after list (i gets ebx-like early zero not reproduced) took 70->61; i before/after result, chained init, indexed first[i].time, block-scoped time, key/first order did not help; original keeps i in ebx, key in esi, first in edi, ours puts i in eax (330 vs 341 bytes).
 int RecordTable::FUN_004901b0(ScoreRecord* record, int a, int b)
 {
     int result = 0;
-    int i = 0;
     int list = !a ? 0 : a * 11 + 2;
     list += b + 3;
+    int i = 0;
     int key = record->time;
     ScoreRecord* first = (ScoreRecord*)records + list * 230;
     int* time = &first->time;
