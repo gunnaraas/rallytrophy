@@ -3487,6 +3487,7 @@ draw:
 // Totals table: sorts the players collected by 0x48a070 by their summed stage times, writes the place
 // to Player+0x1a5c and draws title, rows (rank, country, name, total time) and the prompt.
 // Returns 1 when a key was pressed (the keys are cleared).
+// Tried 2026-10-30 night: timeText/rank and float locals hoisted to function top, block-scoped/int copies of x184/x510, pressed/best decl order (all 124-125 insns; frame stays 0x58 vs original 0x6c, the original has ~5 more dword slots and 8 dwords above the title that no declaration order reproduced).
 int RaceMode::FUN_0048a920(int sort)
 {
     TextRenderer* text = DAT_0056b0c8->text;
