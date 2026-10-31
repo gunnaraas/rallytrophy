@@ -9,6 +9,7 @@
 #include <math.h>
 
 extern float DAT_004e13e0;             // 1000000.0f
+extern float DAT_004e1bac, DAT_004e1bb0, DAT_004e1bb4, DAT_004e1bb8, DAT_004e1bbc, DAT_004e1bc0; // input ramp rates
 extern int DAT_00501308;               // mirror enabled
 extern int DAT_0050130c;
 extern int DAT_00501310;               // HUD gauges enabled
@@ -317,15 +318,18 @@ inline int FloatToInt(float f)
 }
 
 // NONMATCHING: RALLYTROPHY 0x458b30
+// Tried 2026-10-30 night: 200->111 insns via float-ramp-rate externs (K on left), `unk0` (not button24) gate for the gear path (behaviour fix), fireA address-taken to keep bools in memory, stack-copy of throttle/handbrake; still differs: x87 sum order of the 0.3/0.2 terms, fld/fstp float copies (feedback, spring x), bool store order, Spring helper/bool-order variants and Spring forceinline made it worse.
 // The p2 blend uses the inline-asm FloatToInt as in the original (225 -> 201 differing instructions).
 // Same code shape and constants (builds 1358 bytes, original 1393); the original keeps `car` in ebx and zero in edi and
 // copies floats through the FPU (fld/fstp), which the source below does not reproduce.
 void CarInput::FUN_00458b30(Car* carPtr, int dtMs, int flag)
 {
-register IC_Car* car = (IC_Car*)carPtr;
+IC_Car* car = (IC_Car*)carPtr;
     float dt = dtMs * 0.001f;
-    if (car->f1c910 > (feedback = feedback - dt * 0.7f)) {
-        feedback = car->f1c910;
+    feedback = feedback - dt * 0.7f;
+    float lim = car->f1c910;
+    if (lim > feedback) {
+        feedback = lim;
     }
     if (BITS(feedback) < 0) {
         feedback = 0;
@@ -337,6 +341,8 @@ register IC_Car* car = (IC_Car*)carPtr;
     if (DAT_0056b0b4) {
         bool fireA = false;
         bool fireB = false;
+        bool* pa = &fireA;
+        *(volatile char*)pa = 0;
         int a = timerA - dtMs;
         int b = timerB - dtMs;
         timerA = a;
@@ -362,7 +368,7 @@ register IC_Car* car = (IC_Car*)carPtr;
             } else if (w < 0) {
                 w = 0;
             }
-            volatile float x = car->fd40;
+            float x = car->fd40;
             float lateral = (car->fd34 - x) * car->fd28;
             if (BITS(x) < BITS(car->fd48)) {
                 lateral += (car->fd48 - x) * car->fd4c;
@@ -467,22 +473,22 @@ register IC_Car* car = (IC_Car*)carPtr;
     }
     if (!throttleAnalog) {
         if (throttleDigital) {
-            throttle = 4.0f * dt + throttle;
+            throttle = DAT_004e1bac * dt + throttle;
         } else {
-            throttle = throttle - 10.0f * dt;
+            throttle = throttle - DAT_004e1bb0 * dt;
         }
     }
     if (!brakeAnalog) {
         if (brakeDigital) {
-            brake = 5.0f * dt + brake;
+            brake = DAT_004e1bb4 * dt + brake;
         } else {
-            brake = brake - 5.0f * dt;
+            brake = brake - DAT_004e1bb8 * dt;
         }
     }
     if (handbrakeDigital) {
-        handbrake = 2.0f * dt + handbrake;
+        handbrake = DAT_004e1bbc * dt + handbrake;
     } else {
-        handbrake = handbrake - 5.0f * dt;
+        handbrake = handbrake - DAT_004e1bc0 * dt;
     }
     if (BITS(throttle) < 0) {
         throttle = 0;
@@ -513,11 +519,13 @@ register IC_Car* car = (IC_Car*)carPtr;
         car->steerDigital = s;
         car->analog = 0;
     }
-    car->throttle = throttle;
+    float th = throttle;
+    float hb = handbrake;
+    car->throttle = th;
     ((Car*)car)->FUN_0045da60(brake);
-    car->handbrake = handbrake;
+    car->handbrake = hb;
     if (flag == 0) {
-        if (button24) {
+        if (unk0) {
             FUN_004590d0(carPtr, dt);
         } else {
             FUN_004591c0(carPtr, dt);
