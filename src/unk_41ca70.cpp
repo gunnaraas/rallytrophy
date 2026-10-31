@@ -54,6 +54,7 @@ inline void Xform(float* result, const float* point, const float* matrix, const 
 // original: FUN_0041ca70
 // NONMATCHING: RALLYTROPHY 0x41ca70
 // NONMATCHING: +19 bytes; frame is 12 bytes smaller (a Vec3 local missing), early-return epilogue and register allocation differ
+// Tried 2026-10-31: base pointer bp=&box->mn for mn/mx/ctr/rad (b+4 as in the original), mn/mx select-then-store form, extra Vec3 (EH state 5 before pl), decl-order sweeps of mn/mx/ex/ey/ez/bp; 772->752 insns; still differs: frame 12 bytes smaller (original keeps sphR, one more spill, locals at different slots), early b==0 return is an inline epilogue (original has 4 separate return epilogues, ours merges them).
 int ColBody::Collide(TriCollector* q, int unused)
 {
     nHits = 0;
@@ -61,32 +62,36 @@ int ColBody::Collide(TriCollector* q, int unused)
     if (b == 0) {
         return 0;
     }
+    float* bp = b->mn;
     Vec3 mn, mx;
     Vec3 ex = ax;
     Vec3 ey = ay;
     Vec3 ez = az;
-    ex.x = (b->mx[0] - b->mn[0]) * ex.x;
-    ex.y = (b->mx[0] - b->mn[0]) * ex.y;
-    ex.z = (b->mx[0] - b->mn[0]) * ex.z;
-    ey.x = (b->mx[1] - b->mn[1]) * ey.x;
-    ey.y = (b->mx[1] - b->mn[1]) * ey.y;
-    ey.z = (b->mx[1] - b->mn[1]) * ey.z;
-    ez.x = (b->mx[2] - b->mn[2]) * ez.x;
-    ez.y = (b->mx[2] - b->mn[2]) * ez.y;
-    ez.z = (b->mx[2] - b->mn[2]) * ez.z;
-    Xform(&mn.x, &b->mn[0], &ax.x, &pos.x);
-    mx.x = mn.x + ex.x;
-    if (NEG(ex.x)) { mx.x = mn.x; mn.x = mn.x + ex.x; }
-    mx.y = mn.y + ex.y;
-    if (NEG(ex.y)) { mx.y = mn.y; mn.y = mn.y + ex.y; }
-    mx.z = mn.z + ex.z;
-    if (NEG(ex.z)) { mx.z = mn.z; mn.z = mn.z + ex.z; }
-    if (NEG(ey.x) == 0) mx.x = ey.x + mx.x; else mn.x = ey.x + mn.x;
-    if (NEG(ey.y) == 0) mx.y = ey.y + mx.y; else mn.y = ey.y + mn.y;
-    if (NEG(ey.z) == 0) mx.z = ey.z + mx.z; else mn.z = ey.z + mn.z;
-    if (NEG(ez.x) == 0) mx.x = ez.x + mx.x; else mn.x = ez.x + mn.x;
-    if (NEG(ez.y) == 0) mx.y = ez.y + mx.y; else mn.y = ez.y + mn.y;
-    if (NEG(ez.z) == 0) mx.z = ez.z + mx.z; else mn.z = ez.z + mn.z;
+    ex.x = (bp[3] - bp[0]) * ex.x;
+    ex.y = (bp[3] - bp[0]) * ex.y;
+    ex.z = (bp[3] - bp[0]) * ex.z;
+    ey.x = (bp[4] - bp[1]) * ey.x;
+    ey.y = (bp[4] - bp[1]) * ey.y;
+    ey.z = (bp[4] - bp[1]) * ey.z;
+    ez.x = (bp[5] - bp[2]) * ez.x;
+    ez.y = (bp[5] - bp[2]) * ez.y;
+    ez.z = (bp[5] - bp[2]) * ez.z;
+    Xform(&mn.x, bp, &ax.x, &pos.x);
+    mx.x = mn.x;
+    float sx = mn.x + ex.x;
+    if (NEG(ex.x)) mn.x = sx; else mx.x = sx;
+    mx.y = mn.y;
+    float sy = mn.y + ex.y;
+    if (NEG(ex.y)) mn.y = sy; else mx.y = sy;
+    mx.z = mn.z;
+    float sz = mn.z + ex.z;
+    if (NEG(ex.z)) mn.z = sz; else mx.z = sz;
+    if (NEG(ey.x)) mn.x = ey.x + mn.x; else mx.x = ey.x + mx.x;
+    if (NEG(ey.y)) mn.y = ey.y + mn.y; else mx.y = ey.y + mx.y;
+    if (NEG(ey.z)) mn.z = ey.z + mn.z; else mx.z = ey.z + mx.z;
+    if (NEG(ez.x)) mn.x = ez.x + mn.x; else mx.x = ez.x + mx.x;
+    if (NEG(ez.y)) mn.y = ez.y + mn.y; else mx.y = ez.y + mx.y;
+    if (NEG(ez.z)) mn.z = ez.z + mn.z; else mx.z = ez.z + mx.z;
 
     // keep the triangles whose box overlaps the body's box
     CTri* head = 0;
@@ -118,28 +123,29 @@ int ColBody::Collide(TriCollector* q, int unused)
             it++;
         } while (it != end);
         if (head != 0) {
+            Vec3 dead;
             CPlane pl[6];
             Vec3 pt;
             Vec3 sph;
             float sphR;
-            Xform(&sph.x, &b->ctr[0], &ax.x, &pos.x);
-            sphR = b->rad;
-            pt = b->mn[2] * az + pos;
+            Xform(&sph.x, bp + 6, &ax.x, &pos.x);
+            sphR = bp[9];
+            pt = bp[2] * az + pos;
             pl[0].n = az;
             pl[0].d = pl[0].n.x * pt.x + pl[0].n.y * pt.y + pl[0].n.z * pt.z;
-            pt = b->mx[2] * az + pos;
+            pt = bp[5] * az + pos;
             pl[1].n = -az;
             pl[1].d = pl[1].n.x * pt.x + pl[1].n.y * pt.y + pl[1].n.z * pt.z;
-            pt = b->mn[0] * ax + pos;
+            pt = bp[0] * ax + pos;
             pl[2].n = ax;
             pl[2].d = pl[2].n.x * pt.x + pl[2].n.y * pt.y + pl[2].n.z * pt.z;
-            pt = b->mx[0] * ax + pos;
+            pt = bp[3] * ax + pos;
             pl[3].n = -ax;
             pl[3].d = pl[3].n.x * pt.x + pl[3].n.y * pt.y + pl[3].n.z * pt.z;
-            pt = b->mn[1] * ay + pos;
+            pt = bp[1] * ay + pos;
             pl[4].n = ay;
             pl[4].d = pl[4].n.x * pt.x + pl[4].n.y * pt.y + pl[4].n.z * pt.z;
-            pt = b->mx[1] * ay + pos;
+            pt = bp[4] * ay + pos;
             pl[5].n = -ay;
             pl[5].d = pl[5].n.x * pt.x + pl[5].n.y * pt.y + pl[5].n.z * pt.z;
 
