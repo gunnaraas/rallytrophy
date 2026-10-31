@@ -29,6 +29,7 @@ struct BmfDirString {
 // NONMATCHING: RALLYTROPHY 0x4af950
 // 1227/1227 bytes, 29 differ: the original schedules `push edx; mov ecx,ebp` and the cleanup-state 7 store of the
 // path assign between the b and c zero stores; every statement order and a call-after-stores form were tried.
+// Tried 2026-10-30 night: volatile barriers on a/b/c stores, hoisted strlen local, enabled-before-c, permute -r 20; stuck at 3 insns (push edx/mov ecx,ebp/state-7 store land before the a stores instead of between b and c).
 BmfReader::BmfReader(const char* filename, const char* dir, BmfTextures* cache, List<Sprite*>* mats, int flags)
 {
     DAT_0057b95c = flags;
