@@ -278,17 +278,21 @@ extern float DAT_004e1388; // 2/3
 extern float DAT_004e138c; // 0.5
 extern float DAT_004e1390; // 0.8
 
+struct RenderColor { DWORD c; RenderColor(DWORD v) : c(v) {} ~RenderColor() {} };
+
 // NONMATCHING: RALLYTROPHY 0x40a0f0
 // reason: first draft of the float/stack layout, not yet compared
+// Tried 2026-10-31: original has a third unwind object (empty-dtor DWORD holder of -1, EH state 2, now matched) and literal float constants (fld w; fmul K now matches); still differs: original keeps -1 in edi (push edi) and has one more 4-byte stack slot (sub esp,0x58), shifting every store; ~15 decl-order/int-temp/pos-readback variants did not fix it (127 insns differ, was 131). Render makes no direct Bink calls (FillVideoTextures does, already matched).
 void BinkVideo::Render(RenderDevice* device)
 {
     float w = (float)DAT_0056b0ac->GetWidth();
     float h = (float)DAT_0056b0ac->GetHeight();
     HudPoint pos[4];
     HudPoint uv[4];
+    RenderColor color(0xffffffff);
     int width = F(int, 4);
     if (width == 0x140) {
-        float x = w * DAT_004e1390;
+        float x = w * 0.8f;
         pos[0].x = 0; pos[0].y = 0;
         pos[1].x = x; pos[1].y = 0;
         pos[2].x = x; pos[2].y = h;
@@ -299,18 +303,17 @@ void BinkVideo::Render(RenderDevice* device)
         uv[3].x = 0; uv[3].y = 0.9375f;
         DAT_0056b0ac->vf35(F(Sprite*, 0x10));
         DAT_0056b0ac->vf66(pos, uv, 0xffffffff, 1.0f, 1.0f);
-        pos[0].x = x;
-        pos[1].x = w;
-        pos[2].x = w;
-        pos[3].x = x;
+        pos[0].x = pos[1].x;
+        pos[3].x = pos[2].x;
+        pos[1].x = pos[2].x = w;
         DAT_0056b0ac->vf35(F(Sprite*, 0x14));
         DAT_0056b0ac->vf66(pos, uv, 0xffffffff, 1.0f, 1.0f);
     } else if (width == 0x200) {
         if (*(int*)(**(int**)((BYTE*)this + 0x10) + 0x50) == 0) {
             FillVideoTextures(this);
         }
-        float x = w * DAT_004e138c;
-        float y = h * DAT_004e1388;
+        float x = w * 0.5f;
+        float y = h * 0.6666667f;
         pos[0].x = 0; pos[0].y = 0;
         pos[1].x = x; pos[1].y = 0;
         pos[2].x = x; pos[2].y = y;
