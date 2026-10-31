@@ -4384,6 +4384,7 @@ int RaceMode::FUN_0048b620(int reset)
 // 1202 vs 1205 bytes; the body after the first Print is the same. Only the prologue schedule differs: the original
 // stores the colour before loading the device width and interleaves the pushes of the first Print's constant
 // arguments with the three scaled-y locals (source order of the locals made no difference).
+// Tried 2026-10-30 night: 13 prologue variants (color store/local order, early dev local, int col temp, volatile color store, split first Print, sx/sy temps); none changed the 128-insn diff: ours loads the device global into eax and colour into edx (original the reverse), and that register rotation propagates to every later Print site (3 bytes of ds:0x0 mov forms).
 // Help screen of the replay/race menu: a title, then lines chosen by `flags` (1/2/4/8 = one of four
 // texts, 0x10 = extra line, 0x20, 0x40 = more lines) and the "press a key" footer. Returns 1 when
 // a key or the mouse button was pressed.
