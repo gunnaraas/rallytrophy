@@ -269,19 +269,22 @@ void SaveGame::SaveSlot(int slot)
 // larger (the original puts the itoa buffer at the bottom of the frame, overlapping the loop pointer slots, and spills
 // `this`), the early-exit string destructor is a call to _Tidy(true) shared by the three failure exits (here expanded
 // inline per exit), and the 10-dword copy loop uses edx/esi swapped.
+// Tried 2026-10-31: dropped a bogus FUN_00491130 call from the last (non-arcade AI) loop - the original has none there (146->143 insns); ~40 variants of the itoa buffer (decl order, block/for/if scope, int[3], struct, static) never move it into the low temp region (it stays at the frame top, +12 bytes, offsets of everything shift); static buffer proves that is the whole frame delta. Return-path/goto restructuring did not help.
 int SaveGame::LoadSlot(int slot)
 {
     int magic1, magic2;
     FB2_Record rec;
     FB2_Path path;
-    char number[10];
     if (DAT_00501458) {
         path.Set("savegame/arcade");
     } else {
         path.Set("savegame/rally");
     }
-    itoa(slot, number, 10);
-    path.Add(number);
+    {
+        char number[10];
+        itoa(slot, number, 10);
+        path.Add(number);
+    }
     path.Add(".SAV");
     File* file;
     if (File::Exists(path.c_str())) {
@@ -411,7 +414,6 @@ loaded:
             p->startSlot = rec.tail[4];
             p->unk1a68 = rec.tail[5];
             p->unk1a64 = rec.tail[6];
-            p->FUN_00491130();
             race->AddPlayer(p);
         }
     }
