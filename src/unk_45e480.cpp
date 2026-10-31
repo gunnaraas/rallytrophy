@@ -1655,6 +1655,7 @@ const float kDegToRad = 0.017453292f;
 // (1) the target pushes 0x4fb77c between the scaled-angle fst and fcos; this candidate pushes 0 after fcos; (2) the
 // failure-path string code differs: the target calls _Tidy at 0x402700 and loads the concatenated string data pointer
 // directly into esi, while this candidate routes it through eax; (3) the target keeps mass in st(0) in MomentOfInertia.
+// Tried 2026-10-30 night: Scale3 by-value/inline muls, mass declaration order, wiper-tail LOAD vs COPY forms, inline_depth(0-3), PathString/TextOf throw form (as LoadTiresIni; shifts regalloc, 81 insns); still 29 insns differ: throw-time std::string copy inlines _Tidy as 3 stores (target calls 0x402700), mass reloaded from [esp+0x34], wiper/cos scheduling.
 void Car::LoadCarIni(const char* path, unsigned int checksum)
 {
     CarIniView* v = (CarIniView*)this;
