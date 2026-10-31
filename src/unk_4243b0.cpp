@@ -126,11 +126,29 @@ public:
         m_items.push_back(rect); \
     } while (0)
 
+struct C_Warp {
+    C_Warp(float px, float py) { x = px; y = py; }
+    ~C_Warp() {}
+    float x, y;
+};
+struct C_Pt {
+    C_Pt(const C_Pt& o) { x = o.x; y = o.y; }
+    ~C_Pt() {}
+    float x, y;
+};
+class C_Item {
+public:
+    C_Pt GetTopLeft();      // 0x4243d0
+    C_Pt GetBottomRight();  // 0x4243f0
+};
+#define CI(i) ((C_Item*)m_items[i])
 extern ConfigKey DAT_004f64c8[];   // controlmenu.ini key table (28 keys)
 class MouseInput;
 
 // NONMATCHING: RALLYTROPHY 0x424960
 // original: FUN_00424960 (fastcall, SEH). Draft: logic ported from the pseudocode, not yet compared byte for byte.
+// Tried 2026-10-30 night: per-call GetPosition() args, C_Warp/C_Pt EH temps (EH states of the centre block now match), m_selected >= 6;
+// still differs: the original keeps color (0x30) and two 1.0f (0x38/0x3c) as live stack slots in the draw loop plus one more EH state (0x11), frame 0x70 vs 0x68; dir*5 lea has disp32; ebx/ebp swap follows.
 int MenuScreen8DC::Frame()
 {
     int done = 0;
@@ -189,17 +207,14 @@ int MenuScreen8DC::Frame()
             m_selected += dir;
             if (m_selected < 0) {
                 m_selected = 5;
-            } else if (m_selected > 5) {
+            } else if (m_selected >= 6) {
                 m_selected = 0;
             }
-            int cx = (int)(m_items[m_selected]->GetTopLeft().x +
-                           (m_items[m_selected]->GetBottomRight().x - m_items[m_selected]->GetTopLeft().x) * 0.5f);
-            int cy = (int)(m_items[m_selected]->GetTopLeft().y +
-                           (m_items[m_selected]->GetBottomRight().y - m_items[m_selected]->GetTopLeft().y) * 0.5f);
-            HudPoint position;
-            position.x = cx * sx;
-            position.y = cy * sy;
-            ((MouseInput*)DAT_0056b0c0)->SetPosition((Vec2*)&position);
+            int cx = (int)(CI(m_selected)->GetTopLeft().x +
+                           (CI(m_selected)->GetBottomRight().x - CI(m_selected)->GetTopLeft().x) * 0.5f);
+            int cy = (int)(CI(m_selected)->GetTopLeft().y +
+                           (CI(m_selected)->GetBottomRight().y - CI(m_selected)->GetTopLeft().y) * 0.5f);
+            ((MouseInput*)DAT_0056b0c0)->SetPosition((Vec2*)&C_Warp(cx * sx, cy * sy));
         }
         for (int i = 0; i < 6; i++) {
             if (m_selected != i && m_items[i]->Contains(*((MouseInput*)DAT_0056b0c0)->GetPosition())) {
@@ -215,15 +230,14 @@ int MenuScreen8DC::Frame()
             dir++;
         }
         if (DAT_0057ba20) {
-            HudPoint mouse = *(HudPoint*)&DAT_0057ba00;
-            if (m_items[8]->Contains(mouse)) dir--;
-            if (m_items[6]->Contains(mouse)) dir--;
-            if (m_items[10]->Contains(mouse)) dir--;
-            if (m_items[12]->Contains(mouse)) dir--;
-            if (m_items[9]->Contains(mouse)) dir++;
-            if (m_items[7]->Contains(mouse)) dir++;
-            if (m_items[11]->Contains(mouse)) dir++;
-            if (m_items[13]->Contains(mouse)) dir++;
+            if (m_items[8]->Contains(*((MouseInput*)DAT_0056b0c0)->GetPosition())) dir--;
+            if (m_items[6]->Contains(*((MouseInput*)DAT_0056b0c0)->GetPosition())) dir--;
+            if (m_items[10]->Contains(*((MouseInput*)DAT_0056b0c0)->GetPosition())) dir--;
+            if (m_items[12]->Contains(*((MouseInput*)DAT_0056b0c0)->GetPosition())) dir--;
+            if (m_items[9]->Contains(*((MouseInput*)DAT_0056b0c0)->GetPosition())) dir++;
+            if (m_items[7]->Contains(*((MouseInput*)DAT_0056b0c0)->GetPosition())) dir++;
+            if (m_items[11]->Contains(*((MouseInput*)DAT_0056b0c0)->GetPosition())) dir++;
+            if (m_items[13]->Contains(*((MouseInput*)DAT_0056b0c0)->GetPosition())) dir++;
             if (m_selected == 0) {
                 m_game->Play(1);
                 clicked = 1;
