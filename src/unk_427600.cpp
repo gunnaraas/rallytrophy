@@ -223,6 +223,7 @@ int GameScreen11A4::Run(MenuGame* game)
 // vs 0x20/0x24), and in the title-text switch and the item Print the scheduler picks other scratch registers for
 // the device pointer (ecx/edx/eax rotated). Tried: declaration order, case order, if-chains, locals for device/xy,
 // a FrameTemps struct (626 differences), volatile clicked (1,548), and volatile sy (584); all reverted.
+// Tried 2026-10-30 night: volatile stores on scaleX/color/scaleY, color temp, clicked/sy/wait/first declaration orders, deferred sy init, device local (before switch or before scaleX: tail-merges the three Print cases, 2644 bytes); none beat 134 insns differ; clicked/sy slots still swapped and device/colour scratch registers still rotated.
 // original: FUN_00427c10 (thiscall; one frame loop of the screen)
 int GameScreen11A4::Frame()
 {
