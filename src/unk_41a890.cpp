@@ -16,33 +16,35 @@ struct LL { float x, y, z; LL() {} ~LL() {} };
 
 // NONMATCHING: RALLYTROPHY 0x41a890
 // reason: original uses an ebp frame (cause unknown; ours is esp-based) and reuses arg slots as temps; logic complete, tri loop/EH states approximated
+// Tried 2026-10-31: locals V/W + chained float stores (429->226 insns), volatile pad24/ints/zero, z-pointer/ptr-increment copy loops, loop counters in dead mesh/b slots; still differs: original keeps 0 in edi (cmp eax,edi, immediate 1s) while ours puts 1 in a register, and the tri loop temps/regs swap.
 ColModel::ColModel(void* mesh, int a, int b)
 {
     float* p = (float*)mesh;
     root = 0;
+    int zero = 0;
+    *(volatile int*)&zero = 0;
     pad24 = 1;
     if (b == 0) {
         nVerts = 8;
         nTris = 12;
         nInts = 18;
-        verts = (ColVert*)new LV[8];
-        wverts = (ColVert*)new LV[8];
-        tris = (ColTri*)new LT[12];
+        ColVert* V = (ColVert*)new LV[8]; verts = V;
+        ColVert* W = (ColVert*)new LV[8]; wverts = W;
+        ColTri* TT = (ColTri*)new LT[12]; tris = TT;
         centers = (ColLocal*)new LL[12];
-        float* vf = (float*)verts;
-        vf[0x1d] = p[0]; vf[0x11] = p[0]; vf[0xd] = p[0]; vf[1] = p[0];
-        vf[0x19] = p[3]; vf[0x15] = p[3]; vf[9] = p[3]; vf[5] = p[3];
-        vf[0x16] = p[4]; vf[0x12] = p[4]; vf[6] = p[4]; vf[2] = p[4];
-        vf[0x1e] = p[1]; vf[0x1a] = p[1]; vf[0xe] = p[1]; vf[10] = p[1];
-        vf[0xf] = p[5]; vf[0xb] = p[5]; vf[7] = p[5]; vf[3] = p[5];
-        vf[0x1f] = p[2]; vf[0x1b] = p[2]; vf[0x17] = p[2]; vf[0x13] = p[2];
+        float* vf = (float*)V;
+        vf[1] = vf[0xd] = vf[0x11] = vf[0x1d] = p[0];
+        vf[5] = vf[9] = vf[0x15] = vf[0x19] = p[3];
+        vf[2] = vf[6] = vf[0x12] = vf[0x16] = p[4];
+        vf[10] = vf[0xe] = vf[0x1a] = vf[0x1e] = p[1];
+        vf[3] = vf[7] = vf[0xb] = vf[0xf] = p[5];
+        vf[0x13] = vf[0x17] = vf[0x1b] = vf[0x1f] = p[2];
         for (int i = 0; i < 8; i++) {
-            wverts[i].x = verts[i].x;
-            wverts[i].y = verts[i].y;
-            wverts[i].z = verts[i].z;
+            W[i].x = V[i].x;
+            W[i].y = V[i].y;
+            W[i].z = V[i].z;
         }
-        ints = new int[18];
-        int* ip = ints;
+        int* ip = new int[18]; *(int* volatile*)&ints = ip;
         ColVert* wv = wverts;
     T(0).v[0] = (TVert*)(wv + 0);
     T(0).v[1] = (TVert*)(wv + 3);
@@ -121,27 +123,26 @@ ColModel::ColModel(void* mesh, int a, int b)
         nVerts = 6;
         nTris = 8;
         nInts = 12;
-        verts = (ColVert*)new LV[6];
-        wverts = (ColVert*)new LV[6];
-        tris = (ColTri*)new LT[8];
+        ColVert* V = (ColVert*)new LV[6]; verts = V;
+        ColVert* W = (ColVert*)new LV[6]; wverts = W;
+        ColTri* TT = (ColTri*)new LT[8]; tris = TT;
         centers = (ColLocal*)new LL[8];
-        float* vf = (float*)verts;
-        vf[0x11] = p[0]; vf[9] = p[0]; vf[1] = p[0];
-        vf[0x15] = p[3]; vf[0xd] = p[3]; vf[5] = p[3];
-        vf[6] = p[4]; vf[2] = p[4];
-        vf[0x16] = p[1]; vf[0x12] = p[1]; vf[0xe] = p[1]; vf[10] = p[1];
-        vf[0xf] = p[5]; vf[0xb] = p[5];
-        vf[0x17] = p[2]; vf[0x13] = p[2];
+        float* vf = (float*)V;
+        vf[1] = vf[9] = vf[0x11] = p[0];
+        vf[5] = vf[0xd] = vf[0x15] = p[3];
+        vf[2] = vf[6] = p[4];
+        vf[10] = vf[0xe] = vf[0x12] = vf[0x16] = p[1];
+        vf[0xb] = vf[0xf] = p[5];
+        vf[0x13] = vf[0x17] = p[2];
         float m = (p[2] + p[5]) * DAT_004e138c;
         vf[7] = m;
         vf[3] = m;
         for (int i = 0; i < 6; i++) {
-            wverts[i].x = verts[i].x;
-            wverts[i].y = verts[i].y;
-            wverts[i].z = verts[i].z;
+            W[i].x = V[i].x;
+            W[i].y = V[i].y;
+            W[i].z = V[i].z;
         }
-        ints = new int[12];
-        int* ip = ints;
+        int* ip = new int[12]; *(int* volatile*)&ints = ip;
         ColVert* wv = wverts;
     T(0).v[0] = (TVert*)(wv + 0);
     T(0).v[1] = (TVert*)(wv + 1);
@@ -192,9 +193,11 @@ ColModel::ColModel(void* mesh, int a, int b)
     T(7).e[1] = ip + 7;
     T(7).e[2] = ip + 4;
     }
+    int& cnt = *(int*)&mesh;
+    cnt = 0;
     b = 0;
     if (0 < nTris) {
-        int cb = 0;
+        int& cb = b;
         int off = 0;
         do {
             Tri* t = (Tri*)((char*)tris + off);
@@ -219,9 +222,9 @@ ColModel::ColModel(void* mesh, int a, int b)
             c[1] = *(float*)(tb + off + 4);
             cb += 0xc;
             c[2] = *(float*)(tb + off + 8);
-            b++;
+            cnt++;
             off += 0x40;
-        } while (b < nTris);
+        } while (cnt < nTris);
     }
     ClearInts();
 }
