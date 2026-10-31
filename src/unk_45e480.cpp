@@ -1244,6 +1244,7 @@ char* CarCopy(char* dst, const char* src, size_t n)
 // 2274 vs 2276 bytes: everything matches (member destruction order, all 79 EH states, the inline list/array
 // destructors) except the first light loop, where the original materialises &lightFrontRight[0] as
 // `lea eax,[esi+0x1bd94]; mov ebp,eax` and the build has `lea ebp,[esi+0x1bd94]` (30 source forms tried).
+// Tried 2026-10-30 night: 9 more (shared r/l pointer locals, r[i-3] indexing, do-while, ptr-walk, &arr[0][i]) plus permute -r 20; none gave the extra mov; the 73 differing insns are only +2 jump-offset shifts from the one missing mov.
 CarObject::~CarObject()
 {
     delete shadow;
