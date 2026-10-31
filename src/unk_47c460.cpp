@@ -559,6 +559,7 @@ void CarParticles::Kind3(float scale, float age)
 // and stores the new head after the first copied coordinate; this build pops the list first
 // and places `push edi` earlier. The `Vec3 jit` local is what makes VC6 keep the x jitter in
 // a stack temp across the second rand() call like the original.
+// Tried 2026-10-30 night: head pop moved after local.x/local.y copy, cached PCAR local, Next-first temp, and permute.py -r 20 (no MATCH); all stay at 3-5 insns differ, the PCAR-before-head load order and pop/push edi placement are not steerable from source.
 // Spawn core B: like core A with an integer 0..256 chance and no rate argument.
 Particle* CarParticles::SpawnCoreB(float rate)
 {
