@@ -315,6 +315,7 @@ struct TexView {
 // every [ebp-N] operand differs), register choice in the long constant-store runs, the dead ShadowCaster stores and
 // the std::string/vector inline-vs-call decisions of VC6's per-function inline budget, which are reproduced with
 // CarString/PtrVec/ModelObject helpers (see the declarations above).
+// Tried 2026-10-30 night: 11 variants moving/scoping `number` (top, before dir, int[10], block-scoped), sized probes, hoisting driverDir; frame is 0x1d8 vs 0x1bc because `number` sits at ebp-0xe4 (below driverDir) while the original has it at -0x70 right under dir, sharing space with later scalars; block scope moves it to the bottom (-0x1e4) with no frame shrink, declaration order has no effect; still 1124 insns differ.
 // SYMBOL: ??0CarObject@@QAE@PAVCarTextureCache@@HHHHHI@Z
 CarObject::CarObject(CarTextureCache* a, int b, int c, int d, int e, int f, unsigned int g)
 {
