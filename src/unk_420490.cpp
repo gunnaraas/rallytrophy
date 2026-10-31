@@ -694,20 +694,14 @@ done:
 
 extern const char DAT_004f6408[], DAT_004f2e40[], DAT_004f6480[], DAT_004f647c[];
 extern const char* __cdecl FUN_00405380(int id);              // string-table lookup
-extern void __cdecl FUN_004c1902(char* buf);                  // value text of the last ini lookup -> buf
-extern void* __cdecl FUN_004a8030(void* mem, const char* name, int flags, int zero);
-extern void __cdecl FUN_004a8350(void* tex, int screen);
-extern UiItem* __cdecl FUN_004a8580(void* mem);               // UiItem ctor
+extern char* __cdecl FUN_004c1902(int v, char* buf, int radix); // _itoa
+extern const char* PTR_DAT_004f6078[];
 
-static UiItem* MakeItem(const char* tga)
-{
-    UiItem* it = FUN_004a8580(operator new(0xa0));
-    void* t = FUN_004a8030(operator new(0x40), tga, 0x841, 0);
-    it->tex[0] = (DWORD)t;
-    FUN_004a8350(t, (int)DAT_0056b0ac);
-    return it;
-}
-
+struct CarTex {
+    BYTE pad[0x68];
+    CarTex(const char* name, int flags, int zero); // 0x4a8030
+    void Bind(int dev);                            // 0x4a8350
+};
 static void SetItem(UiItem* it)
 {
     it->f[0x18 - 2] = it->f[0x19 - 2] = it->f[0x1a - 2] = it->f[0x1b - 2] = 0x3f800000;
@@ -761,6 +755,7 @@ public:
 // NONMATCHING: RALLYTROPHY 0x420db0
 // StagePathText preserves the observed inline/out-of-line boundaries for the directory and info paths; other sites
 // and the function's full frame/EH schedule still differ.
+// Tried 2026-10-30 night: fixed itoa/Year/EngineCC/Load/0xd4+0x68 sizes, StagePathText assign/append, per-texture temp strings (412 insns differ); still differs: this/count regs (ebx/edi vs edi/esi), ctor-time EH state placement for dir/path, and the texture-name temp lifetimes.
 void StageScreen::LoadCars()
 {
     int n = count;
@@ -770,63 +765,65 @@ void StageScreen::LoadCars()
             ((DWORD*)&entries[i])[0x28] = 0;
             ((DWORD*)&entries[i])[0x29] = 0;
         }
-        for (int j = 0; j < n; j++) {
-            StageEntry* e = &entries[j];
+        StageEntry* e = entries;
+        for (int j = 0; j < n; j++, e++) {
             IniFile ini;
+            ini.Open((const char*)&PTR_DAT_004f6078, 0xb);
             char num[32];
             char buf[256];
-            FUN_004c1902(num);
+            FUN_004c1902(j + 1, num, 10);
             StagePathText dir;
             dir.AssignGrow("data/cars/car_");
             dir.AppendCall(num);
             StagePathText path;
             path.AssignString(*(std::string*)&dir, 0, std::string::npos);
             path.AppendCall("/info.ini");
-            ini.Open(path.c_str(), 0xb);
+            ini.Load(path.c_str(), true, false, 0);
 
-#define S(f) (*(std::string*)&e->f)
-            S(s0).assign(ini.GetStr(DAT_004f6408));
-            S(s1).assign(ini.GetStr("FullName"));
-            ini.Find("EngineCyl");
-            FUN_004c1902(buf);
-            S(s2).assign(buf);
-            ini.Find("EngineCC");
-            FUN_004c1902(buf);
-            S(s3).assign(buf);
-            S(s3).append(FUN_00405380(0x6f));
-            S(s3).append(DAT_004f2e40);
-            S(s3).append(buf);
-            S(s3).append(FUN_00405380(0x70));
-            ini.Find("Power");
-            FUN_004c1902(buf);
-            S(s4).assign(buf);
-            S(s4).append(DAT_004f2e40);
-            S(s4).append(FUN_00405380(0x14));
+#define S(f) (*(StagePathText*)&e->f)
+            S(s0).AssignGrow(ini.GetStr(DAT_004f6408));
+            S(s1).AssignGrow(ini.GetStr("FullName"));
+            FUN_004c1902(ini.Find("Year"), buf, 10);
+            S(s2).AssignGrow(buf);
+            FUN_004c1902(ini.Find("EngineCyl"), buf, 10);
+            S(s3).AssignGrow(buf);
+            S(s3).AppendCall(FUN_00405380(0x6f));
+            S(s3).AppendCall(DAT_004f2e40);
+            FUN_004c1902(ini.Find("EngineCC"), buf, 10);
+            S(s3).AppendCall(buf);
+            S(s3).AppendCall(FUN_00405380(0x70));
+            FUN_004c1902(ini.Find("Power"), buf, 10);
+            S(s4).AssignGrow(buf);
+            S(s4).AppendCall(DAT_004f2e40);
+            S(s4).AppendCall(FUN_00405380(0x14));
             if (ini.Find("Transmission") == 0) {
-                S(s5).assign(FUN_00405380(0x6d));
+                S(s5).AssignGrow(FUN_00405380(0x6d));
             } else {
-                S(s5).assign(FUN_00405380(0x6e));
+                S(s5).AssignGrow(FUN_00405380(0x6e));
             }
-            ini.Find("Length");
-            FUN_004c1902(buf);
-            S(a).assign(buf);
-            S(a).append(DAT_004f6480);
-            ini.Find("Width");
-            FUN_004c1902(buf);
-            S(b).assign(buf);
-            S(b).append(DAT_004f6480);
-            ini.Find("Height");
-            FUN_004c1902(buf);
-            S(c).assign(buf);
-            S(c).append(DAT_004f6480);
-            ini.Find("Weight");
-            FUN_004c1902(buf);
-            S(d).assign(buf);
-            S(d).append(DAT_004f647c);
+            FUN_004c1902(ini.Find("Length"), buf, 10);
+            S(a).AssignGrow(buf);
+            S(a).AppendCall(DAT_004f6480);
+            FUN_004c1902(ini.Find("Width"), buf, 10);
+            S(b).AssignGrow(buf);
+            S(b).AppendCall(DAT_004f6480);
+            FUN_004c1902(ini.Find("Height"), buf, 10);
+            S(c).AssignGrow(buf);
+            S(c).AppendCall(DAT_004f6480);
+            FUN_004c1902(ini.Find("Weight"), buf, 10);
+            S(d).AssignGrow(buf);
+            S(d).AppendCall(DAT_004f647c);
 #undef S
-            UiItem* wire = MakeItem((*(std::string*)&dir + "/InfoPhotoWire.tga").c_str());
-            wire->tex[1] = (DWORD)FUN_004a8030(operator new(0x40), (*(std::string*)&dir + "/InfoPhotoFull.tga").c_str(), 0x841, 0);
-            FUN_004a8350((void*)wire->tex[1], (int)DAT_0056b0ac);
+            UiItem* wire = new UiItem;
+            ((DWORD*)e)[0x28] = (DWORD)wire; // +0xa0 (h0)
+            { std::string n0(*(std::string*)&dir + "/InfoPhotoWire.tga");
+            CarTex* t0 = new CarTex(n0.c_str(), 0x841, 0);
+            wire->tex[0] = (DWORD)t0;
+            t0->Bind((int)DAT_0056b0ac); }
+            { std::string n1(*(std::string*)&dir + "/InfoPhotoFull.tga");
+            CarTex* t1 = new CarTex(n1.c_str(), 0x841, 0);
+            wire->tex[1] = (DWORD)t1;
+            t1->Bind((int)DAT_0056b0ac); }
             wire->f[0x10 - 2] = wire->f[0x11 - 2] = wire->f[0x12 - 2] = wire->f[0x13 - 2] = 0x3f800000;
             wire->f[0x18 - 2] = wire->f[0x19 - 2] = wire->f[0x1a - 2] = wire->f[0x1b - 2] = 0x3f800000;
             wire->f[0x1c - 2] = wire->f[0x1d - 2] = wire->f[0x1e - 2] = wire->f[0x1f - 2] = 0;
@@ -836,20 +833,31 @@ void StageScreen::LoadCars()
             wire->f[7 - 2] = 6;
             wire->f[0x26 - 2] = 0xf;
             wire->f[0x14 - 2] = wire->f[0x15 - 2] = wire->f[0x16 - 2] = wire->f[0x17 - 2] = 0;
-            ((DWORD*)e)[0x28] = (DWORD)wire; // +0xa0 (h0)
-            UiItem* book = MakeItem((*(std::string*)&dir + "/carbook.tga").c_str());
-            SetItem(book);
+            UiItem* book = new UiItem;
             ((DWORD*)e)[0x29] = (DWORD)book; // +0xa4 (h1)
+            { std::string n2(*(std::string*)&dir + "/carbook.tga");
+            CarTex* t2 = new CarTex(n2.c_str(), 0x841, 0);
+            book->tex[0] = (DWORD)t2;
+            t2->Bind((int)DAT_0056b0ac); }
+            SetItem(book);
         }
     }
-    unk230 = (Holder1*)MakeItem("data/menu/carbook_no.tga");
-    SetItem((UiItem*)unk230);
-    unk234 = (Holder1*)MakeItem("data/menu/car_no.tga");
-    SetItem((UiItem*)unk234);
+    UiItem* n0;
+    CarTex* n0t;
+    unk230 = (Holder1*)(n0 = new UiItem);
+    n0->tex[0] = (DWORD)(n0t = new CarTex("data/menu/carbook_no.tga", 0x841, 0));
+    n0t->Bind((int)DAT_0056b0ac);
+    SetItem(n0);
+    UiItem* n1;
+    CarTex* n1t;
+    unk234 = (Holder1*)(n1 = new UiItem);
+    n1->tex[0] = (DWORD)(n1t = new CarTex("data/menu/car_no.tga", 0x841, 0));
+    n1t->Bind((int)DAT_0056b0ac);
+    SetItem(n1);
 }
 
 // ---- StageScreen::RefreshUnits (0x423b90) and StageScreen::Layout (0x421fa0) ----
-extern const char* PTR_DAT_004f6078[];
+
 extern void __cdecl FUN_004c19bc();                          // _ftol on the value of the last ini lookup (guess)
 extern DWORD (__stdcall* DAT_0059b2f8)();
 extern DWORD DAT_00508c08;
@@ -867,24 +875,24 @@ void StageScreen::RefreshUnits()
         IniFile ini;
         char num[32];
         ini.Open((const char*)&PTR_DAT_004f6078, 0xb);
-        FUN_004c1902(num);                                    // car number i + 1
+        FUN_004c1902(i + 1, num, 10);                         // car number i + 1
         std::string dir("data/cars/car_");
         dir.append(num);
         std::string path(dir);
         path.append("/info.ini");
-        ini.Load(path.c_str());
+        ini.Load(path.c_str(), true, false, 0);
 #define S(f) (*(std::string*)&e->f)
 #define UNIT(field, key, mm, inch, plain)                     \
-        ini.Find(key);                                        \
+        { int v = ini.Find(key);                             \
         if (DAT_00501300[0] != 0) FUN_004c19bc();             \
-        FUN_004c1902(num);                                    \
+        FUN_004c1902(v, num, 10);                             \
         S(field).assign(num);                                 \
         if (DAT_00501300[0] == 0) {                           \
             S(field).append(FUN_00405380(mm));                \
         } else {                                              \
             S(field).append(DAT_004f2e40);                    \
             S(field).append(FUN_00405380(inch));              \
-        }
+        } }
         UNIT(a, "Length", 0x12, 0x13, 0)
         UNIT(b, "Width", 0x12, 0x13, 0)
         UNIT(c, "Height", 0x12, 0x13, 0)

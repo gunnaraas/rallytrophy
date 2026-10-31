@@ -184,11 +184,13 @@ struct IniFile {
     void Open(const char* tbl, int n); // 0x4076c0
     const char* GetStr(const char* key); // 0x408170
     int Find(const char* key);         // 0x407d50 (value text lands in the shared number buffer, see ReadValue)
-    void Load(const char* path);       // 0x406ce0
+    bool Load(const char* path, bool a, bool b, int c); // 0x406ce0
 };
 // UI sprite item (0xa0 bytes, ctor 0x4a8580): texture handles at +0/+4, fixed colour/flag words.
 struct UiItem {
     DWORD tex[2];
     DWORD f[0x26];
+    BYTE pad[0x34];
+    UiItem();                          // 0x4a8580
 };
 #endif
