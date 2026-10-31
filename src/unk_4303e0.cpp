@@ -4350,10 +4350,7 @@ public:
 };
 
 // NONMATCHING: RALLYTROPHY 0x437770
-// The forward goto keeps the return value live across string cleanup, reducing the diff 102→83 bytes; body is 1358 vs
-// 1352 bytes, and VC6 places the second cleanup after ret. Target holds the choice in ESI and y in EBX (source swaps
-// them). Target evidence: ev_e1f0bf3ec6bbfbed57e68d3ec7ce422d318338ab1a10657e4c4e28a40d87e309. The braces make x/y
-// share the mouse-warp temporary's slots.
+// Tried 2026-10-30 night: unbraced body with early `if (pressed) return selected; return -1;` tail gives 36->9 insns and 1352 bytes (single result var and goto forms stay 23+); only the esi/ebx swap remains (target: choice in ESI, y bits in EBX); sel moved earlier (reloads, 137), ternary/volatile/register/`selected` re-read and permute.py -r 20 all stuck at 9.
 // Second modal confirmation (two answers "first/second" drawn as `a/b` under a title; text 0x19d, 0x22, 0x23): the
 // arrow keys 0x57ba4d/0x57ba4f move the selection and warp the mouse, the rectangles at +0x139470/+0x139474 select by
 // hover, 0x57ba35/left click or 0x57ba43 confirm. Returns the answer, or -1 while the dialog stays open.
@@ -4391,8 +4388,6 @@ int G16_Game::FUN_00437770(int unused)
     }
     FUN_00436ed0();
     TextRenderer* t = smallText;
-    int result;
-    {
     float y = DAT_0056aeac * 350.0f;
     color.value = DAT_00508c04;
     float x = DAT_0056aea8 * 512.0f;
@@ -4421,14 +4416,8 @@ int G16_Game::FUN_00437770(int unused)
     t->color = color.value;
     t->Print(DAT_0056b0ac, x, y, FUN_00405380(0x23), 0, 1.0f, 1.0f);
     t->color = DAT_00508c04;
-    if (pressed) {
-        result = selected;
-        goto returnResult;
-    }
-    result = -1;
-    }
-returnResult:
-    return result;
+    if (pressed) return selected;
+    return -1;
 }
 
 // ---- Group G17 (draft GH, continued) ----
