@@ -315,6 +315,7 @@ void RaceMode::SendStartTimes()
 extern float DAT_005012f8;             // draw distance for the ghost fade
 
 // NONMATCHING: RALLYTROPHY 0x488aa0
+// Tried 2026-10-30 night: float S + range*range>S, z*z+y*y, volatile y/z reads + float sq, int expiry, store r via *(volatile float*)&r (461 bytes, 28->10 insns); still differs: d copy uses ecx/edx not edx/eax and the arg push uses eax/ecx not ecx/edx (register choice); permute -r 20 found nothing.
 // Plain PE disassembly shows the target spills only d.x*d.x and recomputes y*y+z*z+temp for compare and sqrt.
 // A volatile x-square, reversed y/z sums, and an expiry snapshot reduce the baseline from 440/150 to 444/126
 // bytes/differences.
@@ -348,11 +349,14 @@ void RaceMode::DrawSetup(int a, ViewPoint* view)
             Vec3* pos = (Vec3*)car->body->unk14;
             d -= *pos;
             double range = DAT_005012f8 * 1.5;
-            volatile float xx = d.x * d.x;
-            if (d.z * d.z + d.y * d.y + xx < range * range &&
-                d.z * d.z + d.y * d.y + xx > 100.0f) {
-                car->FUN_004695c0(((float)(int)sqrt((*(volatile float*)&d.z) * d.z +
-                                                       (*(volatile float*)&d.y) * d.y + xx) - 10.0f) * 0.02f);
+            float xx = d.x * d.x;
+            float S = d.z * d.z + d.y * d.y + xx;
+            if (range * range > S && S > 100.0f) {
+                float y = *(volatile float*)&d.y, z = *(volatile float*)&d.z;
+                float sq = (float)sqrt(y * y + z * z + xx);
+                float r;
+                *(volatile float*)&r = ((float)(int)sq - 10.0f) * 0.02f;
+                car->FUN_004695c0(r);
                 m_ghostVisible = 1;
                 car->FUN_00468c70(a);
             }
