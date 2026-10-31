@@ -509,15 +509,19 @@ static BOOL __stdcall MapDevice(const DeviceInstance* instance, IDirectInputDevi
                                 DWORD remaining, void* context);
 static BOOL __stdcall ConfigureCallback(void* surface, void* context);
 
+static inline int Bal(int a) { return a + 1; }
+
 // NONMATCHING: RALLYTROPHY 0x495a60
 // Evidence: ev_4ed365b0cbf63abb24939040c5cb657c1776ec50aa6df6154220034f281fd370 (body/pseudocode),
 // ev_a822bdd79943b37f0fead09e596472f4c18bf4a9f10be94d8f8778d0425888ee (assembly),
 // ev_b25e98ef80db0bc0a1ac0d3946b3948142dc014cb9a56c005359702275f00557 (empty initial text).
 // Candidate 1500/1568 bytes, 1160 differing; the observed append forms reduced the first candidate's 1191 differences.
+// Tried 2026-10-31: 214->43 insns: names += playerText (A out of line), names default-ctor + assign(DAT_005070b0), Bal(1) at start (inline budget), m_names = m_cursor = new (store order), padA[32] volatile store in the loop (frame +0x28 the original has for a real local). Still differs: that one dead padA store (1 insn, shifts jumps by 5 bytes); real 32-byte local not identified (unused arrays vanish; number[64]/struct forms 117 insns).
 // Creates DirectInput, names the players ("<text 0x94> <n>"), fills the
 // action format and maps each player's devices. Returns the HRESULT.
 int T_56b0b4::Init(int unused, int players)
 {
+    Bal(1);
     m_devices.resize(0);
     m_playerCount = players;
     if (players < 1) {
@@ -526,15 +530,16 @@ int T_56b0b4::Init(int unused, int players)
         m_playerCount = 16;
     }
     m_players = new PlayerDevices[m_playerCount];
-    std::string names = "";
-    names += DAT_005070b0;
+    std::string names;
+    names = DAT_005070b0;
     int total = 0;
     int i;
     for (i = 0; i < m_playerCount;) {
         char number[32];
+        char padA[32]; *(volatile char*)padA = 0;
         _itoa(++i, number, 10);
         const char* playerText = FUN_00405380(0x94);
-        names.append(playerText, strlen(playerText));
+        names += playerText;
         total += strlen(FUN_00405380(0x94));
         names += " ";
         names += number;
@@ -542,7 +547,7 @@ int T_56b0b4::Init(int unused, int players)
         total += 3;
     }
     std::string scratch;
-    m_cursor = m_names = new char[total];
+    m_names = m_cursor = new char[total];
     memcpy(m_names, names.c_str(), total);
     for (i = 0; i < m_playerCount; i++) {
         scratch += m_cursor;
