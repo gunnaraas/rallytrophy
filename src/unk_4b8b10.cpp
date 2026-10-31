@@ -1787,13 +1787,60 @@ void MeshModel::Load(const float* src, int count)
 // original: FUN_004b9b20
 ChunkList::~ChunkList() {}
 
-// NONMATCHING: RALLYTROPHY 0x4b9b50
-// original inlines vector::insert via helpers 0x424320/0x424350; push_back codegen differs
+#include <memory>
+void __cdecl StageFree(void* p);           // 0x4bd000
+struct ChunkVec {                          // std::vector<MeshChunk**> layout
+    std::allocator<int> allocator;
+    int* first;
+    int* last;
+    int* end;
+    int* Ucopy(int* f, int* l, int* d);    // 0x424320
+    void Ufill(int* d, unsigned int n, const int* x); // 0x424350
+    void Destroy(int* f, int* l);          // 0x403130
+    unsigned int Size() const { return first == 0 ? 0 : last - first; }
+    unsigned int SizeCall();               // 0x414460 out of line
+};
+void __cdecl StageConstruct(int* p, const int& v); // 0x403140
+static __forceinline void ChunkInsert(ChunkVec* v, int* P, unsigned int M, const int& X)
+{
+    if ((unsigned int)(v->end - v->last) < M) {
+        unsigned int n = v->Size() + (M < v->Size() ? v->Size() : M);
+        int* s = v->allocator.allocate(n, (void*)0);
+        int* q = s;
+        for (int* f = v->first; f != P; ++q, ++f)
+            StageConstruct(q, *f);
+        v->Ufill(q, M, &X);
+        v->Ucopy(P, v->last, q + M);
+        v->Destroy(v->first, v->last);
+        StageFree(v->first);
+        v->end = s + n;
+        v->last = s + v->SizeCall() + M;
+        v->first = s;
+    } else if ((unsigned int)(v->last - P) < M) {
+        v->Ucopy(P, v->last, P + M);
+        v->Ufill(v->last, M - (v->last - P), &X);
+        for (int* p = P; p != v->last; ++p)
+            *p = X;
+        v->last += M;
+    } else {
+        v->Ucopy(v->last - M, v->last, v->last);
+        int* d = v->last;
+        for (int* f = v->last - M; P != f; )
+            *--d = *--f;
+        for (int* p = P; p != P + M; ++p)
+            *p = X;
+        v->last += M;
+    }
+}
+
+// FUNCTION: RALLYTROPHY 0x4b9b50
+// push_back is really an inlined vector::insert(end(), 1, x) with x a reference to the chunk element (see StageInsert in unk_40c280.cpp)
 // original: FUN_004b9b50
 void ChunkList::AddFlagged(MeshModel* model)
 {
-    for (unsigned i = 0; !model->chunks.empty() && i < model->chunks.size(); i++) {
+    for (unsigned i = 0; i < model->chunks.size(); i++) {
+        MeshChunk* c = model->chunks[i];
         MeshChunk** e = &model->chunks[i];
-        if ((*e)->material->flags & 0x100) items.push_back(e);
+        if (c->material->flags & 0x100) { ChunkVec* v = (ChunkVec*)&items; ChunkInsert(v, v->last, 1, *(int*)e); }
     }
 }
