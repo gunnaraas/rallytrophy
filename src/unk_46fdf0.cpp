@@ -535,6 +535,7 @@ ParallelShadow::~ParallelShadow()
 // Allocates the shadow texture: a render target when the device can draw into textures, else a texture
 // filled by the software rasteriser through a system-memory copy.
 // Tried 2026-10-30 night: passing size directly instead of w/h locals in CreateRenderTarget (no change, same 8 insns); original hoists the push ebx/ecx/ecx arg pushes into the middle of the field-store run, which no source reorder tried reproduces.
+// Tried 2026-10-31 pass 2: all 2x128 volatile-group subsets per arm (best 7 insns with only unk70 volatile, 136 bytes), volatile factory/self/size/tex, zero-flag local, ok-var, w/h order and h=w chains, late tex/factory; permute.py -r 40 found nothing below 8. Original interleaves the arg pushes (0,h | w | tex) and vtable load between store groups; ours always clusters them at the call or hoists the whole setup too early.
 void ParallelShadow::Create(ShadowEngine* engine, int size)
 {
     ShadowFactory* factory = engine->factory;
