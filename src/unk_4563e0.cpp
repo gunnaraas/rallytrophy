@@ -1009,6 +1009,7 @@ inline void G2_Normalize(float* p)
 // Camera step called once per frame by Car::Update (and by FUN_004566e0 with dt 0): saves the previous pose, then
 // builds the view pose (V->pos, V->matrix rows right/up/forward, V->fov, V->nearPlane) from the stage camera zone
 // (+0x1e8), or from the preset of camera view +0x1d4 (0-5 chase with ray-cast clearance, 6 rigid look-at, 7/8 mounted).
+// Tried 2026-10-30 night: savedPos store order, int-copy temps, volatile barriers, pos/matrix local order/macros, hoisted locals; only z-before-y savedPos helped (422->419); frame slots (matrix/pos spills at -0x20/-0x30, 12-byte local at -0x48) still differ.
 #define V ((G2_View*)this)
 void ViewManager::FUN_00456b10(float dt)
 {
@@ -1016,8 +1017,8 @@ void ViewManager::FUN_00456b10(float dt)
     float* matrix = V->matrix;
     V->dt = dt;
     V->savedPos.x = pos[0];
-    V->savedPos.y = pos[1];
     V->savedPos.z = pos[2];
+    V->savedPos.y = pos[1];
     memcpy(V->prevMatrix, matrix, sizeof(V->matrix));
     if (V->flag1e0) {
         V->flag134 = 0;
