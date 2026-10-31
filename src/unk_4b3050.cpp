@@ -5,150 +5,113 @@ static inline int FloatBits(const float& f) { return *(const int*)&f; }
 static inline float AbsF(float f) { return (float)fabs(f); }
 
 // NONMATCHING: RALLYTROPHY 0x4b3800
-// MSVC6 elides the original EH frame; region temporaries and x87 scheduling also differ.
-// Tried 2026-10-31: C++-linkage twin via /alternatename gives the EH frame (state store matches) but 295->314; param-slot aliases for s/t/dots (point/origin/e1/e2 slots hold s,t,fVar5,fVar4 in the original), pointer copies, diff.x vs local copies: 306-348; original branch layout/frame (0x24, fVar7/fVar6 spilled only as s/t) still differs.
 float __cdecl fun_004b3800(float* point, float* origin, float* e1, float* e2, float* out)
 {
     Vec3 diff = *(Vec3*)origin - *(Vec3*)point;
-    float local_24 = diff.x, local_20 = diff.y, local_1c = diff.z;
-    float fVar1, fVar2, fVar3, fVar4, fVar5, fVar6, fVar7, fVar8;
-    float s, t, distance;
-  fVar1 = *e1 * *e1 + e1[1] * e1[1] + e1[2] * e1[2];
-  fVar2 = *e1 * *e2 + e1[1] * e2[1] + e1[2] * e2[2];
-  fVar3 = *e2 * *e2 + e2[1] * e2[1] + e2[2] * e2[2];
-  fVar4 = local_24 * *e1 + local_20 * e1[1] + local_1c * e1[2];
-  fVar5 = local_24 * *e2 + local_20 * e2[1] + local_1c * e2[2];
-  distance = (local_24 * local_24 + local_20 * local_20 + local_1c * local_1c);
-  fVar6 = AbsF(fVar3 * fVar1 - fVar2 * fVar2);
-  fVar7 = fVar5 * fVar2 - fVar4 * fVar3;
-  fVar8 = fVar4 * fVar2 - fVar5 * fVar1;
-  if (fVar6 < fVar8 + fVar7) {
-    if (0.0f <= fVar7) {
-      if (0.0f <= fVar8) {
-        fVar6 = ((fVar5 + fVar3) - fVar2) - fVar4;
-        if (fVar6 <= 0.0f) {
-          s = 0.0f;
-          t = 1.0f;
-          distance = (fVar5 + fVar5 + distance + fVar3);
-          goto LAB_004b3d1d;
+    float a = e1[0]*e1[0] + e1[1]*e1[1] + e1[2]*e1[2];
+    float b = e1[0]*e2[0] + e2[2]*e1[2] + e2[1]*e1[1];
+    float c = e2[0]*e2[0] + e2[1]*e2[1] + e2[2]*e2[2];
+    float d, e, s, t, f8, tmp, numer, denom;
+    d = diff.x*e1[0]; d = diff.y*e1[1] + d; d = diff.z*e1[2] + d;
+    e = diff.y*e2[1]; e = diff.z*e2[2] + e; e = diff.x*e2[0] + e;
+    float dist = diff.y*diff.y; dist = diff.z*diff.z + dist; dist = diff.x*diff.x + dist;
+    t = (float)fabs(c*a - b*b);
+    s = e*b - d*c;
+    f8 = d*b - e*a;
+    if (f8 + s <= t) {
+        if (s < 0.0f) {
+            if (f8 < 0.0f) {
+                if (d < 0.0f) {
+                    t = 0.0f;
+                    if (-d >= a) { s = 1.0f; e = d + d + dist + a; goto END; }
+                    goto S_NEGD;
+                }
+                s = 0.0f;
+                if (e >= 0.0f) { e = dist; t = 0.0f; goto END; }
+                goto L_E;
+            }
+            s = 0.0f;
+            if (e >= 0.0f) { e = dist; t = 0.0f; goto END; }
+L_E:
+            if (-e >= c) { t = 1.0f; e = e + e + dist + c; goto END; }
+            goto T_NEGE;
         }
-        fVar7 = (fVar1 - (fVar2 + fVar2)) + fVar3;
-        if (fVar6 < fVar7) goto LAB_004b3cc5;
-LAB_004b3ca1:
-        s = 1.0f;
-        t = 0.0f;
-        distance = (fVar4 + fVar4 + distance + fVar1);
-        goto LAB_004b3d1d;
-      }
-      fVar6 = fVar4 + fVar1;
-      if (fVar5 + fVar2 < fVar6) {
-        fVar6 = fVar6 - (fVar5 + fVar2);
-        fVar7 = (fVar1 - (fVar2 + fVar2)) + fVar3;
-        if (fVar7 <= fVar6) {
-          t = 1.0f;
-          s = 0.0f;
-          distance = (fVar5 + fVar5 + distance + fVar3);
-          goto LAB_004b3d1d;
+        if (f8 < 0.0f) {
+            t = 0.0f;
+            if (d < 0.0f) {
+                if (-d >= a) { s = 1.0f; e = d + d + dist + a; goto END; }
+                goto S_NEGD;
+            }
+            e = dist; s = 0.0f; goto END;
         }
-        t = (fVar6 / fVar7);
-        s = (1.0f - t);
-        goto LAB_004b3cdb;
-      }
-      t = 0.0f;
-      if (fVar6 <= 0.0f) {
-        s = 1.0f;
-        distance = (fVar4 + fVar4 + distance + fVar1);
-        goto LAB_004b3d1d;
-      }
-      if (0.0f <= fVar4) {
-        s = 0.0f;
-        goto LAB_004b3d1d;
-      }
-      goto LAB_004b3c31;
+        {
+            double inv = 1.0 / t;
+            s = (float)(inv * s);
+            t = (float)(inv * f8);
+        }
+        goto SUM;
+    } else {
+        if (s < 0.0f) {
+            t = d + b;
+            tmp = e + c;
+            if (tmp > t) {
+                numer = tmp - t;
+                denom = (a - (b + b)) + c;
+                if (numer >= denom) goto L_1;
+                s = numer / denom;
+                t = 1.0f - s;
+                goto SUM;
+            }
+            s = 0.0f;
+            if (tmp <= 0.0f) { t = 1.0f; e = e + e + dist + c; goto END; }
+            if (e >= 0.0f) { e = dist; t = 0.0f; goto END; }
+            goto T_NEGE;
+        }
+        if (f8 < 0.0f) {
+            t = e + b;
+            tmp = d + a;
+            if (tmp > t) {
+                numer = tmp - t;
+                denom = (a - (b + b)) + c;
+                if (numer >= denom) { t = 1.0f; s = 0.0f; e = e + e + dist + c; goto END; }
+                t = numer / denom;
+                s = 1.0f - t;
+                goto SUM;
+            }
+            t = 0.0f;
+            if (tmp <= 0.0f) { s = 1.0f; e = d + d + dist + a; goto END; }
+            if (d >= 0.0f) { e = dist; s = 0.0f; goto END; }
+            goto S_NEGD;
+        }
+        t = ((e + c) - b) - d;
+        if (t <= 0.0f) { s = 0.0f; t = 1.0f; e = e + e + dist + c; goto END; }
+        {
+            denom = (a - (b + b)) + c;
+            if (t >= denom) {
+L_1:
+                s = 1.0f; t = 0.0f; e = d + d + dist + a; goto END;
+            }
+            s = t / denom;
+            t = 1.0f - s;
+        }
     }
-    fVar6 = fVar5 + fVar3;
-    if (fVar6 <= fVar4 + fVar2) {
-      s = 0.0f;
-      if (fVar6 <= 0.0f) {
-        t = 1.0f;
-        distance = (fVar5 + fVar5 + distance + fVar3);
-        goto LAB_004b3d1d;
-      }
-      if (0.0f <= fVar5) {
-        t = 0.0f;
-        goto LAB_004b3d1d;
-      }
-      goto LAB_004b3b37;
-    }
-    fVar6 = fVar6 - (fVar4 + fVar2);
-    fVar7 = (fVar1 - (fVar2 + fVar2)) + fVar3;
-    if (fVar7 <= fVar6) goto LAB_004b3ca1;
-LAB_004b3cc5:
-    s = (fVar6 / fVar7);
-    t = (1.0f - s);
-LAB_004b3cdb:
-    fVar5 = (fVar4 + fVar4 + s * fVar1 + t * fVar2) * s +
-            (fVar5 + fVar5 + s * fVar2 + t * fVar3) * t;
-  }
-  else if (0.0f <= fVar7) {
-    if (0.0f <= fVar8) {
-      fVar6 = (float)(1.0 / fVar6);
-      s = (fVar6 * fVar7);
-      t = (fVar6 * fVar8);
-      goto LAB_004b3cdb;
-    }
-    t = 0.0f;
-    if (0.0f <= fVar4) {
-      s = 0.0f;
-      goto LAB_004b3d1d;
-    }
-LAB_004b3980:
-    t = 0.0f;
-    if (fVar1 <= -fVar4) {
-      s = 1.0f;
-      distance = (fVar4 + fVar4 + distance + fVar1);
-      goto LAB_004b3d1d;
-    }
-LAB_004b3c31:
-    t = 0.0f;
-    s = -(fVar4 / fVar1);
-    fVar5 = s * fVar4;
-  }
-  else {
-    if (0.0f <= fVar8) {
-      s = 0.0f;
-      if (0.0f <= fVar5) {
-        t = 0.0f;
-        goto LAB_004b3d1d;
-      }
-    }
-    else {
-      if (fVar4 < 0.0f) goto LAB_004b3980;
-      s = 0.0f;
-      if (0.0f <= fVar5) {
-        t = 0.0f;
-        goto LAB_004b3d1d;
-      }
-    }
-    s = 0.0f;
-    if (fVar3 <= -fVar5) {
-      t = 1.0f;
-      distance = (fVar5 + fVar5 + distance + fVar3);
-      goto LAB_004b3d1d;
-    }
-LAB_004b3b37:
-    s = 0.0f;
-    t = -(fVar5 / fVar3);
-    fVar5 = t * fVar5;
-  }
-  distance = (fVar5 + distance);
-LAB_004b3d1d:
+SUM:
+    e = ((t*c + s*b + (e + e)) * t + (t*b + s*a + (d + d)) * s) + dist;
+    goto END;
+S_NEGD:
+    s = -(d / a);
+    e = s * d + dist;
+    goto END;
+T_NEGE:
+    t = -(e / c);
+    e = t * e + dist;
+END:
     if (out) {
         *(Vec3*)out = *(Vec3*)origin;
         *(Vec3*)out += *(Vec3*)e1 * s;
         *(Vec3*)out += *(Vec3*)e2 * t;
     }
-    return AbsF(distance);
+    return (float)fabs(e);
 }
 
 __declspec(naked)
