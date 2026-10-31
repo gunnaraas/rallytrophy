@@ -2373,6 +2373,7 @@ extern float DAT_0057ba00, DAT_0057ba04;   // mouse position
 extern int DAT_0057ba20, DAT_0057ba24;     // left / right button pressed
 
 // NONMATCHING: RALLYTROPHY 0x48cf80
+// Tried 2026-10-30 night: reading the second stage array via [unk28] instead of [stage] defeats CSE (121 -> 91 insns); volatile reset store/read made it worse (400+ lines diff); still differs in the dead reset=0 store, the setne enter ternary and cross-jumped sel=1 tails.
 // 2121 vs 2145 bytes, 96% of the instruction stream aligns. Open: the original keeps a never-folded zero in
 // the dead `reset` slot ([esp+0x5c] = 0, read back as `enter`), indexes the two stage-record arrays twice
 // without CSE, and cross-jumps the `sel = 1` tails of the delta chain. LapString (not std::string) gives the
@@ -2399,7 +2400,7 @@ int RaceMode::PauseMenu(int reset, int noRestart)
         int best = ((StageTable*)((char*)DAT_0056b0c8 + 0x3aec))->FUN_00443620(stage);
         if (DAT_00501458) {
             best = ((StageRecord*)((char*)DAT_0056b0c8 + 0x367c))[stage].best;
-            time -= ((StageRecord*)((char*)DAT_0056b0c8 + 0x3680))[stage].best;
+            time -= ((StageRecord*)((char*)DAT_0056b0c8 + 0x3680))[unk28].best;
         }
         if (time == best) {
             atBest = 1;
@@ -2523,7 +2524,7 @@ int RaceMode::PauseMenu(int reset, int noRestart)
                         int best = ((StageTable*)((char*)DAT_0056b0c8 + 0x3aec))->FUN_00443620(stage);
                         if (DAT_00501458) {
                             best = ((StageRecord*)((char*)DAT_0056b0c8 + 0x367c))[stage].best;
-                            time -= ((StageRecord*)((char*)DAT_0056b0c8 + 0x3680))[stage].best;
+                            time -= ((StageRecord*)((char*)DAT_0056b0c8 + 0x3680))[unk28].best;
                         }
                         if (time == best) {
                             if (stage == ((StageTable*)((char*)DAT_0056b0c8 + 0x3aec))->FUN_00443580()) {
@@ -2540,7 +2541,7 @@ int RaceMode::PauseMenu(int reset, int noRestart)
                         int best = ((StageTable*)((char*)DAT_0056b0c8 + 0x3aec))->FUN_00443620(stage);
                         if (DAT_00501458) {
                             best = ((StageRecord*)((char*)DAT_0056b0c8 + 0x367c))[stage].best;
-                            time -= ((StageRecord*)((char*)DAT_0056b0c8 + 0x3680))[stage].best;
+                            time -= ((StageRecord*)((char*)DAT_0056b0c8 + 0x3680))[unk28].best;
                         }
                         if (time == best) {
                             text.assign(FUN_00405380(0x17));
