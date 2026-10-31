@@ -231,6 +231,7 @@ struct OldScoreRecord {
     char name[0x1e];                   // 0x00
     int carClass;                      // 0x20: index into DAT_004ff354
     char unk24;                        // 0x24: car class
+    char pad25[3];
     SYSTEMTIME date;                   // 0x28
     int splits[10];                    // 0x38
     int time;                          // 0x60
@@ -238,8 +239,9 @@ struct OldScoreRecord {
 };
 
 // NONMATCHING: RALLYTROPHY 0x490470
-// 918 vs 929 bytes. Structure, loops and frame are the same; the register assignment differs (this in ebp instead of ebx),
+// 914 vs 929 bytes (86 insns differ, was 94). Structure, loops and frame are the same; the register assignment differs (this in ebp instead of ebx),
 // so the loop counters and several operands are swapped.
+// Tried 2026-10-30 night: OldScoreRecord needed pad25 (date at 0x28, 94->~92), `!g ? g : X` for the g loop base (94->86); folding the unk1f/+3 terms (c+1, old.unk24, base+h+3, count-counts), loop var declaration order and row hoisting leave 86; original keeps two induction values (230*(b+h) in ebp, 23*(b+h)+1 in a stack slot) and this in ebx.
 // Loads the highscore file: the current format is the whole table, enciphered; the older formats are converted.
 void RecordTable::FUN_00490470(const char* file)
 {
@@ -260,7 +262,7 @@ void RecordTable::FUN_00490470(const char* file)
     } else if (magic == DAT_004ff348) {
         dirty = 1;
         for (int g = 0; g < 5; g++) {
-            int base = g ? g * 11 + 2 : 0;
+            int base = !g ? g : g * 11 + 2;
             for (int h = 0; h < 13; h++) {
                 for (int k = 0; k < 23; k++) {
                     for (int e = 0; e < 10; e++) {
@@ -279,7 +281,7 @@ void RecordTable::FUN_00490470(const char* file)
     } else if (magic == DAT_004ff344) {
         dirty = 1;
         for (int g = 0; g < 5; g++) {
-            int base = (g ? g * 11 + 2 : 0) + 3;
+            int base = (!g ? 0 : g * 11 + 2) + 3;
             for (int h = 0; h < 10; h++) {
                 char counts[22];
                 memset(counts, 0, sizeof counts);
