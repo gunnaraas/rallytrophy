@@ -53,21 +53,24 @@ inline void XformT(float* o, const float* p, const float* m, const float* t)
 
 // NONMATCHING: RALLYTROPHY 0x40a850
 // reason: Xform+translation x87 block (mn corner) is now inline asm like the original and the ebp frame matches; remaining: original keeps this/list in stack locals (ebp-0x44/-0x54) with different register allocation and FPU scheduling (1970 vs 2098 bytes, 1692 differing).
+// Tried 2026-10-31: ~25 variants; in-place Vec3 copy-then-modify (lo/hi/ax/ay/az as the original's int copies), volatile this/list spill slots, l->items[i]->state re-read, car-first decl order took 417->405 insns; still differs: original keeps i/hit in stack slots with this=esi/list=edi, and slot order of lo/hi/ax/ay/az/v0/w0 plus FPU scheduling.
 // original: FUN_0040a850
 void U40A850Prop::Fn(int dt)
 {
     U40A850List* l = list;
     time += dt;
+    U40A850Prop* volatile self = this;
+    U40A850List* volatile lv = l;
     int hit = 0;
     int i = 0;
     if (0 < l->items.Size()) {
         do {
             U40A850Item* it = l->items[i];
-            if (l->Accept(it) && it->state != 3 && it->state != 2) {
-                U40A850Body* a = body;
+            if (l->Accept(it) && l->items[i]->state != 3 && l->items[i]->state != 2) {
                 U40A850Car* car = it->car;
+                U40A850Body* a = body;
                 U40A850Body* b = car->body;
-                Vec3 d(a->pos[0] - b->pos[0], a->pos[1] - b->pos[1], a->pos[2] - b->pos[2]);
+                Vec3 d(a->pos[0], a->pos[1], a->pos[2]); d.x -= b->pos[0]; d.y -= b->pos[1]; d.z -= b->pos[2];
                 if (d.y * d.y + d.z * d.z + d.x * d.x <= 1000.0f) {
                     if (FUN_004ad1d0((float*)a->box + 1, (float*)b->box + 1, a->mat[0], b->mat[0], a->pos, b->pos)) {
                         car->applied = 1;
@@ -79,10 +82,10 @@ void U40A850Prop::Fn(int dt)
                 }
             }
             i++;
-        } while (i < l->items.Size());
+        } while (i < lv->items.Size());
         if (hit) {
-            active = 1;
-            time = 0;
+            self->active = 1;
+            self->time = 0;
         }
     }
     if (active) {
@@ -90,14 +93,19 @@ void U40A850Prop::Fn(int dt)
         float v0x = a->vel[0], v0y = a->vel[1], v0z = a->vel[2];
         float w0x = a->ang[0], w0y = a->ang[1], w0z = a->ang[2];
         U40A850Box* bx = a->box;
-        Vec3 lo(bx->lo[0] - 0.1f, bx->lo[1] - 0.1f, bx->lo[2] - 0.1f);
-        Vec3 hi(bx->hi[0] + 0.1f, bx->hi[1] + 0.1f, bx->hi[2] + 0.1f);
+        Vec3 lo = *(Vec3*)bx->lo;
+        Vec3 hi = *(Vec3*)bx->hi;
+        lo.x -= 0.1f; lo.y -= 0.1f; lo.z -= 0.1f;
+        hi.x += 0.1f; hi.y += 0.1f; hi.z += 0.1f;
+        Vec3 ax = *(Vec3*)a->mat[0];
+        Vec3 ay = *(Vec3*)a->mat[1];
+        Vec3 az = *(Vec3*)a->mat[2];
         float ex = hi.x - lo.x;
-        Vec3 ax(ex * a->mat[0][0], ex * a->mat[0][1], ex * a->mat[0][2]);
+        ax.x = ex * ax.x; ax.y = ex * ax.y; ax.z = ex * ax.z;
         float ey = hi.y - lo.y;
-        Vec3 ay(ey * a->mat[1][0], ey * a->mat[1][1], ey * a->mat[1][2]);
+        ay.x = ey * ay.x; ay.y = ey * ay.y; ay.z = ey * ay.z;
         float ez = hi.z - lo.z;
-        Vec3 az(ez * a->mat[2][0], ez * a->mat[2][1], ez * a->mat[2][2]);
+        az.x = ez * az.x; az.y = ez * az.y; az.z = ez * az.z;
         Vec3 mn;
         XformT(&mn.x, &lo.x, &a->mat[0][0], a->pos);
         Vec3 mx(mn.x + ax.x, mn.y + ax.y, mn.z + ax.z);
