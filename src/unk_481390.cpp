@@ -1943,7 +1943,7 @@ void NetRace::OnReceive(Player* sender, const BYTE* data, DWORD size)
 // Tried returns per case, a result variable with and without a default
 // case, assigning the parameter, and inline per-message handlers (worse:
 // nested inlining stops vector::size from inlining).
-// Tried 2026-10-30 night: ~20 variants (early/late result assignment, goto-done, volatile/reference result, size reused as result, unsigned switch, dummy locals); result constants still fold into returns instead of living in ebp, 52 insns differ.
+// Tried 2026-10-30 night: ~20 variants (early/late result assignment, goto-done, volatile/reference result, size reused as result, unsigned switch, dummy locals); result constants still fold into returns instead of living in ebp, 52 insns differ; all 128 splits of return K vs length=K;break across the 7 cases (the Player::FUN_00491490 form) compile to identical bytes (52 differ, 127=all-return gives 55), as do `length=K; return length;`, `return length=K;`, and do/while wrapping.
 // Handles one race message; returns its size.
 int NetRace::OnMessage(const BYTE* data, int size)
 {
