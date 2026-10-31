@@ -282,13 +282,14 @@ ConfigKey TyreKeys[270] = {
 
 extern char DAT_005093f8[];            // scratch buffer for the set number
 
+static inline int Bal(int a) { return a + 1; }
 // original: FUN_00465e90
 // NONMATCHING: RALLYTROPHY 0x465e90
 // 1649 vs 1644 bytes. Strings (PathString: out-of-line _Tidy, inline assign), the nine key-template copies, the
 // digit patching and the per-surface fld/fmul/fstp sequence match; open: the induction pointer is biased to record+0x10
 // (original +0x18), the digit chars are kept in cl/dl (original al), and the runtime_error copy inlines _Tidy (original
 // calls 0x402700).
-// Tried 2026-10-31: byte-cursor induction (sibling 0x45e480 idiom) for all or only the first four stores moves the bias only to +0x14 or breaks ebp allocation; remaining diffs are EH/string setup, digit regs (cl/dl vs al) and fld/fmul operand order of the vec3 scale.
+// Tried 2026-10-31 (second pass, 87->35 insns, size now 1644 = original): 6 trailing discarded Bal(1) keep the runtime_error _Tidy out of line (4 do nothing, 6-12 same); int tens/ones + (char)(t+'0') puts the digits in al; a float* cp induction (zStiffness.v[2], cp += 16) gives the original +0x18 bias. Still differs: value lands in ebx instead of ebp when cp exists (any cp placement, volatile reads of value tried), and the fld/fmul operand order of the vec3 scales (expression form, temp k, volatile all leave it). Earlier: byte-cursor induction (sibling 0x45e480 idiom) for all or only the first four stores moves the bias only to +0x14 or breaks ebp allocation; remaining diffs are EH/string setup, digit regs (cl/dl vs al) and fld/fmul operand order of the vec3 scale.
 void Car::FUN_00465e90(int value)
 {
     CarSetupView* v = (CarSetupView*)this;
@@ -313,72 +314,74 @@ void Car::FUN_00465e90(int value)
     char zFriction[] = "Dyn00ZFriction";
     char xFriction[] = "Dyn00XFriction";
     const TyreSurface* scale = &v->tyreScale[value];
+    float* cp = &v->surface[0].zStiffness.v[2];
     for (int i = 0; i < 30; i++) {
-        char tens = (char)(i / 10 + '0');
-        char ones = (char)(i % 10 + '0');
-        rollingResistance[3] = tens;
-        inducedDrag[3] = tens;
-        pneumaticTrail[3] = tens;
-        pneumaticOffset[3] = tens;
-        zStiffness[3] = tens;
-        xStiffness[3] = tens;
-        cStiffness[3] = tens;
-        zFriction[3] = tens;
-        xFriction[3] = tens;
-        rollingResistance[4] = ones;
-        inducedDrag[4] = ones;
-        pneumaticTrail[4] = ones;
-        pneumaticOffset[4] = ones;
-        zStiffness[4] = ones;
-        xStiffness[4] = ones;
-        cStiffness[4] = ones;
-        zFriction[4] = ones;
-        xFriction[4] = ones;
-        TyreSurface* s = &v->surface[i];
-        s->rollingResistance = config.GetFloat(rollingResistance) * scale->rollingResistance;
-        s->inducedDrag = config.GetFloat(inducedDrag) * scale->inducedDrag;
-        s->pneumaticTrail = config.GetFloat(pneumaticTrail) * scale->pneumaticTrail;
-        s->pneumaticOffset = config.GetFloat(pneumaticOffset) * scale->pneumaticOffset;
+        int tens = i / 10;
+        int ones = i % 10;
+        rollingResistance[3] = (char)(tens + '0');
+        inducedDrag[3] = (char)(tens + '0');
+        pneumaticTrail[3] = (char)(tens + '0');
+        pneumaticOffset[3] = (char)(tens + '0');
+        zStiffness[3] = (char)(tens + '0');
+        xStiffness[3] = (char)(tens + '0');
+        cStiffness[3] = (char)(tens + '0');
+        zFriction[3] = (char)(tens + '0');
+        xFriction[3] = (char)(tens + '0');
+        rollingResistance[4] = (char)(ones + '0');
+        inducedDrag[4] = (char)(ones + '0');
+        pneumaticTrail[4] = (char)(ones + '0');
+        pneumaticOffset[4] = (char)(ones + '0');
+        zStiffness[4] = (char)(ones + '0');
+        xStiffness[4] = (char)(ones + '0');
+        cStiffness[4] = (char)(ones + '0');
+        zFriction[4] = (char)(ones + '0');
+        xFriction[4] = (char)(ones + '0');
+        cp[-6] = config.GetFloat(rollingResistance) * scale->rollingResistance;
+        cp[-5] = config.GetFloat(inducedDrag) * scale->inducedDrag;
+        cp[-4] = config.GetFloat(pneumaticTrail) * scale->pneumaticTrail;
+        cp[-3] = config.GetFloat(pneumaticOffset) * scale->pneumaticOffset;
         {
             const TyreF3& r = *(const TyreF3*)&config.GetVector3(zStiffness);
-            s->zStiffness.i[0] = r.i[0];
-            s->zStiffness.i[1] = r.i[1];
-            s->zStiffness.i[2] = r.i[2];
+            *(int*)&cp[-2] = r.i[0];
+            *(int*)&cp[-1] = r.i[1];
+            *(int*)&cp[0] = r.i[2];
         }
-        s->zStiffness.v[0] *= scale->zStiffness.v[0];
-        s->zStiffness.v[1] *= scale->zStiffness.v[1];
-        s->zStiffness.v[2] *= scale->zStiffness.v[2];
+        cp[-2] *= scale->zStiffness.v[0];
+        cp[-1] *= scale->zStiffness.v[1];
+        cp[0] *= scale->zStiffness.v[2];
         {
             const TyreF3& r = *(const TyreF3*)&config.GetVector3(xStiffness);
-            s->xStiffness.i[0] = r.i[0];
-            s->xStiffness.i[1] = r.i[1];
-            s->xStiffness.i[2] = r.i[2];
+            *(int*)&cp[1] = r.i[0];
+            *(int*)&cp[2] = r.i[1];
+            *(int*)&cp[3] = r.i[2];
         }
-        s->xStiffness.v[0] *= scale->xStiffness.v[0];
-        s->xStiffness.v[1] *= scale->xStiffness.v[1];
-        s->xStiffness.v[2] *= scale->xStiffness.v[2];
+        cp[1] *= scale->xStiffness.v[0];
+        cp[2] *= scale->xStiffness.v[1];
+        cp[3] *= scale->xStiffness.v[2];
         {
             const TyreF2& r = *(const TyreF2*)&config.GetVector2(cStiffness);
-            s->cStiffness.i[0] = r.i[0];
-            s->cStiffness.i[1] = r.i[1];
+            *(int*)&cp[4] = r.i[0];
+            *(int*)&cp[5] = r.i[1];
         }
-        s->cStiffness.v[0] *= scale->cStiffness.v[0];
-        s->cStiffness.v[1] *= scale->cStiffness.v[1];
+        cp[4] *= scale->cStiffness.v[0];
+        cp[5] *= scale->cStiffness.v[1];
         {
             const TyreF2& r = *(const TyreF2*)&config.GetVector2(zFriction);
-            s->zFriction.i[0] = r.i[0];
-            s->zFriction.i[1] = r.i[1];
+            *(int*)&cp[6] = r.i[0];
+            *(int*)&cp[7] = r.i[1];
         }
-        s->zFriction.v[0] *= scale->zFriction.v[0];
-        s->zFriction.v[1] *= scale->zFriction.v[1];
+        cp[6] *= scale->zFriction.v[0];
+        cp[7] *= scale->zFriction.v[1];
         {
             const TyreF2& r = *(const TyreF2*)&config.GetVector2(xFriction);
-            s->xFriction.i[0] = r.i[0];
-            s->xFriction.i[1] = r.i[1];
+            *(int*)&cp[8] = r.i[0];
+            *(int*)&cp[9] = r.i[1];
         }
-        s->xFriction.v[0] *= scale->xFriction.v[0];
-        s->xFriction.v[1] *= scale->xFriction.v[1];
+        cp[8] *= scale->xFriction.v[0];
+        cp[9] *= scale->xFriction.v[1];
+        cp += 16;
     }
+    Bal(1); Bal(1); Bal(1); Bal(1); Bal(1); Bal(1); 
 }
 
 // original: FUN_00466500
