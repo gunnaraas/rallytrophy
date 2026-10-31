@@ -602,9 +602,7 @@ int TriangleProjection::Point(const float* p,const float* a,const float* b,const
        d*((-x*c[ix]-y*c[iy])+y*p[iy]+x*p[ix])>0.0) return 1;
     return 0;
 }
-// NONMATCHING: RALLYTROPHY 0x4b65d0
-// Cross is the inline-asm helper; only the third-section p-v[2] delta copy still differs (x is int-copied instead of folded into fld/fsub; 13 instructions).
-// Tried 2026-10-30 night: dot as (y*y+z*z)+x*x, int-local return test (24->13), ~35 variants incl. block temps, per-field subtract, local pointers, permute -r 20; copy of delta.x in 3rd section still goes through an int slot.
+// FUNCTION: RALLYTROPHY 0x4b65d0
 int TriangleProjection::Contains(const float* p)
 {
     Vec3 cross;Cross((float*)&cross,n,e);
@@ -615,8 +613,9 @@ int TriangleProjection::Contains(const float* p)
     Cross((float*)&cross,n,(float*)&edge);
     side=(delta.y*cross.y+delta.z*cross.z)+delta.x*cross.x;
     if((*(volatile int*)&side)&0x80000000)return 0;
-    delta=*(const Vec3*)p;delta-=*(const Vec3*)v[2];
-    edge=*(const Vec3*)v[0];edge-=*(const Vec3*)v[2];
+    delta.x=p[0];delta.y=p[1];delta.z=p[2];
+    delta.x-=v[2][0];delta.y-=v[2][1];delta.z-=v[2][2];
+    edge.x=v[0][0];edge.y=v[0][1];edge.z=v[0][2];edge-=*(const Vec3*)v[2];
     Cross((float*)&cross,n,(float*)&edge);
     side=(delta.y*cross.y+delta.z*cross.z)+delta.x*cross.x;
     int neg=*(int*)&side&0x80000000;return !neg;
