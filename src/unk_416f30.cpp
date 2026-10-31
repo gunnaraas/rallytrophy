@@ -477,6 +477,7 @@ static inline void CopyProp(StageProp* d, const StageProp* src)
 // 797 vs 818 bytes: the three branches, calls and loops are in place. Open: M lives in esi (ours edi, swapped with
 // last), and the two inlined element copies address the element from +0x14 (ours +0x8); a plain-order copy helper
 // and a derived operator= twin did not change that.
+// Tried 2026-10-30 night: cached last/M locals, M-first compares, int-typed/reordered/by-reference CopyProp bodies, P+M hoist, else-without-guard; none moved M/last registers or the +0x14 element base (int copies and reversed order made it worse); 3rd-loop lea base still differs.
 void PropVec::Ins(StageProp* P, unsigned int M, const StageProp& X)
 {
     if ((unsigned int)(end - last) < M) {
