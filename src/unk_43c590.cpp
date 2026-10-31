@@ -205,6 +205,7 @@ int MenuManager::Run(MenuGame* game, NetRace* session)
 // (`cmp eax,ebp` after the second Contains loop, `push ebp` args, imm -1 EH stores) while mine puts -1 in ebp after the
 // Up/Down block; the (1, 1) object and the GetScale copy sit in swapped frame slots (0x34/0x3c); the
 // title Print's device load is now early, but uses a different register.
+// Tried 2026-10-30 night: `!= 0` for the second Contains loop (was `!= first`; 28->25 insns, ebp now holds zero); moving M3_Unit/HudPoint decls, dropping titleDevice, hoisting title args all worse or equal; still differs: (1,1) object and GetScale copy in swapped slots (0x34/0x3c), title Print device load early in esi.
 // original: FUN_0043cc50 (thiscall; MenuManager::Frame)
 int MenuManager::Frame()
 {
@@ -274,7 +275,7 @@ int MenuManager::Frame()
             SetCursorPos((int)(cx * sx), (int)(cy * sy));
         }
         for (int i = 0; i < 6; i++) {
-            if (m_selected != i && m_items[i]->Contains(*((MouseInput*)DAT_0056b0c0)->GetPosition()) != first) {
+            if (m_selected != i && m_items[i]->Contains(*((MouseInput*)DAT_0056b0c0)->GetPosition()) != 0) {
                 m_selected = i;
                 m_game->Play(0);
             }
