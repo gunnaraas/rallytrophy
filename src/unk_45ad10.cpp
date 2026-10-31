@@ -1601,6 +1601,7 @@ void Car::PhysicsStep(float dt)
 // non-popping fsub (fld A, fld B, fxch, fsub st,st(1)) and keeps four separate pointer temporaries; the
 // Vec3 local slots (arm/dead) and the torque add operand order (fld tmp; fadd torque) are not reproduced.
 // Anti-roll store order and aggregate initialization each worsened the count by one; a local torque result did too.
+// Tried 2026-10-30 night: 9 more variants (plain a-b, swapped mul order, split front/rear, const-ref and volatile Sub helpers, hoisted spring locals); 84-87 insns differ at best (hoisting gives 84 but +20 bytes); original keeps both compress loads on the FPU as `fld A; fld B; fxch; fsub st,st(1)` + `fstp st(0)` (a by-value inline float call) which no source form reproduced.
 // Per wheel: spring force + anti-roll term, applied to the body force and (arm x force) torque.
 void Car::ApplySuspensionForces()
 {
