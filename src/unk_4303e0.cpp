@@ -4196,10 +4196,7 @@ struct G15_Str {
 };
 
 // NONMATCHING: RALLYTROPHY 0x437220
-// 1384 vs 1346 bytes. All call sequences, EH states (Color at function scope = state 0, two mouse-warp temporaries,
-// string = 3), the string expansion and the float spill (G15_Point takes (y, x): VC6 then spills y) match. Left: the
-// frame is 0x2c (original 0x28: the warp temporary should overlap the float locals), selection/y still swap esi/ebx, and the
-// two inline-destructor returns each get their own epilogue (original jumps to one shared epilogue).
+// Tried 2026-10-30 night: 14 return-shape variants (goto/result var/ternary/braced string scope); `int r = -1; if (closed) r = sel; return r;` gives 34->23 (single cleanup, 1311 vs 1346 bytes); original duplicates the string cleanup per return yet shares one epilogue, which no source shape reproduced.
 // original: FUN_00437220 (fastcall; confirmation dialog, -1 while open, else the chosen answer)
 int Game::FUN_00437220(int a)
 {
@@ -4265,10 +4262,11 @@ int Game::FUN_00437220(int a)
     text->Print(DAT_0056b0ac, x, y, FUN_00405380(0x23), 0, 1.0f, 1.0f);
     text->color = DAT_00508c04;
 
+    int r = -1;
     if (closed) {
-        return sel;
+        r = sel;
     }
-    return -1;
+    return r;
 }
 
 // ---- Group G16 (draft GG) ----
