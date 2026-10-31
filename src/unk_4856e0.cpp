@@ -3810,6 +3810,7 @@ extern float DAT_0057ba00;
 // 4 bytes smaller (0x3c): its scale temporaries (width/height * 1/1024, 1/768) share slots with the HudPoint
 // objects of later scopes (dir block position, loop scale), and keeps -1 in ebp (`or ebp,-1` in both arms of
 // the ESC test). Named floats / inline expressions / a minusOne local did not reproduce either.
+// Tried 2026-10-30 night: reordering scaleX/scaleY declarations (93), HudPoint declared at top reusing scaleX as position.x (179, worse); original shows position.x reusing the scaleX slot [0x1c] while scaleY stays at [0x24], not reproducible; no QWORD operands seen in the diff (all constants are DWORD).
 // The race options menu: five entries (four volume sliders with +/- arrows,
 // and "back"), driven by the keyboard and the mouse. `init` re-selects the entry
 // under the mouse. Returns -1 when the menu is closed, otherwise 1.
