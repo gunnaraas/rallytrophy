@@ -147,9 +147,8 @@ PlayerNameMenu::~PlayerNameMenu()
     Release();
 }
 
-// NONMATCHING: RALLYTROPHY 0x43dc70
-// Evidence: ev_876a2734e4c2d619b1baad3e35e80609fe8494878e8d3049195e7dbfe5e97284. Candidate 414 bytes, 316 differing
-// bytes. The target reuses a stack slot for the col and row+1 conversions; the candidate allocates an extra slot.
+// FUNCTION: RALLYTROPHY 0x43dc70
+// Uses (col + 1) / (row + 1) expression temporaries so the int->float conversions share one stack slot.
 // original: FUN_0043dc70 (vtable slot 1)
 void PlayerNameMenu::Setup(MenuGame* game)
 {
@@ -159,17 +158,17 @@ void PlayerNameMenu::Setup(MenuGame* game)
     m_game = game;
     iconTexture = *(void**)((BYTE*)game + 0x1390f8);
     m_state = 1;
-    int col = 0;
     int row = 0;
+    int col = 0;
     for (int i = 0; i < 64; i++) {
         cells[i].texture = iconTexture;
         cells[i].width = 64.0f;
         cells[i].height = 32.0f;
         cells[i].uv[0].x = col * 0.25f;
-        col++;
         cells[i].uv[0].y = row * 0.0625f;
-        cells[i].uv[1].x = col * 0.25f;
+        cells[i].uv[1].x = (col + 1) * 0.25f;
         cells[i].uv[1].y = (row + 1) * 0.0625f;
+        col++;
         if (col == 4) {
             col = 0;
             row++;
