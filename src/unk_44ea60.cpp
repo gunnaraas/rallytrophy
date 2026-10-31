@@ -264,6 +264,7 @@ struct C_Str {
 // 3391 vs 3386 bytes; frame layout, EH states, call sequence and the hand-expanded std::string sites match. Left: the
 // Esc/Enter cancel paths are not tail-merged (the mouse warps now use the C_WarpPoint argument temporary, which
 // fixed their store order).
+// Tried 2026-10-30 night: local C_Str* + volatile editing store at the Esc cancel site 161->155; tail-merge with the Enter-reject site only happens with the same form at both (then survivor/stub layout is reversed vs original, 163).
 // original: FUN_0044ed90
 int SlotMenu::Frame()
 {
@@ -313,8 +314,9 @@ int SlotMenu::Frame()
                 m_selected = 0;
                 dir = 1;
             } else {
-                editing = 0;
-                C_ASSIGN(labels[m_selected].text, saved);
+                C_Str* lt = C_STR(labels[m_selected].text);
+                *(volatile int*)&editing = 0;
+                lt->Assign(saved, 0, std::string::npos);
             }
         } else if (DAT_0057ba28[VK_RETURN]) {
             if (m_selected == 1) {
