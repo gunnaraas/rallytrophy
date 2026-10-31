@@ -338,6 +338,7 @@ class CarBody { public: void FUN_0046be50(int mode); };
 // string calls and block order follow the target. Direct singleton field stores before taking the `race` alias
 // improve the object comparison (158 differing bytes vs. 589 in the prior form), but the frame remains four
 // bytes smaller and the target's shared failure cleanup calls out-of-line _Tidy(true) (here expanded inline).
+// Tried 2026-10-30 night: record is {int hdr; CarRecord} (0x1d4 read, ReadSetup gets +4), global store order, cars/decl-order/pragma/early-return variants; still differs: name sits 4 bytes higher (target's cars/new temp is above PathText), fld/fstp float copy, failure-path out-of-line _Tidy(true).
 bool ReplayHeader::Load(int index)
 {
     PathText name("savegame/replay");
@@ -352,10 +353,11 @@ bool ReplayHeader::Load(int index)
         f->Read(&magic2, 4);
         if (magic1 == 0x198bf3ae && magic2 == 0x20020109) {
             f->Read(this, 0x70);
+            int t6e = raw[0x6e];
             DAT_0050132c = *(int*)(raw + 0x2c);
             DAT_00501464 = *(int*)(raw + 0x30);
-            DAT_00501458 = raw[0x6e];
             DAT_00501468 = *(int*)(raw + 0x34);
+            DAT_00501458 = t6e;
             DAT_0050145c = raw[0x6c];
             DAT_00501450->unk28 = *(int*)(raw + 0x24);
             DAT_00501450->unk2c = *(int*)(raw + 0x28);
@@ -363,22 +365,22 @@ bool ReplayHeader::Load(int index)
             int cars = *(int*)(raw + 0x68) + 1;
             for (int i = 0; i < cars; i++) {
                 ReplayCar* car = i == 0 ? new ReplayCar(1, 0) : new ReplayCar("dummy");
-                CarRecord r;
+                struct { int hdr; CarRecord r; } rec;
                 int j;
-                f->Read(&r, 0x1d4);
-                car->ReadSetup(&r);
-                car->unk20 = r.a20;
-                car->unk1a20 = r.a2c;
+                f->Read(&rec, 0x1d4);
+                car->ReadSetup(&rec.r);
+                car->unk20 = rec.r.a20;
+                car->unk1a20 = rec.r.a2c;
                 for (j = 0; j < 90; j++)
-                    car->blk[j] = r.blk[j];
-                car->unk24 = r.a24;
-                car->unk2c = r.a28;
+                    car->blk[j] = rec.r.blk[j];
+                car->unk24 = rec.r.a24;
+                car->unk2c = rec.r.a28;
                 for (j = 0; j < 10; j++)
-                    car->blk2[j] = r.blk2[j];
-                car->unk1a50 = r.a1c0;
-                car->unk1a58 = r.a1c4;
-                car->id = r.id;
-                car->unk1a6c = r.a1cc;
+                    car->blk2[j] = rec.r.blk2[j];
+                car->unk1a50 = rec.r.a1c0;
+                car->unk1a58 = rec.r.a1c4;
+                car->id = rec.r.id;
+                car->unk1a6c = rec.r.a1cc;
                 car->Finish();
                 race->FUN_00485f60(car);
                 BYTE* body = car->body;
