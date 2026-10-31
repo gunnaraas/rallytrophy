@@ -1024,6 +1024,7 @@ inline WORD EmitVertex(WORD* slot, ShadowVertex* src)
 // Center offsets now follow the target's z/y/x store schedule; this improves the candidate to 1763/1788 bytes, 1121 diffs.
 // The x87 radius and plane schedules are documented by Evidence ev_378c13001f5c265115cca9d40c27f7d342ab1bd4c7ce252692de74fc458d597c.
 // Frame/register scheduling remains different (target: Evidence above).
+// Tried 2026-10-30 night: 249->203 insns differ with a second induction pointer into the face sphere (cp = &f->cx, += 8 floats) and an explicit begin()?end()-begin():0 count; the o.x/y/z store order, countdown loop, per-use idx[k], volatile count/idx and count if/else forms did not help; still differs in register allocation (target keeps i in ebp, obj in edi, count in a stack slot) and the o locals sit 4 bytes lower than the target's.
 // original: FUN_00471ab0 (project the caster meshes into the shadow plane)
 void ParallelShadow::ProjectMeshes(ShadowCaster* obj)
 {
@@ -1031,13 +1032,14 @@ void ParallelShadow::ProjectMeshes(ShadowCaster* obj)
     obj->meshList.At(i);
     ShadowFaceTable* table = obj->faceTable;
     ShadowMeshNode* node = obj->meshList.At(i);
-    unsigned count = node->meshes.size();
+    unsigned count = node->meshes.begin() ? node->meshes.end() - node->meshes.begin() : 0;
     for (; i < count; i++) {
         ShadowMesh* mesh = node->meshes[i];
         if (mesh->info->type != 1) {
             continue;
         }
         ShadowFace* f = table->faces[i];
+        float* cp = &f->cx;
         unsigned nv = mesh->vertexCount;
         unsigned nf = mesh->faceCount;
         if (nv > 0x4000) {
@@ -1046,16 +1048,16 @@ void ParallelShadow::ProjectMeshes(ShadowCaster* obj)
         memset(g_shadowRemap, 0xff, nv * 2);
         WORD* idx = mesh->indices;
         ShadowVertex* verts = mesh->vertices;
-        for (unsigned j = 0; j < nf; j++, f++, idx += 3) {
+        for (unsigned j = 0; j < nf; j++, f++, cp += 8, idx += 3) {
             float dn = f->nz * LightRow(2).z + f->ny * LightRow(2).y + f->nx * LightRow(2).x;
             if (!(*(unsigned*)&dn & 0x80000000)) {
                 continue;
             }
-            float faceRadius = f->radius;
+            float faceRadius = cp[3];
             Vec3 o;
-            o.z = g_shadowSphere.centre.z - f->cz;
-            o.y = g_shadowSphere.centre.y - f->cy;
-            o.x = g_shadowSphere.centre.x - f->cx;
+            o.x = g_shadowSphere.centre.x - cp[0];
+            o.y = g_shadowSphere.centre.y - cp[1];
+            o.z = g_shadowSphere.centre.z - cp[2];
             float s = g_shadowSphere.radius + faceRadius;
             float d = o.z * LightRow(2).z + o.y * LightRow(2).y + o.x * LightRow(2).x;
             if (d > s) {
