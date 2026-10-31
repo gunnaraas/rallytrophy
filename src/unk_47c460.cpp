@@ -307,10 +307,7 @@ void CarParticles::Spawn(int type, float a, float b, Car* car, CarBody* body)
     }
 }
 
-// NONMATCHING: RALLYTROPHY 0x47c8a0
-// 1199 vs 1202 bytes. Structure, frame layout and EH states match; remaining differences: the
-// operand order of the commutative fmul/fadd pairs (the compiler loads the table/matrix operand first)
-// and the u0/v0 FPU-stack spill after the frame/row branch.
+// FUNCTION: RALLYTROPHY 0x47c8a0
 // Draws every live particle as a camera-facing quad (4 vertices) through the renderer.
 void CarParticles::Render(RenderDevice* device, Camera* camera)
 {
@@ -340,7 +337,7 @@ void CarParticles::Render(RenderDevice* device, Camera* camera)
     int nearZ = camera->nearBits;
     int farZ = camera->farBits;
     for (Particle* p = particles; p; p = p->next) {
-        float depth = m[10] * p->position.z + m[6] * p->position.y + m[2] * p->position.x + m[14];
+        float depth = p->position.y * m[6] + p->position.z * m[10]; depth += p->position.x * m[2]; depth += m[14];
         if (*(int*)&depth > nearZ && *(int*)&depth < farZ) {
             Vec3 a, b;
             int idx = FloatToInt(p->rotation) & 0x3ff;
@@ -376,8 +373,8 @@ void CarParticles::Render(RenderDevice* device, Camera* camera)
             v[2].color = p->color;
             v[3].color = p->color;
             int col = p->frame & 0xf;
-            int row = p->frame >> 4;
             float u0, v0, cell;
+            int row = p->frame >> 4;
             if (row < 9) {
                 u0 = DAT_00561bb8[col * 2];
                 cell = 0.03125f;
@@ -385,8 +382,8 @@ void CarParticles::Render(RenderDevice* device, Camera* camera)
             } else {
                 col = p->frame & 3;
                 u0 = DAT_00561b98[col * 2];
-                cell = 0.0625f;
                 v0 = DAT_00561b98[col * 2 + 1];
+                cell = 0.0625f;
             }
             v[0].u = v[3].u = u0 + DAT_00561cb8[row * 2];
             v[0].v = v[1].v = v0 + DAT_00561cb8[row * 2 + 1];
