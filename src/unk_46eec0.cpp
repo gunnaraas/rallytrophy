@@ -20,11 +20,20 @@ inline int FloatToInt(float f)
     return i;
 }
 
+__forceinline void CopyV(Vec3& d, const Vec3& s)
+{
+    int x = *(const int*)&s.x, y = *(const int*)&s.y, z = *(const int*)&s.z;
+    *(int*)&d.x = x;
+    *(int*)&d.y = y;
+    *(int*)&d.z = z;
+}
+
 // NONMATCHING: RALLYTROPHY 0x46eec0
 // The original copies the child matrix with 16 strictly sequential ecx load/store pairs and keeps three
 // overwritten translation stores. Volatile destination stores preserve those three, and scalar translation
 // copies avoid three indirect stores; current candidate is 975/1044 bytes with 630 differing bytes. The
 // corner helper still uses a different register schedule.
+// Tried 2026-10-31: CopyV int copy for corner stores plus this->corner[k] for corners 1-3 (c only for corner 0) took 101->~19 insns; kind/flags barriers and load permutations done; still differs in EH state store placement (early vs just before Concat), flags/position14 register choice, and x87 operand order of the first corner add.
 CityLight::CityLight(LightSource* source, TextureLoader* loader, Sprite* glowSprite, Sprite* flareSprite)
 {
     unk8 = 0;
@@ -33,9 +42,10 @@ CityLight::CityLight(LightSource* source, TextureLoader* loader, Sprite* glowSpr
     flare = flareSprite;
     matrix = source->matrix;
     matrix.translation.x = source->position.x;
-    matrix.translation.y = source->position.y;
+    int ty = *(int*)&source->position.y;
+    *(volatile int*)&kind = 5;
+    *(int*)&matrix.translation.y = ty;
     matrix.translation.z = source->position.z;
-    kind = 5;
     LightSource* child = source->child;
     if (child) {
         ViewMat tmp;
@@ -54,17 +64,23 @@ CityLight::CityLight(LightSource* source, TextureLoader* loader, Sprite* glowSpr
         *(volatile float*)&tmp.m[12] = child->matrix.translation.x;
         *(volatile float*)&tmp.m[13] = child->matrix.translation.y;
         *(volatile float*)&tmp.m[14] = child->matrix.translation.z;
-        tmp.m[15] = child->matrix.w;
+        *(volatile float*)&tmp.m[15] = child->matrix.w;
         tmp.m[12] = child->position.x;
-        tmp.m[13] = child->position.y;
+        *(volatile float*)&tmp.m[13] = child->position.y;
         tmp.m[14] = child->position.z;
         ((LightView*)&matrix)->Concat(tmp);
     }
-    position14.x = matrix.translation.x;
-    position14.y = matrix.translation.y;
-    position14.z = matrix.translation.z;
-    flags &= 0xfd;
-    flags |= 1;
+    int px = *(int*)&matrix.translation.x;
+    int pz = *(int*)&matrix.translation.z;
+    int py = *(int*)&matrix.translation.y;
+    BYTE f = flags;
+    *(int*)&position14.x = px;
+    *(int*)&position14.z = pz;
+    *(int*)&position14.y = py;
+    f &= 0xfd;
+    BYTE g = f | 1;
+    *(volatile BYTE*)&flags = f;
+    *(volatile BYTE*)&flags = g;
     matrix.translation.x = matrix.translation.y = matrix.translation.z = 0;
     unkb8 = 0;
     unkbc = 0;
@@ -86,14 +102,14 @@ CityLight::CityLight(LightSource* source, TextureLoader* loader, Sprite* glowSpr
     Vec3 up = *(Vec3*)&matrix.m[4];
     Vec3 right = *(Vec3*)&matrix.m[0];
     Vec3* c = corner;
-    c[0] = up * -0.75f;
-    c[3] = up * -0.75f;
-    c[1] = up * 0.75f;
-    c[2] = up * 0.75f;
+    CopyV(c[0], up * -0.75f);
+    CopyV(corner[3], up * -0.75f);
+    CopyV(corner[1], up * 0.75f);
+    CopyV(corner[2], up * 0.75f);
     c[0] += right * 1.5f;
-    c[1] += right * 1.5f;
-    c[2] -= right * 1.5f;
-    c[3] -= right * 1.5f;
+    corner[1] += right * 1.5f;
+    corner[2] -= right * 1.5f;
+    corner[3] -= right * 1.5f;
 }
 
 // FUNCTION: RALLYTROPHY 0x46f2e0
