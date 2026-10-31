@@ -6,7 +6,14 @@
 
 // Layout view of File: stream pointer then name.
 struct FileNameView { void* stream; std::string name; };
-static const std::string& FName(File* f) { return ((FileNameView*)f)->name; }
+static __forceinline const std::string& FName(File* f) { return ((FileNameView*)f)->name; }
+
+struct PStr {
+    std::allocator<char> alloc; char* ptr; unsigned int len; unsigned int res;
+    void AssignCall(const char* s, unsigned int n);
+    PStr(const char* s, const std::allocator<char>& al = std::allocator<char>()) : alloc(al) { ptr = 0; len = 0; res = 0; AssignCall(s, strlen(s)); }
+    ~PStr() { if (ptr != 0) { if (((unsigned char*)ptr)[-1] != 0 && ((unsigned char*)ptr)[-1] != 255) --((unsigned char*)ptr)[-1]; else alloc.deallocate(ptr - 1, res + 2); } }
+};
 
 #define BMF_BATCH_BODY(REC, TRI)                                                           \
     int mat = FUN_004af230(file);                                                          \
@@ -62,7 +69,8 @@ void ModelFile::ReadVertices(File* file, ModelOut* out)
     file->Read(a, n * 12);
 }
 
-// NONMATCHING: RALLYTROPHY 0x4b2330 (inlined std::string/throw construction differs from original)
+// NONMATCHING: RALLYTROPHY 0x4b2330 (loop/size() shape and register assignment differ from original)
+// Tried 2026-10-30 night: ~35 variants (explicit begin/end compare, hoisted begin, for/while/do forms, copy of p, at(), volatile reload); size() ternary does not fold to a direct null->throw jump and this/p swap ebx/ebp; improved 96->35 via PStr (out-of-line assign + allocator byte), forceinline FName, vector size()/operator[].
 void ModelFile::ReadPolylist(File* file, ModelOut* out)
 {
     int n = FUN_004af230(file);
@@ -72,16 +80,13 @@ void ModelFile::ReadPolylist(File* file, ModelOut* out)
     out->polys = p;
     file->Read(p, bytes);
     int i = 0;
-    if (0 < n) {
-        void** b = (void**)materials.begin();
-        do {
-            if (b == 0 || (unsigned int)(((int)materials.end() - (int)b) >> 2) <= *p) {
-                std::string msg("BMF polylist chunk failed: illegal material index");
-                throw file_error(FName(file), msg);
-            }
-            *p = (unsigned int)b[*p];
-            i++;
-            p += 4;
-        } while (i < n);
+    if (n > 0) for (;;) {
+        if (materials.size() <= *p) {
+            PStr msg("BMF polylist chunk failed: illegal material index");
+            throw file_error(FName(file), *(std::string*)&msg);
+        }
+        *p = (unsigned int)materials[*p];
+        i++; p += 4;
+        if (i >= n) break;
     }
 }
