@@ -150,6 +150,7 @@ int MenuScreenA48::Run(MenuGame* game, NetRace* session)
 // NONMATCHING: RALLYTROPHY 0x4398e0
 // Same size (1948 bytes with tables), 218 bytes differ. Loading row text before explicit volatile HudPoint stores improves
 // the 224-byte candidate; GetScale and (1,1) still use swapped slots (0x44/0x4c vs target 0x4c/0x44), with case scheduling open.
+// Tried 2026-10-30 night: reordering switch cases, moving/declaring scale/one elsewhere, volatile/hoisted title temps; a local `RenderDevice* d = DAT_0056b0ac` for the title Print improves 44->33 insns (fixes the switch-case layout), still differs in text/device register choice (ebp vs ebx), the late device load, and swapped scale/one slots (0x44/0x4c).
 // original: FUN_004398e0 (thiscall; MenuScreenA48::Frame)
 int MenuScreenA48::Frame()
 {
@@ -267,7 +268,8 @@ int MenuScreenA48::Frame()
             text->color = DAT_00508bfc;
             text->scaleX = DAT_0056aea8 * 2.0f;
             text->scaleY = DAT_0056aeac * 2.0f;
-            text->Print(DAT_0056b0ac, B2_titleX * DAT_0056aea8, B2_titleY * DAT_0056aeac, FUN_00405380(0x3f), 0, 1.0f, 1.0f);
+            RenderDevice* d = DAT_0056b0ac;
+            text->Print(d, B2_titleX * DAT_0056aea8, B2_titleY * DAT_0056aeac, FUN_00405380(0x3f), 0, 1.0f, 1.0f);
             text->SetScale(DAT_0056aea8, DAT_0056aeac);
             game->FUN_00435de0(517.0f, 243.0f);
             HudPoint scale = *game->GetScale();
