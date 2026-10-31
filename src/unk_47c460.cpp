@@ -720,31 +720,32 @@ void CarParticles::Kind8(float scale, float age)
 }
 
 // NONMATCHING: RALLYTROPHY 0x47dc10
-// 1392 vs 1394 bytes; same three differences as core A (ebp-0x14/-0x10 slot swap of chance and
-// the temp, missing fxch in the final compare, push edi position). The ternary condition over
-// the surface kind reproduces the original je/je ladder, but its fall-through branch order
-// (`jne set; jmp skip` vs the original `je skip; jmp set`) differs.
-// Spawn core C: like core A with a speed-scaled upward kick and surface-dependent sideways push.
+// 3 insns differ (same size): `push edi` lands before `mov [head],eax` instead of after the local.x/local.z copy, and
+// `fld slipLat; fmul r2` comes out as `fld r2; fmul slipLat`.
+// Tried 2026-10-30 night: named rr emit test, one reused float for slip/speed/lat (fixed the ebp-0x10/-0x14 slot swap), inverted
+// kind branch, no volatile on j2, nx temp for the pool head (fixed AddTo order); volatile on head/local stores, operand swaps, permute -r 20; none moved push edi.
+// Spawn core C: like core A with a v-scaled upward kick and surface-dependent sideways push.
 Particle* CarParticles::SpawnCoreC(float rate)
 {
     static float kSlip = 1.0f / (SLIP_C_HI - SLIP_C_LO);
     static float kSpeed = 1.0f / (SPEED_C_HI - SPEED_C_LO);
     static float kSlip2 = 1.0f / (SLIP2_C_HI - SLIP2_C_LO);
+    float v;
     float chance = 0.0f;
-    float slip = (float)fabs(PCAR->slipLong);
-    if (slip < SLIP_C_HI) {
-        if (slip > SLIP_C_LO) {
-            chance = (slip - SLIP_C_LO) * SCALE_C * kSlip;
+    v = (float)fabs(PCAR->slipLong);
+    if (v < SLIP_C_HI) {
+        if (v > SLIP_C_LO) {
+            chance = (v - SLIP_C_LO) * SCALE_C * kSlip;
         }
-        float speed = BODY_VELOCITY.Length();
-        if (speed < SPEED_C_HI) {
-            if (speed > SPEED_C_LO) {
-                chance += (speed - SPEED_C_LO) * SCALE_C * kSpeed;
+        v = BODY_VELOCITY.Length();
+        if (v < SPEED_C_HI) {
+            if (v > SPEED_C_LO) {
+                chance += (v - SPEED_C_LO) * SCALE_C * kSpeed;
             }
-            float lat = (float)fabs(PCAR->slipLat);
-            if (lat < SLIP2_C_HI) {
-                if (lat > SLIP2_C_LO) {
-                    chance += (lat - SLIP2_C_LO) * SCALE_C * kSlip2;
+            v = (float)fabs(PCAR->slipLat);
+            if (v < SLIP2_C_HI) {
+                if (v > SLIP2_C_LO) {
+                    chance += (v - SLIP2_C_LO) * SCALE_C * kSlip2;
                 }
             } else {
                 chance = SCALE_C;
@@ -755,14 +756,16 @@ Particle* CarParticles::SpawnCoreC(float rate)
     } else {
         chance = SCALE_C;
     }
-    if (!((float)(rand() & 0xff) < chance * rate)) {
+    float rr = (float)(rand() & 0xff);
+    if (!(rr < chance * rate)) {
         return 0;
     }
     if (!DAT_0056ae90.head) {
         DAT_0056ae90.Grow();
     }
     Particle* p = DAT_0056ae90.head;
-    DAT_0056ae90.head = p->next;
+    Particle* nx = p->next;
+    DAT_0056ae90.head = nx;
     Vec3 local;
     local.x = PCAR->position.x;
     local.y = PCAR->position.y;
@@ -775,11 +778,11 @@ Particle* CarParticles::SpawnCoreC(float rate)
     const float* in = (const float*)&local;
     float* out = (float*)&p->position;
     BODY_TRANSFORM();
-    Vec3 v = BODY_VELOCITY * ((rand() * RAND_SCALE) * 0.25f + 0.7f);
-    v += PBODY->FUN_004204f0(p->position);
-    p->velocity.x = v.x;
-    p->velocity.y = v.y;
-    p->velocity.z = v.z;
+    Vec3 vv = BODY_VELOCITY * ((rand() * RAND_SCALE) * 0.25f + 0.7f);
+    vv += PBODY->FUN_004204f0(p->position);
+    p->velocity.x = vv.x;
+    p->velocity.y = vv.y;
+    p->velocity.z = vv.z;
     float r1 = rand() * RAND_SCALE;
     float r2 = rand() * RAND_SCALE;
     float r3 = rand() * RAND_SCALE;
@@ -793,7 +796,9 @@ Particle* CarParticles::SpawnCoreC(float rate)
     p->velocity -= BODY_FORWARD * lon * 0.15f * r1;
     float side = 0.0f;
     int kind = PCAR->surfaceKind;
-    if (kind == 1 || kind == 2 ? PCAR->slipLat > 0.0f : PCAR->slipLat < 0.0f) {
+    if (!(kind == 1 || kind == 2)) {
+        if (PCAR->slipLat < 0.0f) side = PCAR->slipLat * r2 * 0.15f;
+    } else if (PCAR->slipLat > 0.0f) {
         side = PCAR->slipLat * r2 * 0.15f;
     }
     p->velocity += BODY_RIGHT * side;
@@ -808,6 +813,7 @@ Particle* CarParticles::SpawnCoreC(float rate)
     p->velocity.z += (float)((rand() & 0x3fff) - 0x1fff) * 3.0517578125e-5f;
     return p;
 }
+
 
 // FUNCTION: RALLYTROPHY 0x47e190
 void CarParticles::Kind9(float scale, float age)
