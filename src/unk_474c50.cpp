@@ -26,6 +26,7 @@ extern "C" long __cdecl _ftol(void);
 // NONMATCHING: RALLYTROPHY 0x474c50
 // 821 vs 824 bytes, 326 differing bytes. Strided field cursors model the PE-observed six per-field vertex
 // pointers (+0x2c steps), with a volatile mesh-field reload; count/array setup and tail stores remain open.
+// Tried 2026-10-30 night: volatile idx reload (helped), box.y before count_/=8 (helped), if(n>0) wrap, plain v, volatile unk24/primitiveCount; still differs: add esp/cmp placement after new WORD[] and vertex-pointer lea hoist before the test.
 SnowFall::SnowFall(TextureLoader* loader, int count_)
 {
     if (DAT_00501428 == 2) {
@@ -33,8 +34,8 @@ SnowFall::SnowFall(TextureLoader* loader, int count_)
         box.y = 25.0f;
     } else {
         box.z = box.x = 15.0f;
-        count_ /= 8;
         box.y = 12.5f;
+        count_ /= 8;
     }
     int n = count_;
     drawCount = count = n;
@@ -64,11 +65,11 @@ SnowFall::SnowFall(TextureLoader* loader, int count_)
     mesh = m;
     m->vertices = new EffectVertex[n * 4];
     m->indices = new WORD[n * 6];
-    int w = (WORD)count;
     m->unk24 = 0;
+    int w = (WORD)count;
     m->primitiveCount = w * 2;
     m->vertexCount = w * 4;
-    WORD* idx = m->indices;
+    WORD* idx = *(WORD* volatile*)&m->indices;
     for (int i = 0; i < n; i++) {
         int b = i << 2; // `i * 4` here made VC6 fold b to 0 (wrong index stores)
         *idx++ = b;
