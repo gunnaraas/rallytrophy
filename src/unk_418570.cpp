@@ -357,7 +357,7 @@ struct HitVec {
             Ucopy(last - 1, last, last);
             Tri** B = last;
             Tri** E = last - 1;
-            while (E != P)
+            while (P != E)
                 *--B = *--E;
             for (Tri** F = P; F != P + 1; ++F)
                 *F = x;
@@ -367,10 +367,7 @@ struct HitVec {
     static void ConstructPtr(Tri** p, Tri* const& v);  // 0x403140 (std::_Construct, cdecl)
 };
 
-// NONMATCHING: RALLYTROPHY 0x418760
-// 774 vs 773 bytes, 532 differing bytes. Moving the count declaration into the positive-count branch and after
-// the index pointer matches the target's stack-store order. Remaining differences are mostly register choices,
-// including the triangle index/id registers, plus one fill-loop compare with swapped operands.
+// FUNCTION: RALLYTROPHY 0x418760
 void TriCollector::Walk(TriNode* n)
 {
     while (n->mn[0] <= mx[0]) {
@@ -384,8 +381,9 @@ void TriCollector::Walk(TriNode* n)
                 short* ip = n->idx;
                 int c = n->count;
                 do {
-                    if (DAT_00508500[*ip].id < limit) {
-                        Tri* t = &DAT_00508500[*ip];
+                    int k = *ip;
+                    if (DAT_00508500[k].id < limit) {
+                        Tri* t = &DAT_00508500[k];
                         int s = t->sel;
                         if (IN_BOX(t, s))
                             { Tri* hit = t; ((HitVec*)&hits)->PushBack(hit); }
