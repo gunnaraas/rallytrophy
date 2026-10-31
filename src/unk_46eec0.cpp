@@ -151,6 +151,7 @@ inline void FlareUV(EffectVertex* v, float c, float s)
 // 1777 vs 1767 bytes. The eye-relative vector follows the target's component load/subtract/store order; separately
 // named right/up flare-angle contributions preserve their scale-before-add sequence. Volatile flare intermediates
 // remain at different stack slots, and projection, normalization, and UV code still differ.
+// Tried 2026-10-30 night: shared float temp/bit-compare for near plane, pos*m operand order, forceinline ScaleVec for normalise and R/U, Vec3 d*inv, double inv, quad normal x,y,z order, local declaration order (204 insns, only the inline inv multiply changed); still differs: original keeps inv on the FPU stack (fld y; fmul st,st(1)), frame is 4 bytes larger (extra 8-byte slot before depth), depth/near compare via [ebp+0xc] float copy, return-path layout.
 void CityLight::Render(RenderDevice* device, Camera* camera)
 {
     Vec3 d;
@@ -168,11 +169,10 @@ void CityLight::Render(RenderDevice* device, Camera* camera)
     if (*(int*)&depth <= nearZ) {
         *(int*)&depth = nearZ;
     }
-    float len = (float)sqrt(d.x * d.x + d.y * d.y + d.z * d.z);
-    float inv = 1.0f / len;
+    float inv = 1.0f / (float)sqrt(d.x * d.x + d.y * d.y + d.z * d.z);
     d.x = inv * d.x;
     d.y = d.y * inv;
-    d.z = inv * d.z;
+    d.z = d.z * inv;
     EffectVertex quad[4];
     Vec3 c = *(Vec3*)&position;
     c -= d * 1.0f;
