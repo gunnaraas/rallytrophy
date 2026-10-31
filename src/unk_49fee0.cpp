@@ -163,6 +163,7 @@ void AIDriver::FUN_0049ffa0()
 // Its unwind map arms separate cleanups for the argument/result Vec3 temporaries and the two branch-local rotation
 // axes. Branch-local Vec3 `up` gives candidate states 4/5/6/7; the exact frame/register schedule still differs.
 // Reading normalized vector fields directly reduced instruction-multiset delta 69->65 before the lifetime probes.
+// Tried 2026-10-31: ~30 variants; 288->250 insns differ by building vel field-wise as a Vec3 (not Vec3Slot copy); p-before-rel, Vec3Slot/ctor forms of dir/vel/axis, sqrt term order did not help; original has baseline EH state 3 (ours 2) and frame 0xb0 (ours 0xa4), i.e. one more function-scope Vec3 object we cannot identify.
 void AIDriver::FUN_004a0420()
 {
     float best = 0.0f;
@@ -177,8 +178,7 @@ void AIDriver::FUN_004a0420()
     Car* car = player->car;
 
     // Unit vectors of the velocity (vel) and of the lateral axis (axis).
-    Vec3Slot vel = *(Vec3Slot*)car->body->velocity;
-    vel.y = 0.0f;
+    Vec3 vel; vel.x=car->body->velocity[0]; vel.y=0.0f; vel.z=car->body->velocity[2];
     float len = (float)sqrt(vel.z * vel.z + vel.x * vel.x);
     float k = 1.0f / len;
     vel.x = vel.x * k;
