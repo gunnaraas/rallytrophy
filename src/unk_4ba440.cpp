@@ -595,55 +595,58 @@ int ViewFrustum::TestBounds(const SceneBounds* b)
     return 1;
 }
 
+// A vector with an empty destructor and the out-of-line operator- (0x414330): the live copy gives the original its EH frame.
+struct FrVec { float x, y, z; ~FrVec() {} FrVec operator-(const FrVec& o) const; };
+
+static inline float PlaneDot(float a, float b, float c, const float* p)
+{
+    return a * p[-1] + c * p[1] + b * p[0];
+}
+
 // NONMATCHING: RALLYTROPHY 0x4bab80
-// Logic complete; not compared in detail.
+// Tried 2026-10-30 night: lea constant 0x84 (tplanes[8]+1), early-out returns, left-hand computed compares, brace-init copy then in-place dv -=, for(;;i++,e++,p+=4); 69->54 insns. Still differs: original loads all three bf[] terms before multiplying (fxch) and keeps 0x80000000 in ecx with edi as loop counter (one extra callee-saved reg); ~25 variants (locals, helper, mask var, indexed loop) did not reproduce.
 int ViewFrustum::TestBoundsB(const SceneBounds* b)
 {
     const float* bf = (const float*)b;
     if (b->flags & 2) {
         const int* e = (const int*)((const char*)this + 0xe8);
         const float* p = (const float*)((const char*)this + 100);
-        for (int i = 0; i < 6; i++) {
-            if (Negative((bf[e[0]] * p[0] + bf[e[-6]] * p[-1] + bf[e[6]] * p[1]) - p[2]))
+        for (int i = 0; i < 6; i++, e++, p += 4) {
+            float v = (bf[e[-6]] * p[-1] + bf[e[6]] * p[1] + bf[e[0]] * p[0]) - p[2];
+            if (*(unsigned*)&v & 0x80000000)
                 return 0;
-            e++;
-            p += 4;
         }
         return 1;
     }
     if (b->flags & 1) {
+        FrVec dv = {b->c.x, b->c.y, b->c.z};
         const float* cam = camera;
-        float dx = b->c.x - cam[12];
-        float dy = b->c.y - cam[13];
-        float dz = b->c.z - cam[14];
-        float d2 = dx * dx + dy * dy + dz * dz;
+        dv.x = dv.x - cam[12];
+        dv.y = dv.y - cam[13];
+        dv.z = dv.z - cam[14];
+        float d2 = dv.x * dv.x + dv.y * dv.y + dv.z * dv.z;
         float d2b = b->d * b->d;
-        if (*(int*)&d2b <= *(int*)&d2) {
-            float r = radius + b->d;
-            r = r * r;
-            if (*(int*)&r < *(int*)&d2)
+        if (*(int*)&d2 < *(int*)&d2b)
+            return 1;
+        float r = radius + b->d;
+        r = r * r;
+        if (*(int*)&d2 > *(int*)&r)
+            return 0;
+        float f = dv.z * cam[10] + dv.y * cam[9] + dv.x * cam[8];
+        if (f < nearD - b->d)
+            return 0;
+        float fs = farD + b->d;
+        if (*(int*)&f > *(int*)&fs)
+            return 0;
+        int i = 0;
+        const float* p = &tplanes[8] + 1;
+        for (; i < 4; i++, p += 4) {
+            if (b->c.z * p[1] + b->c.y * p[0] + b->c.x * p[-1] + b->d < p[2])
                 return 0;
-            float f = dx * cam[8] + dy * cam[9] + dz * cam[10];
-            if (f < nearD - b->d)
-                return 0;
-            float fs = farD + b->d;
-            if (*(int*)&fs < *(int*)&f)
-                return 0;
-            const float* p = &tplanes[0] + 1;
-            int i = 0;
-            do {
-                if (b->c.y * p[0] + p[-1] * b->c.x + p[1] * b->c.z + b->d < p[2])
-                    return 0;
-                i++;
-                p += 4;
-            } while (i < 4);
         }
     }
     return 1;
 }
-
-// A vector with an empty destructor and the out-of-line operator- (0x414330): the live copy gives the original its EH frame.
-struct FrVec { float x, y, z; ~FrVec() {} FrVec operator-(const FrVec& o) const; };
 
 // FUNCTION: RALLYTROPHY 0x4bad30
 int ViewFrustum::TestSphereMargin(const SceneBounds* b, const float* m, float margin)
