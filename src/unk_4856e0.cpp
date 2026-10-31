@@ -751,13 +751,18 @@ void RaceMode::FUN_0048e9b0(float x, float y, float w, float h, Color color, int
 // NONMATCHING: RALLYTROPHY 0x48eb20
 // 465 vs 462 bytes: the original keeps -1 in esi and has a 4-byte larger frame
 // (same as 0x48e4c0). Draws the bar: full strip, then the part scaled by n.
+// Tried 2026-10-30 night: ~20 variants; hand-ordered position stores (x+w, int-copy y, y+h, x after the uv SetQuad) improved 20 -> 10 insns; int copy of x, Color decl moves, volatile barriers were equal or worse. Remaining: original keeps -1 (or esi) after the position stores and loads DAT_0056b0ac later; permute.py reported 'baseline did not compile or compare'.
 void RaceMode::FUN_0048eb20(float x, float y, float w, float h, int n)
 {
     Vec2 uv[4];
     Vec2 position[4];
     Color color(0xffffffff);
-    SetQuad(position, x, y, x + w, y + h);
+    position[2].x = position[1].x = x + w;
+    int iy = *(int*)&y;
+    *(int*)&position[0].y = iy; *(int*)&position[1].y = iy;
+    position[3].y = position[2].y = y + h;
     SetQuad(uv, 0.0f, 0.0f, 1.0f, 0.25f);
+    position[3].x = position[0].x = x;
     ((RaceDeviceSlots*)DAT_0056b0ac)->SetTexture(DAT_0056b0c8->FUN_00432a00());
     ((RaceDeviceSlots*)DAT_0056b0ac)->DrawQuad(position, uv, color, 1.0f, 1.0f);
     uv[0].y = uv[1].y = 0.25f;
