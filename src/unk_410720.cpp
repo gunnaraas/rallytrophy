@@ -22,7 +22,8 @@ extern "C" int __cdecl FUN_004ce290(const char* a, const char* b);   // case-ins
 
 // original: FUN_00410720
 // NONMATCHING: RALLYTROPHY 0x410720
-// Register allocation/frame differs (original keeps the effect kind in edi and reloads p from the stack; ours pins p in edi, kind spills); 2113 vs 2128 bytes.
+#define PV (*(int* volatile*)&p)
+// Tried 2026-10-30 night: p reads via volatile pointer (PV) + kindv re-read in waterfall block gave 167->126; kind still not in edi (any non-volatile kind folds the cascade), 2-3 block store order/ push 0x30 placement and Vec2 copy order differ.
 void StageScene::LoadEffect(int* p)
 {
     int* m = (int*)p[0];                               // the mesh's material
@@ -66,15 +67,15 @@ void StageScene::LoadEffect(int* p)
         m[0] = AT(int, 0x860);
         m[1] = AT(int, 0x864);
         float sx, sy, vx, vy;
-        if (kind == 2) {
+        if (kindv == 2) {
             sx = DAT_00508438.x; sy = DAT_00508438.y;
             vx = DAT_00508428.x; vy = DAT_00508428.y;
         } else {
             sx = DAT_00508430.x; sy = DAT_00508430.y;
             vx = DAT_00508420.x; vy = DAT_00508420.y;
         }
-        TexScroller* s = new TexScroller((DynamicMesh*)p, sx, sy, vx, vy);
-        p[5] = (int)s;
+        TexScroller* s = new TexScroller((DynamicMesh*)PV, sx, sy, vx, vy);
+        PV[5] = (int)s;
     } else if (kind == 4) {
         if (AT(int, 0x868) == 0) {
             AT(Texture*, 0x86c) = LOADER->Load("data/global/effects/river1_1.tga", 0x40);
@@ -95,8 +96,8 @@ void StageScene::LoadEffect(int* p)
         m[0x27] = 2; m[6] = 5; m[7] = 6; m[9] = 4; m[0x28] = 0; m[0x12] = 0; m[0x13] = 0x3f000000;
         float sx, sy, vx, vy;
         sx = DAT_00508418.x; sy = DAT_00508418.y; vx = DAT_00508410.x; vy = DAT_00508410.y;
-        TexScroller* s = new TexScroller((DynamicMesh*)p, sx, sy, vx, vy);
-        p[5] = (int)s;
+        TexScroller* s = new TexScroller((DynamicMesh*)PV, sx, sy, vx, vy);
+        PV[5] = (int)s;
     } else if (kind == 5) {
         if (AT(int, 0x874) == 0) {
             AT(Texture*, 0x878) = LOADER->Load("data/global/effects/river2_1.tga", 0x40);
@@ -117,8 +118,8 @@ void StageScene::LoadEffect(int* p)
         m[0x27] = 2; m[6] = 5; m[7] = 6; m[9] = 4; m[0x28] = 0; m[0x12] = 0; m[0x13] = 0x3f000000;
         float sx, sy, vx, vy;
         sx = DAT_00508408.x; sy = DAT_00508408.y; vx = DAT_00508400.x; vy = DAT_00508400.y;
-        TexScroller* s = new TexScroller((DynamicMesh*)p, sx, sy, vx, vy);
-        p[5] = (int)s;
+        TexScroller* s = new TexScroller((DynamicMesh*)PV, sx, sy, vx, vy);
+        PV[5] = (int)s;
     } else if (kind == 6) {
         if (AT(int, 0x880) == 0) {
             int len = strlen(DAT_004f3ba0);
@@ -144,8 +145,8 @@ void StageScene::LoadEffect(int* p)
         m[0x11] = 0x3f800000; m[0x10] = 0x3f800000; m[0x12] = 0x3f800000; m[0x13] = 0x3f800000;
         m[0x26] = 0xf; m[0x27] = 2; m[6] = 5; m[7] = 6; m[9] = 4; m[0x28] = 0; m[0xe] = 0x18;
         m[1] = AT(int, 0x904);
-        WaterAnimator* w = new WaterAnimator((DynamicMesh*)p, (WaterOwner*)this, DAT_005083e0,
+        WaterAnimator* w = new WaterAnimator((DynamicMesh*)PV, (WaterOwner*)this, DAT_005083e0,
                                              (Vec2*)&DAT_005083f8, (Vec2*)&DAT_005083f0, (Vec2*)&DAT_005083e8);
-        p[5] = (int)w;
+        PV[5] = (int)w;
     }
 }
