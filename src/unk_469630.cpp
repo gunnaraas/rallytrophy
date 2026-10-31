@@ -367,6 +367,7 @@ void Car::UpdateTyreTracks()
 // NONMATCHING: RALLYTROPHY 0x46a200
 // Moving Color construction after the dimension reads and loading needles before gear reduces the diff from 136 to 95
 // bytes at the same 1,424-byte size. Frame/register allocation remains off; target keeps -1 in edi and uses a 0x58 frame.
+// Tried 2026-10-30 night: ~20 variants of fw/fh/iw/ih/Color declaration order, uv y-stores before x (fixed the gear-uv store hunk), permute -r 20 (no MATCH); still differs: target reuses one [esp+0x1c] temp for both int->float conversions, Color sits at [esp+0x28] (extra slot at 0x24) and its -1 store follows the fild pair.
 void Car::FUN_0046a200()
 {
     CarGaugeView* v = (CarGaugeView*)this;
@@ -383,23 +384,25 @@ void Car::FUN_0046a200()
     int gear = TEX->gear;
     Vec2 pos[4];
     Vec2 uv[4];
+    float sx, sy, fh, fw;
     int iw = DAT_0056b0ac->m_width;
     int ih = DAT_0056b0ac->m_height;
-    float fw = (float)iw;
-    float fh = (float)ih;
     Color color(0xffffffff);
-    float sx = fw / 1024.0f;
-    float sy = fh / 768.0f;
+    fw = (float)iw;
+    fh = (float)ih;
+    sx = fw / 1024.0f;
+    sy = fh / 768.0f;
     pos[0].x = pos[3].x = sx * v->x;
     pos[1].x = pos[2].x = (v->x + 256.0f) * sx;
     pos[0].y = pos[1].y = sy * v->y;
     pos[2].y = pos[3].y = (v->y + 256.0f) * sy;
     ((RaceDeviceSlots*)DAT_0056b0ac)->SetTexture((void*)base);
     ((RaceDeviceSlots*)DAT_0056b0ac)->DrawRect(pos, color, 1.0f, 1.0f);
-    uv[0].x = uv[3].x = (float)(v->drive.GetEngagedGear() + 1) * 0.125f;
-    uv[1].x = uv[2].x = uv[3].x + 0.125f;
+    int ge = v->drive.GetEngagedGear() + 1;
     uv[0].y = uv[1].y = 0.0f;
     uv[2].y = uv[3].y = 1.0f;
+    uv[0].x = uv[3].x = (float)ge * 0.125f;
+    uv[1].x = uv[2].x = uv[3].x + 0.125f;
     pos[0].x = pos[3].x = v->gearX;
     pos[0].y = pos[1].y = v->gearY;
     pos[1].x = pos[2].x = v->gearX + 16.0f;
