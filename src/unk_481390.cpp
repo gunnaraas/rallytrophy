@@ -20,22 +20,23 @@ IntVector::iterator IntVector::Erase(iterator first, iterator last) { return era
 // reloads end() through `this` ([esi+0x8a8]) where the original reuses the member pointer in edi and keeps a
 // zeroed slot (a resize(0) default argument?); ResizeB(0) drops the degenerate copy loop entirely (466 bytes).
 // Tried 2026-10-30 night: PlayerVector* local + EraseY(0) (size()>0 guard, EraseOut) 24->6 insns, 491 bytes; ~15 resize/default-arg variants and permute -r 20 found nothing better; still differs: zeroed [esp+0x18] slot, a second n<size() check (cmp/jbe), and EH-state/lea-push order, since an unused default arg is elided.
+// Tried 2026-10-31 re-pass: dropping the outer size() guard (EraseY already tests n<size), volatile unk860 store (lea/push order) and a volatile-zeroed `Player* z` passed to EraseY 24->2 insns; ~35 variants + permute -r 40 found nothing better; still differs: the z slot store [esp+0x18] lands before `mov ebx,[edi+4]` instead of after `cmp ebx,ebp`, and `mov ecx,esi` before ClearMessages one slot early.
 NetRace::NetRace()
 {
     unk7a8 = 0;
     m_hostPlayer = 0;
     m_host = 0;
     unk85c = 0;
-    unk860 = 0;
+    *(volatile int*)&unk860 = 0;
     unk850 = 1;
     unk830 = 0;
     unk854 = 0;
     unk858 = 0;
     InitializeCriticalSection(&m_lock);
     PlayerVector* r = &m_removed;
-    if (r->size() > 0) {
-        r->EraseY(0);
-    }
+    Player* z;
+    *(volatile int*)&z = 0;
+    r->EraseY(0, z);
     unk844 = 0;
     unk880 = 0;
     ClearMessages();
