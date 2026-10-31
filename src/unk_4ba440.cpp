@@ -594,14 +594,15 @@ static inline float PlaneDot(float a, float b, float c, const float* p)
 }
 
 // NONMATCHING: RALLYTROPHY 0x4bab80
-// Tried 2026-10-30 night: lea constant 0x84 (tplanes[8]+1), early-out returns, left-hand computed compares, brace-init copy then in-place dv -=, for(;;i++,e++,p+=4); 69->54 insns. Still differs: original loads all three bf[] terms before multiplying (fxch) and keeps 0x80000000 in ecx with edi as loop counter (one extra callee-saved reg); ~25 variants (locals, helper, mask var, indexed loop) did not reproduce.
+// Tried 2026-10-31: lea constant 0x84 (tplanes[8]+1), early-out returns, brace-init dv, TestBounds plane-loop shape, `int i = 0;` before e/p (fixed edi/ebx regs and the 0x80000000-in-ecx test: 54->17 insns), ~25 more variants (bf[] temps, term orders, Negative(), plane-term orders); still differs: original loads all three bf[] terms before multiplying (fxch) and in the plane loop does z then x then y (fld p[1]/fmul c.z first) where VC6 reorders to x,z,y regardless of source order.
 int ViewFrustum::TestBoundsB(const SceneBounds* b)
 {
     const float* bf = (const float*)b;
     if (b->flags & 2) {
+        int i = 0;
         const int* e = (const int*)((const char*)this + 0xe8);
         const float* p = (const float*)((const char*)this + 100);
-        for (int i = 0; i < 6; i++, e++, p += 4) {
+        for (; i < 6; i++, e++, p += 4) {
             float v = (bf[e[0]] * p[0] + (bf[e[6]] * p[1] + bf[e[-6]] * p[-1])) - p[2];
             if (*(unsigned*)&v & 0x80000000)
                 return 0;
@@ -631,7 +632,7 @@ int ViewFrustum::TestBoundsB(const SceneBounds* b)
         int i = 0;
         const float* p = &tplanes[8] + 1;
         for (; i < 4; i++, p += 4) {
-            if (b->c.z * p[1] + b->c.y * p[0] + b->c.x * p[-1] + b->d < p[2])
+            if (b->c.x * p[-1] + b->c.z * p[1] + b->c.y * p[0] + b->d < p[2])
                 return 0;
         }
     }
