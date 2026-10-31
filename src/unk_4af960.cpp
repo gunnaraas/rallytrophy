@@ -1,5 +1,6 @@
 #include "unk_4af960.h"
 #include "unk_4b8b10.h"
+#include "unk_40c280.h"
 #include <math.h>
 #include <string.h>
 
@@ -184,8 +185,41 @@ Sprite* BmfReader::ReadMaterial(File* file)
     return result;
 }
 
-// NONMATCHING: RALLYTROPHY 0x4b0a30
-// Allocation register selection, bounds copy scheduling, and inline vector insertion differ.
+struct BlkVec : StageIntVec { unsigned int SizeCall(); }; // 0x414460 out of line
+void __cdecl StageConstruct(int* p, const int& v); // 0x403140
+static __forceinline void BlkInsert(BlkVec* v, int* P, unsigned int M, const int& X)
+{
+    if ((unsigned int)(v->end - v->last) < M) {
+        unsigned int m2 = (M < v->Size() ? v->Size() : M);
+        unsigned int n = v->SizeCall() + m2;
+        int* s = v->allocator.allocate(n, (void*)0);
+        int* q = v->Ucopy(v->first, P, s);
+        v->Ufill(q, M, &X);
+        v->Ucopy(P, v->last, q + M);
+        v->Destroy(v->first, v->last);
+        StageFree(v->first);
+        v->end = s + n;
+        v->last = s + v->SizeCall() + M;
+        v->first = s;
+    } else if ((unsigned int)(v->last - P) < M) {
+        v->Ucopy(P, v->last, P + M);
+        v->Ufill(v->last, M - (v->last - P), &X);
+        for (int* p = P; p != v->last; ++p)
+            *p = X;
+        v->last += M;
+    } else {
+        v->Ucopy(v->last - M, v->last, v->last);
+        int* d = v->last;
+        for (int* f = v->last - M; P != f; )
+            *--d = *--f;
+        for (int* p = P; p != P + M; ++p)
+            *p = X;
+        v->last += M;
+    }
+}
+
+// FUNCTION: RALLYTROPHY 0x4b0a30
+// m_v38.push_back is an inlined vector::insert(end(), 1, x) with out-of-line Size() (BlkInsert, see StageInsert).
 void ModelFile::ReadBlock(File* file, unsigned int* size)
 {
     SceneEntry* entry = ((ModelLoader*)this)->ReadMesh(file, (unsigned int)size);
@@ -209,7 +243,8 @@ void ModelFile::ReadBlock(File* file, unsigned int* size)
     dest[10] = v;
     *(unsigned char*)&dest[11] = flags;
     delete entry;
-    m_v38.push_back(size);
+    BlkVec* vec = (BlkVec*)&m_v38;
+    BlkInsert(vec, vec->last, 1, (int&)size);
 }
 
 // NONMATCHING: RALLYTROPHY 0x4b0e90
