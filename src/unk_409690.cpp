@@ -348,6 +348,7 @@ extern std::vector<void*> DAT_00508298; // shared free list, reserved to 0x200 e
 // 300/300 bytes, 28 differ: the target stores pos.x before the diagonal and sets EH state 1 after pos.z/pos.y;
 // here the zero stores of pos sink below the state store. Both members unwind through the empty dtor 0x402c90.
 // Tried: setting x/diagonal in the member ctors (splits the state stores), pos store chains, 0.0f literals.
+// Tried 2026-10-30 night: volatile barrier on each of pos.x/z/y/unk50 with all 24 orderings of those four stores (120 variants); best stays 2 insns differ, none match; volatile only moves the EH-state store earlier (right after xor edi,edi) and cannot place it after pos.y.
 SceneXform::SceneXform()
 {
     pos.v[0] = 0;
