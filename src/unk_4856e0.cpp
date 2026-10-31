@@ -3112,12 +3112,8 @@ void RaceMode::LoadReplay()
     }
 }
 
-// NONMATCHING: RALLYTROPHY 0x48e1f0
-// 712 vs 708 bytes; frame, string layout, EH states and calls all match. Only the header fill differs: the
-// original copies unk2c and the five car values one at a time through eax (no load hoisted over a store;
-// store of the last value after the magic), this build interleaves ecx/edx/eax and hoists the loads. Volatile
-// destination/source accesses and an explicit final-value temp loaded before the magic leave the 201-difference
-// candidate unchanged. `#pragma optimize("a", off)` removes the hoisting but changes the register allocation elsewhere.
+// FUNCTION: RALLYTROPHY 0x48e1f0
+// Each header value goes through its own block-scoped temp; that keeps the loads from being hoisted over stores.
 // Saves the ghost of a player: data/replay/replay<rally>_<stage>.ini holds the header (the car's
 // five setup values), .rep the recorded car data (Car 0x465550).
 void RaceMode::SaveReplay(Player* player)
@@ -3136,13 +3132,13 @@ void RaceMode::SaveReplay(Player* player)
     rep = path;
     rep += ".rep";
     Car* car = player->car;
-    DAT_00565370.unk2c = player->unk2c;
-    DAT_00565370.setup.value[0] = car->setup.value[0];
-    DAT_00565370.setup.value[1] = car->setup.value[1];
-    DAT_00565370.setup.value[2] = car->setup.value[2];
-    DAT_00565370.setup.value[3] = car->setup.value[3];
+    { int t = player->unk2c; DAT_00565370.unk2c = t; }
+    { int t = car->setup.value[0]; DAT_00565370.setup.value[0] = t; }
+    { int t = car->setup.value[1]; DAT_00565370.setup.value[1] = t; }
+    { int t = car->setup.value[2]; DAT_00565370.setup.value[2] = t; }
+    { int t = car->setup.value[3]; DAT_00565370.setup.value[3] = t; }
     DAT_00565370.magic = 0x20010730;
-    DAT_00565370.setup.value[4] = car->setup.value[4];
+    { int t = car->setup.value[4]; DAT_00565370.setup.value[4] = t; }
     File file;
     file.Open(ini.c_str(), 0x82);
     file.Write(&DAT_00565370, 0x1c);
