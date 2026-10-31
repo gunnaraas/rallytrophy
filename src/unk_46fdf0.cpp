@@ -1251,10 +1251,7 @@ void ParallelShadow::RasteriseObject(ShadowCaster* obj)
 }
 
 // original: FUN_00472710
-// NONMATCHING: RALLYTROPHY 0x472710
-// 414 vs 405 bytes, 92 differing bytes. The target's row-A decrement is dec/test/store; keep the nonvolatile source
-// form, which emits that exact sequence (Evidence ev_183891f7dd3fcb066f1d31b4cd436092089ebcd199d92facdf9f5b616af31588).
-// VC6 keeps 0xffff immediate; the target loads it into edi. A register `fixedOne` local emitted baseline bytes.
+// FUNCTION: RALLYTROPHY 0x472710
 // Fill a triangle with the 16-bit colour: scan the two edges row by row (16.16 fixed point).
 void FillTriangle(ProjVertex** tri)
 {
@@ -1286,14 +1283,14 @@ void FillTriangle(ProjVertex** tri)
                 if (s_rowsB > 0) {
                     WORD* row = (WORD*)(g_scanline + ((tri[top]->fy + 0xffff) >> 16) * g_pitch);
                     s_xA += 0xffff;
+                    s_xB += 0xffff;
                     for (;;) {
-                        s_xB += 0xffff;
                         for (;;) {
                             int xa = s_xA;
                             int right = xa >> 16;
                             int left = s_xB >> 16;
                             for (int x = left; x < right; x++) {
-                                row[x] = g_fillColor16;
+                                row[x] = (WORD)*(int*)&g_fillColor16;
                             }
                             row = (WORD*)((BYTE*)row + g_pitch);
                             if (--s_rowsA <= 0) {
@@ -1319,7 +1316,8 @@ void FillTriangle(ProjVertex** tri)
                                         break;
                                     }
                                 }
-                                break;
+                                s_xB += 0xffff;
+                                continue;
                             }
                             s_xB += s_stepB;
                         }
