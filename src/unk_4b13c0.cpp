@@ -8,39 +8,45 @@ struct V3 { float x, y, z; };
 struct NegSrc { float* Negate(float* out) const; }; // 0x4203b0 Vec3::operator-
 
 #define RAW(p, off) (*(unsigned int*)((char*)(p) + (off)))
+static inline int Bal(int a) { return a; }
 
 // NONMATCHING: RALLYTROPHY 0x4b13c0
 // reason: original copies the 3rd vector through a stack EntryVec3 with fld/fst and has one EH state; ours 773 vs 626 bytes
+// Tried 2026-10-30 night: ~20 variants (199->4 insns, size 626 now equal): Bal(1) x3 at end for inline budget (first three string compares out of line), EntryVec3 a/b/c declared up front (EH state 3), ReadVertices/ReadBatch/ReadBatchSmall as (file, e) members, unsigned loop test, f[9]=f[10]=s; still differs: VC6 emits `fstp [e+0xc]` (c.x) early instead of after the f[0] store, shifting 4 store/reg insns; volatile stores, store reorders and permute -r 20 did not move it.
 SceneEntry* ModelLoader::ReadMesh(File* file, unsigned int size)
 {
     SceneEntry* e = new SceneEntry;
     int start = FUN_004a5fc0(file);
+    EntryVec3 a, b, c;
     int flags = FUN_004af230(file);
-    V3 a = *(V3*)FUN_004af4b0(file);
+    a = *(EntryVec3*)FUN_004af4b0(file);
     float s = FUN_004af490(file);
-    V3 b = *(V3*)FUN_004af4b0(file);
-    EntryVec3 c = *(EntryVec3*)FUN_004af4b0(file);
+    b = *(EntryVec3*)FUN_004af4b0(file);
+    EntryVec3* pc = (EntryVec3*)FUN_004af4b0(file);
+    float cx = pc->x; c.x = cx;
+    *(int*)&c.y = *(int*)&pc->y; *(int*)&c.z = *(int*)&pc->z;
     float* f = (float*)e;
     f[6] = a.x; f[7] = a.y; f[8] = a.z;
-    f[10] = f[9] = s;
-    f[0] = b.x; f[3] = c.x; f[1] = b.y; f[2] = b.z; f[4] = c.y; f[5] = c.z;
+    f[9] = f[10] = s;
+    f[0] = b.x; f[3] = cx; f[1] = b.y; f[2] = b.z; f[4] = c.y; f[5] = c.z;
     if (flags & 1)
         e->ml.flag2c |= 1;
     if (flags & 2)
         e->ml.flag2c |= 2;
-    while (size > (unsigned)(FUN_004a5fc0(file) - start)) {
+    while ((unsigned)(FUN_004a5fc0(file) - start) < size) {
         ModelNamedValue* n = FUN_004af560(file);
         if (n->name.compare("VERTEXLIST") == 0)
-            FUN_004b2290(file);
+            ReadVertices(file, e);
         else if (n->name.compare("POLYLIST") == 0)
             ReadPolys(file, e);
         else if (n->name.compare("BATCH") == 0)
-            FUN_004b1af0(file);
+            ReadBatch(file, e);
         else if (n->name.compare("BATCH2") == 0)
-            FUN_004b1ec0(file);
+            ReadBatchSmall(file, e);
         else
             FUN_004af710(file, (ModelChunk*)n);
     }
+    Bal(1); Bal(1); Bal(1);
     return e;
 }
 

@@ -14,8 +14,8 @@ public:
     void ReadView2(File* file);                          // 0x4b19b0
     void Attach(void* obj, int parent);                  // 0x4b2530
     void ReadPolys(File* file, SceneEntry* e);           // 0x4b2330
+    void ReadVertices(File* file, SceneEntry* e);        // 0x4b2290
+    void ReadBatch(File* file, SceneEntry* e);           // 0x4b1af0
+    void ReadBatchSmall(File* file, SceneEntry* e);      // 0x4b1ec0
 };
-void __stdcall FUN_004b2290(File* file);
-void __stdcall FUN_004b1af0(File* file);
-void __stdcall FUN_004b1ec0(File* file);
 #endif
