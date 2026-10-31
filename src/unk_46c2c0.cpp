@@ -191,6 +191,7 @@ static float Pacejka(float x, float B, float C, float D, float E);
 // before the three stores and pops edi between z and y; this build reloads ecx and pops edi afterward. Volatile x or z
 // individually, with y volatile, leaves the 27-byte diff unchanged. Plain objcmp.
 // Tried 2026-10-30 night: volatile on x/z/y/touching/active in 14 combos plus reorders of the normal stores; best stays 27 bytes (y volatile only), none moves the ecx reload or pop edi.
+// Tried 2026-10-31 re-pass: ~20 more barrier variants (this-cast volatile on x/z/y, Wheel* volatile self, volatile touching/active, volatile dummy reads of x/touching, y moved after touching) all >= 2 insns/27 bytes or worse; permute.py -r 40 stayed at (2, 27); ecx reload + pop edi still land after the y store.
 Wheel::Wheel()
 {
     tire.SetParent(this);
