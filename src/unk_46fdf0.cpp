@@ -644,6 +644,7 @@ inline float Dot(const Vec3& a, const Vec3& b)
 // 3490 vs 3336 bytes. Same calls, constants, EH states and data flow; the frame differs: the original keeps c at ebp-0x18
 // (ours -0x28), and its inlined point*matrix transforms and cross product keep their pointer arguments in stack temps
 // with the three outputs interleaved; every inline form tried (member, free, Vec3 ctor) is optimised harder.
+// Tried 2026-10-30 night: swapped dot-product operand order (inline and via helper, VC6 emits the same x87 order), Vec3 c at function top / after fwd / per-arm copy-init / per-arm assign / per-section block scope / extra dummy Vec3 / explicit named operator* temp; the original has c at ebp-0x18 and the operator* return temp at ebp-0x24 (ours reversed) and block-scoped c fixes the slot but moves the temp to ebp-0x5c, drops c's stores and grows the function to 3520 bytes.
 // Prepares the shadow plane for the frame: clip planes from the camera, the light-space matrices and the casters' volume.
 // original: FUN_00470940
 void ParallelShadow::Prepare(RenderDevice* device, void* unused, DrawContext* context, Camera* camera, int unused2)
