@@ -17,10 +17,57 @@ void SkidMarks::SetQuality(int q)
     capacity = 0x80 >> (2 - q);
 }
 
+// std::string layout with _Grow(n, true) expanded inline, as the original constructor has it.
+struct SkStr {
+    std::allocator<char> alloc;
+    char* ptr;
+    unsigned int len;
+    unsigned int res;
+    void Tidy(bool built);        // 0x402700
+    void Copy(unsigned int n);    // 0x402ab0
+    static void Xlen();           // 0x4bd00b
+    static unsigned char& Rc(const char* u) { return ((unsigned char*)u)[-1]; }
+    SkStr& Assign(const char* s)
+    {
+        unsigned int n = strlen(s);
+        if (n > 0xfffffffd)
+            Xlen();
+        if (ptr != 0 && Rc(ptr) != 0 && Rc(ptr) != 255) {
+            if (n == 0) {
+                --Rc(ptr);
+                ptr = 0;
+                len = 0;
+                res = 0;
+                return *this;
+            }
+            Copy(n);
+        } else if (n == 0) {
+            if (ptr != 0) {
+                if (Rc(ptr) != 0 && Rc(ptr) != 255)
+                    --Rc(ptr);
+                else
+                    alloc.deallocate(ptr - 1, res + 2);
+            }
+            ptr = 0;
+            len = 0;
+            res = 0;
+            return *this;
+        } else if (res > 0x1f || res < n) {
+            Tidy(true);
+            Copy(n);
+        }
+        std::char_traits<char>::copy(ptr, s, n);
+        len = n;
+        ptr[n] = 0;
+        return *this;
+    }
+};
+
 // NONMATCHING: RALLYTROPHY 0x4741a0
 // 594 of 696 bytes: initialization matches through the string assignment prefix.
 // The original expands string cleanup with three separate constructor epilogues;
 // VC6 currently emits one cleanup call and merges the return paths.
+// Tried 2026-10-31: SkStr overlay with _Grow(n,true) expanded inline (hand-written, early returns in ctor or helper, bool Grow, return *this, store order, memcpy); body now matches structurally (57->43 insns) but VC6 merges the three return paths into one shared epilogue (jmp) where the original duplicates the epilogue per return.
 SkidMarks::SkidMarks()
 {
     int q = DAT_00501428;
@@ -63,7 +110,40 @@ SkidMarks::SkidMarks()
     }
     flags &= 0xfc;
     SetFlag04(1);
-    Name() = "SkidMark";
+    {
+        SkStr* st = (SkStr*)nameStorage;
+        const char* s = "SkidMark";
+        unsigned int n = strlen(s);
+        if (n > 0xfffffffd)
+            SkStr::Xlen();
+        if (st->ptr != 0 && SkStr::Rc(st->ptr) != 0 && SkStr::Rc(st->ptr) != 255) {
+            if (n == 0) {
+                --SkStr::Rc(st->ptr);
+                st->ptr = 0;
+                st->len = 0;
+                st->res = 0;
+                return;
+            }
+            st->Copy(n);
+        } else if (n == 0) {
+            if (st->ptr != 0) {
+                if (SkStr::Rc(st->ptr) != 0 && SkStr::Rc(st->ptr) != 255)
+                    --SkStr::Rc(st->ptr);
+                else
+                    st->alloc.deallocate(st->ptr - 1, st->res + 2);
+            }
+            st->ptr = 0;
+            st->len = 0;
+            st->res = 0;
+            return;
+        } else if (st->res > 0x1f || st->res < n) {
+            st->Tidy(true);
+            st->Copy(n);
+        }
+        std::char_traits<char>::copy(st->ptr, s, n);
+        st->len = n;
+        st->ptr[n] = 0;
+    }
 }
 
 // FUNCTION: RALLYTROPHY 0x474460
