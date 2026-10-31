@@ -45,6 +45,7 @@ struct StBody {                        // car rigid body (0x284 bytes)
     void SetCollision3(void* part);    // 0x41ca00
     BYTE pad[0x14];
     float pos[3];                      // 0x14
+    BYTE tail[0x284 - 0x20];
 };
 struct StSign {                        // 0x68 bytes: sign / checkpoint-block object
     StSign();                          // 0x40a680

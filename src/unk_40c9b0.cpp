@@ -212,9 +212,11 @@ static inline const char* NameOf(void* p)    // object name (std::string at +0x1
 // logger and the format helper at the error sites). Open: the 21 start-position stores are scheduled
 // differently, the two sign branches' shared tail is kept in the checkpoint copy (the original keeps the sign_
 // copy and jumps back), the plain-object push_back sits before the checkpoint block, and the frame layout.
+// Tried 2026-10-30 night: idx/p in dead param slot a, StBody sized 0x284 (header), int copies of sign pos, dead c[] kept via volatile stores (2957->2656 diff lines); still differs: frame 0x250 vs 0x258 (lodMask is a byte at [ebp-0x44] in the original), start-store scheduling, body->pos copy addressing, sign tail merge.
 // original: FUN_0040c9b0
 Stage::Stage(int a, int b, int c, int d)
 {
+    char num[8];
     int i;
     unsigned int n;
 
@@ -264,8 +266,8 @@ Stage::Stage(int a, int b, int c, int d)
     StPath line;                                     // function-scope strings: destroyed at the end
     StPath text;
     StNetInfo* net = (StNetInfo*)DAT_00501450;
-    int idx = net->raceIndex;
-    char num[8];
+    *(volatile int*)&a = net->raceIndex;
+    int idx = a;
     text += FUN_00405380(idx + 0xb4);
     text += " - ";
     if (DAT_00501458 == 0) {
@@ -406,8 +408,9 @@ Stage::Stage(int a, int b, int c, int d)
 
     // model 1 parts (+0x28): splits, starts, signs, checkpoints, plain objects
     int lodMask = (DAT_0050141c < 3) ? 0x40 : 0;
+    void*& p = *(void**)&a;
     for (i = 0; i < (int)mf1.v28.size(); ) {
-        void* p = mf1.v28[i];
+        p = mf1.v28[i];
         if (IV(p, 4) == 3) {
             VEC(0x78).PushBack(p);
             if (_strnicmp(NameOf(p), "z", 1) == 0)
@@ -436,15 +439,15 @@ Stage::Stage(int a, int b, int c, int d)
             }
             if (_strnicmp(NameOf(p), "sign_", 5) == 0) {
                 StSign* s = new StSign;
-                s->pos[0] = FV(p, 0x14);
-                s->pos[1] = FV(p, 0x18);
-                s->pos[2] = FV(p, 0x1c);
+                ((int*)s->pos)[0] = IV(p, 0x14);
+                ((int*)s->pos)[1] = IV(p, 0x18);
+                ((int*)s->pos)[2] = IV(p, 0x1c);
                 memcpy(s->mat, (BYTE*)p + 0x20, 0x40);
                 float ext[3] = { 250.0f, 200.0f, 250.0f };
-                float c[3];
-                c[0] = FV(p, 0xb8);
-                c[2] = FV(p, 0xc0);
-                c[1] = FV(p, 0xa4) * DAT_004e13c4 + FV(p, 0xb0) * DAT_004e1390;
+                int c[3];
+                ((volatile int*)c)[0] = IV(p, 0xb8);
+                ((volatile int*)c)[2] = IV(p, 0xc0);
+                *(volatile float*)&c[1] = FV(p, 0xa4) * DAT_004e13c4 + FV(p, 0xb0) * DAT_004e1390;
                 s->body = new StBody(p, 150.0f, ext, (float*)((BYTE*)p + 0xb8));
                 s->body->SetCollision2(p);
                 s->body->pos[0] = FV(p, 0x14);
@@ -460,9 +463,9 @@ Stage::Stage(int a, int b, int c, int d)
                 i++;
             } else {                                   // the tail is written in both sign branches; VC6 merges it
                 StSign* s = new StSign;
-                s->pos[0] = FV(p, 0x14);
-                s->pos[1] = FV(p, 0x18);
-                s->pos[2] = FV(p, 0x1c);
+                ((int*)s->pos)[0] = IV(p, 0x14);
+                ((int*)s->pos)[1] = IV(p, 0x18);
+                ((int*)s->pos)[2] = IV(p, 0x1c);
                 memcpy(s->mat, (BYTE*)p + 0x20, 0x40);
                 float ext[3] = { 100.0f, 100.0f, 100.0f };
                 s->body = new StBody(p, 25.0f, ext, (float*)((BYTE*)p + 0xb8));
