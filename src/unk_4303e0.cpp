@@ -425,6 +425,7 @@ public:
 // NONMATCHING: RALLYTROPHY 0x430f60
 // 3301 vs 3300 bytes; every string expansion, call and EH state matches. VC6 swaps ebx/ebp from 0x43133d on (`this` in
 // ebx, the original ebp), costing the bl store in .bik's _Eos(0), and the four line sprites' field stores don't interleave.
+// Tried 2026-10-30 night: ys/uiBuilt order, Style reordered/interleaved with Upload, Style via this->line* fields, chained field-major style stores, deferred field assignment; all 182 or worse (original pushes edi early and interleaves the four sprites' style stores field-major across eax/ebx/ebp/edi; no source shape reproduced it).
 // Builds the front-end once: background image, line sprites, cursor, the seven main-menu labels, the embedded
 // screens' Setup, and a random background video data/video/menu<1..11>.bik.
 void G3_Game::FUN_00430f60()
