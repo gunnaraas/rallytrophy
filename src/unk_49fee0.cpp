@@ -86,6 +86,7 @@ static inline Vec3 Flat(const Vec3& v)
 }
 
 // NONMATCHING: RALLYTROPHY 0x49ffa0
+// Tried 2026-10-30 night: ~25 variants; 215->170 insns by declaring rel/diff Vec3 outside the loop (assigned per pass) and copying forward into dir field by field; original still has frame 0xc0 (ours 0xd8), EH state 4 before the loop and this in edi/i in ecx with the dir inverse sharing i's slot.
 // Logic complete (1110 vs 1149 bytes). The original has four Vec3 objects (EH state 4) alive before the loop and
 // reads the results of the out-of-line Vec3 +/- (0x419f00/0x414330) straight from the returned pointers; the
 // build's temporaries, EH state numbers and register allocation (original: this in edi) differ.
@@ -99,16 +100,18 @@ void AIDriver::FUN_0049ffa0()
     unk554 = 0;
     unkbc = 0;
     Obstacle* ob = obstacles;
+    Vec3 rel;
+    Vec3 diff;
     for (unsigned i = 0; i < listeners.size(); i++) {
         AiBody* ownBody = (AiBody*)ownCar->body;
         AiBody* other = (AiBody*)listeners[i]->car->body;
-        Vec3 dir(forward.x, forward.y, forward.z);
+        Vec3 dir; dir.x = forward.x; dir.y = forward.y; dir.z = forward.z;
         float inv = 1.0f / dir.Length();
         dir.x *= inv;
         dir.y *= inv;
         dir.z *= inv;
-        Vec3 rel = Flat(other->position - ownBody->position);
-        Vec3 diff = other->position - ownBody->position;
+        rel = Flat(other->position - ownBody->position);
+        diff = other->position - ownBody->position;
         diff.y = 0;
         Vec3 r3 = Flat((other->position + *(Vec3*)&other->vx) - (ownBody->position + *(Vec3*)&ownBody->vx));
         Vec3 v4 = Flat((other->position + *(Vec3*)&other->vx) - ownBody->position);
