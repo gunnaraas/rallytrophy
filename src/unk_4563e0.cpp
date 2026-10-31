@@ -1397,10 +1397,6 @@ struct G3CameraView {
     __asm fstp dword ptr [eax+4]
 
 // NONMATCHING: RALLYTROPHY 0x4578c0
-// 588 vs 542 bytes. The view-6 asm transforms, the null-car and the heading logic are in place, but the frame is
-// 0x28 in the original (0x10 here: more locals live across the FPU code) and the original keeps z on the FPU stack
-// (`fld st(0)`) in the speed test; the slot order of the four asm operands also differs.
-// original: FUN_004578c0 (ViewManager::GetCameraOffsets)
 // The eye and look-at points of the current preset around the followed car.
 void ViewManager::FUN_004578c0(float* eye, float* look)
 {
@@ -1428,9 +1424,9 @@ void ViewManager::FUN_004578c0(float* eye, float* look)
         G3_TRANSFORM(point, matrixB, look, eye);
         return;
     }
-    float x = body->vel[0];
     float z = body->vel[2];
-    if (x * x + z * z <= 0.001f) {
+    float x = body->vel[0];
+    if (z * z + x * x <= 0.001f) {
         if (*(unsigned int*)&body->vel[1] & 0x80000000) {
             x = body->row1[0];
             z = body->row1[2];
@@ -1439,16 +1435,17 @@ void ViewManager::FUN_004578c0(float* eye, float* look)
             z = -body->row1[2];
         }
     }
-    float inv = 1.0f / (float)sqrt(x * x + z * z);
+    float inv = 1.0f / (float)sqrt(z * z + x * x);
     float nx = x * inv;
     float nz = z * inv;
+    float mnx = -nx;
     const CameraPreset* p = &CameraTable::presets[v->view];
     eye[0] = nz * p->lookAt[0] + nx * p->lookAt[2] + body->pos[0];
     eye[1] = p->lookAt[1] + body->pos[1];
-    eye[2] = -nx * p->lookAt[0] + nz * p->lookAt[2] + body->pos[2];
+    eye[2] = mnx * p->lookAt[0] + nz * p->lookAt[2] + body->pos[2];
     look[0] = nx * p->position[2] + nz * p->position[0] + body->pos[0];
     look[1] = p->position[1] + body->pos[1];
-    look[2] = nz * p->position[2] + -nx * p->position[0] + body->pos[2];
+    look[2] = nz * p->position[2] + mnx * p->position[0] + body->pos[2];
 }
 
 // The message text of a temporary string (the original tests the pointer after loading the empty literal).
