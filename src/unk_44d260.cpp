@@ -180,9 +180,7 @@ struct FB3_Stats {
 
 // original: FUN_0044d260
 // NONMATCHING: RALLYTROPHY 0x44d260
-// Structure matches (record = size dword 0x74 + fields, shared by both loops; path via out-of-line assign/append). The
-// four-byte `itoa` buffer reduces the candidate diff 737→728; the frame remains 0x90 vs target 0x94. The original keeps
-// File* in EDI with a stack home and RaceMode* in EBX; this candidate keeps File* in EBX and spills RaceMode*.
+// Tried 2026-10-31: per-branch `RaceMode* race` locals fix the register allocation (66->14 insns). `char buf[1]` reaches 4 insns but _itoa would overflow it, so the buffer stays 4 bytes; what remains is the allocator temp / itoa buffer stack offsets.
 void SaveGame::SaveSlot(int slot)
 {
     FillHeader();
@@ -206,9 +204,9 @@ void SaveGame::SaveSlot(int slot)
     magic = 0x20011010;
     file->Write(&magic, 4);
     file->Write(this, 0x6c);
-    RaceMode* race = (RaceMode*)DAT_00501450;
     rec.size = 0x74;
     if (DAT_00501458) {
+        RaceMode* race = (RaceMode*)DAT_00501450;
         for (int i = 0; i < (int)race->m_players.size(); i++) {
             Player* p = race->m_players[i];
             strcpy(rec.name, p->name);
@@ -228,6 +226,7 @@ void SaveGame::SaveSlot(int slot)
             file->Write(&rec, 0x74);
         }
     } else {
+        RaceMode* race = (RaceMode*)DAT_00501450;
         for (int i = 0; i < (int)race->m_players.size(); i++) {
             Player* p = race->m_players[i];
             strcpy(rec.name, p->name);
