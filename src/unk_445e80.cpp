@@ -920,6 +920,9 @@ int ServiceMenu::Frame()
 // VC6 hoists the constant 0 into ebp from the function entry (merged with the loop index i = 0), where the original
 // materialises it only at the loop; the original also spills the sprite pointer and keeps -1 in ebx. Unsolved after
 // ~20 variants (loop forms, bool selected, Color ctor). original: FUN_00448f80 (page 0 of ServiceMenu::Slot3)
+// Tried 2026-10-30 night: single-expression `x = K - GetWidth(..)` (fixes the x temp slot and sel slot) and folding 0x39a4 into `off`
+// (moves the DAT_0056b0c8 load after the offset math) took 80->20 insns; still differs: original keeps the constant out of the lea
+// ([eax+ebp+0x39a8], 1 byte shorter) and the EH-dtor tail picks eax/cl instead of ecx/al. Declaration moves, helper structs, operand swaps did nothing.
 void ServiceMenu::DrawInfo()
 {
     SMF_Str unused;
@@ -966,8 +969,7 @@ void ServiceMenu::DrawInfo()
         y = DAT_0056aeac * 550.0f;
         x = DAT_0056aea8 * 608.0f;
         text->Print(DAT_0056b0ac, x, y, FUN_00405380(0xfe), 0, 1.0f, 1.0f);
-        x = DAT_0056aea8 * 999.0f;
-        x = x - text->GetWidth(FUN_00405380(0xf9), 0);
+        x = DAT_0056aea8 * 999.0f - text->GetWidth(FUN_00405380(0xf9), 0);
         text->Print(DAT_0056b0ac, x, y, FUN_00405380(0xf9), 0, 1.0f, 1.0f);
         y = DAT_0056aeac * 22.0f;
         text = *(TextRenderer**)((BYTE*)m_game + 0x1390bc);
@@ -979,8 +981,7 @@ void ServiceMenu::DrawInfo()
         y = DAT_0056aeac * 580.0f;
         x = DAT_0056aea8 * 613.0f;
         text->Print(DAT_0056b0ac, x, y, stageSurfaces[sel].c_str(), 0, 1.0f, 1.0f);
-        x = DAT_0056aea8 * 995.0f;
-        x = x - text->GetWidth(stageNames[sel].c_str(), 0);
+        x = DAT_0056aea8 * 995.0f - text->GetWidth(stageNames[sel].c_str(), 0);
         text->Print(DAT_0056b0ac, x, y, stageNames[sel].c_str(), 0, 1.0f, 1.0f);
         x = DAT_0056aea8 * 613.0f;
         int rally1 = rally + 1;
@@ -988,15 +989,15 @@ void ServiceMenu::DrawInfo()
         int stage1 = stage + sel + 1;
         text->Print(DAT_0056b0ac, x, y, FUN_00405380(0xff), 0, 1.0f, 1.0f);
         y = DAT_0056aeac * 15.0f + y;
-        int off = rally1 * 1512 + stage1 * 16;
+        int off = rally1 * 1512 + stage1 * 16 + 0x39a4;
         x = DAT_0056aea8 * 32.0f + x;
-        text->Print(DAT_0056b0ac, x, y, SMF_STR(off + 0x39a4).c_str(), 0, 1.0f, 1.0f);
+        text->Print(DAT_0056b0ac, x, y, SMF_STR(off).c_str(), 0, 1.0f, 1.0f);
         y = DAT_0056aeac * 15.0f + y;
-        text->Print(DAT_0056b0ac, x, y, SMF_STR(off + 0x3b24).c_str(), 0, 1.0f, 1.0f);
+        text->Print(DAT_0056b0ac, x, y, SMF_STR(off + 0x180).c_str(), 0, 1.0f, 1.0f);
         y = DAT_0056aeac * 15.0f + y;
         text->Print(DAT_0056b0ac, x, y, FUN_00405380(0x138 + *((BYTE*)DAT_0056b0c8 + rally1 * 1512 + stage1 + 0x3bf3)),
                     0, 1.0f, 1.0f);
-        std::string& extra = SMF_STR(off + 0x3a64);
+        std::string& extra = SMF_STR(off + 0xc0);
         if (extra.size() > 0) {
             y = DAT_0056aeac * 30.0f + y;
             x = x - DAT_0056aea8 * 32.0f;
