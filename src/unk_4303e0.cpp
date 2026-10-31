@@ -1958,6 +1958,7 @@ extern G8_Opponent DAT_004f7c30[];
 // (register-blind diff ratio 0.963, 1836 vs 1826+table bytes); VC6 gives `this` ebp/zero edi/rally ebx where the
 // original has edi/ebx/ebp (and different frame-slot order), so most bytes differ. Tried: init/declaration order,
 // `this` alias, zero as a variable, volatile locals, fastcall free function: none flips the allocation.
+// Tried 2026-10-30 night: ~30 variants (declaration order permutations, init order/chained inits, do-while vs for(;;), ternary vs if, lastA/lastB decl swap, volatile info, reordered career stores): declaration order has no effect at all; original keeps carClass at [esp+0x20] and info at [esp+0x24] (ours swapped), lastA above lastB, 12 bytes longer; still 191 insns differ.
 int GameG8::FUN_00433bc0()
 {
     DAT_00508f60 = 0;
