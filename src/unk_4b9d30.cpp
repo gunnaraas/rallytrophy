@@ -15,20 +15,22 @@ struct V3D { float x, y, z; V3D() {} };
 struct V3Sub { float x, y, z; float* Sub(float* out, const float* o) const; }; // 0x414330
 
 // NONMATCHING: RALLYTROPHY 0x4b9d30 (draft: the world-point transform (centre*matA + pos) is the Xform asm block (frame now ebp as original; 1563 vs 1750 bytes, ~1395 differ mostly from shifts). Remaining: EH state 3 and sub esp 0x224 (ours 2 / 0x210), the original reuses the arg slots [ebp+8..0x14] for temporaries (more asm), different dot-product order in the vertex loop)
+// Tried 2026-10-30 night: cam/body matrices via local pointers (cm), 4 early + 5 late dtor objects (V3E w/tmp/X5) gives sp 0x224, EH state 3 and 1748 bytes (326->316 insns; cm alone 308); operand order of the translation products ignores source order, matrix slots ignore declaration order (original: invBody -0x230, invProd -0x1f0, clip -0x1b0, invCam -0x170, invAxes -0x130, prod -0xf0); X5 candidates u/a/d/up all worse.
 void ShadowUpdater::Update(ShadowBody* body, ShadowBody* cam, const float* centre, float radius)
 {
-    Mat4Local invBody, invCam, prod;
+    struct V3E { float x, y, z; V3E() {} ~V3E() {} };
+    Mat4Local invBody, invCam, prod, invProd;
     float* bm = body->matB;
     invBody.SetInverseOf(bm);
     invBody.m[12] = -(bm[14] * bm[2] + bm[13] * bm[1] + bm[0] * bm[12]);
     invBody.m[13] = -(bm[14] * bm[6] + bm[13] * bm[5] + bm[12] * bm[4]);
     invBody.m[14] = -(bm[14] * bm[10] + bm[13] * bm[9] + bm[12] * bm[8]);
-    invCam.SetInverseOf(cam->matB);
-    invCam.m[12] = -(cam->matB[2] * cam->matB[14] + cam->matB[1] * cam->matB[13] + cam->matB[0] * cam->matB[12]);
-    invCam.m[13] = -(cam->matB[6] * cam->matB[14] + cam->matB[5] * cam->matB[13] + cam->matB[12] * cam->matB[4]);
-    invCam.m[14] = -(cam->matB[10] * cam->matB[14] + cam->matB[9] * cam->matB[13] + cam->matB[8] * cam->matB[12]);
+    float* cm = cam->matB;
+    invCam.SetInverseOf(cm);
+    invCam.m[12] = -(cm[2] * cm[14] + cm[1] * cm[13] + cm[0] * cm[12]);
+    invCam.m[13] = -(cm[6] * cm[14] + cm[5] * cm[13] + cm[12] * cm[4]);
+    invCam.m[14] = -(cm[10] * cm[14] + cm[9] * cm[13] + cm[8] * cm[12]);
     prod.Multiply(bm, invCam);
-    Mat4Local invProd;
     invProd.SetInverseOf(prod.m);
     float* p = prod.m;
     invProd.m[12] = -(p[12] * p[0] + p[2] * p[14] + p[1] * p[13]);
@@ -41,16 +43,17 @@ void ShadowUpdater::Update(ShadowBody* body, ShadowBody* cam, const float* centr
     p[12] = 0.0f;
     invProd.m[14] = -(p[9] + p[10] + p[8]);
 
-    float z = cam->matB[10];
-    long double x = cam->matB[8];
+    float z = cm[10];
+    long double x = cm[8];
     if (x * x + (long double)z * (long double)z < (long double)DAT_004e1398) {
-        x = cam->matB[4];
-        z = cam->matB[6];
+        x = cm[4];
+        z = cm[6];
     }
     float len = (float)sqrt(x * x + (long double)z * (long double)z);
     float ang = (float)((atan2((double)(z / len), (double)(x / len)) + DAT_004e2a20) * DAT_004e2a18);
 
-    V3D w;
+    Mat4Local invAxes, clip;
+    V3E w, tmp, X5;
     {
         float* mA = body->matA;
         float* mT = body->pos;
@@ -100,7 +103,6 @@ void ShadowUpdater::Update(ShadowBody* body, ShadowBody* cam, const float* centr
         }
     }
     float d[3];
-    V3D tmp;
     float* r = ((V3Sub*)&w)->Sub(&tmp.x, cam->pos);
     d[0] = r[0];
     d[1] = r[1];
@@ -123,12 +125,10 @@ void ShadowUpdater::Update(ShadowBody* body, ShadowBody* cam, const float* centr
     u[0] = s * u[0];
     u[1] = u[1] * s;
     u[2] = u[2] * s;
-    Mat4Local invAxes;
     invAxes.SetInverseOf(a);
     invAxes.m[12] = -(a[0] * c0 + a[2] * c2 + a[1] * c1);
     invAxes.m[13] = -(u[2] * c1 + u[1] * c2 + u[0] * c0);
     invAxes.m[14] = -(d[2] * c1 + d[1] * c2 + d[0] * c0);
-    Mat4Local clip;
     clip.Multiply(bm, invAxes);
 
     float k = DAT_004e1be8 / radius;
