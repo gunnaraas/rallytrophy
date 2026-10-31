@@ -95,8 +95,7 @@ void AIDriver::FUN_0049ba70()
 
 #pragma auto_inline(off)
 // NONMATCHING: RALLYTROPHY 0x49bb80
-// 965 vs 962 bytes; register allocation of the itoa call, the std::string allocator byte and the
-// order of the 0x184..0x198 default stores differ (all 720 store orders tried, none better).
+// Tried 2026-10-30 night: int id local for _itoa arg (fixed 35->2, size now 962); 720 tuning store orders, 3/5 moved after later stores (x anchors, 4-perms), volatile barriers, permute -r 20; only [ebp+0x190]/[0x198] stores still land before the zero stores instead of after unk168.
 // Init: default tuning, clears the state and reads data/extras/ai_<car model>.ini.
 void AIDriver::Init()
 {
@@ -136,7 +135,8 @@ void AIDriver::Init()
     Config config;
     config.Define(DAT_00500d38, 8);
     char number[32];
-    _itoa(player->unk2c, number, 10);
+    int id = player->unk2c;
+    _itoa(id, number, 10);
     std::string path("data/extras/ai_");
     path += number;
     path += ".ini";
