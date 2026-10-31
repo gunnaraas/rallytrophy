@@ -502,38 +502,35 @@ void ViewFrustum::Init(FrustumDevice* device)
     radius = (float)sqrt(c * c + farD * farD + a * a);
 }
 
-// NONMATCHING: RALLYTROPHY 0x4ba830
-// Logic complete; original keeps the transformed point and the deltas in separate stack locals (ours reuses slots).
+// A vector with an empty destructor and the out-of-line operator- (0x414330): the live copy gives the original its EH frame.
+struct FrVec { float x, y, z; ~FrVec() {} FrVec operator-(const FrVec& o) const; };
+
+// FUNCTION: RALLYTROPHY 0x4ba830
 int ViewFrustum::TestSphere(const SceneBounds* b, const float* m)
 {
     if (b->flags & 1) {
-        float pt[3];
-        Xform(pt, &b->c.x, m);
-        float x = pt[0], y = pt[1], z = pt[2];
-        float* cam = camera;
-        float dx = x - cam[12];
-        float dy = y - cam[13];
-        float dz = z - cam[14];
-        float d2 = dx * dx + dy * dy + dz * dz;
+        FrVec pt;
+        Xform(&pt.x, &b->c.x, m);
+        const float* cam = camera;
+        FrVec dv = {pt.x - cam[12], pt.y - cam[13], pt.z - cam[14]};
+        float d2 = dv.z * dv.z + dv.y * dv.y + dv.x * dv.x;
         if (d2 < b->d * b->d)
             return 1;
         float r = radius + b->d;
-        if (r * r < d2)
+        if (d2 > r * r)
             return 0;
-        dx = dx * cam[8] + dy * cam[9] + dz * cam[10];
-        if (dx < nearD - b->d)
+        float f = dv.z * cam[10] + dv.y * cam[9] + dv.x * cam[8];
+        if (f < nearD - b->d)
             return 0;
         float fs = farD + b->d;
-        if (*(int*)&fs < *(int*)&dx)
+        if (*(int*)&f > *(int*)&fs)
             return 0;
         int i = 0;
-        float* p = &tplanes[0];
-        do {
-            if (y * p[1] + x * p[0] + z * p[2] + b->d < p[3])
+        const float* p = &tplanes[8] + 1;
+        for (; i < 4; i++, p += 4) {
+            if (pt.z * p[1] + pt.x * p[-1] + pt.y * p[0] + b->d < p[2])
                 return 0;
-            i++;
-            p += 4;
-        } while (i < 4);
+        }
     }
     return 1;
 }
@@ -594,9 +591,6 @@ int ViewFrustum::TestBounds(const SceneBounds* b)
     }
     return 1;
 }
-
-// A vector with an empty destructor and the out-of-line operator- (0x414330): the live copy gives the original its EH frame.
-struct FrVec { float x, y, z; ~FrVec() {} FrVec operator-(const FrVec& o) const; };
 
 static inline float PlaneDot(float a, float b, float c, const float* p)
 {
