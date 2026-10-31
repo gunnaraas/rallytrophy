@@ -8,7 +8,7 @@
 struct FileNameView { void* stream; std::string name; };
 static __forceinline const std::string& FName(File* f) { return ((FileNameView*)f)->name; }
 
-struct Tmp3 { Tmp3() {} ~Tmp3() {} unsigned int r[11]; };
+template<int N> struct TmpN { TmpN() {} ~TmpN() {} unsigned int r[N]; };
 struct V11 { unsigned int f[11]; };
 struct BStr {
     std::allocator<char> alloc; char* ptr; unsigned int len; unsigned int res;
@@ -31,21 +31,21 @@ struct PStr {
     ~PStr() { if (ptr != 0) { if (((unsigned char*)ptr)[-1] != 0 && ((unsigned char*)ptr)[-1] != 255) --((unsigned char*)ptr)[-1]; else alloc.deallocate(ptr - 1, res + 2); } }
 };
 
-#define BMF_BATCH_BODY(REC, TRI)                                                           \
+#define BMF_BATCH_BODY(REC, TRI, RN)                                                         \
     int mat = FUN_004af230(file);                                                          \
     int nverts = FUN_004af230(file);                                                       \
     int ntris = FUN_004af230(file);                                                        \
     DynamicMesh* mesh = new DynamicMesh;                                                   \
     BmfVertex* v = new BmfVertex[nverts];                                                  \
     unsigned short* idx = (unsigned short*)operator new(ntris * 6);                        \
-    V11* dv = (V11*)v;                                                                   \
-    Tmp3 tmp; unsigned int* r = tmp.r;                                                     \
+    unsigned int* d = (unsigned int*)v + 5;                                               \
+    TmpN<RN> tmp; unsigned int* r = tmp.r;                                                     \
     int i;                                                                                 \
     for (i = nverts; i > 0; i--) {                                                     \
         file->Read(r, REC);                                                                \
-        dv->f[0] = r[0]; dv->f[1] = r[1]; dv->f[2] = r[2]; dv->f[3] = r[3]; dv->f[4] = r[4]; dv->f[5] = r[5];      \
-        dv->f[6] = r[6] | 0xff000000; dv->f[7] = r[7]; dv->f[8] = r[8]; dv->f[9] = r[7]; dv->f[10] = r[8];     \
-        dv++;                                                                              \
+        d[-5] = r[0]; d[-4] = r[1]; d[-3] = r[2]; d[-2] = r[3]; d[-1] = r[4]; d[0] = r[5];                  \
+        d[1] = r[6] | 0xff000000; d[2] = r[7]; d[3] = r[8]; d[4] = r[7]; d[5] = r[8];                         \
+        d += 11;                                                                          \
     }                                                                                      \
     unsigned short* p = idx;                                                               \
     for (i = 0; i < ntris; i++) {                                                      \
@@ -66,13 +66,14 @@ struct PStr {
 // Tried 2026-10-31: BStr (hand ctor: out-of-line _Tidy/_Grow via alternatename, inline copy; matches the original's string construction and EH states), Tmp3 empty-dtor record local (state 2), *(volatile int*)&t[k] & 0xffff compares (t slot), p++ steps, Bal budget calls (no effect), volatile stores/decl-order variants; 132->91 insns. Still differs: file/ntris in ebp/ebx swapped, vertex-loop base offset (esi+0x14 vs +8) and r[7]/r[8] reload, tri-loop load/store interleave, tail mesh-field store order.
 void ModelFile::ReadBatch(File* file, ModelOut* out)
 {
-    BMF_BATCH_BODY(0x2c, 8)
+    BMF_BATCH_BODY(0x2c, 8, 11)
 }
 
 // NONMATCHING: RALLYTROPHY 0x4b1ec0 (inlined std::string/throw construction differs from original)
+// Tried 2026-10-31: record temp sized to the record (TmpN<9>) fixed the frame (0xcc->0xc4, size now equal 963); vertex store through `unsigned int* d = (uint*)v + 5` with d[-5]..d[5] gives the original's esi+0x14 base; ~25 variants (tri-loop volatile/block-temp stores, d init placement, tail volatile mesh). Still differs: lea of d lands before the n<=0 guard, r[7]/r[8] register rotation, tri-loop load/store interleave, tail mesh-field reloads.
 void ModelFile::ReadBatchSmall(File* file, ModelOut* out)
 {
-    BMF_BATCH_BODY(0x24, 6)
+    BMF_BATCH_BODY(0x24, 6, 9)
 }
 
 // FUNCTION: RALLYTROPHY 0x4b2290
