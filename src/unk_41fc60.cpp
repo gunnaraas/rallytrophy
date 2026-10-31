@@ -84,6 +84,7 @@ inline void CrossAsm(float* o, const float* a, const float* b)
 
 // NONMATCHING: RALLYTROPHY 0x41fc60
 // NONMATCHING: Xform (this+0x15c) and cross-product x87 blocks now inline asm like the original (shape matches); frame already matched; first loop/EH-state structure and slot allocation still differ (1719 of 1861 bytes, 1634 differing).
+// Tried 2026-10-30 night: 17 variants (function-scope Vec3 for EH state 1, v write-back in loop 1, Vec3 copies of n/v/imp/pt, n passed as *(Vec3*)c->n, dot/decl/loop-form changes) only moved 393 to 387-402 insns; original keeps loop-1 accumulators on the FPU stack, copies n/v/imp/pt through Vec3 temps (EH states 5,7,0xa) and is 185 bytes larger, needs a whole-function Vec3-operator rewrite.
 void U40A850Body::FUN_0041fc60(void* stage, void* unused)
 {
     int cnt = *(int*)((char*)this + 0x23c);
