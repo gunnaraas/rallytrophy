@@ -511,6 +511,7 @@ float TriCollector::Closest(float r, float* pos, float* out, float* nrm)
 // NONMATCHING: RALLYTROPHY 0x419770
 // reason: first draft; SEH/temp layout unchecked. The sphere test is a float bit-compare (*(int*)&d2 <= *(int*)&rr, rr first) on Vec3 copies of pos/lo/hi; the compare alone made it 10 bytes worse without the Vec3 rewrite.
 // The (int) compare is a float bit-compare in the original (*(int*)&d2 <= *(int*)&rr, as in Closest); alone it scores 2-8 instructions worse until the Vec3 copies are restored.
+// Tried 2026-10-31: 16 variants rewriting like ContactList (Sph419 P + Near419, ScenePoint lo/hi with -=/+= r, ScenePoint e1/e2/dv -=, hoisted rr, ok-int/bool sphere flag, extra dummy ScenePoint objects for EH numbering): 217-211 insns differ vs 220 (no real gain, sizes 1093-1136 vs 1130); still differs: original has EH states 0/3 (two more function-scope objects than P/lo/hi), sphere test materialises setle al/test eax instead of jg, and frame is 0x88 with rr at [esp+0x60].
 int TriCollector::Contact(float r, float* pos, float* a_, float* b, float* c, int* surf)
 {
     float sx = 0.0f, sy = 0.0f, sz = 0.0f;
