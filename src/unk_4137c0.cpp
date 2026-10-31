@@ -78,9 +78,11 @@ extern char* __cdecl FUN_004c1902(int value, char* buf, int radix); // _itoa
 #define AT(T, off) (*(T*)((char*)this + (off)))
 #define ATP(p, T, off) (*(T*)((char*)(p) + (off)))
 
+static __forceinline void SetV3(float& x, float& y, float& z, float a, float b, float c) { x = a; y = b; z = c; }
 // NONMATCHING: RALLYTROPHY 0x4137c0
 // 2942 vs 2914 bytes; frame is 0x24 larger (original shares stack slots between the ini-scope locals and the
 // CarBodyEnv number buffer) and the ring-key array initialisation order differs; flow, calls and strings match
+// Tried 2026-10-30 night: msg path c_str in a local, SetV3 forceinline (fld c,b,a order), re-lea loader; 342->314; still 0x24 bigger frame (num[32] not sharing slots with ini-scope arrays: block/hoist/int[8]/volatile pad all failed), key-array init order and EH-state placement differ.
 void SceneSetup::FUN_004137c0(const FlareString& dir)
 {
     if (AT(int, 0x218) != 0) {
@@ -92,9 +94,10 @@ void SceneSetup::FUN_004137c0(const FlareString& dir)
         Config config;
         config.Define(FlareKeys, 0x33);
         if (!config.Load(path.c_str(), true, false, 0)) {
+            const char* pp = path.c_str();
             FlareString msg;
             msg.Assign("Invalid storage file: ");
-            throw std::logic_error(*(std::string*)&MissingText2(msg, path.c_str()));
+            throw std::logic_error(*(std::string*)&MissingText2(msg, pp));
         }
         Sky* sky = new Sky;
         AT(Sky*, 0x6ac) = sky;
@@ -129,17 +132,15 @@ void SceneSetup::FUN_004137c0(const FlareString& dir)
         AT(WeatherEffect*, 0x6b0) = new SnowFall((TextureLoader474*)&AT(char, 0xd4), 0x1000);
         break;
     }
-    TextureLoader* loader = (TextureLoader*)&AT(char, 0xd4);
+#define loader ((TextureLoader*)&AT(char, 0xd4))
     FlareString skid;
     skid.AssignTmp(MissingText2(dir, "SkidMark1.tga"), 0, std::string::npos);
     AT(Texture*, 0x908) = loader->Load(skid.c_str(), 0x40);
     AT(int, 0x974) = 0;
-    AT(int, 0x968) = AT(int, 0x1b8);
+    SetV3(AT(float, 0x968), AT(float, 0x96c), AT(float, 0x970), AT(float, 0x1b8), AT(float, 0x1bc), AT(float, 0x1c0));
     AT(int, 0x978) = 0;
     AT(int, 0x984) = 0;
-    AT(int, 0x96c) = AT(int, 0x1bc);
     AT(int, 0x97c) = 0;
-    AT(int, 0x970) = AT(int, 0x1c0);
     AT(int, 0x980) = 0;
     AT(int, 0x958) = 0;
     AT(int, 0x95c) = 0;
@@ -227,4 +228,5 @@ void SceneSetup::FUN_004137c0(const FlareString& dir)
     AT(int, 0x804) = 0;
     AT(int, 0x824) = 2;
     AT(int, 0x7c4) = 1;
+#undef loader
 }
