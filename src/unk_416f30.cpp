@@ -1120,6 +1120,7 @@ extern float DAT_004e138c;                                                    //
 // 1271 vs 1270 bytes with the original's call sequence (35 calls) and cleanup states; the prop records are the
 // segment midpoint lookup + length (rewritten from the original). Left: stack-slot assignment (`path` sits 12
 // bytes lower, `magic`/`ver` swapped, the midpoint temporary is the lowest aggregate in the original).
+// Tried 2026-10-31: `int count` scoped inside the if (shares the slot with the AnimalObj temp as in the original: 142->112 insns, frame size now exact); mid kept in the loop, declared at function top / before prop / as MidOf() __forceinline temp or const& (all worse), magic/ver swap (no effect), sums-then-scale orders for mid and 0.5f literal; still differs: mid sits above prop (orig: lowest aggregate below path), model/tex strings swapped slots (orig model<tex), props.end() reload via ecx, tail loop shape.
 // Loads data/stage<N>.apf props, then models/animal_run.bmf.
 void PropStage::Load()
 {
@@ -1133,10 +1134,11 @@ void PropStage::Load()
             return;
         {
             File f(path.c_str(), 0x81);
-            int magic, ver, count;
+            int magic, ver;
             f.Read(&magic, 4);
             f.Read(&ver, 4);
             if (magic == 0x2122 && ver == 100) {
+                int count;
                 f.Read(&count, 4);
                 for (int i = 0; i < count; i++) {
                     LoadProp prop;                       // two 12-byte reads: segment start and end
