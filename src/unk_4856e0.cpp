@@ -3756,6 +3756,7 @@ void TextRenderer::SetColor(ColorArg c)
 // 713 vs 723 bytes. Frame, ebx = 0, the by-value colour temporary (ColorArg: copy ctor + empty dtor, with a
 // visible nothrow SetColor) all match. Left: instruction scheduling of the hoisted y/step multiplies, and the
 // original builds id = 0x161 + 1 via `and al,1 / neg al / sbb / neg` (byte-wide test) where this folds to `and eax,1`.
+// Tried 2026-10-30 night: `pressed = byte ? 1 : 0` fixed the tail (104 -> 99 insns); ~30 variants of the id test (char/BYTE/bool casts, ==1, >0, ?:, %2) never give the byte-wide `and al,1/neg al/sbb/neg` (==1 gives `dec al/neg/sbb`, >0 gives setg); permuting y/y2/step order, declaration order, volatile colour/y stores did not move the early color-store/width-load scheduling.
 // Draws a titled message screen over the in-game image and returns 1 (and
 // clears the key states) once Return or the mouse button was pressed.
 int RaceMode::FUN_0048cca0(int unused, int variant)
@@ -3782,7 +3783,7 @@ int RaceMode::FUN_0048cca0(int unused, int variant)
     text->SetScale(DAT_0056aea8, DAT_0056aeac);
     y = DAT_0056aeac * 710.0f;
     text->Print(DAT_0056b0ac, DAT_0056b0ac->GetWidth() * 0.5f - text->GetWidth(FUN_00405380(0x117), 0) * 0.5f, y, FUN_00405380(0x117), 0, 1.0f, 1.0f);
-    int pressed = DAT_0057ba28[13] != 0;
+    int pressed = 0; if (DAT_0057ba28[13]) pressed = 1;
     if (DAT_0057ba20 || pressed) {
         result = 1;
         DAT_0056b0bc->ClearKeys();
