@@ -2502,7 +2502,7 @@ int RaceMode::PauseMenu(int reset, int noRestart)
     }
     m_image->Draw(DAT_0056b0ac, 0);
     {
-        float y = DAT_0056aeac * 262.0f;
+        float& y = *(float*)&reset; y = DAT_0056aeac * 262.0f;  // original keeps y in the dead parameter slot
         float step = DAT_0056aeac * 42.0f;
         int sel = unk24c;
         for (int i = 0; i < 3; i++) {
@@ -3961,6 +3961,7 @@ extern DWORD DAT_0056543c;             // pause-menu entry colour
 // jump tables, the mouse-cursor call (by-value HudPoint) and the 4895ec shared tail all match. Left: stack slot
 // numbering (the original has no frame slot for y or x: y lives in the dead parameter slot [esp+0x3c], mine
 // puts y/x in their own slots, shifting result/flag by 4) and the scheduling of the first title print.
+// Tried 2026-10-30 night: y aliased onto the dead `reset` slot (128->123 insns, kept); x at top/position.x, result/color/step decl reorders, SetScale/color swap, volatile step/x all no better; the temp slot for fild still lands below the locals (0x10) instead of above them (0x1c), shifting result/flag by 4.
 // The pause menu: four entries (resume, options, restart, quit), with the
 // options screen (0x48d7f0) and a quit confirmation (GameView::FUN_00437220)
 // as sub-states in unk244/unk240. `reset` selects the first entry and moves
