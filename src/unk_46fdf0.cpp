@@ -1374,11 +1374,7 @@ void StepEdgeB()
 }
 
 // original: FUN_00472a30
-// NONMATCHING: RALLYTROPHY 0x472a30
-// 398 vs 382 bytes, 73 differing bytes (previous form: 389/382, 79 differences).
-// Computing the A-row predicate before storing the decremented counter reproduces the target's test/store order.
-// A volatile s_rowsA decrement regressed to 391/382 bytes, 176 differences; a `fixedOne` register local changed no bytes.
-// The same with the 32-bit colour.
+// FUNCTION: RALLYTROPHY 0x472a30
 void FillTriangleFlat(ProjVertex** tri)
 {
     int top = 0;
@@ -1409,8 +1405,8 @@ void FillTriangleFlat(ProjVertex** tri)
                 if (s_rowsB > 0) {
                     int* row = (int*)(g_scanline + ((tri[top]->fy + 0xffff) >> 16) * g_pitch);
                     s_xA += 0xffff;
+                    s_xB += 0xffff;
                     for (;;) {
-                        s_xB += 0xffff;
                         for (;;) {
                             int xa = s_xA;
                             int right = xa >> 16;
@@ -1419,13 +1415,7 @@ void FillTriangleFlat(ProjVertex** tri)
                                 row[x] = g_fillColor32;
                             }
                             row = (int*)((BYTE*)row + g_pitch);
-                            int rowsA = s_rowsA;
-                            --rowsA;
-                            bool moreRowsA = rowsA > 0;
-                            s_rowsA = rowsA;
-                            if (moreRowsA) {
-                                s_xA = xa + s_stepA;
-                            } else {
+                            if (--s_rowsA <= 0) {
                                 while (s_idxA != bot) {
                                     StepEdgeA();
                                     if (s_rowsA > 0) {
@@ -1434,6 +1424,8 @@ void FillTriangleFlat(ProjVertex** tri)
                                     }
                                 }
                                 return;
+                            } else {
+                                s_xA = xa + s_stepA;
                             }
                         doneA:
                             if (--s_rowsB <= 0) {
@@ -1446,7 +1438,8 @@ void FillTriangleFlat(ProjVertex** tri)
                                         break;
                                     }
                                 }
-                                break;
+                                s_xB += 0xffff;
+                                continue;
                             }
                             s_xB += s_stepB;
                         }
