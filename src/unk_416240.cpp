@@ -212,6 +212,8 @@ int* S10Stage::FindZone(float*)
     }
 }
 
+struct S10Raw { int d[16]; int a; int b; };
+
 // FUNCTION: RALLYTROPHY 0x416d40
 void __cdecl S10Copy(S10Rec* a, const S10Rec* b)
 {
@@ -238,53 +240,51 @@ void __cdecl S10Copy(S10Rec* a, const S10Rec* b)
     }
 }
 
+static __forceinline S10Rec* S10Allocate(int n) { if (n < 0) n = 0; return (S10Rec*)S10Alloc(n * 0x48); }
+static __forceinline int S10Sz(S10Rec* f, S10Rec* l) { return f == 0 ? 0 : l - f; }
 // NONMATCHING: RALLYTROPHY 0x416a40
-// reason: hand-written vector insert(pos,n,val); not compared against a std::vector instantiation
-S10Rec* S10Vec::Insert(S10Rec* pos, unsigned n, const S10Rec* val)
+// Tried 2026-10-30 night: rewrote as the VC6 std::vector<T>::insert(P,M,X) shape (grow / after<M / else arms, S10Copy loops, S10Raw 16+2 dword assign, branchy n<0 alloc clamp) 232->139 insns; still differs: original keeps first in an extra frame slot (esp+0x14, frame 0x10) and M in esi, ours uses edi and a 0xc frame.
+void S10Vec::Insert(S10Rec* P, unsigned M, const S10Rec* X)
 {
-    S10Rec* e = last;
-    if (n <= (unsigned)(end - e)) {
-        unsigned after = e - pos;
-        if (n <= after) {
-            if (n != 0) {
-                S10Rec* src = e - n;
-                S10Rec* dst = e;
-                for (S10Rec* s1 = src; s1 != e; s1++) { S10Copy(dst, s1); dst++; }
-                S10Rec* q = e;
-                S10Rec* r = src;
-                while (pos != r) { --q; --r; *q = *r; }
-                for (S10Rec* s2 = pos; s2 != pos + n; s2++) *s2 = *val;
-                last = e + n;
-            }
-            return pos;
-        }
-        S10Rec* dst = pos + n;
-        for (S10Rec* s3 = pos; s3 != e; s3++) { S10Copy(dst, s3); dst++; }
-        dst = e;
-        for (unsigned k = n - after; k != 0; k--) { S10Copy(dst, val); dst++; }
-        for (; pos != e; pos++) *pos = *val;
-        last = e + n;
-        return pos;
+    if ((unsigned)(end - last) < M) {
+        S10Rec* F = first;
+        S10Rec* volatile Fv = F;
+        int n = S10Sz(F, last) + (M < (unsigned)S10Sz(F, last) ? S10Sz(F, last) : M);
+        S10Rec* s = S10Allocate(n);
+        S10Rec* q = s;
+        for (S10Rec* f1 = F; f1 != P; ++f1, ++q)
+            S10Copy(q, f1);
+        for (unsigned k = M; k > 0; --k, ++q)
+            S10Copy(q, X);
+        for (S10Rec* f2 = P; f2 != last; ++f2, ++q)
+            S10Copy(q, f2);
+        for (S10Rec* f3 = F; f3 != last; ++f3)
+            f3->~S10Rec();
+        S10Free(Fv);
+        end = s + n;
+        last = s + S10Sz(F, last) + M;
+        first = s;
+    } else if ((unsigned)(last - P) < M) {
+        S10Rec* d = P + M;
+        for (S10Rec* f4 = P; f4 != last; ++f4, ++d)
+            S10Copy(d, f4);
+        d = last;
+        for (unsigned k = M - (last - P); k > 0; --k, ++d)
+            S10Copy(d, X);
+        for (S10Rec* p = P; p != last; ++p)
+            *(S10Raw*)p = *(const S10Raw*)X;
+        last += M;
+    } else {
+        S10Rec* d = last;
+        for (S10Rec* f5 = last - M; f5 != last; ++f5, ++d)
+            S10Copy(d, f5);
+        d = last;
+        for (S10Rec* f6 = last - M; f6 != P; )
+            *(S10Raw*)--d = *(S10Raw*)--f6;
+        for (S10Rec* p = P; p != P + M; ++p)
+            *(S10Raw*)p = *(const S10Raw*)X;
+        last += M;
     }
-    unsigned cap = first == 0 ? 0 : e - first;
-    unsigned grow = (first == 0 || cap <= n) ? n : cap;
-    int total = cap + grow;
-    S10Rec* nb = (S10Rec*)S10Alloc((total < 0 ? 0 : total) * 0x48);
-    S10Rec* w = nb;
-    S10Rec* s = first;
-    for (; s != pos; s++) { S10Copy(w, s); w++; }
-    S10Rec* t = w;
-    for (unsigned k = n; k != 0; k--) { S10Copy(t, val); t++; }
-    w += n;
-    for (; pos != e; pos++) { S10Copy(w, pos); w++; }
-    for (s = first; s != e; s++) s->~S10Rec();
-    S10Free(first);
-    end = nb + total;
-    unsigned old = first == 0 ? 0 : e - first;
-    S10Rec* old0 = first;
-    last = nb + (old0 ? n + old : n);
-    first = nb;
-    return last;
 }
 
 // FUNCTION: RALLYTROPHY 0x416df0

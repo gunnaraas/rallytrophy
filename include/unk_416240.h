@@ -27,6 +27,7 @@ struct S10Vec {
     S10Rec* first;                   // 4
     S10Rec* last;                    // 8
     S10Rec* end;                     // 0xc
-    S10Rec* Insert(S10Rec* pos, unsigned n, const S10Rec* val); // 0x416a40
+    unsigned Size() const { return first == 0 ? 0 : last - first; }
+    void Insert(S10Rec* pos, unsigned n, const S10Rec* val); // 0x416a40
 };
 #endif
