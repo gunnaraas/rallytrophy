@@ -3701,9 +3701,10 @@ public:
         if (std::string::npos - len <= n) {
             G13_Xlen();
         }
-        if (n > 0 && Grow(len + n, false)) {
-            memcpy(ptr + len, s, n);
-            Eos(len + n);
+        unsigned int t;
+        if (0 < n && Grow(t = n + len, false)) {
+            std::char_traits<char>::copy(ptr + len, s, n);
+            Eos(t);
         }
     }
     void Tidy(bool built);             // 0x402700
@@ -3728,18 +3729,18 @@ struct G13_WarpPoint {
 };
 
 // NONMATCHING: RALLYTROPHY 0x436250
-// 1599 vs 1605 bytes; 461 differing bytes after placing wait/choice/first in that declaration order and reusing x
-// instead of retaining a centered-x local. Control flow, EH states (mouse temp = state 0, warp temps 1-2, string 3),
-// renderer register and EBX=0/EDI=1 constants match. Remaining differences include local stack slots and string spills.
-// `while (1)` (not `while (cond)`) avoids loop rotation.
+// Tried 2026-10-30 night: G14-style draw block (Color + shared x,y declared first), String::Append with a named grow-size
+// local and char_traits::copy, ClearKeys before the final stores, local declaration orders, permute -r 20; only the
+// `mov edi,1 / xor ebx,0` order after the string dtor at the loop back-edge still differs (2 insns, no source cause found).
 // Modal "question / Yes / No" dialog: Left/Right or the mouse pick the answer, Enter or a click confirms, Esc cancels.
 // Returns 1 for Yes (class Game in the merged header). original: FUN_00436250
 int GameObj::FUN_00436250(MenuScreen* screen)
 {
+    float x, y;
     int wait = 0;
     int choice = 1;
     int first = 1;
-    HudPoint mouse;
+    Color color;
     DAT_0056b0bc->ClearKeys();
     while (1) {
         if (!FUN_004b69f0(wait)) {
@@ -3797,40 +3798,42 @@ int GameObj::FUN_00436250(MenuScreen* screen)
         }
         DAT_0056b0ac->vf38(0);
         FUN_00436ed0();
-        TextRenderer* renderer = text;
-        DWORD normal = DAT_00508c04;
-        renderer->color = normal;
-        float y = DAT_0056aeac * 350.0f;
-        float x = DAT_0056aea8 * 512.0f - renderer->GetWidth(FUN_00405380(0xa2), 0) * 0.5f;
-        renderer->Print(DAT_0056b0ac, x, y, FUN_00405380(0xa2), 0, 1.0f, 1.0f);
+        y = DAT_0056aeac * 350.0f;
+        color.value = DAT_00508c04;
+        TextRenderer* t = text;
+        t->color = color.value;
+        x = DAT_0056aea8 * 512.0f - t->GetWidth(FUN_00405380(0xa2), 0) * 0.5f;
+        t->Print(DAT_0056b0ac, x, y, FUN_00405380(0xa2), 0, 1.0f, 1.0f);
         G13_String line(FUN_00405380(0x22));
         line.Append("/");
         line.Append(FUN_00405380(0x23));
         y = DAT_0056aeac * 387.0f;
-        x = DAT_0056aea8 * 512.0f - renderer->GetWidth(line.c_str(), 0) * 0.5f;
-        DWORD color = normal;
+        const char* p = line.c_str();
+        x = DAT_0056aea8 * 512.0f - t->GetWidth(p, 0) * 0.5f;
         if (choice == 0) {
-            color = DAT_00508c0c;
+            color.value = DAT_00508c0c;
         }
-        renderer->color = color;
-        renderer->Print(DAT_0056b0ac, x, y, FUN_00405380(0x22), 0, 1.0f, 1.0f);
-        renderer->color = normal;
-        x += renderer->GetWidth(FUN_00405380(0x22), 0);
-        renderer->Print(DAT_0056b0ac, x, y, "/", 0, 1.0f, 1.0f);
-        x += renderer->GetWidth("/", 0);
+        t->color = color.value;
+        t->Print(DAT_0056b0ac, x, y, FUN_00405380(0x22), 0, 1.0f, 1.0f);
+        color.value = DAT_00508c04;
+        t->color = color.value;
+        x = x + t->GetWidth(FUN_00405380(0x22), 0);
+        t->Print(DAT_0056b0ac, x, y, "/", 0, 1.0f, 1.0f);
+        x = x + t->GetWidth("/", 0);
         if (choice == 1) {
-            normal = DAT_00508c0c;
+            color.value = DAT_00508c0c;
         }
-        renderer->color = normal;
-        renderer->Print(DAT_0056b0ac, x, y, FUN_00405380(0x23), 0, 1.0f, 1.0f);
-        renderer->color = DAT_00508c04;
+        t->color = color.value;
+        t->Print(DAT_0056b0ac, x, y, FUN_00405380(0x23), 0, 1.0f, 1.0f);
+        color.value = DAT_00508c04;
+        t->color = color.value;
         FUN_00435430(*((MouseInput*)DAT_0056b0c0)->GetPosition());
         DAT_0056b0ac->EndScene();
         DAT_0056b0ac->Present();
     }
+    DAT_0056b0bc->ClearKeys();
     DAT_0057ba20 = 0;
     DAT_0057ba24 = 0;
-    DAT_0056b0bc->ClearKeys();
     return choice == 0;
 }
 
