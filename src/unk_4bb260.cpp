@@ -628,48 +628,57 @@ int SkySampleBit(SkyTexOwner*, const unsigned short*, int, float*)
 }
 
 // NONMATCHING: RALLYTROPHY 0x4bbb30 (not tuned; 684 vs 646 bytes)
+// Tried 2026-10-31: literals (65536.0f, 1/65536, 0.5f) not globals, m=0 then obj?map, early return, int masks, 60 shuffled decl orders; 34 insns differ, remaining is int reg allocation (u1/row0/r0 in wrong regs, r0/r1 spill).
 float SkySampleBilinear(SkyTexOwner* t, const unsigned short* tri, int verts, float* point)
 {
-    if (t->obj != 0 && t->obj->map != 0) {
-        SkyShadeMap* m = t->obj->map;
+    SkyShadeMap* m;
+    m = 0;
+    if (t->obj != 0)
+        m = t->obj->map;
+    if (m == 0)
+        return DAT_004e1348;
+    {
         float* a = (float*)(verts + tri[0] * 0x2c);
         float* b = (float*)(verts + tri[1] * 0x2c);
         float* c = (float*)(verts + tri[2] * 0x2c);
         Vec3Slot w;
         FUN_004b3470(a, b, c, point, &w);
-        float fu = (w.x * a[7] + w.y * b[7] + w.z * c[7]) * (float)m->width - DAT_004e138c;
-        float fv = (w.x * a[8] + w.y * b[8] + w.z * c[8]) * (float)m->height - DAT_004e138c;
-        float cu = fu;
+        float fu = (w.x * a[7] + w.y * b[7] + w.z * c[7]) * (float)m->width - 0.5f;
+        float fv = (w.x * a[8] + w.y * b[8] + w.z * c[8]) * (float)m->height - 0.5f;
         if (t->flags & 4) {
-            cu = DAT_004e134c;
-            if (DAT_004e134c <= fu) {
-                cu = fu;
-                if ((float)(m->width - 1) <= fu)
-                    cu = (float)(m->width - 1);
+            if (fu < DAT_004e134c)
+                fu = DAT_004e134c;
+            else {
+                float lim = (float)(m->width - 1);
+                if (!(fu < lim))
+                    fu = lim;
             }
         }
         if (t->flags & 8) {
-            if (DAT_004e134c <= fv) {
-                if ((float)(m->height - 1) <= fv)
-                    fv = (float)(m->height - 1);
-            } else
+            if (fv < DAT_004e134c)
                 fv = 0.0f;
+            else {
+                float lim = (float)(m->height - 1);
+                if (!(fv < lim))
+                    fv = lim;
+            }
         }
-        unsigned iu = ((m->width * 0x10000 - 1U) | 0xffff) & RoundF(cu * DAT_004e1ff4);
-        unsigned iv = ((m->height * 0x10000 - 1U) | 0xffff) & RoundF(fv * DAT_004e1ff4);
-        unsigned u1 = (m->width - 1U) & ((iu >> 16) + 1);
+        unsigned iu = ((m->width * 0x10000 - 1U) | 0xffff) & RoundF(65536.0f * fu);
+        unsigned iv = ((m->height * 0x10000 - 1U) | 0xffff) & RoundF(65536.0f * fv);
+        unsigned col0 = iu >> 16;
+        unsigned u1 = (m->width - 1U) & (col0 + 1);
         unsigned row0 = iv >> 16;
-        float fx = (float)(iu & 0xffff) * DAT_004e2058;
+        float fx = (float)(iu & 0xffff) * 0.0000152587890625f;
         int r0 = m->pitch * row0;
-        float fy = (float)(iv & 0xffff) * DAT_004e2058;
+        float fy = (float)(iv & 0xffff) * 0.0000152587890625f;
         double acc = DAT_004e134c;
         int r1 = ((m->height - 1U) & (row0 + 1)) * m->pitch;
-        unsigned char* p0 = m->bits + (iu >> 19);
-        unsigned char b0 = (unsigned char)(1 << ((iu >> 16) & 7));
+        unsigned char* p0 = m->bits + (col0 >> 3);
+        int b0 = 1 << (col0 & 7);
         if (p0[r0] & b0)
             acc = (DAT_004e1348 - (double)fx) * (DAT_004e1348 - (double)fy);
         unsigned char* p1 = m->bits + (u1 >> 3);
-        unsigned char b1 = (unsigned char)(1 << (u1 & 7));
+        int b1 = 1 << (u1 & 7);
         if (p1[r0] & b1)
             acc = (DAT_004e1348 - (double)fy) * (double)fx + acc;
         if (p0[r1] & b0)
@@ -678,5 +687,4 @@ float SkySampleBilinear(SkyTexOwner* t, const unsigned short* tri, int verts, fl
             acc = (double)fy * (double)fx + acc;
         return (float)acc;
     }
-    return DAT_004e1348;
 }
