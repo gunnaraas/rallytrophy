@@ -25,6 +25,24 @@ struct BStr {
 #pragma comment(linker, "/alternatename:?Eos@BStr@@QAEXI@Z=?_Eos@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEXI@Z")
 #pragma comment(linker, "/alternatename:?Grow@BStr@@QAE_NI_N@Z=?_Grow@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAE_NI_N@Z")
 static inline int Bal(int a) { return a; }
+static __forceinline void Ins0(BStr* d, const std::string& x)
+{
+    unsigned int m = std::string::npos;
+    unsigned int n = x.size();
+    if (n < m) m = n;
+    if (std::string::npos - d->len <= m) std::_Xlen();
+    if (0 < m) {
+        unsigned int k = d->len + m;
+        if (d->Grow(k, false)) {
+            memmove(d->ptr + m, d->ptr, d->len);
+            memcpy(d->ptr, x.c_str(), m);
+            d->Eos(k);
+        }
+    }
+}
+struct MatView { char pad[0xa4]; std::string name; };
+static __forceinline void Set3(float* d, float x, float y, float z) { d[0] = x; d[1] = y; d[2] = z; }
+static __forceinline void Set4(float* d, float x, float y, float z, float w) { d[0] = x; d[1] = y; d[2] = z; d[3] = w; }
 
 // std::string built from a C string in one class: _Tidy (0x402700) and assign(s, n) (0x404ba0) as calls, the
 // object's cleanup state set after the assign returns.
@@ -100,6 +118,7 @@ void ModelFile::ReadMaterialList(File* file)
 
 // NONMATCHING: RALLYTROPHY 0x4b0180
 // Static string setup, material color copies, and texture path insertion code generation differ.
+// Tried 2026-10-31: 231->46 insns (size 1628 vs 1626): Vector3 c0..c3 locals before the statics (empty dtors give EH state 3/4), Set3/Set4 forceinline row copies (fld z,y,x / fstp x,y,z), Bal(1) x5 at end, Assign args via a pointer local (call before npos load), MatView for the node->name compare, Ins0 hand-written insert with out-of-line BStr::Eos/Grow; still differs: stack slots of the five FUN_004af230 results (orig b,c,d,e ascending 0x10..0x1c, ours permuted; declaration order and q[4] array did not move them), `mov [ebp+0x7c]/0x6c/0x5c,ebx` store placement, `textures` null test form, new-Node else-xor.
 Sprite* BmfReader::ReadMaterial(File* file)
 {
     int a = FUN_004af230(file);
@@ -107,30 +126,34 @@ Sprite* BmfReader::ReadMaterial(File* file)
     int c = FUN_004af230(file);
     int d = FUN_004af230(file);
     int e = FUN_004af230(file);
+    Vector3 c0, c1, c2, c3;
     static std::string name;
     static BmfPath texture;
     static BmfPath texture2;
     static BmfPath texture3;
-    float colors[4][3];
     float power;
     int f, g, h, i, j;
-    file->Read(colors[0], 12);
-    file->Read(colors[1], 12);
-    file->Read(colors[2], 12);
-    file->Read(colors[3], 12);
+    file->Read(&c0, 12);
+    file->Read(&c1, 12);
+    file->Read(&c2, 12);
+    file->Read(&c3, 12);
     file->Read(&power, 4);
     file->Read(&f, 4);
     file->Read(&g, 4);
     file->Read(&h, 4);
     file->Read(&i, 4);
     file->Read(&j, 4);
-    ((ModelRecordString*)&name)->Assign(*FUN_004af270(file), 0, std::string::npos);
-    ((ModelRecordString*)&texture)->Assign(*FUN_004af270(file), 0, std::string::npos);
-    ((ModelRecordString*)&texture2)->Assign(*FUN_004af270(file), 0, std::string::npos);
-    ((ModelRecordString*)&texture3)->Assign(*FUN_004af270(file), 0, std::string::npos);
+    const std::string* r;
+    r = FUN_004af270(file); ((ModelRecordString*)&name)->Assign(*r, 0, std::string::npos);
+    r = FUN_004af270(file); ((ModelRecordString*)&texture)->Assign(*r, 0, std::string::npos);
+    r = FUN_004af270(file); ((ModelRecordString*)&texture2)->Assign(*r, 0, std::string::npos);
+    r = FUN_004af270(file); ((ModelRecordString*)&texture3)->Assign(*r, 0, std::string::npos);
     for (List<Sprite*>::Node* scan = materials->m_head; scan; scan = scan->next)
-        if (name == *(std::string*)((char*)scan->data + 0xa4))
-            return scan->data;
+    {
+        Sprite* sp = scan->data;
+        if (name == ((MatView*)sp)->name)
+            return sp;
+    }
     Sprite* result = new Sprite;
     WORD(result,4) = a;
     WORD(result,6) = c;
@@ -139,24 +162,13 @@ Sprite* BmfReader::ReadMaterial(File* file)
     WORD(result,7) = d;
     WORD(result,0x1f) = 0;
     
-    FLOAT(result,0x1c) = colors[0][0];
-    FLOAT(result,0x1c+1) = colors[0][1];
-    FLOAT(result,0x1c+2) = colors[0][2];
-    
-    FLOAT(result,0x10) = colors[1][0];
-    FLOAT(result,0x10+1) = colors[1][1];
-    FLOAT(result,0x10+2) = colors[1][2];
-    WORD(result,0x13) = h;
+    Set3(&FLOAT(result,0x1c), c0.x, c0.y, c0.z);
+    WORD(result,0x1f) = 0;
+    Set4(&FLOAT(result,0x10), c1.x, c1.y, c1.z, *(float*)&h);
     WORD(result,0x1b) = 0;
-    
-    FLOAT(result,0x18) = colors[2][0];
-    FLOAT(result,0x18+1) = colors[2][1];
-    FLOAT(result,0x18+2) = colors[2][2];
+    Set3(&FLOAT(result,0x18), c2.x, c2.y, c2.z);
     WORD(result,0x17) = 0;
-    
-    FLOAT(result,0x14) = colors[3][0];
-    FLOAT(result,0x14+1) = colors[3][1];
-    FLOAT(result,0x14+2) = colors[3][2];
+    Set3(&FLOAT(result,0x14), c3.x, c3.y, c3.z);
     FLOAT(result,0x20) = power * 100.0f;
     if (d != 1) {
         WORD(result,9) = 2;
@@ -178,7 +190,7 @@ Sprite* BmfReader::ReadMaterial(File* file)
             WORD(result,1) = (unsigned int)textures->Load(texture2.c_str(), 0x40);
         }
         if ((DAT_0057b95c & 1) && texture3 != "") {
-            texture3.insert(0, path.Str(), 0, std::string::npos);
+            Ins0((BStr*)&texture3, path.Str());
             WORD(result,2) = (unsigned int)textures->LoadSpecial(texture3.c_str(), 0x40);
         }
     }
@@ -186,6 +198,7 @@ Sprite* BmfReader::ReadMaterial(File* file)
     if (!node) {
         node = new List<Sprite*>::Node;
         if (node) { node->prev = 0; node->next = 0; node->data = 0; }
+        else node = 0;
     } else {
         materials->m_free = node->next;
         --materials->m_freeCount;
@@ -194,10 +207,11 @@ Sprite* BmfReader::ReadMaterial(File* file)
     node->data = result;
     node->prev = tail;
     node->next = 0;
-    if (!tail) materials->m_head = node;
-    else tail->next = node;
+    if (tail) tail->next = node;
+    else materials->m_head = node;
     materials->m_tail = node;
     ++materials->m_count;
+    Bal(1); Bal(1); Bal(1); 
     return result;
 }
 
