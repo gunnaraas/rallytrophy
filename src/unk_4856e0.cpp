@@ -2622,11 +2622,14 @@ public:
 // pieces (erase with _Split/_Grow/_Eos called, append(1, c) with _Grow called) are hand-expanded in LapString.
 // Name menu: two buttons and eight name slots; a slot is chosen with the mouse or the keys, a
 // filled slot opens a confirmation dialog (game+0x437770) and an empty one is edited with the
+// Tried 2026-10-31: 360->333 insns with a volatile-stored dead `int z` (frame slot) passed to Draw; z/self-volatile for other stores, loop var hoisted as shared zero, const this copy, volatile local: no better (z folds to 0). Still differs: this lands in ebp and zero in edi (original ebx/esi, zero shared with loop counter).
 // keyboard into m_text. Returns 1 when the menu is left.
 int RaceMode::NameMenu(int reset)
 {
     int result = 0;
-    m_image->Draw(DAT_0056b0ac, 0);
+    int z;
+    *(volatile int*)&z = 0;
+    m_image->Draw(DAT_0056b0ac, z);
     if (reset) {
         ProfileList* profiles = *(ProfileList**)((char*)DAT_0056b0c8 + 0x2dd0);
         for (int i = 0; i < 8; i++) {
