@@ -3792,6 +3792,7 @@ public:
 // Inlining depth 1 (std::string helpers stay out of line as in the original; 437 -> 432 differing instructions).
 #pragma inline_depth(1)
 // NONMATCHING: RALLYTROPHY 0x443790
+// Tried 2026-10-30 night: 17 declaration-order/placement variants of text/sx/sy/hi/lo/first/wait/picked, volatile text, dead volatile pad local; none changed the 432 differing insns (text/tmp slots 0x38/0x3c stay swapped, frame 4 bytes short); cause still unfound.
 // Same instruction sequence in all parts (5268 vs 5277 bytes) except register/frame-slot choices: the original keeps
 // sx/sy/hi/`one` in other frame slots (frame 0x104, mine 0x100) and holds the constant 0 in edi only from the row loop
 // on, while mine hoists `xor edi,edi` to the start of the draw block. Inline budget reproduced with TSE_Str (hand-expanded
