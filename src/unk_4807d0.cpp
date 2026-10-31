@@ -210,10 +210,7 @@ void SingleRace::Reset(int)
     }
 }
 
-// NONMATCHING: RALLYTROPHY 0x480a50
-// 650 vs 648 bytes. Logic and block structure match (the Player call with the local flag is
-// split into two branches as in the original), but this build keeps dt in ebx and the player
-// index in ebp; the original has them the other way round, so every use differs.
+// FUNCTION: RALLYTROPHY 0x480a50
 void SingleRace::Update(int dt)
 {
     unsigned int i, j, k;
@@ -224,7 +221,7 @@ void SingleRace::Update(int dt)
     }
     int time = m_time;
     m_time = time + dt;
-    if (m_time >= 1000 || !unk40) {
+    if (m_time >= 1000 || ((volatile SingleRace*)this)->unk40 == 0) {
         unk50 = 0;
     }
     unk4c = m_time < 0 || (!unk40 && !unk48);
