@@ -1374,7 +1374,7 @@ extern int DAT_00508bdc;
 
 class G6_RectLookup {
 public:
-    UIRect* Get(int index); // 0x4242f0
+    UIRect*& Get(int index); // 0x4242f0
 };
 
 class G6_Sound {
@@ -1389,6 +1389,7 @@ public:
 };
 
 // NONMATCHING: RALLYTROPHY 0x432e10
+// Tried 2026-10-30 night: while-loop + goto-six, Get() returns UIRect*&, volatile rect reloads (mask search of 64), x*width/y*height fix, permute -r 20; 10 insns left: ecx load/push/EH-state store order around the six rect calls (original loads are plain but not CSE'd).
 // Current candidate: 1011 bytes vs 1031, 554 differing bytes. PE disassembly restores the six rectangle reads for the
 // mouse-warp center and scaled SetCursorPos call, plus the independent escape/transition, confirm and loop-exit paths;
 // substantial control-flow and stack-layout differences remain. Plain objdump observation; SetCursorPos is mapped at
@@ -1397,28 +1398,30 @@ public:
 int __fastcall GameG6::FUN_00432e10()
 {
     int oldSelection;
-    int leave = 0;
-    RenderDevice* wait = 0;
+    int leave;
+    RenderDevice* wait;
     int changed;
     int first;
     int selected;
     int i;
-    float widthScale;
-    float heightScale;
+    int x, y;
+    float widthScale, heightScale;
     DAT_00508bdc = 0;
+    wait = 0;
+    changed = 0;
     DAT_0056b0ac->SetRenderState(5, 0);
     DAT_0056b0ac->vf42(8);
     widthScale = (float)DAT_0056b0ac->GetWidth() * 0.0009765625f;
-    changed = 0;
+    leave = 0;
     heightScale = (float)DAT_0056b0ac->GetHeight() * 0.0013020834f;
     DAT_0056b0bc->ClearKeys();
     first = 1;
     timeGetTime();
     oldSelection = *(int*)((BYTE*)this + 0x139078);
-    if (FUN_004b69f0(0)) {
-
-    do {
-        if (leave || changed)
+    while (FUN_004b69f0((int)wait)) {
+        if (changed)
+            goto six;
+        if (leave)
             break;
         ((GameView*)this)->FUN_00432c00();
         if (!DAT_0056b0ac->m_active) {
@@ -1443,16 +1446,16 @@ int __fastcall GameG6::FUN_00432e10()
         }
         wait = 0;
         if (DAT_0057ba35 || DAT_0057ba20) {
-            if (*(int*)((BYTE*)this + 0x139078) == 6) {
+            if (*(int*)((BYTE*)this + 0x139078) != 6) {
+                ((G6_Sound*)((BYTE*)this + 0x139294))->FUN_0049b730();
+                leave = 1;
+                continue;
+            } else {
                 ((G6_Sound*)((BYTE*)this + 0x139294))->FUN_0049b730();
                 if (((G6_GameCalls*)this)->FUN_004368a0(0)) {
                     leave = 1;
                     continue;
                 }
-            } else {
-                ((G6_Sound*)((BYTE*)this + 0x139294))->FUN_0049b730();
-                leave = 1;
-                continue;
             }
         }
 
@@ -1469,13 +1472,14 @@ int __fastcall GameG6::FUN_00432e10()
             else if (*(int*)((BYTE*)this + 0x139078) >= 7)
                 *(int*)((BYTE*)this + 0x139078) = 0;
 
-            i = *(int*)((BYTE*)this + 0x139078);
-            UIRect* rect = ((G6_RectLookup*)((BYTE*)this + 0x139460))->Get(i);
-            int x = (int)(rect->GetTopLeft().x +
-                          (rect->GetBottomRight().x - rect->GetTopLeft().x) * 0.5f);
-            int y = (int)(rect->GetTopLeft().y +
-                          (rect->GetBottomRight().y - rect->GetTopLeft().y) * 0.5f);
-            SetCursorPos((int)(x * heightScale), (int)(y * widthScale));
+            BYTE* rv = *(BYTE**)((BYTE*)this + 0x139464);
+            int off = *(int*)((BYTE*)this + 0x139078) * 4;
+            x = (int)((*(UIRect* volatile*)(rv + off))->GetTopLeft().x +
+                          ((*(UIRect* volatile*)(rv + off))->GetBottomRight().x - (*(UIRect* volatile*)(rv + off))->GetTopLeft().x) * 0.5f);
+            y = (int)((*(UIRect**)(rv + off))->GetTopLeft().y +
+                          ((*(UIRect* volatile*)(rv + off))->GetBottomRight().y - (*(UIRect* volatile*)(rv + off))->GetTopLeft().y) * 0.5f);
+#undef RV
+            SetCursorPos((int)(x * widthScale), (int)(y * heightScale));
         }
 
         for (i = 0; i < 7; ++i) {
@@ -1493,9 +1497,9 @@ int __fastcall GameG6::FUN_00432e10()
         DAT_0056b0bc->ClearKeys();
         DAT_0057ba20 = 0;
         DAT_0057ba24 = 0;
-    } while (FUN_004b69f0((int)wait));
     }
     if (changed || DAT_0057b9f4) {
+    six:
         *(int*)((BYTE*)this + 0x139078) = 6;
         ((G6_Sound*)((BYTE*)this + 0x139304))->FUN_0049b730();
     }
