@@ -412,6 +412,7 @@ int Screen1378::Frame()
 // 532/532 bytes, 15 differences: second-panel coordinate stores versus material loads.
 // Draws two textured panels; the separate Layout function builds hit boxes.
 // Tried 2026-10-30 night: all 24 orders of the four second-panel pos stores, local declaration orders, inlined w/h, permute.py -r 20 (no MATCH, best stays 4); 4 insns differ: the pos[1].x/pos[2].x store pair and fld st(1) are scheduled differently after the first fst [esp+0xc].
+// Tried 2026-10-31 re-pass: volatile casts on pos[0].x/pos[3].x/pos[0].y/pos[1].x stores, int-bit copy of x2, device-pointer local, permute.py -r 40 (best stays 4); the fstp [esp+0x30]/[0x18] vs mov ecx/eax placement and fst [0x28] after push eax are scheduler-only (no per-site rect locals apply here).
 void Screen1378::BuildRects()
 {
     HudPoint uv[4];
