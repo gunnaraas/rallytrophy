@@ -369,6 +369,7 @@ void RaceMode::DrawSetup(int a, ViewPoint* view)
 // distSq, split accumulation, or reversing the range comparison leaves that candidate unchanged. Reversing y/z in
 // all three sums follows the observed x87 order and reduces the remaining differences to 127. A local expiry
 // snapshot reproduces the target comparison direction and further reduces the residual to 125; y/z is still shared.
+// Tried 2026-10-30 night: DrawSetup shape (xx/S sums, range*range>S, volatile y/z + float sq, volatile-stored call arg) 32->10 insns, size exact 467; still differs: d copy and push registers (ecx/edx vs edx/eax), same as DrawSetup; decl-order/operand-order variants and permute -r 20 found nothing.
 // DrawSetup, skipping one car.
 void RaceMode::DrawSetupExcept(int a, ViewPoint* view, Car* skip)
 {
@@ -397,10 +398,14 @@ void RaceMode::DrawSetupExcept(int a, ViewPoint* view, Car* skip)
             Vec3* pos = (Vec3*)car->body->unk14;
             d -= *pos;
             double range = DAT_005012f8 * 1.5;
-            volatile float xx = d.x * d.x;
-            if (d.z * d.z + d.y * d.y + xx < range * range &&
-                d.z * d.z + d.y * d.y + xx > 100.0f) {
-                car->FUN_004695c0(((float)(int)sqrt(d.z * d.z + d.y * d.y + xx) - 10.0f) * 0.02f);
+            float xx = d.x * d.x;
+            float S = d.z * d.z + d.y * d.y + xx;
+            if (range * range > S && S > 100.0f) {
+                float y = *(volatile float*)&d.y, z = *(volatile float*)&d.z;
+                float sq = (float)sqrt(y * y + z * z + xx);
+                float r;
+                *(volatile float*)&r = ((float)(int)sq - 10.0f) * 0.02f;
+                car->FUN_004695c0(r);
                 m_ghostVisible = 1;
                 car->FUN_00468c70(a);
             }
