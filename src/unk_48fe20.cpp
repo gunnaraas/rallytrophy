@@ -186,12 +186,12 @@ int RecordTable::FUN_004901b0(ScoreRecord* record, int a, int b)
 // NONMATCHING: RALLYTROPHY 0x490310
 // Insert by the 0x58 time, without the +3 list offset.
 // Same structure and size as the original; register allocation differs (key/record/first end up in other registers).
+// Tried 2026-10-31 night: i first + result = i, (!a ? 0 : X) + b gave 70->68; a?X:0, if-form, indexed first[i].time, record-pointer loop, base alias, key/first predeclared, volatile key did not help; original keeps i in ebx, key in esi, first in edi, time in ecx (ours: i eax, key edi, time esi).
 int RecordTable::FUN_00490310(ScoreRecord* record, int a, int b)
 {
-    int result = 0;
     int i = 0;
-    int list = !a ? 0 : a * 11 + 2;
-    list += b;
+    int result = i;
+    int list = (!a ? 0 : a * 11 + 2) + b;
     int key = record->time;
     ScoreRecord* first = (ScoreRecord*)records + list * 230;
     int* time = &first->time;
