@@ -148,6 +148,7 @@ void WindowRain::vf6(RenderDevice* device, Camera* camera, int unused)
 // NONMATCHING: RALLYTROPHY 0x476be0
 // 949 vs 955 bytes / 362 differing bytes. Expanding the y-delta expressions removes 37 differences, but the frame
 // remains four bytes larger and the bounds-copy registers and x87 comparison stack still differ.
+// Tried 2026-10-30 night: dy as a local, int copy of the vertex into a Vec3* w = &s->world (gets the ecx=&world.z base, frame size now matches; 127->72 insns); separate angle pointers, store reorders, indexed spots[j] did not add the original second induction pointer (edx=s) or its imm 100.0 stores; bounds-copy register rotation still differs.
 void WindowRain::Init(RainScene* scene)
 {
     int i = 0;
@@ -203,9 +204,8 @@ void WindowRain::Init(RainScene* scene)
     Vec3* src = md->vertices;
     int j;
     for (j = 0; j < n; j++, s++, src++) {
-        s->world.x = src->x;
-        s->world.y = src->y;
-        s->world.z = src->z;
+        Vec3* w = &s->world;
+        w->x = src->x; w->y = src->y; w->z = src->z;
         s->right.y = 0.0f;
         s->right.z = 0.0f;
         s->up.x = 0.0f;
@@ -214,18 +214,20 @@ void WindowRain::Init(RainScene* scene)
         s->angleA = s->angleB = 100.0f;
         s->right.x = 1.0f;
         s->up.y = 1.0f;
-        float d = (s->world.y - viewPos[0].y) * (s->world.y - viewPos[0].y) + dx * dx;
+        float dy = s->world.y - viewPos[0].y;
+        float d = dy * dy + dx * dx;
         if (d >= r1 && d <= r2) {
-            float ang = (float)atan2(s->world.y - viewPos[0].y, dx);
+            float ang = (float)atan2(dy, dx);
             if (ang >= min0 && ang <= max0) {
                 s->angleA = ang;
             }
         }
         if (viewCount > 1) {
             dx = s->world.x - viewPos[1].x;
-            d = (s->world.y - viewPos[1].y) * (s->world.y - viewPos[1].y) + dx * dx;
+            dy = s->world.y - viewPos[1].y;
+            d = dy * dy + dx * dx;
             if (d >= r1 && d <= r2) {
-                float ang = (float)atan2(s->world.y - viewPos[1].y, dx);
+                float ang = (float)atan2(dy, dx);
                 if (ang >= min1 && ang <= max1) {
                     s->angleB = ang;
                 }
