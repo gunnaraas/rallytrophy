@@ -14,7 +14,8 @@ void IntVec::Resize(unsigned int n, const int& x)
 // NONMATCHING: RALLYTROPHY 0x4b8640
 // reason: original loads the uninitialised allocator byte into dl twice; ours uses cl then dl
 // Tried 2026-10-30 night: zeroing-statement orders, ml()/sets()/SetVec() init forms, explicit allocator args, plain std::vector sets; all 2-5 insns differ, ours hoists the sets allocator load into dl and uses cl for the meshes one.
-SceneEntry::SceneEntry() : sets()
+// Tried 2026-10-31 re-pass: 16 more variants (all 5! store orders sampled, chained zero, explicit ml(), shared int z, volatile on verts/count40/pad50, dead volatile char local, placement-new sets) 2-6 insns differ; permute -r 40 best 2 insns, no MATCH; still the uninitialised allocator-byte load (dl before xor vs ours hoisted dl + cl).
+SceneEntry::SceneEntry(): sets()
 {
     count44 = 0;
     count40 = 0;
