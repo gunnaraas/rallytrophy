@@ -5,8 +5,11 @@
 extern "C" void* fun_004c1276(int bytes);
 extern "C" void fun_004bd000(void* p);
 extern "C" float fun_004b3800(float* p, float* org, float* e1, float* e2, float* out); // closest point on triangle, returns dist^2
+float TriClosest4b(float* p, float* org, float* e1, float* e2, float* out); // C++ linkage: may throw, unlike the extern "C" original name
+#pragma comment(linker, "/alternatename:?TriClosest4b@@YAMPAM0000@Z=_fun_004b3800")
 extern float DAT_004e134c, DAT_004e1348;
 extern Tri* DAT_00508500;
+struct V3p { float x, y, z; };
 struct V3Diff { float x, y, z; float* Sub(float* out, const float* o) const; }; // 0x414330
 
 // FUNCTION: RALLYTROPHY 0x418570
@@ -419,23 +422,26 @@ void TriCollector::Gather(TriMesh* m)
     }
 }
 
+struct Sph419 { ScenePoint c; float d; Sph419(const float* p, float r) { c.x = p[0]; c.y = p[1]; c.z = p[2]; d = r; } ~Sph419() {} };
+static __forceinline bool Near419(const ScenePoint& p, const Tri* t, float r) { float q = (r + t->r) * (r + t->r); float dx = p.x - t->cx, dy = p.y - t->cy, dz = p.z - t->cz; float d2 = dx * dx + dy * dy + dz * dz; return *(int*)&d2 <= *(int*)&q; }
+
 // NONMATCHING: RALLYTROPHY 0x4193a0
-// reason: first draft; SEH/temp layout unchecked. The sphere test is a float bit-compare (*(int*)&d2 <= *(int*)&rr, rr first) on Vec3 copies of pos/lo/hi; the compare alone made it 10 bytes worse without the Vec3 rewrite.
+// Tried 2026-10-31: EH frame needs a throwing call (C++-linkage TriClosest4b via /alternatename, since extern "C" is nothrow), Sph419+Near419, plain V3p lo/hi, v>=lo compare flips, ScenePoint e1/e2 with -=; 218->175 but built 874 vs 974 bytes: original has EH states 2/4/7 (we get 0/1/3: two more function-scope dtor objects plus three in the loop), cp/out-copy layout and rr hoist still differ.
 float TriCollector::Closest(float r, float* pos, float* out, float* nrm)
 {
-    float px = pos[0], py = pos[1], pz = pos[2];
-    float lx = px - r, ly = py - r, lz = pz - r;
+    float rr = r * r;
+    Sph419 P(pos, r);
+    V3p lo = *(V3p*)pos; lo.x -= r; lo.y -= r; lo.z -= r;
+    V3p hi = *(V3p*)pos; hi.x += r; hi.y += r; hi.z += r;
     Tri* headT = 0;
     Tri* tail = 0;
     for (unsigned i = 0; hits.begin() != 0 && i < hits.size(); i++) {
         Tri* t = hits[i];
-        float rr = (r + t->r) * (r + t->r);
-        float d2 = (px - t->cx) * (px - t->cx) + (py - t->cy) * (py - t->cy) + (pz - t->cz) * (pz - t->cz);
-        if (*(int*)&d2 <= *(int*)&rr) {
+        if (Near419(P.c, t, r)) {
             unsigned s = t->sel;
-            if (lx <= t->v[(s >> 2) & 3]->x && t->v[s & 3]->x <= px + r &&
-                ly <= t->v[(s >> 6) & 3]->y && t->v[(s >> 4) & 3]->y <= py + r &&
-                lz <= t->v[(s >> 10) & 3]->z && t->v[(s & 0x300) >> 8]->z <= pz + r) {
+            if (t->v[(s >> 2) & 3]->x >= lo.x && t->v[s & 3]->x <= hi.x &&
+                t->v[(s >> 6) & 3]->y >= lo.y && t->v[(s >> 4) & 3]->y <= hi.y &&
+                t->v[(s >> 10) & 3]->z >= lo.z && t->v[(s & 0x300) >> 8]->z <= hi.z) {
                 t->next = 0;
                 if (headT != 0) {
                     tail->next = t;
@@ -454,10 +460,11 @@ float TriCollector::Closest(float r, float* pos, float* out, float* nrm)
     Tri* found = 0;
     while (cur != 0) {
         TVert* a = cur->v[0];
-        float e1[3], e2[3];
-        e1[0] = cur->v[1]->x - a->x; e1[1] = cur->v[1]->y - a->y; e1[2] = cur->v[1]->z - a->z;
-        e2[0] = cur->v[2]->x - a->x; e2[1] = cur->v[2]->y - a->y; e2[2] = cur->v[2]->z - a->z;
-        if (fun_004b3800(pos, &a->x, e1, e2, cp) <= r * r) {
+        ScenePoint e1(*(ScenePoint*)&cur->v[1]->x);
+        e1 -= *(ScenePoint*)&a->x;
+        ScenePoint e2(*(ScenePoint*)&cur->v[2]->x);
+        e2 -= *(ScenePoint*)&a->x;
+        if (TriClosest4b(pos, &a->x, &e1.x, &e2.x, cp) <= r * r) {
             ret = 0.0f;
             hit = 0;
             found = cur;
@@ -532,8 +539,6 @@ int TriCollector::Contact(float r, float* pos, float* a_, float* b, float* c, in
     return n;
 }
 
-struct Sph419 { ScenePoint c; float d; Sph419(const float* p, float r) { c.x = p[0]; c.y = p[1]; c.z = p[2]; d = r; } ~Sph419() {} };
-static __forceinline bool Near419(const ScenePoint& p, const Tri* t, float r) { float q = (r + t->r) * (r + t->r); float dx = p.x - t->cx, dy = p.y - t->cy, dz = p.z - t->cz; float d2 = dx * dx + dy * dy + dz * dz; return *(int*)&d2 <= *(int*)&q; }
 
 // NONMATCHING: RALLYTROPHY 0x419be0
 // reason: first draft; SEH/temp layout unchecked.
