@@ -46,6 +46,7 @@ inline void CopyBits(Vec3* dst, const Vec3& src)
 // original's (the hood's tail is deliberately written late), but VC6 hoists the operator new size arithmetic and
 // sinks the vptr store, keeps the count in ebx and the mesh pointer in ebp (original: ebp and ebx), and the vertex
 // fill loop spills differently (six per-field induction pointers as in the original, other register choice).
+// Tried 2026-10-31: volatile reload of m->vertices before the fill loop (114->96 insns, kept); volatile indices reload, dropCount for count, volatile stores around the lea/push hoist and vptr, explicit normal stores and per-field pointer loops (bytes closer, insns worse); still differs: vptr/size-arithmetic placement and the fill loop's pointer/spill allocation (original keeps zero in edi, two pointers spilled).
 CarRain::CarRain(int count)
 {
     savedTrunk.m[5] = savedTrunk.m[10] = savedTrunk.m[15] = savedTrunk.m[0] = 1.0f;
@@ -94,7 +95,7 @@ CarRain::CarRain(int count)
         *ix++ = v + 2;
         *ix++ = v + 3;
     }
-    EffectVertex* v = m->vertices;
+    EffectVertex* v = *((EffectVertex* volatile*)&m->vertices);
     for (i = 0; i < count; i++) {
         memset(&v->normal, 0, sizeof(v->normal));
         v->color = 0xffffffff;
