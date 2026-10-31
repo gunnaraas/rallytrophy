@@ -218,6 +218,7 @@ int Screen1378::Open(MenuGame* game, NetRace* net)
 // Same size (1685) and identical except register allocation: the original keeps `this` in esi and the shared zero
 // constant in edi, mine the reverse (118 bytes differ, all esi/edi swaps). Tried: declaration order, dummy `this` uses.
 // original: FUN_0043a6e0 (Screen1378::Frame: modal loop; returns -1 (back), 1 or 2)
+// Tried 2026-10-30 night: ~25 variants (local declaration orders, for-loop form, wait=finished/zero local, self pointer, unk2c store hoist, loop test order); all stay 114 insns differ, pure esi/edi swap (orig this=esi, shared zero CSE=edi; ours zero first-use grabs esi).
 int Screen1378::Frame()
 {
     int wait = 0;
