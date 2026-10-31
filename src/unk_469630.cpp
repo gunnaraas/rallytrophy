@@ -376,6 +376,7 @@ void Car::UpdateTyreTracks()
 // Moving Color construction after the dimension reads and loading needles before gear reduces the diff from 136 to 95
 // bytes at the same 1,424-byte size. Frame/register allocation remains off; target keeps -1 in edi and uses a 0x58 frame.
 // Tried 2026-10-30 night: ~20 variants of fw/fh/iw/ih/Color declaration order, uv y-stores before x (fixed the gear-uv store hunk), permute -r 20 (no MATCH); still differs: target reuses one [esp+0x1c] temp for both int->float conversions, Color sits at [esp+0x28] (extra slot at 0x24) and its -1 store follows the fild pair.
+// Tried 2026-10-31 re-pass: moving Color after the fw/fh conversions plus permute -r 40 (commutative operand swaps, ih decl after iw) gives 11->2 insns differ; still differs: original reuses one [esp+0x1c] temp for both fild and keeps Color at [esp+0x28] with `or edi,-1` after the second fild (ours 0x24, hoisted).
 void Car::FUN_0046a200()
 {
     CarGaugeView* v = (CarGaugeView*)this;
@@ -394,33 +395,33 @@ void Car::FUN_0046a200()
     Vec2 uv[4];
     float sx, sy, fh, fw;
     int iw = DAT_0056b0ac->m_width;
+    fw = (float)iw;
     int ih = DAT_0056b0ac->m_height;
     Color color(0xffffffff);
-    fw = (float)iw;
     fh = (float)ih;
     sx = fw / 1024.0f;
     sy = fh / 768.0f;
     pos[0].x = pos[3].x = sx * v->x;
     pos[1].x = pos[2].x = (v->x + 256.0f) * sx;
     pos[0].y = pos[1].y = sy * v->y;
-    pos[2].y = pos[3].y = (v->y + 256.0f) * sy;
+    pos[2].y = pos[3].y = (256.0f + v->y) * sy;
     ((RaceDeviceSlots*)DAT_0056b0ac)->SetTexture((void*)base);
     ((RaceDeviceSlots*)DAT_0056b0ac)->DrawRect(pos, color, 1.0f, 1.0f);
     int ge = v->drive.GetEngagedGear() + 1;
     uv[0].y = uv[1].y = 0.0f;
     uv[2].y = uv[3].y = 1.0f;
-    uv[0].x = uv[3].x = (float)ge * 0.125f;
+    uv[0].x = uv[3].x = (float)0.125f * ge;
     uv[1].x = uv[2].x = uv[3].x + 0.125f;
     pos[0].x = pos[3].x = v->gearX;
     pos[0].y = pos[1].y = v->gearY;
     pos[1].x = pos[2].x = v->gearX + 16.0f;
-    pos[2].y = pos[3].y = v->gearY + 32.0f;
-    int i;
+    pos[2].y = pos[3].y = 32.0f + v->gearY;
     float tx = v->x;
     float ty = v->y;
+    int i;
     tx *= sx;
     ty *= sy;
-    for (i = 0; i < 4; i++) {
+    for (i = 0; i < 4; ++i) {
         pos[i].x *= sx;
         pos[i].y *= sy;
         pos[i].x += tx;
@@ -440,10 +441,10 @@ void Car::FUN_0046a200()
             speed = 1.0f;
         }
         RotateQuad((float*)pos, 0.78539819f, speed, v->speedHalf * 0.5f, v->speedFrom - v->speedTo, v->speedTo);
-        for (i = 0; i < 4; i++) {
+        for (i = 0; 4 > i; ++i) {
             pos[i].x *= sx;
             pos[i].y *= sy;
-            pos[i].x += (v->rpmX + v->x) * sx;
+            pos[i].x += (v->x + v->rpmX) * sx;
             pos[i].y += (v->rpmY + v->y) * sy;
         }
         uv[0].x = uv[3].x = 0.0f;
@@ -458,7 +459,7 @@ void Car::FUN_0046a200()
         } else if (*(int*)&rpm > 0x3f800000) {
             rpm = 1.0f;
         }
-        RotateQuad((float*)pos, 0.78539819f, rpm, v->rpmHalf * 0.5f, v->rpmFrom - v->rpmTo, v->rpmTo);
+        RotateQuad((float*)pos, 0.78539819f, rpm, 0.5f * v->rpmHalf, v->rpmFrom - v->rpmTo, v->rpmTo);
         for (i = 0; i < 4; i++) {
             pos[i].x *= sx;
             pos[i].y *= sy;
