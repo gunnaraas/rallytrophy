@@ -1445,14 +1445,20 @@ struct AiSpline {
     float t2;
     float t3;
 };
+extern float DAT_00500d08;
 #define AI_FLOAT(off) (*(float*)((BYTE*)this + (off)))
 
+__forceinline static void Copy(Vec3& d, const Vec3& s) { d.x = s.x; d.y = s.y; d.z = s.z; }
+
 // NONMATCHING: RALLYTROPHY 0x49e3d0
-// 3680 vs 3592 bytes; logic complete (control flow, calls and constants checked against the disassembly; not tuned). Finds the AiSegment the car is on from the point 1.43 s
+// 3680 vs 3592 bytes; logic complete (control flow, calls and constants checked against the disassembly; not tuned). Finds the AiSegment the car is on from the p 1.43 s
 // ahead of it, evaluates the racing line (Catmull-Rom through the segment's nodes/corner points) at the car and 1.25
-// units ahead, offsets the point sideways by the road width and derives the steering offset (unk34).
+// units ahead, offsets the p sideways by the road width and derives the steering offset (unk34).
 float AIDriver::FUN_0049e3d0()
 {
+    Vec3 p;
+    Vec3 n;
+    Vec3 side;
     Car* car = player->car;
     AiSpline& sp = *(AiSpline*)&unk134;
     unk28 = 0;
@@ -1463,28 +1469,26 @@ float AIDriver::FUN_0049e3d0()
     AiSegment* prev = path->At(index - 1);
 
     // Where the car will be in 1.43 seconds (horizontal speed capped at 15).
-    Vec3 vel;
-    vel.x = car->body->velocity[0];
-    vel.y = car->body->velocity[1];
-    vel.z = car->body->velocity[2];
-    vel.y = 0;
-    float speed = (float)sqrt(vel.z * vel.z + vel.x * vel.x);
-    if (speed > 15.0f) {
-        float k = 15.0f / speed;
-        vel.x = k * vel.x;
-        vel.z = k * vel.z;
+    p.x = car->body->velocity[0];
+    p.y = car->body->velocity[1];
+    p.z = car->body->velocity[2];
+    p.y = 0;
+    float speed = (float)sqrt(p.z * p.z + p.x * p.x);
+    if (speed > DAT_00500d08) {
+        float k = DAT_00500d08 / speed;
+        p.x = k * p.x;
+        p.z = k * p.z;
     }
-    Vec3 point;
-    point = *(Vec3*)car->body->unk14 + vel * 1.43f;
-    point.y = 0;
+    p = *(Vec3*)car->body->unk14 + p * DAT_00500d00;
+    p.y = 0;
 
     // Advance while the next segment is closer than the current one.
     int i = 0;
     float dCur;
     float dNext;
     do {
-        dCur = FUN_0049d720(&point, cur);
-        dNext = FUN_0049d720(&point, next);
+        dCur = FUN_0049d720(&p, cur);
+        dNext = FUN_0049d720(&p, next);
         if (dCur > dNext) {
             prev = cur;
             cur = next;
@@ -1493,43 +1497,40 @@ float AIDriver::FUN_0049e3d0()
         i++;
     } while (dCur > dNext);
 
-    AiNode* a = cur->a;
-    AiNode* b = cur->b;
     Vec3* u0 = (Vec3*)&cur->unk28[0];
     Vec3* u1 = (Vec3*)&cur->unk28[1];
 
-    // The segment is three pieces: a -> u0, u0 -> u1, u1 -> b; find the nearest point on each.
-    Vec3 nearest;
+    // The segment is three pieces: a -> u0, u0 -> u1, u1 -> b; find the n p on each.
     Vec3 v0;
     Vec3 v1;
     Vec3 v2;
-    v0.x = u0->x - a->x;
+    v0.x = u0->x - cur->a->x;
     v0.y = 0;
-    v0.z = u0->z - a->z;
+    v0.z = u0->z - cur->a->z;
     float len0 = (float)sqrt(v0.z * v0.z + v0.x * v0.x);
-    FUN_004b3dd0(&point, (Vec3*)a, &v0, &nearest);
-    v0 = nearest - point;
+    FUN_004b3dd0(&p, (Vec3*)cur->a, &v0, &n);
+    v0 = n - p;
     v0.y = 0;
     v1.x = u1->x - u0->x;
     v1.y = 0;
     v1.z = u1->z - u0->z;
     float len1 = (float)sqrt(v1.z * v1.z + v1.x * v1.x);
-    FUN_004b3dd0(&point, u0, &v1, &nearest);
-    v1 = nearest - point;
+    FUN_004b3dd0(&p, u0, &v1, &n);
+    v1 = n - p;
     v1.y = 0;
-    v2.x = ((Vec3*)b)->x - u1->x;
+    v2.x = ((Vec3*)cur->b)->x - u1->x;
     v2.y = 0;
-    v2.z = ((Vec3*)b)->z - u1->z;
+    v2.z = ((Vec3*)cur->b)->z - u1->z;
     float len2 = (float)sqrt(v2.z * v2.z + v2.x * v2.x);
-    FUN_004b3dd0(&point, u1, &v2, &nearest);
-    v2 = nearest - point;
+    FUN_004b3dd0(&p, u1, &v2, &n);
+    v2 = n - p;
     v2.y = 0;
 
     // Gap between this segment's end and the next segment's first corner.
     Vec3 gap;
-    gap.x = ((Vec3*)&next->unk28[0])->x - ((Vec3*)b)->x;
+    gap.x = ((Vec3*)&next->unk28[0])->x - ((Vec3*)cur->b)->x;
     gap.y = 0;
-    gap.z = ((Vec3*)&next->unk28[0])->z - ((Vec3*)b)->z;
+    gap.z = ((Vec3*)&next->unk28[0])->z - ((Vec3*)cur->b)->z;
     float lenGap = (float)sqrt(gap.z * gap.z + gap.x * gap.x);
     float total = len2 + len1 + len0;
 
@@ -1538,118 +1539,119 @@ float AIDriver::FUN_0049e3d0()
     float dist2 = v2.Length();
     if (dist0 < dist1 && dist0 < dist2) {
         // Nearest to the first piece.
-        float step0 = 1.25f / len0;
-        float step1 = 1.25f / len1;
-        v0 = v0 + point;
-        v0 -= *(Vec3*)a;
+        float step0 = DAT_00500cfc / len0;
+        float step1 = DAT_00500cfc / len1;
+        v0.x = p.x + v0.x;
+        v0.y = p.y + v0.y;
+        v0.z = p.z + v0.z;
+        v0 -= *(Vec3*)cur->a;
         v0.y = 0;
-        Vec3 dir = *u0 - *(Vec3*)a;
-        float t = v0.Length() / dir.Length();
+        n = *u0 - *(Vec3*)cur->a;
+        float t = v0.Length() / n.Length();
         sp.t = t;
         AI_FLOAT(0x2c) = t * len0 / total;
         sp.t2 = t * t;
         sp.t3 = sp.t2 * t;
-        AI_FLOAT(0x80) = sp.Eval(prev->unk44, a->unk2c, cur->unk40, cur->unk44);
-        unk140.x = sp.Eval(prev->unk28[1].x, ((Vec3*)a)->x, u0->x, u1->x);
-        unk140.z = sp.Eval(prev->unk28[1].z, ((Vec3*)a)->z, u0->z, u1->z);
+        AI_FLOAT(0x80) = sp.Eval(prev->unk44, cur->a->unk2c, cur->unk40, cur->unk44);
+        unk140.x = sp.Eval(prev->unk28[1].x, ((Vec3*)cur->a)->x, u0->x, u1->x);
+        unk140.z = sp.Eval(prev->unk28[1].z, ((Vec3*)cur->a)->z, u0->z, u1->z);
         float t2 = t + step0;
-        if (t2 > 1.0f) {
-            t2 = (t2 - 1.0f) * len0 * step1;
+        if (t2 > DAT_004e1348) {
+            t2 = (t2 - DAT_004e1348) * len0 * step1;
             sp.t = t2;
             sp.t2 = t2 * t2;
             sp.t3 = sp.t2 * t2;
-            unk14c.x = sp.Eval(((Vec3*)a)->x, u0->x, u1->x, ((Vec3*)b)->x);
-            unk14c.z = sp.Eval(((Vec3*)a)->z, u0->z, u1->z, ((Vec3*)b)->z);
+            unk14c.x = sp.Eval(((Vec3*)cur->a)->x, u0->x, u1->x, ((Vec3*)cur->b)->x);
+            unk14c.z = sp.Eval(((Vec3*)cur->a)->z, u0->z, u1->z, ((Vec3*)cur->b)->z);
         } else {
             sp.t = t2;
             sp.t2 = t2 * t2;
             sp.t3 = sp.t2 * t2;
-            unk14c.x = sp.Eval(prev->unk28[1].x, ((Vec3*)a)->x, u0->x, u1->x);
-            unk14c.z = sp.Eval(prev->unk28[1].z, ((Vec3*)a)->z, u0->z, u1->z);
+            unk14c.x = sp.Eval(prev->unk28[1].x, ((Vec3*)cur->a)->x, u0->x, u1->x);
+            unk14c.z = sp.Eval(prev->unk28[1].z, ((Vec3*)cur->a)->z, u0->z, u1->z);
         }
     } else if (dist2 > dist1) {
         // Nearest to the middle piece.
-        float step1 = 1.25f / len1;
-        float step2 = 1.25f / len2;
-        v1 = v1 + point;
+        float step1 = DAT_00500cfc / len1;
+        float step2 = DAT_00500cfc / len2;
+        v1.x = p.x + v1.x;
+        v1.y = p.y + v1.y;
+        v1.z = p.z + v1.z;
         v1 -= *u0;
         v1.y = 0;
-        Vec3 dir = *u1 - *u0;
-        float t = v1.Length() / dir.Length();
+        n = *u1 - *u0;
+        float t = v1.Length() / n.Length();
         sp.t = t;
         AI_FLOAT(0x2c) = (t * len1 + len0) / total;
         sp.t2 = t * t;
         sp.t3 = sp.t2 * t;
-        AI_FLOAT(0x80) = sp.Eval(a->unk2c, cur->unk40, cur->unk44, b->unk2c);
-        unk140.x = sp.Eval(((Vec3*)a)->x, u0->x, u1->x, ((Vec3*)b)->x);
-        unk140.z = sp.Eval(((Vec3*)a)->z, u0->z, u1->z, ((Vec3*)b)->z);
+        AI_FLOAT(0x80) = sp.Eval(cur->a->unk2c, cur->unk40, cur->unk44, cur->b->unk2c);
+        unk140.x = sp.Eval(((Vec3*)cur->a)->x, u0->x, u1->x, ((Vec3*)cur->b)->x);
+        unk140.z = sp.Eval(((Vec3*)cur->a)->z, u0->z, u1->z, ((Vec3*)cur->b)->z);
         float t2 = t + step1;
-        if (t2 > 1.0f) {
-            t2 = (t2 - 1.0f) * len1 * step2;
+        if (t2 > DAT_004e1348) {
+            t2 = (t2 - DAT_004e1348) * len1 * step2;
             sp.t = t2;
             sp.t2 = t2 * t2;
             sp.t3 = sp.t2 * t2;
-            unk14c.x = sp.Eval(u0->x, u1->x, ((Vec3*)b)->x, ((Vec3*)&next->unk28[0])->x);
-            unk14c.z = sp.Eval(u0->z, u1->z, ((Vec3*)b)->z, ((Vec3*)&next->unk28[0])->z);
+            unk14c.x = sp.Eval(u0->x, u1->x, ((Vec3*)cur->b)->x, ((Vec3*)&next->unk28[0])->x);
+            unk14c.z = sp.Eval(u0->z, u1->z, ((Vec3*)cur->b)->z, ((Vec3*)&next->unk28[0])->z);
         } else {
             sp.t = t2;
             sp.t2 = t2 * t2;
             sp.t3 = sp.t2 * t2;
-            unk14c.x = sp.Eval(((Vec3*)a)->x, u0->x, u1->x, ((Vec3*)b)->x);
-            unk14c.z = sp.Eval(((Vec3*)a)->z, u0->z, u1->z, ((Vec3*)b)->z);
+            unk14c.x = sp.Eval(((Vec3*)cur->a)->x, u0->x, u1->x, ((Vec3*)cur->b)->x);
+            unk14c.z = sp.Eval(((Vec3*)cur->a)->z, u0->z, u1->z, ((Vec3*)cur->b)->z);
         }
     } else {
         // Nearest to the last piece.
-        float step2 = 1.25f / len2;
-        float stepGap = 1.25f / lenGap;
-        v2 = v2 + point;
+        float step2 = DAT_00500cfc / len2;
+        float stepGap = DAT_00500cfc / lenGap;
+        v2.x = p.x + v2.x;
+        v2.y = p.y + v2.y;
+        v2.z = p.z + v2.z;
         v2 -= *u1;
         v2.y = 0;
-        Vec3 dir = *(Vec3*)b - *u1;
-        float t = v2.Length() / dir.Length();
+        n = *(Vec3*)cur->b - *u1;
+        float t = v2.Length() / n.Length();
         sp.t = t;
         AI_FLOAT(0x2c) = (t * len2 + len1 + len0) / total;
         sp.t2 = t * t;
         sp.t3 = sp.t2 * t;
-        AI_FLOAT(0x80) = sp.Eval(cur->unk40, cur->unk44, b->unk2c, next->unk40);
-        unk140.x = sp.Eval(u0->x, u1->x, ((Vec3*)b)->x, ((Vec3*)&next->unk28[0])->x);
-        unk140.z = sp.Eval(u0->z, u1->z, ((Vec3*)b)->z, ((Vec3*)&next->unk28[0])->z);
+        AI_FLOAT(0x80) = sp.Eval(cur->unk40, cur->unk44, cur->b->unk2c, next->unk40);
+        unk140.x = sp.Eval(u0->x, u1->x, ((Vec3*)cur->b)->x, ((Vec3*)&next->unk28[0])->x);
+        unk140.z = sp.Eval(u0->z, u1->z, ((Vec3*)cur->b)->z, ((Vec3*)&next->unk28[0])->z);
         float t2 = t + step2;
-        if (t2 > 1.0f) {
-            t2 = (t2 - 1.0f) * len2 * stepGap;
+        if (t2 > DAT_004e1348) {
+            t2 = (t2 - DAT_004e1348) * len2 * stepGap;
             sp.t = t2;
             sp.t2 = t2 * t2;
             sp.t3 = sp.t2 * t2;
-            unk14c.x = sp.Eval(u1->x, ((Vec3*)b)->x, ((Vec3*)&next->unk28[0])->x, next->unk28[1].x);
-            unk14c.z = sp.Eval(u1->z, ((Vec3*)b)->z, ((Vec3*)&next->unk28[0])->z, next->unk28[1].z);
+            unk14c.x = sp.Eval(u1->x, ((Vec3*)cur->b)->x, ((Vec3*)&next->unk28[0])->x, next->unk28[1].x);
+            unk14c.z = sp.Eval(u1->z, ((Vec3*)cur->b)->z, ((Vec3*)&next->unk28[0])->z, next->unk28[1].z);
         } else {
             sp.t = t2;
             sp.t2 = t2 * t2;
             sp.t3 = sp.t2 * t2;
-            unk14c.x = sp.Eval(u0->x, u1->x, ((Vec3*)b)->x, ((Vec3*)&next->unk28[0])->x);
-            unk14c.z = sp.Eval(u0->z, u1->z, ((Vec3*)b)->z, ((Vec3*)&next->unk28[0])->z);
+            unk14c.x = sp.Eval(u0->x, u1->x, ((Vec3*)cur->b)->x, ((Vec3*)&next->unk28[0])->x);
+            unk14c.z = sp.Eval(u0->z, u1->z, ((Vec3*)cur->b)->z, ((Vec3*)&next->unk28[0])->z);
         }
         unk14c.y = 0;
     }
 
     // Blend the node values and take the line direction.
-    AI_FLOAT(0x24) = (1.0f - AI_FLOAT(0x2c)) * a->unk24 + b->unk24 * AI_FLOAT(0x2c);
+    AI_FLOAT(0x24) = (DAT_004e1348 - AI_FLOAT(0x2c)) * cur->a->unk24 + cur->b->unk24 * AI_FLOAT(0x2c);
     *(int*)((BYTE*)this + 0xec) = cur->unk14;
-    Vec3 ahead;
-    ahead = *(Vec3*)&unk14c - *(Vec3*)&unk140;
-    unk60.x = ahead.x;
-    unk60.y = ahead.y;
-    unk60.z = ahead.z;
+    Copy(*(Vec3*)&unk60, *(Vec3*)&unk14c - *(Vec3*)&unk140);
     unk48.y = 0;
-    Vec3 side;
     side.x = unk60.z;
     side.z = -unk60.x;
     side.y = 0;
-    float inv = 1.0f / (float)sqrt(side.x * side.x + side.z * side.z);
+    float inv = DAT_004e1348 / (float)sqrt(side.x * side.x + side.z * side.z);
     side.x = side.x * inv;
     side.z = side.z * inv;
     if (unk114) {
-        float width = (1.0f - unk11c) * unk88 + AI_FLOAT(0x80) * unk11c;
+        float width = (DAT_004e1348 - unk11c) * unk88 + AI_FLOAT(0x80) * unk11c;
         unk48.x = side.x * width + unk140.x;
         unk48.z = side.z * width + unk140.z;
     } else {
@@ -1658,36 +1660,28 @@ float AIDriver::FUN_0049e3d0()
     }
 
     // Steering offset: the target's side of the car's heading.
-    Vec3 toTarget;
-    toTarget.x = unk48.x;
-    toTarget.y = unk48.y;
-    toTarget.z = unk48.z;
-    Vec3* pos = (Vec3*)player->car->body->unk14;
-    toTarget.x = toTarget.x - pos->x;
-    toTarget.y = toTarget.y - pos->y;
-    toTarget.z = toTarget.z - pos->z;
-    toTarget.y = 0;
-    Vec3 perp;
-    perp.x = toTarget.z;
-    perp.y = 0;
-    perp.z = -toTarget.x;
-    float inv2 = 1.0f / (float)sqrt(perp.x * perp.x + perp.z * perp.z);
-    perp.x = perp.x * inv2;
-    perp.z = perp.z * inv2;
-    unk34 = perp.y * forward.y + perp.z * forward.z + perp.x * forward.x;
+    n.x = unk48.x;
+    n.y = unk48.y;
+    n.z = unk48.z;
+    Vec3* pos = (Vec3*)car->body->unk14;
+    n.x = n.x - pos->x;
+    n.y = n.y - pos->y;
+    n.z = n.z - pos->z;
+    n.y = 0;
+    float px = n.z;
+    n.z = -n.x;
+    n.x = px;
+    float inv2 = DAT_004e1348 / (float)sqrt(n.x * n.x + n.z * n.z);
+    n.x = n.x * inv2;
+    n.z = n.z * inv2;
+    unk34 = n.y * forward.y + n.z * forward.z + n.x * forward.x;
 
-    Vec3 rel;
-    rel = *(Vec3*)&unk3c - *pos;
-    unkc8.x = rel.x;
-    unkc8.y = rel.y;
-    unkc8.z = rel.z;
-    unkc8.y = 0;
-    rel = *(Vec3*)&unk140 - *pos;
-    unkd4.x = rel.x;
-    unkd4.y = rel.y;
-    unkd4.z = rel.z;
-    unkd4.y = 0;
-    return 0.0f;
+    pos = (Vec3*)player->car->body->unk14;
+    Copy(*(Vec3*)&unkc8, *(Vec3*)&unk3c - *pos);
+    ((Vec3*)&unkc8)->y = 0;
+    Copy(*(Vec3*)&unkd4, *(Vec3*)&unk140 - *pos);
+    ((Vec3*)&unkd4)->y = 0;
+    return DAT_004e134c;
 }
 
 // FUNCTION: RALLYTROPHY 0x49f1e0
