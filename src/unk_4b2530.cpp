@@ -581,22 +581,24 @@ int TriangleProjection::Contains(const float* p)
     int neg=*(int*)&side&0x80000000;return !neg;
 }
 // NONMATCHING: RALLYTROPHY 0x4b6800
-// Vector temporary lifetimes, endpoint-copy branching and x87 scheduling differ.
+// Tried 2026-10-30 night: q-chain dot for da, hand dot for delta with dz copy, early 'return 1' on fabs, per-element endpoint copies (39->4); ~40 operand-order variants and permute -r 20 cannot flip fld/fmul operand order of the z and x terms in da (compiler canonicalizes).
 float Tri3::EdgeDist(const float* a,const float* b,float* out,float* endpoint)
 {
     TriangleProjection* t=(TriangleProjection*)this;
-    float da=(t->n[1]*a[1]+t->n[2]*a[2])+a[0]*t->n[0]+t->d;
+    float da;{float q=t->n[1]*a[1];q=t->n[2]*a[2]+q;q=a[0]*t->n[0]+q;da=q+t->d;}
     if((Dot(t->n,b)+t->d)*da<=0) {
         Vec3 delta=*(const Vec3*)b;delta-=*(const Vec3*)a;
-        float denom=Dot((float*)&delta,t->n);
-        if(9.999999747378752e-06f<=fabs(denom)) {
+        float dz=delta.z;float denom=(dz*t->n[2]+delta.y*t->n[1])+delta.x*t->n[0];
+        if(!(9.999999747378752e-06f<=fabs(denom))) return 1;
+        {
             float s=-(da/denom);
             if(s>=0 && s<=1) {
                 Vec3 p=*(const Vec3*)a+delta*s;
                 if(t->Contains((float*)&p)) {
                     out[0]=p.x;((unsigned int*)out)[1]=((unsigned int*)&p)[1];((unsigned int*)out)[2]=((unsigned int*)&p)[2];
-                    if(FloatBits(da)&0x80000000) {memcpy(endpoint,a,12);return s;}
-                    memcpy(endpoint,b,12);return s;
+                    int neg=*(int*)&da&0x80000000;
+                    if(neg) {endpoint[0]=a[0];endpoint[1]=a[1];endpoint[2]=a[2];return s;}
+                    endpoint[0]=b[0];endpoint[1]=b[1];endpoint[2]=b[2];return s;
                 }
             }
         }
