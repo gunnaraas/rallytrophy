@@ -2167,6 +2167,7 @@ struct CarTextureView {
     } while (0)
 
 // NONMATCHING: RALLYTROPHY 0x463940
+// 2026-10-31: 30 trailing discarded Bal(1) calls (N 27..37; fewer do nothing, 38+ over-spend) keep the early-return _Tidy calls out of line, chained cache stores reversed: 190->150 insns. Tried: JoinPath temp as the Assign argument (worse, 2977 bytes). Still differs: ADD_SPRITE count inc scheduling (mov/inc/mov vs inc mem), the original passes the operator+ result eax straight to Assign instead of lea of a named tmp, sprite store order.
 // Built 2983 bytes against 2926, 1773 differing bytes. Volatile stores at three flare sites plus the explicit
 // free-count DEC reduce the mismatch; target still differs in register/scheduling choices and sprite-list updates.
 // Loads the flare sprites, the light, window and overlay textures of the car from its data directory.
@@ -2303,11 +2304,11 @@ void Car::LoadTextures(const std::string& dir)
     }
 
     a.Assign(SoundPath(dir, "lights_damaged.tga"), 0, std::string::npos);
-    v->lightsA = v->lightsB = v->lightsC = v->lightsD = v->cache->Load(a.c_str(), 0x40);
+    v->lightsD = v->lightsC = v->lightsB = v->lightsA = v->cache->Load(a.c_str(), 0x40);
 
     a.Assign(SoundPath(dir, "windows_damaged.tga"), 0, std::string::npos);
     Texture* windows = v->cache->Load(a.c_str(), 0x40);
-    v->windowsA = v->windowsB = v->windowsC = v->windowsD = windows;
+    v->windowsD = v->windowsC = v->windowsB = v->windowsA = windows;
     if (windows && v->unk1bcec == 0) {
         *(int*)((char*)windows + 0x60) = FloatToInt(v->unk108c * 256.0f);
     }
@@ -2363,6 +2364,37 @@ void Car::LoadTextures(const std::string& dir)
         v->cubeMap = cube;
         environment->SetTexture(cube, 0x80, 0);
     }
+    // inline-budget spenders: keep the early-return _Tidy calls out of line (N in 27..37)
+    Bal(1);
+    Bal(1);
+    Bal(1);
+    Bal(1);
+    Bal(1);
+    Bal(1);
+    Bal(1);
+    Bal(1);
+    Bal(1);
+    Bal(1);
+    Bal(1);
+    Bal(1);
+    Bal(1);
+    Bal(1);
+    Bal(1);
+    Bal(1);
+    Bal(1);
+    Bal(1);
+    Bal(1);
+    Bal(1);
+    Bal(1);
+    Bal(1);
+    Bal(1);
+    Bal(1);
+    Bal(1);
+    Bal(1);
+    Bal(1);
+    Bal(1);
+    Bal(1);
+    Bal(1);
 }
 
 // ===== wiring helpers (0x4644b0 - 0x464940) =====
