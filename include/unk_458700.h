@@ -39,7 +39,7 @@ public:
     void FUN_00458b30(Car* car, int dt, int flag); // 0x458b30
     void FUN_004590d0(Car* car, float dt); // 0x4590d0: gear shifts of the human path
     void FUN_004591c0(Car* car, float dt); // 0x4591c0: gear shifts requested by the replay
-    int unk0;                          // 0x00: 1 after the constructor
+    int unk0;                          // 0x00: 1 after the constructor; gates the gear-shift path in FUN_00458b30
     int steerAnalog;                   // 0x04: 1 = analog (SetSteering), 0 = digital
     int throttleAnalog;                // 0x08
     int brakeAnalog;                   // 0x0c
@@ -48,7 +48,7 @@ public:
     int steerLeft;                     // 0x18
     int steerRight;                    // 0x1c
     int handbrakeDigital;              // 0x20
-    int button24;                      // 0x24: second button (also: the gear-shift path is skipped when 0)
+    int button24;                      // 0x24: second button
     int button28;                      // 0x28: one-shot
     int cameraButton;                  // 0x2c
     int resetButton;                   // 0x30
