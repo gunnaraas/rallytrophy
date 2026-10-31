@@ -1143,6 +1143,7 @@ int StageScreen::Layout()
 #include <string.h>
 #include <vector>
 #include <windows.h>
+#include <mmsystem.h>
 extern ConfigKey DAT_004f60d0[];   // carmenu.ini key table (16 keys)
 extern DWORD (__stdcall *DAT_0059b2f8)(void);
 extern float DAT_004e1488, DAT_004e148c, DAT_004e14e4, DAT_004e14e0, DAT_004e1490, DAT_004e1494, DAT_004e14e8;
@@ -1229,48 +1230,58 @@ struct FColor {
         c[i] = (BYTE)n;
     }
     FColor(float cb, float cg, float cr, float ca) { Set(0, cb); Set(1, cg); Set(2, cr); Set(3, ca); }
+    FColor(float f) { Set(0, 255.0f); Set(1, 255.0f); Set(2, 255.0f); Set(3, f * 255.0f); }
     FColor() { Set(0, 255.0f); Set(1, 255.0f); Set(2, 255.0f); Set(3, 255.0f); }
     ~FColor() {}
 };
 
-// NONMATCHING: RALLYTROPHY 0x423670
+// FUNCTION: RALLYTROPHY 0x423670
 // original: FUN_00423670 (thiscall, ret 8). Draws the car photo: the placeholder (+0x234) when flag is 0, else the
 // entry's wire photo (+0xa0) faded in over 800 ms starting 500 ms after the selection time stamp (+0x244).
-// 813 vs 836 bytes: each branch has its own FColor and quad, as in the original. Open: the original keeps fade in
-// memory (flag's slot) and sets EH state 1 later; the frame is 4 bytes larger here.
+// Each branch has its own FColor and quad, as in the original. The time call must be the real timeGetTime import
+// (an extern "C" import is nothrow, so no EH state is stored for it).
 void StageScreen::DrawPhoto(StageEntry* e, int flag)
 {
     Vec2 pos[4];
     Vec2 uv[4];
+    int ic, id; float x, y, c, d;
     if (flag) {
-        float fade = ((float)DAT_0059b2f8() - ((float)unk244 + DAT_004e14a8)) / DAT_004e14a4;
+        float fade = ((float)timeGetTime() - ((float)unk244 + DAT_004e14a8)) / DAT_004e14a4;
         if (fade > 1.0f) {
             fade = 1.0f;
         } else if (fade < DAT_004e134c) {
             fade = 0.0f;
         }
-        FColor color(255.0f, 255.0f, 255.0f, fade * DAT_004e13ac);
+        FColor color(fade);
         DAT_0056b0ac->vf35((Sprite*)e->h0);
-        pos[0].x = pos[3].x = DAT_0056aea8 * DAT_004e1488;
-        pos[0].y = pos[1].y = DAT_0056aeac * DAT_004e148c;
-        pos[1].x = pos[2].x = (DAT_004e1488 + DAT_004e14e4) * DAT_0056aea8;
-        pos[2].y = pos[3].y = (DAT_004e148c + DAT_004e14e0) * DAT_0056aeac;
-        uv[0].x = uv[3].x = 0.0f;
-        uv[0].y = uv[1].y = 0.0f;
-        uv[1].x = uv[2].x = 1.0f;
-        uv[2].y = uv[3].y = 1.0f;
+        pos[0].x = x = DAT_0056aea8 * DAT_004e1488;
+        pos[0].y = y = DAT_0056aeac * DAT_004e148c;
+        c = (DAT_004e1488 + DAT_004e14e4) * DAT_0056aea8;
+        ic = *(int*)&c;
+        pos[1].x = c; *(int*)&pos[2].x = ic;
+        pos[1].y = y;
+        d = (DAT_004e148c + DAT_004e14e0) * DAT_0056aeac;
+        id = *(int*)&d;
+        pos[2].y = d; *(int*)&pos[3].y = id;
+        pos[3].x = x;
+        uv[3].x = 0.0f; uv[1].y = 0.0f; uv[0].y = 0.0f; uv[0].x = 0.0f;
+        uv[1].x = 1.0f; uv[3].y = 1.0f; uv[2].y = 1.0f; uv[2].x = 1.0f;
         ((RaceDeviceSlots*)DAT_0056b0ac)->DrawQuad(pos, uv, *(Color*)&color, 1.0f, 1.0f);
     } else {
-        FColor color(255.0f, 255.0f, 255.0f, 255.0f);
+        FColor color;
         DAT_0056b0ac->vf35((Sprite*)unk234);
-        pos[0].x = pos[3].x = DAT_0056aea8 * DAT_004e1488;
-        pos[0].y = pos[1].y = DAT_0056aeac * DAT_004e148c;
-        pos[1].x = pos[2].x = (DAT_004e1488 + DAT_004e14e4) * DAT_0056aea8;
-        pos[2].y = pos[3].y = (DAT_004e148c + DAT_004e14e0) * DAT_0056aeac;
-        uv[0].x = uv[3].x = 0.0f;
-        uv[0].y = uv[1].y = 0.0f;
-        uv[1].x = uv[2].x = 1.0f;
-        uv[2].y = uv[3].y = 1.0f;
+        pos[0].x = x = DAT_0056aea8 * DAT_004e1488;
+        pos[0].y = y = DAT_0056aeac * DAT_004e148c;
+        c = (DAT_004e1488 + DAT_004e14e4) * DAT_0056aea8;
+        ic = *(int*)&c;
+        pos[1].x = c; *(int*)&pos[2].x = ic;
+        pos[1].y = y;
+        d = (DAT_004e148c + DAT_004e14e0) * DAT_0056aeac;
+        id = *(int*)&d;
+        pos[2].y = d; *(int*)&pos[3].y = id;
+        pos[3].x = x;
+        uv[3].x = 0.0f; uv[1].y = 0.0f; uv[0].y = 0.0f; uv[0].x = 0.0f;
+        uv[1].x = 1.0f; uv[3].y = 1.0f; uv[2].y = 1.0f; uv[2].x = 1.0f;
         ((RaceDeviceSlots*)DAT_0056b0ac)->DrawQuad(pos, uv, *(Color*)&color, 1.0f, 1.0f);
     }
 }
