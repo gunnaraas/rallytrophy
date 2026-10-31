@@ -158,13 +158,10 @@ void RaceSession::PickBestPlayer()
     }
 }
 
-// NONMATCHING: RALLYTROPHY 0x495080
-// Same size (549); only the placement of `push edi` in the prologue differs (6 bytes). `int active =
-// mode->unk40` already fixes the ecx/eax choice; the push order resisted ~25 source variants.
-// Tried 2026-10-30 night: volatile active, volatile time, time hoisted above active, split time decl; all no better than 1 insn (push edi still scheduled after test eax).
+// FUNCTION: RALLYTROPHY 0x495080
 void RaceSession::DrawCountdown(RaceMode* mode)
 {
-    int active = mode->unk40;
+    int active = *(volatile int*)&mode->unk40;
     if (active) {
         int time = mode->m_time;
         if (time >= 1000) {
