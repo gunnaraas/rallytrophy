@@ -132,6 +132,7 @@ struct ColVec {
 };
 
 // NONMATCHING: RALLYTROPHY 0x41b270
+// Tried 2026-10-30 night: inline v[0] (no v0 local), verts/wverts loaded before the if, e1 brace-init {x,y,z} (e2 via cast) took it 80->11; permute -r 20 found nothing better; still differs: nVerts-loop setup reg (eax vs edi), dead `add eax,4` after the e1 copy, &v[0]->x computed mid-Length in the original, and dec ebx placement.
 // A named plane vertex and reversed Dot receiver reduce the best candidate from 696/434 to 698/322 bytes/differences;
 // the Dot expression now loads vertex components before multiplying by the normal, as in the target. Remaining
 // differences are mostly frame and register allocation; pointer and loop-counter register hints did not change output.
@@ -139,9 +140,9 @@ void ColModel::Transform(float* m, float* t)
 {
     float M[16] = { m[0], m[1], m[2], 0.0f, m[4], m[5], m[6], 0.0f, m[8], m[9], m[10], 0.0f, t[0], t[1], t[2], 1.0f };
     int n = nVerts;
+    ColVert* d = wverts;
+    ColVert* s = verts;
     if (n != 0) {
-        ColVert* s = verts;
-        ColVert* d = wverts;
         do {
             ColTransform(&d->x, &s->x, M);
             s++;
@@ -152,14 +153,13 @@ void ColModel::Transform(float* m, float* t)
     ColLocal* c = centers;
     for (int i = nTris; i != 0; i--) {
         ColVert** v = (ColVert**)((char*)tr + 0x28);
-        ColVert* const v0 = v[0];
-        ColVec e1 = *(ColVec*)&v[1]->x;
-        e1 -= *(ColVec*)&v0->x;
+        ColVec e1 = { v[1]->x, v[1]->y, v[1]->z };
+        e1 -= *(ColVec*)&v[0]->x;
         ColVec e2 = *(ColVec*)&v[2]->x;
-        e2 -= *(ColVec*)&v0->x;
+        e2 -= *(ColVec*)&v[0]->x;
         ColCross(&e1.x, &e2.x, &tr->c[0] + 6);
         *((ColVec*)tr + 2) *= DAT_004e1348 / ((ColVec*)tr + 2)->Length();
-        ((float*)tr)[9] = (*((ColVec*)tr + 2)).Dot(*(ColVec*)&v0->x);
+        ((float*)tr)[9] = (*((ColVec*)tr + 2)).Dot(*(ColVec*)&v[0]->x);
         ColTransform((float*)tr, &c->x, M);
         tr++;
         c++;
