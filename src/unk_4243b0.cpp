@@ -352,6 +352,6 @@ void MenuScreen8DC::LoadLayout()
     C_ADDR(rb, "SaturationLevelArrow1_UpperLeft", "SaturationLevelArrow1_LowerRight");
     C_ADDR(rb, "SaturationLevelArrow2_UpperLeft", "SaturationLevelArrow2_LowerRight");
     C_ADDR(rb, "DeadzoneLevelArrow1_UpperLeft", "DeadzoneLevelArrow1_LowerRight");
-    Bal(1); 
+    Bal(1);
     C_ADDR(rc, "DeadzoneLevelArrow2_UpperLeft", "DeadzoneLevelArrow2_LowerRight");
 }
