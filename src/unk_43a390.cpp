@@ -501,6 +501,7 @@ void Screen1378::Layout()
 }
 
 // NONMATCHING: RALLYTROPHY 0x43b1d0
+// Tried 2026-10-30 night: dropped the sx/sy locals (original reads DAT_0056aea8/ac fresh for each of the 12 products and stores scaleX/Y first, before loading text), net-> reloads instead of a race local (size 4949->5002 vs 5003, but VC6 then adds a push ebp/and esp,-8 frame the original lacks), z=0 volatile register, this volatile, Bal(1) sweeps, volatile net reloads; still differs: original keeps this in ebp, 0 in ebx, frame 0xb8 vs our 0xac, and ~900 insns differ by alignment drift so no variant scored better.
 // The session rows follow target-observed order (including the separate 0x133 row), both first-row append calls,
 // and all 21 _Grow / 13 _Eos boundaries; register/frame scheduling remains. Evidence:
 // ev_d0320ad31102fdbe186138a6333006379715eb281e74b440e51f34d3f4d12b57.
