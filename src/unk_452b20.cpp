@@ -114,6 +114,7 @@ struct F_CarView {
 // NONMATCHING: RALLYTROPHY 0x452b20
 // Tried 2026-10-30 night: ~80 variants (struct copy, += forms, x as one expression, volatile on copy/add/expr per axis); best is x as a
 // volatile expression + volatile y/z adds (23->17); the original delays the y/z fstp past the argument setup, which no form reproduces.
+// Tried 2026-10-31 re-pass: ~50 more variants (plain/two-temp/int-copy/volatile y,z; forceinline Add helpers; x as volatile expr or two-temp); none beat 17 insns, permute -r 40 found nothing; the original interleaves the F_STORE copy loads with fld/fadd and delays fstp p.x/y/z, which no source form reproduces.
 void Car::FUN_00452b20()
 {
     F_CarView* c = (F_CarView*)this;
