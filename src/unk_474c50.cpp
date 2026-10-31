@@ -317,6 +317,7 @@ __declspec(naked) void SnowFall::InitParticles()
 
 // original: FUN_004751b0
 // NONMATCHING: RALLYTROPHY 0x4751b0
+// Tried 2026-10-31: kInvFixed written as the literal 1/65536 in the unit.x/y/z products fixes their fld/fmul order; register assignment (this/flake/vertex) and quad-corner temp slots still differ.
 // 1747 vs 1741 bytes, same instruction mix and EH states. Open: register assignment (original this=edi,
 // flake=ebx, vertex=esi) and the stack slot order of the quad corners / hidden-return Vec3 temporaries.
 void SnowFall::Update(RenderDevice* device, Camera* camera, int a, int b, float dt)
@@ -345,9 +346,9 @@ void SnowFall::Update(RenderDevice* device, Camera* camera, int a, int b, float 
     qc += (right * s) * 0.5f;
     qd -= (right * s) * 0.5f;
     Vec3 unit;
-    unit.x = box.x * kInvFixed;
-    unit.y = box.y * kInvFixed;
-    unit.z = box.z * kInvFixed;
+    unit.x = box.x * (1.0f / 65536.0f);
+    unit.y = box.y * (1.0f / 65536.0f);
+    unit.z = box.z * (1.0f / 65536.0f);
     float fallScale = dt / unit.y;
     int offX = FloatToInt(world.m[12] / unit.x);
     int offY = FloatToInt(world.m[13] / unit.y);
