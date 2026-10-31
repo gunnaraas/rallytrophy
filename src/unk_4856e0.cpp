@@ -718,6 +718,7 @@ void RaceMode::FUN_0048e4c0(HudPoint mouse)
 // before x and keeps the uv base in the FPU). Position stores written out by hand.
 // Draws one 1/8-wide glyph cell of the HUD texture (flag selects the right half).
 // Tried 2026-10-30 night: ~35 variants; copying y as an int (iy) for both position y stores improved 13 -> 9 insns (y now goes eax -> ecx like the original); int copies of x, SetQuad forms, local copies, store reorders were equal or worse. Remaining: original issues the DAT_0056b0ac load before the second y store and stores x straight from edx twice.
+// Re-pass 2026-10-31: int copies of x, early/late x stores, interleaved y stores, block-scoped y+h temp: 11-24 insns (worse than 9); permute.py -r 40 stuck at 9 (best 9/164 bytes). Same diff as 0x48e9b0: original loads DAT_0056b0ac into eax before the y copy store.
 void RaceMode::FUN_0048e840(float x, float y, float w, float h, Color color, int flag)
 {
     Vec2 uv[4];
