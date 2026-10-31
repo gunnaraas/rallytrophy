@@ -473,9 +473,11 @@ float AIDriver::FUN_004a0e60(Obstacle* ob, Vec3* unused)
 
 
 // NONMATCHING: RALLYTROPHY 0x4a1050
-// Logic complete (766 vs 819 bytes). Frame layout of c/perp and the two asm pointer slots (-0x10/-0x14, swapped
-// between the branches) match; remaining differences: the original keeps the Car* in edi and does not hoist
-// `side` into ebx, and does not merge the two identical y/z position-add tails.
+// Logic complete (806 vs 819 bytes, 70 -> 40 insns differ). Fixed: `best` assigned after the z add in the side branch
+// (keeps the two y/z add tails from merging), volatile read of `side` for idx (no ebx hoist), e/f sums in original
+// order. Tried 2026-10-31: inline-function and macro forms of the transform, operand swaps, volatile on matrix/point,
+// many tails for f; still differs: register choice in the matrix/position pointer chains (ecx vs edx/eax), the
+// perp.z / EH-state store scheduling before the loop, and f's 1/len kept in memory (fdiv st,st(1)).
 float AIDriver::FUN_004a1050(Obstacle* ob, Vec3* dir, int side)
 {
     Vec3Slot box[4];
@@ -492,16 +494,15 @@ float AIDriver::FUN_004a1050(Obstacle* ob, Vec3* dir, int side)
         TRANSFORM_IN_PLACE();
         Vec3* pos = &((AiBody*)player->car->body)->position;
         c.x = c.x + pos->x;
-        best = 1000.0f;
         c.y = c.y + pos->y;
         c.z = c.z + pos->z;
+        best = 1000.0f;
     } else {
         c.x = own->boxMin[0];
         c.z = own->boxMax[2];
         c.y = own->boxMin[1];
-        Vec3* point;
         const float* matrix = ((AiBody*)player->car->body)->matrix;
-        point = &c;
+        Vec3* point = &c;
         TRANSFORM_IN_PLACE();
         Vec3* pos = &((AiBody*)player->car->body)->position;
         c.x = c.x + pos->x;
@@ -513,7 +514,7 @@ float AIDriver::FUN_004a1050(Obstacle* ob, Vec3* dir, int side)
     perp.x = forward.z;
     perp.y = 0;
     perp.z = -forward.x;
-    int idx = side;
+    int idx = (*(volatile int*)&side);
     for (int i = 0; i < 8; i++) {
         Vec3 t = *(Vec3*)&ob->corners[i] - ((AiBody*)car->body)->position;
         float d = t.z * perp.z + t.x * perp.x;
@@ -530,13 +531,19 @@ float AIDriver::FUN_004a1050(Obstacle* ob, Vec3* dir, int side)
         }
     }
     Vec3 e = *(Vec3*)&ob->corners[idx] - c;
-    float inv = 1.0f / (float)sqrt(e.y * e.y + e.z * e.z + e.x * e.x);
+    float inv = 1.0f / (float)sqrt(e.x * e.x + e.z * e.z + e.y * e.y);
     e.x *= inv;
     e.y *= inv;
     e.z *= inv;
-    Vec3 f(*dir);
+    Vec3 f;
+    f.x = dir->x;
+    f.y = dir->y;
+    f.z = dir->z;
     float inv2 = 1.0f / (float)sqrt(f.z * f.z + f.y * f.y + f.x * f.x);
-    return 1.0f - (e.z * (f.z * inv2) + e.y * (f.y * inv2) + e.x * (f.x * inv2));
+    f.x = inv2 * f.x;
+    f.y = inv2 * f.y;
+    f.z = inv2 * f.z;
+    return 1.0f - (e.z * f.z + e.y * f.y + e.x * f.x);
 }
 
 // original: FUN_004a1390
