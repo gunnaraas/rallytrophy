@@ -611,21 +611,18 @@ float CarEmitterB::SpawnCore3(float a, float b)
 
 static const float F4_k256 = 256.0f, F4_lo0 = 1.0f, F4_hi0 = 5.0f, F4_lo1 = 5.0f, F4_hi1 = 30.0f, F4_lo2 = 2.0f, F4_hi2 = 8.0f;
 
-// NONMATCHING: RALLYTROPHY 0x47aa00
-// 1347 vs 1346 bytes; registers, locals and all x87 sequences match. Open: pool pop / age store
-// scheduling with ecx and edx swapped.
-// Tried 2026-10-30 night: ~40 variants incl. permute -r 20 (best 9); split alpha (`float alpha = c0*k; alpha = m2*k + alpha;`) fixes the fild order (13->11) and copying `local = pos` before the pool-pop stores gives 9 insns (still 1347 bytes); other tries (term order/casts, m0/m2 copies, clamp order, ternary, side-jitter forms, volatile on age/unk0, store reorders, per-field temps) no better. Still open: original does the pool pop before the pos copy, ecx/edx swap on b/pos.x, and s_car is hoisted before the rand result use (+1 byte).
+// FUNCTION: RALLYTROPHY 0x47aa00
 // Spawn core 4: decides from wheel slip and body speed whether to emit; fills a particle.
 float CarEmitterB::SpawnCore4(float a, float b)
 {
     static float inv0 = 1.0f / (F4_hi0 - F4_lo0);
-    static float inv1 = 1.0f / (F4_hi1 - F4_lo1);
     static float inv2 = 1.0f / (F4_hi2 - F4_lo2);
+    static float inv1 = 1.0f / (F4_hi1 - F4_lo1);
     int c0 = 0, c1 = 0, c2 = 0;
     float v = (float)fabs(WCAR->slipA);
     if (v < F4_hi0) {
         if (v > F4_lo0) {
-            c0 = FloatToInt((v - F4_lo0) * inv0 * F4_k256);
+            c0 = FloatToInt((v - F4_lo0) * F4_k256 * inv0);
         }
     } else {
         c0 = 256;
@@ -659,20 +656,22 @@ float CarEmitterB::SpawnCore4(float a, float b)
     if (c0 > 256) {
         c0 = 256;
     }
-    if (bc > 256) {
+    if (256 < bc) {
         m2 = 256;
     }
     float alpha = c0 * 0.0013476562f;
-    alpha = m2 * 0.0025390624f + alpha;
+    alpha = 0.0025390624f * m2 + alpha;
     if (!DAT_0056ae90.head) {
         DAT_0056ae90.Grow();
     }
     Particle* p = DAT_0056ae90.head;
-    Vec3 local = WCAR->pos;
-    p->age = b;
-    DAT_0056ae90.head = p->next;
+    Particle* nx = p->next;
+    int ab = *(volatile int*)&b;
+    DAT_0056ae90.head = nx;
+    *(int*)&p->age = ab;
     p->unk0 = 0;
     p->lifetime = 1.0f;
+    Vec3 local = WCAR->pos;
     local.y -= WCAR->Radius();
     float side = (float)(rand() & 0xff) * 0.00039062501f;
     if (WCAR->pos.x > 0) {
