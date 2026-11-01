@@ -65,8 +65,13 @@ float SweepQuery::Cast(float r, float* org, float* dir, float* outPt, float* out
     float hitPt[3];
     CTri* t = first;
     while (t != 0) {
-        float tt = ((t->d - (t->n.y * org[1] + t->n.z * org[2] + t->n.x * org[0])) + r) /
-                   (t->n.z * dir[2] + t->n.y * dir[1] + t->n.x * dir[0]);
+        float den = t->n.z * dir[2]; // chained: keeps the original's (z+y)+x association
+        den = t->n.y * dir[1] + den;
+        den = t->n.x * dir[0] + den;
+        float num = t->n.y * org[1];
+        num = t->n.z * org[2] + num;
+        num = t->n.x * org[0] + num;
+        float tt = ((t->d - num) + r) / den;
         if (DAT_004e134c <= tt && tt < bestT) {
             TVert* c = t->v[2];
             TVert* a = t->v[0];

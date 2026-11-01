@@ -135,9 +135,9 @@ void PhysBody::FUN_0041c540()
     v224[2] = *(DWORD*)&pos.z;
     Vec3* V = (Vec3*)v224;
     const Vec3* dv = Addr(*(Vec3*)v1cc * dt);
-    V->x = V->x + dv->x;
-    V->y = dv->y + V->y;
-    V->z = dv->z + V->z;
+    *(volatile float*)&V->x = V->x + dv->x; // volatile: keep the two passes unfused (original rounds each)
+    *(volatile float*)&V->y = dv->y + V->y;
+    *(volatile float*)&V->z = dv->z + V->z;
     V->x = off.x + V->x;
     V->y = off.y + V->y;
     V->z = off.z + V->z;
