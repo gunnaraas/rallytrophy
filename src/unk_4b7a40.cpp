@@ -57,6 +57,7 @@ void __stdcall RegisterDrawFrustumExit()
 
 // NONMATCHING: RALLYTROPHY 0x4b7c80
 // Tried 2026-10-30 night: default-case if/else order, depth <= 0, push via local copies, volatile barrier on each prologue store, prologue store permutations; 70->~4 insns differ (only prologue push/mov ecx scheduling and loop-top lea/store order remain).
+// Tried 2026-10-31 re-pass: `SceneNode** sp = 0; if (node) sp = stack;` fixed the loop-top lea/store order; ~700 prologue store permutations/volatile barriers and permute -r 40 left only the `push eax; mov ecx,0` pair one-two slots early (before the 0x140/0x154 count stores).
 void DrawContext::CullViews(DrawDevice* device, int)
 {
     solids.m_end = solids.m_data;
@@ -71,7 +72,8 @@ void DrawContext::CullViews(DrawDevice* device, int)
         SceneNode* node = roots.m_data[i];
         SceneNode* stack[128];
         int depth = 0;
-        SceneNode** sp = stack;
+        SceneNode** sp = 0;
+        if (node) sp = stack;
         while (node) {
             int skip = 0;
             switch (node->type) {
