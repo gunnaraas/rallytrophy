@@ -157,6 +157,7 @@ inline void FlareUV(EffectVertex* v, float c, float s)
 // named right/up flare-angle contributions preserve their scale-before-add sequence. Volatile flare intermediates
 // remain at different stack slots, and projection, normalization, and UV code still differ.
 // Tried 2026-10-30 night: shared float temp/bit-compare for near plane, pos*m operand order, forceinline ScaleVec for normalise and R/U, Vec3 d*inv, double inv, quad normal x,y,z order, local declaration order (204 insns, only the inline inv multiply changed); still differs: original keeps inv on the FPU stack (fld y; fmul st,st(1)), frame is 4 bytes larger (extra 8-byte slot before depth), depth/near compare via [ebp+0xc] float copy, return-path layout.
+// Tried 2026-11-01 re-pass: 17 more variants (depth operand order pos*m, sqrt as double 1.0/ls, volatile/shared nearZ, nearZ in dead camera param slot, sign-test branch flip, dead float/volatile locals for the extra frame slot); none under 204 insns differ. The 4-byte larger frame and nearZ in [ebp+0xc] are not reproduced; permuter not run (far over 10 insns).
 void CityLight::Render(RenderDevice* device, Camera* camera)
 {
     Vec3 d;
