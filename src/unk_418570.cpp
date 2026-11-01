@@ -544,17 +544,25 @@ int TriCollector::Contact(float r, float* pos, float* a_, float* b, float* c, in
 // NONMATCHING: RALLYTROPHY 0x419be0
 // reason: first draft; SEH/temp layout unchecked.
 // Tried 2026-10-30 night: pos copy as Sph419 (ScenePoint+r, dtor) for EH state, ScenePoint -= for plane/edge vectors, forceinline sphere test, chained sx=sy=sz=0, rr hoisted (163->136); still differs: original frame is 4 bytes bigger, e1/e2 are int-copied before the fsub (ours fuses the z fld), sphere d2 temp lives in a dead param slot, EH state numbering ends 5/1 vs ours 4/0 (v4 gets 5 with extra ScenePoint tmp but scores 141).
+// Tried 2026-11-01 re-pass: 136->77 insns. Frame/slots now match (0x60 frame): sums as float s[3] plus a dead volatile store to a local q (forces the 4 extra bytes; slot order s/rr/q), empty-dtor struct ED declared first for EH states 0/1..5, int ok for setle/test. Still differs: e1/e2 and dv are fused (fld z straight into fsub) where the original int-copies all three fields first (field-wise, int-routed, volatile-view copies all scored worse), dot-product term order of dv, b/c/surf reloaded from stack vs held in ebx, and the sqrt normalisation keeps values on the FPU in the original.
 int TriCollector::ContactList(float r, float* pos, float* a_, float* b, float* c, int* surf)
 {
-    float sx, sy, sz;
+    struct ED { ~ED() {} } Q0;
+    float s[3];
     float rr = r * r;
-    sx = sy = sz = 0.0f;
+    s[2] = s[1] = s[0] = 0.0f;
+    float q;
+    *(volatile float*)&q = 0.0f;
     int n = 0;
     Sph419 P(pos, r);
     Tri* t = head;
     if (t != 0) {
         do {
-            if (Near419(P.c, t, r)) {
+            q = (r + t->r) * (r + t->r);
+            float dx = P.c.x - t->cx, dy = P.c.y - t->cy, dz = P.c.z - t->cz;
+            float d2 = dx * dx + dy * dy + dz * dz;
+            int ok = *(int*)&d2 <= *(int*)&q;
+            if (ok) {
                 TVert* a = t->v[0];
                 ScenePoint dv(*(ScenePoint*)pos);
                 dv -= *(ScenePoint*)&a->x;
@@ -571,7 +579,7 @@ int TriCollector::ContactList(float r, float* pos, float* a_, float* b, float* c
                             if (surf != 0) { *surf = t->id; }
                         }
                         float* d = ((V3Diff*)pos)->Sub(tmp, &cp.x);
-                        sx += d[0]; sy += d[1]; sz += d[2];
+                        s[0] += d[0]; s[1] += d[1]; s[2] += d[2];
                         n++;
                     }
                 }
@@ -580,9 +588,9 @@ int TriCollector::ContactList(float r, float* pos, float* a_, float* b, float* c
         } while (t != 0);
     }
     if (n != 0) {
-        float k = DAT_004e1348 / (float)sqrt(sz * sz + sx * sx + sy * sy);
-        sx = k * sx; sy = sy * k; sz = sz * k;
+        float k = DAT_004e1348 / (float)sqrt(s[2] * s[2] + s[0] * s[0] + s[1] * s[1]);
+        s[0] = k * s[0]; s[1] = s[1] * k; s[2] = s[2] * k;
     }
-    a_[0] = sx; a_[1] = sy; a_[2] = sz;
+    a_[0] = s[0]; a_[1] = s[1]; a_[2] = s[2];
     return n;
 }
