@@ -97,6 +97,7 @@ struct SndPath {
 // (229->162; 142 if num is char[4], which the original frame implies but we keep char[8] in its own blocks); still differs:
 // `this` in ebx / zero in ebp (original swapped), NpfRec loop strength-reduced (original steps a plain pointer), and the
 // path dtor exit ordering. Volatile zero/self, pointer loops, i++/src++ placement, decl orders did not flip ebx/ebp.
+// Tried 2026-11-01 re-pass (num[8] kept): 23 more variants (volatile zero/self, decl orders, hoisted num/pos/count/recs/i, recs++ and src++ loops, float pos[3] = 1821 bytes but 184 insns) stay at 162 insns; ebx/ebp roles unchanged.
 void StageSoundLoader::LoadSoundFiles()
 {
     int idx, count2, ver, magic;
