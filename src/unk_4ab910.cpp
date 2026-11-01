@@ -100,8 +100,10 @@ unsigned int* __fastcall FUN_004ab910(ImgW5* img, int)
 // NONMATCHING: RALLYTROPHY 0x4abf30
 // TGA loader exception temporaries, header access widths and RLE loop scheduling differ.
 // Tried 2026-10-31: 395->172: switch() for format/palette depth (cmp/je chain, signed count), pixel[8] (moves it with the string temps), bpp stores before width/height, per-branch row/step setup from a (header[17]>>5)&1 flag, ReadByte declared int (no movzx), n computed inside each RLE arm; Bal(1) sweeps (start/mid/end, 1-13) and throw/ctor forms did not change the third throw. Still differs: stack slots of the exception temps (orig pixel above them), third throw's std::string ctor/copy inlined in the original only, flag/type register swap (cl/dl).
+// Tried 2026-11-01 re-pass: 6 discarded Bal(1) at function start (the sweep that matters; 3-5 give 136, 2 none) 172->114; ~35 variants: pixel/header decl order and scope (no effect or worse), inline_depth 0-255, named string/throw forms for the pixel-alloc throw; still differs: exception-temp slot (orig 0x30, ours 0x28, pixel swapped with it), esi/edi in the string copy, one string tail inlined (store) where ours calls out of line, cl/dl flag swap.
 int __fastcall FUN_004abf30(ImgW5* img, int, const char* name)
 {
+    Bal(1);Bal(1);Bal(1);Bal(1);Bal(1);Bal(1);
     File file(name,0xa1);
     if (((ImageFileOps*)&file)->Error()) throw std::logic_error(std::string("Bitmap not loaded"));
     unsigned char header[18];
