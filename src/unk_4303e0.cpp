@@ -1394,6 +1394,7 @@ public:
 
 // NONMATCHING: RALLYTROPHY 0x432e10
 // Tried 2026-10-30 night: while-loop + goto-six, Get() returns UIRect*&, volatile rect reloads (mask search of 64), x*width/y*height fix, permute -r 20; 10 insns left: ecx load/push/EH-state store order around the six rect calls (original loads are plain but not CSE'd).
+// Tried 2026-10-31 re-pass: 30+ variants (volatile/plain mask on the six rect loads, volatile/plain local receiver pointers, sequential float temps, HudPoint temps, rv/off decl order, one-expression forms) plus permute -r 40; none beat 10 insns (all-volatile 14); original orders ecx load, lea, push, EH store per rect call while VC6 sinks the ecx load past the EH-state store.
 // Current candidate: 1011 bytes vs 1031, 554 differing bytes. PE disassembly restores the six rectangle reads for the
 // mouse-warp center and scaled SetCursorPos call, plus the independent escape/transition, confirm and loop-exit paths;
 // substantial control-flow and stack-layout differences remain. Plain objdump observation; SetCursorPos is mapped at
