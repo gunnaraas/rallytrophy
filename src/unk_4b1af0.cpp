@@ -31,39 +31,9 @@ struct PStr {
     ~PStr() { if (ptr != 0) { if (((unsigned char*)ptr)[-1] != 0 && ((unsigned char*)ptr)[-1] != 255) --((unsigned char*)ptr)[-1]; else alloc.deallocate(ptr - 1, res + 2); } }
 };
 
-#define BMF_BATCH_BODY(REC, TRI, RN)                                                         \
-    int mat = FUN_004af230(file);                                                          \
-    int nverts = FUN_004af230(file);                                                       \
-    int ntris = FUN_004af230(file);                                                        \
-    DynamicMesh* mesh = new DynamicMesh;                                                   \
-    BmfVertex* v = new BmfVertex[nverts];                                                  \
-    unsigned short* idx = (unsigned short*)operator new(ntris * 6);                        \
-    unsigned int* d = (unsigned int*)v + 5;                                               \
-    TmpN<RN> tmp; unsigned int* r = tmp.r;                                                     \
-    int i;                                                                                 \
-    for (i = nverts; i > 0; i--) {                                                     \
-        file->Read(r, REC);                                                                \
-        d[-5] = r[0]; d[-4] = r[1]; d[-3] = r[2]; d[-2] = r[3]; d[-1] = r[4]; d[0] = r[5];                  \
-        d[1] = r[6] | 0xff000000; d[2] = r[7]; d[3] = r[8]; d[4] = r[7]; d[5] = r[8];                         \
-        d += 11;                                                                          \
-    }                                                                                      \
-    unsigned short* p = idx;                                                               \
-    for (i = 0; i < ntris; i++) {                                                      \
-        unsigned short t[4];                                                               \
-        file->Read(t, TRI);                                                                \
-        *p = t[0]; p++; *p = t[1]; p++; *p = t[2]; p++;                                             \
-        if ((*(volatile int*)&t[0] & 0xffff) >= nverts || (*(volatile int*)&t[1] & 0xffff) >= nverts || (*(volatile int*)&t[2] & 0xffff) >= nverts)                          \
-            throw file_error(FName(file), *(std::string*)&BStr("BMF batch chunk failed due to illegal vertex index")); \
-    }                                                                                      \
-    *(short*)((char*)mesh + 0xe) = ntris;                                                  \
-    *(short*)((char*)mesh + 0xc) = nverts;                                                 \
-    *(void**)((char*)mesh + 8) = idx;                                                      \
-    *(void**)((char*)mesh + 4) = v;                                                        \
-    *(void**)mesh = materials[mat];                                                        \
-    out->batches.push_back(mesh);
-
 // NONMATCHING: RALLYTROPHY 0x4b1af0 (inlined std::string/throw construction differs from original)
 // Tried 2026-10-31 re-pass: if(i<n) for(q=...;;) guard loops bloat (+100 bytes) here, only the plain for(i=n,q=v+5;i>0;i--,q+=11) form works; ntris read through an address-taken pointer (ntris spilled like the original) 91->67; still differs: file/ntris-counter ebx/ebp swapped (file gets ebp), mov ecx,esi/lea d placement vs jle, r[7]/r[8] reload rotation, tri-loop store interleave; per-store block temps, p[0..2], p+=3 and PStr/BStr variants no effect.
+// Tried 2026-11-01 twin-idiom re-pass: ReadBatchSmall's named temp for vertex word 6 + volatile first two tri stores, plain ntris (no address-taken pn) 67->34 (969 vs 970 bytes); still differs: file/ntris registers swapped (original file=ebx, ntris=ebp; ours reversed; cnt copies, f aliases, countdown loop, volatile file no effect), lea esi/mov ecx,esi before jle, third add esi,2 one slot early; permute -r 40 found nothing better.
 void ModelFile::ReadBatch(File* file, ModelOut* out)
 {
     int mat = FUN_004af230(file);
@@ -77,18 +47,17 @@ void ModelFile::ReadBatch(File* file, ModelOut* out)
     for (i = nverts, q = (unsigned int*)v + 5; i > 0; i--, q += 11) {
         file->Read(r, 0x2c);
         q[-5] = r[0]; q[-4] = r[1]; q[-3] = r[2]; q[-2] = r[3]; q[-1] = r[4]; q[0] = r[5];
-        q[1] = r[6] | 0xff000000; q[2] = r[7]; q[3] = r[8]; q[4] = r[7]; q[5] = r[8];
+        unsigned int c = r[6] | 0xff000000; q[1] = c; q[2] = r[7]; q[3] = r[8]; q[4] = r[7]; q[5] = r[8];
     }
-    int* pn = &ntris; ntris = *(volatile int*)pn;
     unsigned short* p = idx;
-    for (i = 0; i < *(volatile int*)pn; i++) {
+    for (i = 0; i < ntris; i++) {
         unsigned short t[4];
         file->Read(t, 8);
-        *p = t[0]; p++; *p = t[1]; p++; *p = t[2]; p++;
+        *(volatile unsigned short*)p = t[0]; p++; *(volatile unsigned short*)p = t[1]; p++; *p = t[2]; p++;
         if ((*(volatile int*)&t[0] & 0xffff) >= nverts || (*(volatile int*)&t[1] & 0xffff) >= nverts || (*(volatile int*)&t[2] & 0xffff) >= nverts)
             throw file_error(FName(file), *(std::string*)&BStr("BMF batch chunk failed due to illegal vertex index"));
     }
-    *(short*)((char*)mesh + 0xe) = *(volatile int*)pn;
+    *(short*)((char*)mesh + 0xe) = ntris;
     *(short*)((char*)mesh + 0xc) = nverts;
     *(void**)((char*)mesh + 8) = idx;
     *(void**)((char*)mesh + 4) = v;
