@@ -1398,6 +1398,7 @@ struct G3CameraView {
     __asm fstp dword ptr [eax+4]
 
 // NONMATCHING: RALLYTROPHY 0x4578c0
+// Tried 2026-10-31 re-pass: 25 variants (hoisted locals in slot order, z via int copy, d[3] array/struct, zz/xx/sum temps, sqrt/len split, volatile z); best 47->40 insns (d[3] array) with same bytes, none near 10; orig frame is 0x28 with z at -0x14, mnx at -0x20, unknown extra temps at -0x18/-0x1c, and z kept in memory with x/z squares recomputed.
 // The eye and look-at points of the current preset around the followed car.
 void ViewManager::FUN_004578c0(float* eye, float* look)
 {
