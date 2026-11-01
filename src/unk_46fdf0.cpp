@@ -1147,6 +1147,7 @@ static const float kTwo = 2.0f;          // 0x4e1b44
 // NONMATCHING: RALLYTROPHY 0x4721b0
 // Tried 2026-10-30 night: 159->43 insns differ (1372/1372 bytes): v0/v1/v2 pointers up front, then `Vec3 e1 = *v1; Vec3 e2 = *v2;`
 // (copy-constructed, e1 first), non-volatile h with volatile reads at its later uses and ((volatile float*)m)[12] += h.
+// Re-pass 2026-11-01: x/y projection sums for v0/v1 as chained temps in asm order (v0 x,y,z; v1 z,y,x) 43->34 insns; d-dot order, e1/e2 hoisted decls, volatile mesh, m12 forms (20+ variants) did not help.
 // Still differs: e1/e2 stack slots swapped (target e1=-0x58, e2=-0x64; declaration order does not flip them), mesh in esi vs edx,
 // x87 operand order of the d / projection dot products, and fadd [h] vs lea placement before the Multiply call.
 // Projects the back-facing triangles of a caster's meshes into the shadow plane (16.16 fixed point) and
@@ -1209,10 +1210,10 @@ void ParallelShadow::RasteriseObject(ShadowCaster* obj)
             ProjVertex* p0 = &g_proj[idx[0]];
             if (p0->visited == 0) {
                 p0->visited = 1;
-                float x = m[0] * v0->x + m[4] * v0->y + m[8] * v0->z + m[12];
+                float qa = m[0] * v0->x; qa = m[4] * v0->y + qa; qa = m[8] * v0->z + qa; float x = qa + m[12];
                 p0->x = x;
                 p0->fx = FloatToInt(x * kFixedOne);
-                float y = m[13] - (m[1] * v0->x + m[5] * v0->y + m[9] * v0->z);
+                float qb = m[1] * v0->x; qb = m[5] * v0->y + qb; qb = m[9] * v0->z + qb; float y = m[13] - qb;
                 p0->y = y;
                 p0->fy = FloatToInt(y * kFixedOne);
             }
@@ -1220,10 +1221,10 @@ void ParallelShadow::RasteriseObject(ShadowCaster* obj)
             ProjVertex* p1 = &g_proj[idx[1]];
             if (p1->visited == 0) {
                 p1->visited = 1;
-                float x = m[8] * v1->z + m[4] * v1->y + m[0] * v1->x + m[12];
+                float qc = m[8] * v1->z; qc = m[4] * v1->y + qc; qc = m[0] * v1->x + qc; float x = qc + m[12];
                 p1->x = x;
                 p1->fx = FloatToInt(x * kFixedOne);
-                float y = m[13] - (m[9] * v1->z + m[5] * v1->y + m[1] * v1->x);
+                float qd = m[9] * v1->z; qd = m[5] * v1->y + qd; qd = m[1] * v1->x + qd; float y = m[13] - qd;
                 p1->y = y;
                 p1->fy = FloatToInt(y * kFixedOne);
             }
