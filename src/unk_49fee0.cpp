@@ -166,6 +166,7 @@ void AIDriver::FUN_0049ffa0()
 // axes. Branch-local Vec3 `up` gives candidate states 4/5/6/7; the exact frame/register schedule still differs.
 // Reading normalized vector fields directly reduced instruction-multiset delta 69->65 before the lifetime probes.
 // Tried 2026-10-31: ~30 variants; 288->250 insns differ by building vel field-wise as a Vec3 (not Vec3Slot copy); p-before-rel, Vec3Slot/ctor forms of dir/vel/axis, sqrt term order did not help; original has baseline EH state 3 (ours 2) and frame 0xb0 (ours 0xa4), i.e. one more function-scope Vec3 object we cannot identify.
+// Tried 2026-11-01 re-pass: 14 more variants (unused/dead-store/volatile/copy-init extra function-scope Vec3 at 6 positions, branchy `more` forms); best 250->243 insns (extra Vec3 pre with dead stores) but bytes grow and frame/EH states still differ; unreferenced Vec3 gets elided, and the 12-byte slot is still unidentified.
 void AIDriver::FUN_004a0420()
 {
     float best = 0.0f;
