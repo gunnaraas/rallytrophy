@@ -873,6 +873,7 @@ extern void __cdecl FUN_004239c0(StageScreen* s, short sel, StageEntry* e, int s
 // NONMATCHING: inline std::string append/assign expansions are approximated with string methods
 // Tried 2026-10-31: Load(path,1,0,0) was already right; dir/path as StagePathText, 2nd char buf[32], pointer loop, if/else per unit (tail-merged), Length/Width AppendCall + Height/Weight std append, float factors (228->132); still differs: local layout (orig order num,path,buf,ini,dir; ours num,buf,ini,path,dir, decl order has no effect) and Weight's inline-vs-call _Eos split.
 // Tried 2026-11-01: the 8th push_back is the StageInsert template (out-of-line Ucopy/Destroy/SizeCall, StageConstruct for the inlined Ufill with M=1; helper above C_ADD) on a StageIntVec view of m_items: 62->31 insns; still differs: ours spills the first-loop cursor and keeps s in a different slot (ebx taken by end), end/last stores order; volatile-read ra, r=&vec and begin-reload idioms alone did not help.
+// Tried 2026-11-01 re-pass: 16 more variants (all Append* combos per unit, num/buf order, e=entries+i, volatile count/entries, hoisted unit flag, v fp temp); none beat 132 insns; still differs: ebp/entries load placement in the prologue, EH-state stores (0x1/0x2) one call early, and inline _Eos/Append split in Height/Weight.
 void StageScreen::RefreshUnits()
 {
     int n = count;
