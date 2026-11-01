@@ -132,34 +132,38 @@ struct ColVec {
 };
 
 // NONMATCHING: RALLYTROPHY 0x41b270
-// Tried 2026-10-30 night: inline v[0] (no v0 local), verts/wverts loaded before the if, e1 brace-init {x,y,z} (e2 via cast) took it 80->11; permute -r 20 found nothing better; still differs: nVerts-loop setup reg (eax vs edi), dead `add eax,4` after the e1 copy, &v[0]->x computed mid-Length in the original, and dec ebx placement.
-// A named plane vertex and reversed Dot receiver reduce the best candidate from 696/434 to 698/322 bytes/differences;
-// the Dot expression now loads vertex components before multiplying by the normal, as in the target. Remaining
-// differences are mostly frame and register allocation; pointer and loop-counter register hints did not change output.
+// Tried 2026-10-31 re-pass (11->1 insn): vertex loop as plain `for (k = n; k != 0; k--)` (fixes je/setup), Dot arg v[0] re-derived from tr+0x28,
+// Length as local c=z,b=y,a=x via `ColVec* q`, e1 from `float* p1 = &v[1]->x` (reproduces the dead add eax,4); only `dec ebx` still sits
+// before the two [ebp+8]/[ebp+0xc] pointer spills instead of after. Tried while/do/--i/i>0/unsigned/volatile c,tr,i/pointer-arith c++/tr++ order, permute -r 40 (no MATCH, best 1).
 void ColModel::Transform(float* m, float* t)
 {
     float M[16] = { m[0], m[1], m[2], 0.0f, m[4], m[5], m[6], 0.0f, m[8], m[9], m[10], 0.0f, t[0], t[1], t[2], 1.0f };
     int n = nVerts;
     ColVert* d = wverts;
     ColVert* s = verts;
-    if (n != 0) {
-        do {
+    for (int k = n; k != 0; k--) {
+        {
             ColTransform(&d->x, &s->x, M);
             s++;
             d++;
-        } while (--n != 0);
+        }
     }
     ColTri* tr = tris;
     ColLocal* c = centers;
     for (int i = nTris; i != 0; i--) {
         ColVert** v = (ColVert**)((char*)tr + 0x28);
-        ColVec e1 = { v[1]->x, v[1]->y, v[1]->z };
+        float* p1 = &v[1]->x;
+        ColVec e1 = { p1[0], p1[1], p1[2] };
         e1 -= *(ColVec*)&v[0]->x;
         ColVec e2 = *(ColVec*)&v[2]->x;
         e2 -= *(ColVec*)&v[0]->x;
         ColCross(&e1.x, &e2.x, &tr->c[0] + 6);
-        *((ColVec*)tr + 2) *= DAT_004e1348 / ((ColVec*)tr + 2)->Length();
-        ((float*)tr)[9] = (*((ColVec*)tr + 2)).Dot(*(ColVec*)&v[0]->x);
+        ColVec* q = (ColVec*)tr + 2;
+        {
+            float c = q->z, b = q->y, a = q->x;
+            *q *= DAT_004e1348 / (float)sqrt(a * a + b * b + c * c);
+        }
+        ((float*)tr)[9] = (*((ColVec*)tr + 2)).Dot(*(ColVec*)&((ColVert**)((char*)tr + 0x28))[0]->x);
         ColTransform((float*)tr, &c->x, M);
         tr++;
         c++;
