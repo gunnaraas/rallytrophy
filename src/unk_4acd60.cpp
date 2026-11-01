@@ -350,6 +350,7 @@ static __forceinline void BoxWorldPoint(Vec3* o, const float* p, const float* m,
 // NONMATCHING: RALLYTROPHY 0x4ad1d0
 // All 15 separating axes are implemented. Xform asm helper (BoxWorldPoint, x4) now gives the original ebp frame and the first 100 bytes exactly; 2853 -> 2526 differing bytes (built 2619 vs 3131; inner-scope worldA/worldB redeclared). Still differs: EH states / local layout (original frame 0xf4) and ~500 bytes of code not yet accounted for.
 // Tried 2026-10-30 night: flat "if (fabs(p) > sum) return 0;" chain (all 15 tests), float/double temps for sum/fabs, !(<=) and empty-then forms, volatile r/a locals: 617-653 insns differ, worse than nested form (573). Original is an OBB-OBB test (not image code) whose compares are fxch/fcomp st(1)/fstp st(0), a00..a22 and r00..r22 in real frame slots (-0xb4.., -0xfc..) and fail blocks cross-jumped in groups of three; none of that reproduced.
+// Tried 2026-11-01 re-pass: reusing outer worldA/worldB for the center transform (no inner redeclare) 573->504 insns differ; plain float[] for axes/centers/extents/projected (no EH objects) drops built to 2223 bytes and 718 insns (original has EH states 0,2,3 and 0xf4 frame, so some Vec3 locals are needed); hoisting all Vec3 to function scope, a/r arrays, a-before-r order: no gain. Gap is ~500 bytes of code (a/r in frame slots), far from permuter range.
 int FUN_004ad1d0(float* boxA, float* boxB, float* matrixA, float* matrixB,
                  float* positionA, float* positionB)
 {
@@ -398,7 +399,6 @@ int FUN_004ad1d0(float* boxA, float* boxB, float* matrixA, float* matrixB,
         centerB.y *= DAT_004e138c;
         centerB.z *= DAT_004e138c;
         {
-            Vec3 worldA, worldB;
             BoxWorldPoint(&worldA, &centerA.x, matrixA, positionA);
             BoxWorldPoint(&worldB, &centerB.x, matrixB, positionB);
             delta.x = worldA.x - worldB.x;
