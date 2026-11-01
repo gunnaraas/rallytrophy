@@ -4404,10 +4404,7 @@ int RaceMode::FUN_0048b620(int reset)
                 FUN_00405380(index), 0, 1.0f, 1.0f)
 
 // NONMATCHING: RALLYTROPHY 0x48c7e0
-// 1202 vs 1205 bytes; the body after the first Print is the same. Only the prologue schedule differs: the original
-// stores the colour before loading the device width and interleaves the pushes of the first Print's constant
-// arguments with the three scaled-y locals (source order of the locals made no difference).
-// Tried 2026-10-30 night: 13 prologue variants (color store/local order, early dev local, int col temp, volatile color store, split first Print, sx/sy temps); none changed the 128-insn diff: ours loads the device global into eax and colour into edx (original the reverse), and that register rotation propagates to every later Print site (3 bytes of ds:0x0 mov forms).
+// 1205 bytes (size matches), 11 insns differ. Tried 2026-11-01 re-pass: a volatile int read of the colour plus a plain int store (`int col = *(volatile int*)&DAT_00508bf0; *(int*)&text->color = col;`) before the y0/step locals fixed the size (128->11 insns). Still differs: the first Print's prologue schedule (original loads colour+device, pushes the two 1.0f and interleaves y0/step fmul/fstp; ours batches the fld/fmul first) and `fld y; fadd step` (ours `fld step; fadd y`) at the two y += step sites. ~35 variants (split scaleX/color/scaleY, local order, early dw width, two-temp adds, volatile reads) and permute -r 40 did not change it.
 // Help screen of the replay/race menu: a title, then lines chosen by `flags` (1/2/4/8 = one of four
 // texts, 0x10 = extra line, 0x20, 0x40 = more lines) and the "press a key" footer. Returns 1 when
 // a key or the mouse button was pressed.
@@ -4417,9 +4414,10 @@ int RaceMode::FUN_0048c7e0(int unused, BYTE flags)
     m_image->Draw(DAT_0056b0ac, 0);
     float y = DAT_0056aeac * 90.0f;
     int result = 0;
+    int col = *(volatile int*)&DAT_00508bf0;
+    *(int*)&text->color = col;
     float y0 = DAT_0056aeac * 240.0f;
     float step = DAT_0056aeac * 64.0f;
-    text->color = DAT_00508bf0;
     text->SetScale(DAT_0056aea8 * 1.2f, DAT_0056aeac * 1.2f);
     CENTER_TEXT(0x158, y);
     text->SetColor(ColorArg(0xffffffff));
