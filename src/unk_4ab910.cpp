@@ -257,6 +257,7 @@ static __forceinline void ClampChannel(float& v)
 // NONMATCHING: RALLYTROPHY 0x4ac920
 // Bilinear arithmetic is complete; x87 temporaries, clamp expansion and register allocation differ.
 // Tried 2026-10-30 night: byte-struct texels (PxQ), per-channel hi/lo clamp locals in the x loop, bpp branch flip, b ternary/else forms (260->140); j=ix+(ix<w-1) still sbb/neg vs original mov 1/jb/xor, sum order c3..c0 and stack slots still differ.
+// Tried 2026-11-01 re-pass: 4 j=ix+(ix<w-1) forms (if/else, ++, int k; 160-196 worse) and 6 hi/lo clamp-local declaration orders (140-142, no gain); remaining 140 insns are slot allocation of hi/lo/weights, sum order and hoisted y-loop regs, too many for local edits.
 void __fastcall FUN_004ac920(ImgW5* img, int edx, unsigned int width, unsigned int height, unsigned int format)
 {
     struct PxQ { unsigned char b,g,r,a; };
