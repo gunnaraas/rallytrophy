@@ -280,6 +280,7 @@ void ModelFile::ReadBlock(File* file, unsigned int* size)
 
 // NONMATCHING: RALLYTROPHY 0x4b0e90
 // Tried 2026-10-30 night: 220->7 insns (size equal): thiscall-style fixes, Bal(1) x5 at end, throw-first `!= "MODEL"` with BStr (+Eos) message, `double ls = sqrt(..); scale.x = (float)ls;` per row, row 0 via `float* m` and rows 1,2 via object->local.m, record->value passed directly to Attach, int pair stores lo-first; still differs: the first position copy lacks its `mov [ebp+0x18],edx` before rep movs (VC6 defers it), shifting 5 later stores; volatile on every copy store and int/float position forms changed the inline budget or got worse.
+// Tried 2026-11-01 re-pass: 25 more variants of the first position copy (int/float field-wise, block temps, per-store volatile on x/y/z, reordered stores, moved after the matrix copy, volatile record, hoisted flags temp) all worse (71-175 insns) or unchanged at 7; permute -r 40 stayed at 7; still differs: y store [ebp+0x18] of the first position copy deferred past rep movs.
 void ModelFile::ReadMesh(File* file)
 {
     ModelPartRecord* record = FUN_004af730(file);
