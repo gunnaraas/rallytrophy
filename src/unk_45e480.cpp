@@ -1246,6 +1246,7 @@ char* CarCopy(char* dst, const char* src, size_t n)
 // destructors) except the first light loop, where the original materialises &lightFrontRight[0] as
 // `lea eax,[esi+0x1bd94]; mov ebp,eax` and the build has `lea ebp,[esi+0x1bd94]` (30 source forms tried).
 // Tried 2026-10-30 night: 9 more (shared r/l pointer locals, r[i-3] indexing, do-while, ptr-walk, &arr[0][i]) plus permute -r 20; none gave the extra mov; the 73 differing insns are only +2 jump-offset shifts from the one missing mov.
+// Tried 2026-10-31 re-pass: 15 more (forceinline Id()/Id2() pointer helpers, volatile base pointer, char* base walk, split fl/fr cursors, fr[k-3] do-while, comma-increment) plus permute -r 40; all stay at 73 insns (just the missing `mov ebp,eax` after lea eax).
 CarObject::~CarObject()
 {
     delete shadow;
