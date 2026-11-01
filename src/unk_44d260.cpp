@@ -271,6 +271,7 @@ void SaveGame::SaveSlot(int slot)
 // `this`), the early-exit string destructor is a call to _Tidy(true) shared by the three failure exits (here expanded
 // inline per exit), and the 10-dword copy loop uses edx/esi swapped.
 // Tried 2026-10-31: dropped a bogus FUN_00491130 call from the last (non-arcade AI) loop - the original has none there (146->143 insns); ~40 variants of the itoa buffer (decl order, block/for/if scope, int[3], struct, static) never move it into the low temp region (it stays at the frame top, +12 bytes, offsets of everything shift); static buffer proves that is the whole frame delta. Return-path/goto restructuring did not help.
+// Tried 2026-11-01: copying index/value into named temps (value first) before the two race->unk28/2c stores and routing the 10-dword stats copy through a named int temp improved 143->122 insns differ; ~25 more variants (buffer decl placement, direct path.Add(itoa), volatile n/remaining, tail-copy temps, id temps, loop-index/cursor hoists, magic2 inverted return) no better; still open: itoa buffer +12 frame bytes, shared _Tidy exit for magic2 failure.
 int SaveGame::LoadSlot(int slot)
 {
     int magic1, magic2;
@@ -307,8 +308,10 @@ loaded:
     DAT_00501460 = 0;
     if (DAT_00501458) {
         RaceMode* race = DAT_00501450;
-        race->unk28 = index;
-        race->unk2c = value;
+        int vl = value;
+        int ix = index;
+        race->unk28 = ix;
+        race->unk2c = vl;
         rec.size = 0x74;
         for (int i = 0; i < n; i++) {
             file->Read(&rec, 0x74);
@@ -320,7 +323,8 @@ loaded:
             p->unk24 = rec.unk28;
             p->unk2c = rec.flags;
             for (int k = 0; k < 10; k++) {
-                p->unk1a28[k] = rec.stats[k];
+                int t = rec.stats[k];
+                p->unk1a28[k] = t;
             }
             p->unk1a50 = rec.tail[0];
             p->unk1a54 = rec.tail[1];
@@ -339,7 +343,8 @@ loaded:
             p->unk24 = rec.unk28;
             p->unk2c = rec.flags;
             for (int k = 0; k < 10; k++) {
-                p->unk1a28[k] = rec.stats[k];
+                int t = rec.stats[k];
+                p->unk1a28[k] = t;
             }
             p->unk1a50 = rec.tail[0];
             p->unk1a54 = rec.tail[1];
@@ -353,8 +358,10 @@ loaded:
         }
     } else {
         RaceMode* race = DAT_00501450;
-        race->unk28 = index;
-        race->unk2c = value;
+        int vl = value;
+        int ix = index;
+        race->unk28 = ix;
+        race->unk2c = vl;
         rec.size = 0x74;
         for (int i = 0; i < n; i++) {
             file->Read(&rec, 0x74);
@@ -369,7 +376,8 @@ loaded:
                 DAT_00501460 = 1;
             }
             for (int k = 0; k < 10; k++) {
-                p->unk1a28[k] = rec.stats[k];
+                int t = rec.stats[k];
+                p->unk1a28[k] = t;
             }
             p->unk1a50 = rec.tail[0];
             p->unk1a54 = rec.tail[1];
@@ -406,7 +414,8 @@ loaded:
             p->unk24 = rec.unk28;
             p->unk2c = rec.flags;
             for (int k = 0; k < 10; k++) {
-                p->unk1a28[k] = rec.stats[k];
+                int t = rec.stats[k];
+                p->unk1a28[k] = t;
             }
             p->unk1a50 = rec.tail[0];
             p->unk1a54 = rec.tail[1];
