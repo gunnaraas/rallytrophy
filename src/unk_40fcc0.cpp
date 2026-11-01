@@ -90,6 +90,7 @@ static __forceinline void GridInsert(GridPtrVec* v, int* P, const int& X)
 // NONMATCHING: RALLYTROPHY 0x40fcc0
 // 1720 vs 1716 bytes: logic, calls and x87 blocks match; inline-asm helper argument stack slots and the loop-invariant ebx=0 register differ.
 // Tried 2026-10-30 night: 292->187 via `float r2 = rr*rr; if (len < r2)` and local GridPtrVec* r/a for the two Ins calls; loop forms/goto/declaration order/pragma flags (a,g,w,t,y,s) no effect; still differs: original loops are unrotated (head test once, i/ebx=0 in regs) and GridInsert block layout/slots.
+// Tried 2026-11-01 re-pass: ~25 variants (while/for-header/goto loop heads, volatile zero local for the ebx=0 compare, i/made/attached/ScenePoint/r,a declaration order, self pointer, ++i in progress expr, volatile flags, len-after-r2); none below 187 insns differ; still differs: loop-head layout (original unrotated, i in ecx, ebx=0 live) and GridInsert block layout.
 // original: FUN_0040fcc0
 void StageGrid::Build()
 {
