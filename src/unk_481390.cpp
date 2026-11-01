@@ -2140,6 +2140,7 @@ int NetRace::GetUnk844()
 // overlaps the message arrays with the ansi/wide buffers) and the 0x1c/0x24
 // temps. Tried inline_depth, auto_inline, local references: no effect.
 // Tried 2026-10-30 night: !x/else restructure of the Close arm, volatile/plain/dead-store zero locals (VC6 folds them, original caches xor ebp,ebp), self volatile, peer uncached, loop forms, union overlay of ansi/wide with message arrays (frame 0x368, 320 insns); all stay ~323 because this stays in ebp.
+// Tried 2026-11-01 re-pass: 9 variants of a volatile/plain/pointer-read zero local `z` (function top, before UpdateMessages, before the chat block, before the host loop) used for the unk858/860/85c compares and stores, SendTo/DestroyPeer zero args, plus self volatile; all 323-346 insns differ (323 best), `this` stays in ebp, so no improvement.
 void NetRace::ServiceNetwork()
 {
     unsigned int i;
