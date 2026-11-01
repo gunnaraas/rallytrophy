@@ -1028,6 +1028,7 @@ inline WORD EmitVertex(WORD* slot, ShadowVertex* src)
 // The x87 radius and plane schedules are documented by Evidence ev_378c13001f5c265115cca9d40c27f7d342ab1bd4c7ce252692de74fc458d597c.
 // Frame/register scheduling remains different (target: Evidence above).
 // Tried 2026-10-30 night: 249->203 insns differ with a second induction pointer into the face sphere (cp = &f->cx, += 8 floats) and an explicit begin()?end()-begin():0 count; the o.x/y/z store order, countdown loop, per-use idx[k], volatile count/idx and count if/else forms did not help; still differs in register allocation (target keeps i in ebp, obj in edi, count in a stack slot) and the o locals sit 4 bytes lower than the target's.
+// Re-pass 2026-11-01: 203->201 insns by anchoring the face cursor at &f->cz (target: ebp = f+0x18, centre at cp[-2..0], radius cp[1]); 16 variants (volatile f/cp/count, store orders, decl orders, f re-derived from cp) did not help; f/i/j/count live in stack slots in the target while ours keeps them in regs.
 // original: FUN_00471ab0 (project the caster meshes into the shadow plane)
 void ParallelShadow::ProjectMeshes(ShadowCaster* obj)
 {
@@ -1042,7 +1043,7 @@ void ParallelShadow::ProjectMeshes(ShadowCaster* obj)
             continue;
         }
         ShadowFace* f = table->faces[i];
-        float* cp = &f->cx;
+        float* cp = &f->cz;
         unsigned nv = mesh->vertexCount;
         unsigned nf = mesh->faceCount;
         if (nv > 0x4000) {
@@ -1056,11 +1057,11 @@ void ParallelShadow::ProjectMeshes(ShadowCaster* obj)
             if (!(*(unsigned*)&dn & 0x80000000)) {
                 continue;
             }
-            float faceRadius = cp[3];
+            float faceRadius = cp[1];
             Vec3 o;
-            o.x = g_shadowSphere.centre.x - cp[0];
-            o.y = g_shadowSphere.centre.y - cp[1];
-            o.z = g_shadowSphere.centre.z - cp[2];
+            o.x = g_shadowSphere.centre.x - cp[-2];
+            o.y = g_shadowSphere.centre.y - cp[-1];
+            o.z = g_shadowSphere.centre.z - cp[0];
             float s = g_shadowSphere.radius + faceRadius;
             float d = o.z * LightRow(2).z + o.y * LightRow(2).y + o.x * LightRow(2).x;
             if (d > s) {
