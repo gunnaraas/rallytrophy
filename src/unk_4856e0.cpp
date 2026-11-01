@@ -2304,6 +2304,7 @@ void LapString::AppendFill(size_t n, char c)
 // Same size and instruction stream; only stack slots differ (the original frame is 8 bytes smaller:
 // it shares slots between the early y/x2 temporaries and the later locals).
 // Tried 2026-10-30 night: ~35 variants (decl order of y/x2/buffer, buffer/rest in nested blocks, inlined x/y/x2, folded sx/sy) and permute -r 20; all stay 45 insns (permuter best 41, not applied); the 8-byte frame difference (buffer/x/sx/sy slot sharing) is not reproduced.
+// Tried 2026-11-01 re-pass: 21 more variants (buffer/x in nested blocks, split scaleX=/color=/scaleY= stores, text declared after label, y/x2 declared early or late, sx/sy/x in dead lap/laps slots, volatile laps, x reused for sx, colour via int store); all stay 45 insns with the 8-byte-larger frame, the rest unchanged.
 // Draws the lap counter "N/M" with the large font, with a unit label under it.
 void RaceMode::FUN_00487b50()
 {
