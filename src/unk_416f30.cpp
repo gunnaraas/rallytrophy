@@ -478,6 +478,7 @@ static inline void CopyProp(StageProp* d, const StageProp* src)
 // last), and the two inlined element copies address the element from +0x14 (ours +0x8); a plain-order copy helper
 // and a derived operator= twin did not change that.
 // Tried 2026-10-30 night: cached last/M locals, M-first compares, int-typed/reordered/by-reference CopyProp bodies, P+M hoist, else-without-guard; none moved M/last registers or the +0x14 element base (int copies and reversed order made it worse); 3rd-loop lea base still differs.
+// Tried 2026-11-01 re-pass (baseline 132 insns differ): S10Vec volatile first, self-pointer last, volatile M/X, sz local, M-first cmp, raw/ref/local-src/hoisted-flag/reversed/indexed copy loops, *F=X in last loop; best 99-103 only by changing byte count or structure (rejected); register swap M/last and the +0x14 copy base unchanged.
 void PropVec::Ins(StageProp* P, unsigned int M, const StageProp& X)
 {
     if ((unsigned int)(end - last) < M) {
