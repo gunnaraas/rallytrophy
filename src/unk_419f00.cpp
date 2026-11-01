@@ -200,6 +200,7 @@ void ColModel::FreeVerts()
 
 // NONMATCHING: RALLYTROPHY 0x41b590
 // Tried 2026-10-30 night: swapped compare shape (`lo > v1` else-arm, `v1 > hi`), hi loaded separately from lo, shared lo/hi locals, int mins/maxes, partial result kept in maxx, pointer-based loop, v2 re-read from v[]; 115->61 insns differ; still differs: original keeps the tri pointer in ebp with the counter spilled, ours spills the pointer; x/y/z register reuse (esi/edi/ebx) differs.
+// Tried 2026-11-01 re-pass: ~45 variants (induction pointer v as loop var with +16 steps, base 0x28/0x2c/0x30, for/while/end-pointer loops, volatile t/n/v0/v1, volatile v[1] reloads (matches the original's per-use reload, 413 bytes), separate xb/yb temps, unsigned char flags, lo/hi hoisting, combos); 61 insns stay (best 60 with volatile t); VC6 always spills the tri pointer and uses ebp as the shl/or scratch, original keeps the pointer in ebp and the counter spilled, so min/max registers rotate; Y/Z combine as shl 6/shl 4 instead of lea/or/shl.
 void ColModel::ComputeSel()
 {
     ColTri* t = tris;
