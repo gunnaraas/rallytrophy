@@ -964,7 +964,10 @@ scaled:
             B.z = q->boxMax;
             A.y = A.y - loc.y * 0.024f;
             dir = B - A;
-            float inv = 1.0f / (float)sqrt(dir.x * dir.x + dir.z * dir.z + dir.y * dir.y);
+            float lp = dir.x * dir.x;
+            lp = dir.z * dir.z + lp;
+            lp = dir.y * dir.y + lp; // original: (x*x + z*z) + y*y
+            float inv = 1.0f / (float)sqrt(lp);
             dir.x = dir.x * inv;
             dir.y = dir.y * inv;
             dir.z = dir.z * inv;
@@ -1170,9 +1173,9 @@ void Car::FUN_00454d10()
     }
     F2_BodyView* b = c->body;
     F2_V d;
-    d.x = v.y * b->rot.r0.y + v.z * b->rot.r0.z + v.x * b->rot.r0.x;
-    d.y = v.y * b->rot.r1.y + v.z * b->rot.r1.z + v.x * b->rot.r1.x;
-    d.z = v.y * b->rot.r2.y + v.z * b->rot.r2.z + v.x * b->rot.r2.x;
+    { float q = v.y * b->rot.r0.y; q = v.z * b->rot.r0.z + q; d.x = v.x * b->rot.r0.x + q; }
+    { float q = v.y * b->rot.r1.y; q = v.z * b->rot.r1.z + q; d.y = v.x * b->rot.r1.x + q; }
+    { float q = v.y * b->rot.r2.y; q = v.z * b->rot.r2.z + q; d.z = v.x * b->rot.r2.x + q; }
     F2_Part* a = c->partA;
     if (a) {
         F2_V t = c->posA;
@@ -1194,12 +1197,13 @@ void Car::FUN_00454d10()
         q->pos.x += c->lamp1.x;
         q->pos.y += c->lamp1.y;
         q->pos.z += c->lamp1.z;
-        d.z = d.z * -0.2f;
-        d.x = d.x * -0.3f;
-        float inv = 1.0f / (float)sqrt(d.z * d.z + d.x * d.x + 1.0f);
-        d.x = d.x * inv;
+        float x = d.x * -0.3f;
+        float z = d.z * -0.2f;
+        d.z = z;
+        float inv = 1.0f / (float)sqrt(z * z + x * x + 1.0f);
+        d.x = x * inv;
         d.y = inv;
-        d.z = d.z * inv;
+        d.z = *(volatile float*)&d.z * inv; // original reloads the stored (rounded) d.z here
         static Vec3 axis(0.0f, 0.0f, 1.0f);
         F2_Cross(&d, (const F2_V*)&axis, &q->rot.r0);
         q->rot.r1 = d;

@@ -211,9 +211,8 @@ int ColBody::Collide(TriCollector* q, int unused)
                     if (n != 0) {
                         do {
                             float rr = (m->r + t->r) * (m->r + t->r);
-                            float dd = (t->c[0] - m->c[0]) * (t->c[0] - m->c[0])
-                                + (t->c[1] - m->c[1]) * (t->c[1] - m->c[1])
-                                + (t->c[2] - m->c[2]) * (t->c[2] - m->c[2]);
+                            float dx = t->c[0] - m->c[0], dy = t->c[1] - m->c[1], dz = t->c[2] - m->c[2];
+                            float dd = dz * dz + dy * dy + dx * dx; // original sums z,y then x
                             if (*(int*)&dd <= *(int*)&rr) {
                                 const float* w0 = &m->v[0]->x;
                                 const float* w1 = &m->v[1]->x;

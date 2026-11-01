@@ -1741,7 +1741,9 @@ void Car::UpdateWheelContact()
         }
         s += loadForce;
         float prev = wp[-0x114 / 4];
-        float vNew = V - s * c->dt * c->invMass;
+        float q = s * c->dt;
+        q = q * c->invMass;
+        float vNew = V - q;
         float pNew = vNew * c->dt + prev;
         float ly = wp[-1];
         float t2 = ly - x;
