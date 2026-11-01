@@ -117,13 +117,18 @@ void RespBody::Respond(void* car, void* stage, int flag)
     for (i = 0; i < *(unsigned int*)((char*)this + 0x23c); i++, h += 20) {
         Vec3 v;
         if (flag == 0) {
-            v = *(Vec3*)&h[9];
+            v.x = h[9];
+            *(int*)&v.y = *(int*)&h[10];
+            *(int*)&v.z = *(int*)&h[11];
         } else {
             v = c;
             Vec3* w = &FUN_004204f0(*(Vec3*)&h[3]);
             v.x = c.x + w->x;
-            v.y = c.y + w->y;
-            v.z = c.z + w->z;
+            // original rounds y and z to float slots before the dot product (x stays on the FPU)
+            float ty = c.y + w->y;
+            *(int*)&v.y = *(int*)&ty;
+            float tz = c.z + w->z;
+            *(int*)&v.z = *(int*)&tz;
         }
         float d = v.x * h[6]; d = v.y * h[7] + d; d = v.z * h[8] + d;
         if (NEG(d) == 0) {
@@ -270,9 +275,15 @@ void RespBody::Respond(void* car, void* stage, int flag)
         float m1 = NEG(dy) == 0 ? sc[1] : sc[4];
         float m2 = (NEG(dz) != 0) ? sc[5] : sc[2];
         float fm = h[15];
-        float g0 = fm * (dx * m0); // original: fm * (dx*m0), not (fm*dx)*m0
-        float g1 = fm * (dy * m1);
-        float g2 = fm * (m2 * dz);
+        // original: fm * (dx*m0), not (fm*dx)*m0; dx*m0, dy*m1 and g2 are rounded to float slots
+        // (m2*dz is not), so copy them through ints to keep VC6 from holding them on the FPU
+        float p0 = dx * m0, p1 = dy * m1, q0, q1;
+        *(int*)&q0 = *(int*)&p0;
+        *(int*)&q1 = *(int*)&p1;
+        float g0 = fm * q0;
+        float g1 = fm * q1;
+        float p2 = fm * (m2 * dz), g2;
+        *(int*)&g2 = *(int*)&p2;
         float w0 = dx * g0; w0 = w0 + dz * g2; w0 = w0 + dy * g1; float work = w0 * SF(0x42c + SID(h) * 4);
         if (*(int*)((char*)stage + 0x4cc + SID(h) * 4) != 0 && DAT_004e13dc < h[19] && BF(0x268) < work) {
             BF(0x268) = work;

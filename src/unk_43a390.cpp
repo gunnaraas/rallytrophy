@@ -520,6 +520,7 @@ void Screen1378::Slot3(int noPresent)
     big->scaleX = sx;
     float sy = DAT_0056aeac;
     big->scaleY = sy;
+    float x0 = DAT_0056aea8 * 54.0f; // original: hoisted, rounded to float before x1 = half-width + x0
     float colA = DAT_0056aea8 * 88.0f, colB = DAT_0056aea8 * 345.0f, colC = DAT_0056aea8 * 630.0f, colD = DAT_0056aea8 * 880.0f, colE = DAT_0056aea8 * 920.0f;
     float rowTop = DAT_0056aeac * 362.0f, lineH = DAT_0056aeac * 32.0f, rowH = DAT_0056aeac * 20.0f, rowBot = DAT_0056aeac * 585.0f;
     float colF = DAT_0056aea8 * 450.0f;
@@ -577,12 +578,12 @@ void Screen1378::Slot3(int noPresent)
                 uv[0].y = uv[1].y = icon->top;
                 uv[1].x = uv[2].x = icon->right;
                 uv[2].y = uv[3].y = icon->bottom;
-                float x1 = (DAT_0056aea8 * 54.0f) + DAT_0056aea8 * icon->width * 0.5f;
-                float y1 = ly + DAT_0056aeac * icon->height * 0.5f;
-                pos[0].x = pos[3].x = (DAT_0056aea8 * 54.0f);
+                float x1 = DAT_0056aea8 * icon->width * 0.5f;
+                float hh = DAT_0056aeac * icon->height * 0.5f; // original: rounded to a float slot before + ly
+                pos[0].x = pos[3].x = x0;
                 pos[0].y = pos[1].y = ly;
-                pos[1].x = pos[2].x = x1;
-                pos[2].y = pos[3].y = y1;
+                pos[1].x = pos[2].x = x1 + x0;
+                pos[2].y = pos[3].y = hh + ly;
                 ((RaceDeviceSlots*)DAT_0056b0ac)->DrawQuad((Vec2*)pos, (Vec2*)uv, col, 1.0f, 1.0f);
                 big->Print(DAT_0056b0ac, colA, ly, e->name, 0, 1.0f, 1.0f);
                 big->Printf(DAT_0056b0ac, colD, ly, "%i", e->ping);
@@ -664,8 +665,9 @@ void Screen1378::Slot3(int noPresent)
         text->Print(DAT_0056b0ac, DAT_0056aea8 * 512.0f - text->GetWidth(status, 0) * 0.5f, rowBot, status, 0, 1.0f, 1.0f);
 
         // The three buttons.
-        ((MenuGame*)DAT_0056b0c8)->FUN_00435b60(1, 2, 1, 1, 0, -1.0f);
+        float bx = DAT_0056aea8 * 54.0f; // original: both read before FUN_00435b60, bx kept for all three rows
         float by = DAT_0056aeac * 262.0f;
+        ((MenuGame*)DAT_0056b0c8)->FUN_00435b60(1, 2, 1, 1, 0, -1.0f);
         for (int j = 0; j < 3; j++) {
             Color col(0);
             col.value = (j == self->m_selected) ? DAT_00508c0c : DAT_00508c04;
@@ -687,7 +689,7 @@ void Screen1378::Slot3(int noPresent)
                 label = FUN_00405380(0x30);
                 break;
             }
-            text->Print(DAT_0056b0ac, (DAT_0056aea8 * 54.0f), by, label, 0, 1.0f, 1.0f);
+            text->Print(DAT_0056b0ac, bx, by, label, 0, 1.0f, 1.0f);
             by += DAT_0056aeac * 42.0f;
         }
         self->DrawCursor(*((MouseInput*)DAT_0056b0c0)->GetPosition());
