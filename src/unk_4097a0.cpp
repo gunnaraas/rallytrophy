@@ -18,6 +18,7 @@ extern int DAT_00501448;   // volume setting (0..100 scaled)
 // NONMATCHING: RALLYTROPHY 0x4097a0
 // reason: first draft; exception handling (std::logic_error vs original string-exception class 0x4e2c78) and new-expression scheduling unverified
 // Tried 2026-10-30 night: real binkw32 dllimports (BinkSetSoundTrack/SetIOSize/Open/SetVolume/GetSummary) replace the DAT_0059b2f8 casts, int volume divide, std::string+logic_error throw forms, inline_depth 0-8; imports/divide now match but the throw string temp (original _Grow+out-of-line _Eos then exception ctor) and the new-expression/EH-state layout still differ (337 insns, 2276 vs 2203 bytes).
+// Tried 2026-11-01 re-pass: BStr overlay (inline zero + out-of-line Grow/Eos, allocator byte copy) on all or only the first throw matches the first throw prologue/Grow/Eos shape but grows the function (394 insns differ vs 337, 2368 bytes) because the other logic_error copies inline; Bal(1) x2-13, inline_depth 0-4, partial BStr sites (11 variants) no help; the original keeps its exception temps in lower slots (frame 0x60 vs ours 0x64).
 BinkVideo::BinkVideo(const char* name, RenderDevice* device, int flags)
 {
     F(int, 0xa8) = 0;
