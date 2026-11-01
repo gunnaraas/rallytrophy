@@ -1010,6 +1010,7 @@ inline void G2_Normalize(float* p)
 // builds the view pose (V->pos, V->matrix rows right/up/forward, V->fov, V->nearPlane) from the stage camera zone
 // (+0x1e8), or from the preset of camera view +0x1d4 (0-5 chase with ray-cast clearance, 6 rigid look-at, 7/8 mounted).
 // Tried 2026-10-30 night: savedPos store order, int-copy temps, volatile barriers, pos/matrix local order/macros, hoisted locals; only z-before-y savedPos helped (422->419); frame slots (matrix/pos spills at -0x20/-0x30, 12-byte local at -0x48) still differ.
+// Re-pass 2026-11-01: 11 prologue variants (px/py/pz locals, int-copy temps, volatile dt/savedPos stores, decl order); best 413 vs 419 baseline but size 3496, none matched; ~415 insns differ, far beyond permuter range, root cause is frame-slot/regalloc layout of whole function.
 #define V ((G2_View*)this)
 void ViewManager::FUN_00456b10(float dt)
 {
