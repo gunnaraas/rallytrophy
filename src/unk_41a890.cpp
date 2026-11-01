@@ -217,7 +217,10 @@ ColModel::ColModel(void* mesh, int a, int b)
             *(float*)(tb + off + 0x1c) = k * *(float*)(tb + off + 0x1c);
             *(float*)(tb + off + 0x20) = k * *(float*)(tb + off + 0x20);
             float* v0 = &(*(TVert**)(tb + off + 0x28))->x;
-            *(float*)(tb + off + 0x24) = v0[0] * *(float*)(tb + off + 0x18) + v0[1] * *(float*)(tb + off + 0x1c) + v0[2] * *(float*)(tb + off + 0x20);
+            float q = v0[2] * *(volatile float*)(tb + off + 0x20);
+            q = v0[1] * *(float*)(tb + off + 0x1c) + q;
+            q = v0[0] * *(float*)(tb + off + 0x18) + q;
+            *(float*)(tb + off + 0x24) = q;
             float* c = (float*)((char*)ci + cb);
             c[0] = *(float*)(tb + off);
             c[1] = *(float*)(tb + off + 4);

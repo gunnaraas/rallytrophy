@@ -484,7 +484,10 @@ void ViewFrustum::Init(FrustumDevice* device)
         P3 t = *(P3*)P * P[3];
         XformSelf(&t.x, &t.x, self->camera);
         Rot(T, P, self->camera);
-        T[3] = t.y * T[1] + t.z * T[2] + t.x * T[0];
+        float q = t.y * T[1];
+        q = t.z * T[2] + q;
+        q = t.x * T[0] + q;
+        T[3] = q;
         if (T[0] < DAT_004e134c) idx[i] = 0; else idx[i] = 3;
         if (T[1] < DAT_004e134c) idx[i+6] = 1; else idx[i+6] = 4;
         if (T[2] < DAT_004e134c) idx[i+12] = 2; else idx[i+12] = 5;

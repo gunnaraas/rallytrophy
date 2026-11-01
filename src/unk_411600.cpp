@@ -372,15 +372,15 @@ void StageConfigLoader::LoadConfig(const char* path)
             switch (level) {
             case 0:
                 p[-10] = RoundF(v.values[0] * DAT_004e13a0);
-                p[0] = RoundF(DAT_0050150c * v.values[0] * DAT_004e13a0);
+                { float q = DAT_0050150c * v.values[0]; q = q * DAT_004e13a0; p[0] = RoundF(q); }
                 break;
             case 2:
                 p[-10] = RoundF(v.values[2] * DAT_004e13a0);
-                p[0] = RoundF(DAT_00501514 * v.values[2] * DAT_004e13a0);
+                { float q = DAT_00501514 * v.values[2]; q = q * DAT_004e13a0; p[0] = RoundF(q); }
                 break;
             default:
                 p[-10] = RoundF(v.values[1] * DAT_004e13a0);
-                p[0] = RoundF(v.values[1] * DAT_00501510 * DAT_004e13a0);
+                { float q = v.values[1] * DAT_00501510; q = q * DAT_004e13a0; p[0] = RoundF(q); }
                 break;
             }
             p++;
@@ -398,15 +398,15 @@ void StageConfigLoader::LoadConfig(const char* path)
             switch (level) {
             case 0:
                 p[-10] = RoundF(v.values[0] * DAT_004e13a0);
-                p[0] = RoundF(v.values[0] * DAT_0050150c * DAT_004e13a0);
+                { float q = v.values[0] * DAT_0050150c; q = q * DAT_004e13a0; p[0] = RoundF(q); }
                 break;
             case 2:
                 p[-10] = RoundF(v.values[2] * DAT_004e13a0);
-                p[0] = RoundF(v.values[2] * DAT_00501514 * DAT_004e13a0);
+                { float q = v.values[2] * DAT_00501514; q = q * DAT_004e13a0; p[0] = RoundF(q); }
                 break;
             default:
                 p[-10] = RoundF(v.values[1] * DAT_004e13a0);
-                p[0] = RoundF(v.values[1] * DAT_00501510 * DAT_004e13a0);
+                { float q = v.values[1] * DAT_00501510; q = q * DAT_004e13a0; p[0] = RoundF(q); }
                 break;
             }
             p++;

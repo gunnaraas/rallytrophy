@@ -167,7 +167,10 @@ ColModel::ColModel(void* meshp, int)
             tr->n[1] = kk * tr->n[1];
             tr->n[2] = kk * tr->n[2];
         }
-        tr->d = verts[a].x * tr->n[0] + verts[a].y * tr->n[1] + verts[a].z * tr->n[2];
+        float q = verts[a].z * tr->n[2];
+        q = verts[a].y * tr->n[1] + q;
+        q = verts[a].x * tr->n[0] + q;
+        tr->d = q;
         centers[i].x = tr->center[0];
         centers[i].y = tr->center[1];
         centers[i].z = tr->center[2];
