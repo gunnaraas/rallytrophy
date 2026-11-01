@@ -1245,6 +1245,7 @@ __forceinline static void CopyXZ(Vec3& d, const Vec3& s) { d.x = s.x; d.z = s.z;
 // original), the original copies only x and z into dir2 and keeps dir.y/dir2.y in the length sums (the build folds the
 // zero stores away), and keeps the look-ahead sums in memory instead of the FPU stack.
 // Tried 2026-10-30 night: ~50 variants; CopyXZ for dir2 (tail-merges the three operator- calls like the original), volatile k (separate k1) gave 372->319; original keeps phase/k1/acc/dir2 spill slots above pts and car above fwd (frame 0xe8 vs 0xf0) and no declaration order/volatile combination reproduced that layout.
+// Tried 2026-11-01 re-pass: 13 variants making dir.y/dir2.y zero stores and the segLen/len2 y terms volatile (keeps the 3-term sums, builds 2520 vs 2631 bytes) all scored 383-415 insns differ vs 319 for the base because the shifted spill layout misaligns the rest; float sum orders (look, segLen z+x+y, len2, dots) match the original.
 float AIDriver::FUN_0049d970()
 {
     Vec3Slot sideways;
