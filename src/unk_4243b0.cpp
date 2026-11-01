@@ -158,10 +158,14 @@ public:
 extern ConfigKey DAT_004f64c8[];   // controlmenu.ini key table (28 keys)
 class MouseInput;
 
+extern float DAT_004e150c, DAT_004e1500, DAT_004e1504, DAT_004e1508;
+struct LoopE { ~LoopE() {} };
+struct LoopCol { int v; LoopCol(int c) { v = c; } ~LoopCol() {} };
+struct LoopScl { float x, y; LoopScl(float a, float b) { x = a; y = b; } ~LoopScl() {} };
 // NONMATCHING: RALLYTROPHY 0x424960
 // original: FUN_00424960 (fastcall, SEH). Draft: logic ported from the pseudocode, not yet compared byte for byte.
 // Tried 2026-10-30 night: per-call GetPosition() args, C_Warp/C_Pt EH temps (EH states of the centre block now match), m_selected >= 6;
-// still differs: the original keeps color (0x30) and two 1.0f (0x38/0x3c) as live stack slots in the draw loop plus one more EH state (0x11), frame 0x70 vs 0x68; dir*5 lea has disp32; ebx/ebp swap follows.
+// Tried 2026-11-01: loop-body LoopCol/LoopScl objects (empty-dtor, inline ctor) give the 0x11 EH state, the colour/1.0f slots and frame 0x70; DAT_004e150c for 400.0f; scaleX=/volatile colour read/scaleY=/color= split in the first draw block (114->12 insns differ); still differs: LoopScl lands at 0x48 (declaration order after warp/scale temps) instead of 0x38, so the C_Warp/HudPoint temps sit 8 low; EH state 0x11 store and col spill placed after the jne; tried function-scope volatile float slots, LoopSt 16-byte object, early sc placement - all worse.
 int MenuScreen8DC::Frame()
 {
     int done = 0;
@@ -282,22 +286,26 @@ int MenuScreen8DC::Frame()
         if (DAT_0056b0ac->BeginScene()) {
             DAT_0056b0ac->vf38(0);
             game->DrawVideo(0);
-            text->scaleX = DAT_0056aea8 * 2.0f;
+            float s2 = DAT_0056aea8 * 2.0f;
+            int c0 = *(volatile int*)&DAT_00508bfc;
+            text->scaleX = s2;
             text->scaleY = DAT_0056aeac * 2.0f;
-            text->color = DAT_00508bfc;
+            text->color = c0;
             text->Print(DAT_0056b0ac, 54.0f * DAT_0056aea8, 142.0f * DAT_0056aeac, FUN_00405380(0x3e), 0, 1.0f, 1.0f);
             text->SetScale(DAT_0056aea8, DAT_0056aeac);
             game->FUN_00435de0(517.0f, 243.0f);
             HudPoint scale = *game->GetScale();
             for (int i = 0; i < 6; i++) {
                 int selected = (i == m_selected);
-                text->color = selected ? DAT_00508c0c : DAT_00508c04;
-                text->Print(DAT_0056b0ac, six[i].x, six[i].y, six[i].text.c_str(), 0, 1.0f, 1.0f);
+                LoopScl sc(1.0f, 1.0f);
+                LoopCol col(selected ? DAT_00508c0c : DAT_00508c04);
+                text->color = col.v;
+                text->Print(DAT_0056b0ac, six[i].x, six[i].y, six[i].text.c_str(), 0, sc.x, sc.y);
                 float x = 520.0f * DAT_0056aea8;   // 0x4e1500
                 float y = six[i].y;
                 switch (i) {
                 case 1:
-                    DrawSelector(text, &two[DAT_00501408].text, x, y, 400.0f * sx, selected, DAT_00501408, 0, 1);
+                    DrawSelector(text, &two[DAT_00501408].text, x, y, DAT_004e150c * sx, selected, DAT_00501408, 0, 1);
                     break;
                 case 2:
                     DrawSlider(x, y, DAT_0050140c, selected);
