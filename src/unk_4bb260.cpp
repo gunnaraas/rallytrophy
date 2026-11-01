@@ -629,6 +629,7 @@ int SkySampleBit(SkyTexOwner*, const unsigned short*, int, float*)
 
 // NONMATCHING: RALLYTROPHY 0x4bbb30 (not tuned; 684 vs 646 bytes)
 // Tried 2026-10-31: literals (65536.0f, 1/65536, 0.5f) not globals, m=0 then obj?map, early return, int masks, 60 shuffled decl orders; 34 insns differ, remaining is int reg allocation (u1/row0/r0 in wrong regs, r0/r1 spill).
+// Tried 2026-10-31 re-pass: fx/fy as refs to dead tri/t param slots (worse, 52-64), 40 random statement-order shuffles (best 36), volatile r0/r1/acc, operand swaps (best 33); original computes fx and fy back to back with one hoisted zero and r0 in eax, r1 in the verts slot, but ours hoists the r0/r1 imuls early and spills both.
 float SkySampleBilinear(SkyTexOwner* t, const unsigned short* tri, int verts, float* point)
 {
     SkyShadeMap* m;
