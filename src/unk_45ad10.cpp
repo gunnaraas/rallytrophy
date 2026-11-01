@@ -1052,6 +1052,7 @@ struct W7_Car {
 // the Toe base after its branch are worse. Other differences remain in the toe
 // blocks, wheel-matrix stack slots, and the target's hoisted 1.0f register. Evidence: ev_44efd80de74fa57abbe051afd7c89aabb5cbbfca52bc9ff6c566f2d37ba828ec.
 // Tried 2026-10-30 night: hand-inlined Toe/Camber using the dt param slot as the ref temp (matches orig [ebp+8]) with base/spring1 copied to locals, and reloading wheel damage per use (114->73 insns differ); still differs: orig keeps x and spring0/base on the FPU stack across the steer math (slot/frame 0x20 vs 0x1c), a/x/y declaration order and wheel-ptr hoisting had no effect.
+// Tried 2026-11-01 re-pass: volatile loads of spring0/toeBase into locals (all-operands-first fld) plus reusing tb as the y accumulator (y stored in the toe-base slot) 73->53 insns differ; still differs: orig interleaves the tb/sp1 int spills with the flds, frame 0x20 vs 0x1c, and wheel-matrix temp slots.
 void Car::UpdateSteering(float dt)
 {
     W3_CarView* v = (W3_CarView*)this;
@@ -1078,14 +1079,16 @@ void Car::UpdateSteering(float dt)
         }
     }
 
-    float sp1 = v->spring[1].value;
+    float x;
     float tb = v->toeBase;
-    float x, y;
+    float sp1 = v->spring[1].value;
+    float s0 = *(volatile float*)&v->spring[0].value; float tb0 = *(volatile float*)&v->toeBase;
     dt = v->frontRef[v->tuning];
-    if (v->spring[0].value < dt) x = (dt - v->spring[0].value) * v->frontIn[v->tuning] * v->toeIn + tb;
-    else x = (v->spring[0].value - dt) * v->frontOut[v->tuning] * v->toeOut + tb;
-    if (sp1 < dt) y = (dt - sp1) * v->frontIn[v->tuning] * v->toeIn + tb;
-    else y = (sp1 - dt) * v->frontOut[v->tuning] * v->toeOut + tb;
+    if (s0 < dt) x = (dt - s0) * v->frontIn[v->tuning] * v->toeIn + tb0;
+    else x = (s0 - dt) * v->frontOut[v->tuning] * v->toeOut + tb0;
+    if (sp1 < dt) tb = (dt - sp1) * v->frontIn[v->tuning] * v->toeIn + tb;
+    else tb = (sp1 - dt) * v->frontOut[v->tuning] * v->toeOut + tb;
+    float y = tb;
     float steer = v->steer;
     float l0 = (1.0f - v->wheel[0].damage * 0.5f) * steer - v->wheel[0].damage * 0.25f;
     float l1 = (1.0f - v->wheel[1].damage * 0.5f) * steer + v->wheel[1].damage * 0.25f;
