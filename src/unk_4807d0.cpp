@@ -302,6 +302,7 @@ void SingleRace::Update(int dt)
 // to the pointer first), and the vector arithmetic of branches 2/3 which the original keeps in
 // FPU registers.
 // Tried 2026-10-30 night: member-wise copies of position/a/b, named la plus a progress temp in branch 2 (149 -> 91 insns), next/prev inline, declaration hoisting, permuter; still differs: stack slot order (next/before/closing), branch 2 evaluates b.Length() before a.Length() and stores them, and lea/test scheduling after FUN_00414dc0.
+// Re-pass 2026-11-01 (91 -> 47 insns): doubles la/lb keep both lengths on the FPU, span reuses the dead next slot (float& alias), duplicate FUN_00414fb0(1) call removed, branch 3 subtracts b before a.Length(); still differs: stack slot order of stage/i/closing/before/d2 and i/eax register swap, declaration order has no effect.
 // Estimates the stage time of every player who is still driving: the distance along
 // the stage is interpolated between the nearest checkpoints.
 void SingleRace::Slot6()
@@ -345,22 +346,22 @@ void SingleRace::Slot6()
             float base = stage->FUN_00414fb0(next)->distance;
             progress = (base - stage->FUN_00414fb0(prev)->distance) * (d1 / (d2 + d1)) + stage->FUN_00414fb0(prev)->distance;
         } else if (player->unk1a18 % 10 < 2) {
-            float span = closing + stage->FUN_00414fb0(1)->distance;
+            float& span = *(float*)&next; span = closing + stage->FUN_00414fb0(1)->distance;
             a -= stage->FUN_00414fb0(last)->position;
             b -= stage->FUN_00414fb0(1)->position;
-            float la = a.Length();
-            float t = b.Length() / (la + b.Length()) * span;
-            progress = stage->FUN_00414fb0(1)->distance - t;
-            progress = stage->FUN_00414fb0(1)->distance - t;
+            double la = a.Length(); double lb = b.Length();
+            span = lb / (la + lb) * span;
+            progress = stage->FUN_00414fb0(1)->distance - span;
             if (progress < 0.0f) {
                 progress = 0.0f;
             }
         } else {
             float base = stage->FUN_00414fb0(prev = last - 1)->distance;
-            float span = closing + stage->FUN_00414fb0(last)->distance - stage->FUN_00414fb0(prev)->distance;
+            float& span = *(float*)&next; span = closing + stage->FUN_00414fb0(last)->distance - stage->FUN_00414fb0(prev)->distance;
             a -= stage->FUN_00414fb0(prev)->position;
+            b -= stage->FUN_00414fb0(0)->position;
             float d1 = a.Length();
-            progress = d1 / ((b -= stage->FUN_00414fb0(0)->position).Length() + d1) * span + base;
+            progress = d1 / (b.Length() + d1) * span + base;
             if (progress > total) {
                 progress = total;
             }
