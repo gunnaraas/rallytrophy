@@ -42,12 +42,12 @@ static inline void ClearVec(Vec3* p)
 
 // original: FUN_00472d00
 // NONMATCHING: RALLYTROPHY 0x472d00
-// 1425 vs 1434 bytes; 711 bytes differ (baseline 714). Moving queryKind from the member initializer to a
-// volatile first-body store reduces the diff by 3 bytes but does not recover its target placement relative to
-// base/EH initialization. Other open differences: the original does not forward the
-// new[] results (m->vertices / m->indices are re-read from the mesh after the index loop; ours keeps them in
-// a stack temp), keeps the index loop counter in memory, and stores queryKind (0x11) right after the vector init.
-// Tried 2026-10-31: plain queryKind store (90->89), local for vertices, int/unsigned/WORD w, pre-zeroed vertices; the vtable/EH-state stores still land before queryKind and the new[] ternary result still goes through a stack temp.
+// 1434 vs 1434 bytes; 82 bytes differ, 9 insns (was 711 bytes). Fixed by: volatile reads of m->indices/m->vertices into
+// idx/v (SnowFall idiom), int w = (WORD)count, and `i << 2` in the splash index loop (i * 4 folded b to 0).
+// Remaining: queryKind store lands after the base [ebx]=0 store (original: right after the vector init, before dropCount);
+// add esp,4 one slot early and the m->indices load one slot early in each mesh block; vertices load before vs after cmp.
+// Tried 2026-10-31 night: volatile/temp/late queryKind, volatile dropCount/dropDrawCount, store reorders, i=0 before idx,
+// nonvolatile idx/v (much worse), cnt local before v, mesh store order; none moved the 9 insns.
 RainEffect::RainEffect(TextureLoader* loader, int dropCount_, int splashCount_)
 {
     queryKind = 0x11;
@@ -78,10 +78,10 @@ RainEffect::RainEffect(TextureLoader* loader, int dropCount_, int splashCount_)
     m->vertices = new EffectVertex[dropCount_ * 4];
     m->indices = new WORD[dropCount_ * 6];
     m->unk24 = 0;
-    WORD w = (WORD)dropCount;
+    int w = (WORD)dropCount;
     m->primitiveCount = w * 2;
     m->vertexCount = w * 4;
-    WORD* idx = m->indices;
+    WORD* idx = *(WORD* volatile*)&m->indices;
     for (i = 0; i < dropCount_; i++) {
         int b = i << 2;
         *idx++ = b;
@@ -91,7 +91,7 @@ RainEffect::RainEffect(TextureLoader* loader, int dropCount_, int splashCount_)
         *idx++ = b + 2;
         *idx++ = b + 3;
     }
-    EffectVertex* v = m->vertices;
+    EffectVertex* v = *(EffectVertex* volatile*)&m->vertices;
     for (i = 0; i < dropCount_; i++) {
         v->color = -1;
         ClearVec(&v->normal);
@@ -123,9 +123,9 @@ RainEffect::RainEffect(TextureLoader* loader, int dropCount_, int splashCount_)
     w = (WORD)splashCount;
     m->primitiveCount = w * 2;
     m->vertexCount = w * 4;
-    idx = m->indices;
+    idx = *(WORD* volatile*)&m->indices;
     for (i = 0; i < splashCount_; i++) {
-        int b = i * 4;
+        int b = i << 2;
         *idx++ = b;
         *idx++ = b + 1;
         *idx++ = b + 2;
@@ -133,7 +133,7 @@ RainEffect::RainEffect(TextureLoader* loader, int dropCount_, int splashCount_)
         *idx++ = b + 2;
         *idx++ = b + 3;
     }
-    v = m->vertices;
+    v = *(EffectVertex* volatile*)&m->vertices;
     for (i = 0; i < splashCount_; i++) {
         v->color = -1;
         ClearVec(&v->normal);
