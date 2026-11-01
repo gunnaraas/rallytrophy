@@ -24,7 +24,24 @@ SceneEntry::SceneEntry(): sets()
     data4c = 0;
 }
 
-// NONMATCHING: RALLYTROPHY 0x4b8680
+// The two clears are inlined vector::resize(0) (T x = T() by value is the dead zero store at esp+0x14);
+// meshes goes through the out-of-line Size() 0x414460.
+static inline void Resize0M(MeshVec* v, unsigned n, EntryMesh* x)
+{
+    unsigned s = v->Size();
+    if (s < n)
+        v->Ins(v->end(), n - s, x);
+    else if (n < s)
+        v->Erase(v->begin() + n, v->end());
+}
+template <class V, class T> static inline void Resize0(V* v, unsigned n, T x)
+{
+    if (v->size() < n)
+        v->insert(v->end(), n - v->size(), x);
+    else if (n < v->size())
+        v->Erase(v->begin() + n, v->end());
+}
+// FUNCTION: RALLYTROPHY 0x4b8680
 // SYMBOL: ??4SceneEntry@@QAEAAV0@ABV0@@Z
 // reason: draft of the deep-copy assignment
 // Tried 2026-10-30 night: 366->53 insns differ (delete data4c, inline sets.size(), EntryMesh copy ctor + 0x38 size, unrolled head copy, memcpy, no sets push (the original leaks the copied sets, then calls LinkDeformVertices 0x4b9170 and returns its eax)); still differs: original keeps `this` in [esp+0x18] and reuses ebp for the new set, has an unused zero-init local at esp+0x14 (a dummy volatile local gave 46 but is unfaithful), and Erase arg load order.
@@ -40,15 +57,8 @@ SceneEntry& SceneEntry::operator=(const SceneEntry& o)
         delete[] sets[i]->mats;
         delete sets[i];
     }
-    int zz;
-    *(volatile int*)&zz = 0;
-    SetVec* sp = &sets;
-        if (sp->size() > 0)
-        sp->Erase(sp->begin(), sp->end());
-    *(volatile int*)&zz = 0;
-    MeshVec* mp = &ml.meshes;
-    if (mp->Size() > 0)
-        mp->Erase(mp->begin(), mp->end());
+    Resize0(&sets, 0, (EntryMatSet*)0);
+    Resize0M(&ml.meshes, 0, (EntryMesh*)0);
     for (i = 0; (unsigned)i < o.ml.meshes.size(); i++)
         {
         EntryMesh* m = new EntryMesh(*o.ml.meshes[i]);
