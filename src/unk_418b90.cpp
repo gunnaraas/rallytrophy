@@ -12,9 +12,10 @@ struct SphX { Vec3 c; float d; SphX(const Vec3& p, float r) : c(p) { d = r; } ~S
 // NONMATCHING: RALLYTROPHY 0x418b90
 // reason: first draft; original frame 0xc4 keeps all pseudocode locals (no reuse), 0x418b90 EH states for Vec3 temps differ
 // Tried 2026-10-31: original builds dead Vec3 e1/e2/e3 edge vectors, a dead bounding sphere (struct with dtor), Vec3 mn/mx/q locals (all added, 423->322); still differs in regalloc: original keeps this/esi, org/ebx, chain/ebp and spills i,p to [esp+0x18]/[0x14]; tried volatile self, head/chain reorder, first/last order (no effect).
+// Tried 2026-11-01 re-pass: float sums re-checked against asm (d2, plane num/den dots, normal length fixed to the original association; dead e3 = b-c); 322->326 insns differ is the cost of correct sums. d2 as double/volatile, bestT/chain/edge split decls, e1/e2 order, for-loop, folded operator chain: no gain; d2 stays on the x87 stack in the original (fcom then fsqrt) while ours spills it.
 float SweepQuery::Cast(float r, float* org, float* dir, float* outPt, float* outN)
 {
-    float d2 = dir[2] * dir[2] + dir[1] * dir[1] + dir[0] * dir[0];
+    float d2 = dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2];
     if (d2 == DAT_004e134c)
         return ((TriCollector*)this)->Closest(r, org, outPt, outN);
 
@@ -64,8 +65,8 @@ float SweepQuery::Cast(float r, float* org, float* dir, float* outPt, float* out
     float hitPt[3];
     CTri* t = first;
     while (t != 0) {
-        float tt = ((t->d - (t->n.x * org[0] + t->n.z * org[2] + t->n.y * org[1])) + r) /
-                   (t->n.x * dir[0] + t->n.y * dir[1] + t->n.z * dir[2]);
+        float tt = ((t->d - (t->n.y * org[1] + t->n.z * org[2] + t->n.x * org[0])) + r) /
+                   (t->n.z * dir[2] + t->n.y * dir[1] + t->n.x * dir[0]);
         if (DAT_004e134c <= tt && tt < bestT) {
             TVert* c = t->v[2];
             TVert* a = t->v[0];
@@ -75,7 +76,7 @@ float SweepQuery::Cast(float r, float* org, float* dir, float* outPt, float* out
             float* pc = &c->x;
             Vec3 e1 = *(Vec3*)pb; e1 -= *(Vec3*)pa;
             Vec3 e2 = *(Vec3*)pc; e2 -= *(Vec3*)pa;
-            Vec3 e3 = *(Vec3*)pc; e3 -= *(Vec3*)pb;
+            Vec3 e3 = *(Vec3*)pb; e3 -= *(Vec3*)pc;
             Vec3 q = *(Vec3*)org;
             q += *(Vec3*)dir * tt;
             q -= t->n * r;
@@ -113,7 +114,7 @@ float SweepQuery::Cast(float r, float* org, float* dir, float* outPt, float* out
                 Vec3 s = *(Vec3*)dir * bestT;
                 Vec3 e = *(Vec3*)org + s;
                 float vx = e.x - outPt[0], vy = e.y - outPt[1], vz = e.z - outPt[2];
-                float inv = DAT_004e1348 / (float)sqrt(vx * vx + vy * vy + vz * vz);
+                float inv = DAT_004e1348 / (float)sqrt(vz * vz + vy * vy + vx * vx);
                 outN[0] = vx * inv; outN[1] = vy * inv; outN[2] = vz * inv;
             }
         }
