@@ -265,6 +265,7 @@ struct C_Str {
 // Esc/Enter cancel paths are not tail-merged (the mouse warps now use the C_WarpPoint argument temporary, which
 // fixed their store order).
 // Tried 2026-10-30 night: local C_Str* + volatile editing store at the Esc cancel site 161->155; tail-merge with the Enter-reject site only happens with the same form at both (then survivor/stub layout is reversed vs original, 163).
+// Tried 2026-11-01: goto cancel label (Esc block as target from Enter-reject and vice versa; with/without lt+volatile; if/else forms): Esc block then matches but VC6 still duplicates the Enter-reject inline and any goto moves sx/sy/saved/c stack slots (sx 0x34->0x24, saved +8), 314->396 diff lines; sx/sy/string decl reorders did not undo the shift.
 // original: FUN_0044ed90
 int SlotMenu::Frame()
 {
