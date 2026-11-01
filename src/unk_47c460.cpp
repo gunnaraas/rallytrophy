@@ -728,6 +728,7 @@ void CarParticles::Kind8(float scale, float age)
 // Tried 2026-10-30 night: named rr emit test, one reused float for slip/speed/lat (fixed the ebp-0x10/-0x14 slot swap), inverted
 // kind branch, no volatile on j2, nx temp for the pool head (fixed AddTo order); volatile on head/local stores, operand swaps, permute -r 20; none moved push edi.
 // Spawn core C: like core A with a v-scaled upward kick and surface-dependent sideways push.
+// Tried 2026-10-31 re-pass: 19 more variants (side-product operand orders r2*lat/0.15f*lat/(lat*k)*r2, named temps, side/kind decl order, inverted kind branch, nx removed, local copy order/volatile/int-copy) and permute -r 40: all stay at 3 insns or worse; fld/fmul swap is insensitive to source order.
 Particle* CarParticles::SpawnCoreC(float rate)
 {
     static float kSlip = 1.0f / (SLIP_C_HI - SLIP_C_LO);
