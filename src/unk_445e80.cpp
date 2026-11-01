@@ -342,6 +342,7 @@ void ServiceMenu::UnloadTextures()
 // loop prologue schedule (the original keeps the induction start in eax, mine in esi) and the frame slots of the
 // double d / float f temporaries (original -0x1c/-0x14 above the 5-byte text array at -0x24, mine 8 bytes lower).
 // Tried 2026-10-30 night: ~30 variants (decl order of d/f/text/whole/tenth, function-scope vs loop-scope, text[6]/[8], struct text, hoisting text init); slot order never moved (mine d,f,text low-to-high vs original text,d,f) and the eax-vs-esi stageNo+1 prologue is untouched.
+// Tried 2026-10-31 re-pass: 17 more variants (text declared first/function-top/nested block, d/f function-scope/nested/no named d/volatile d, 8-byte text holder struct); layout of d,f,text is invariant (the named d is folded to a temp, p.cpp == base) so slots stay 8 low, 40 insns differ; permute skipped (>10 insns).
 // original: FUN_004470a0 (thiscall, ret 0xc; info.ini loader: per-stage strings)
 void ServiceMenu::Init(int rallyNo, int stageNo, int count)
 {
