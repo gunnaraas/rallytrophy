@@ -369,6 +369,8 @@ int MenuScreen2A8::Run(MenuGame* game, NetRace* net_)
 
 // Module end: guard-bit initialiser of the STL header statics and its atexit registration.
 
+struct LoopSclV { float x, y; LoopSclV(float a, float b) { *(volatile float*)&x = a; *(volatile float*)&y = b; } ~LoopSclV() {} };
+struct LoopCol0 { int v; LoopCol0() {} ~LoopCol0() {} };
 static float MS2A8_COLW = 400.0f; // value column width (non-const so the original fld K; fmul sx order is kept)
 
 // NONMATCHING: RALLYTROPHY 0x42a330
@@ -379,6 +381,7 @@ static float MS2A8_COLW = 400.0f; // value column width (non-const so the origin
 // 400.0` for the width instead of `fld 400.0; fmul sx`; (3) the original tail-merges draw cases 7 and 6 (shared `fld`
 // tail, pushes of value/4/0 in the head); (4) (1, 1) object and scale copy sit in swapped frame slots.
 // Tried 2026-10-30 night: 30 variants (dir/zero/loop-var decl order, volatile zero, split dir, one/scale slot order, per-site point); only a plain static float for 400.0 helped (222->218 insns); ebx/ebp swap (zero vs dir) and the 6/7 tail-merge still differ, allocator priority not found.
+// Tried 2026-11-01: separate draw cases 7 and 6 (not merged via 9-i) fixed the ebx/ebp swap (218->36); file-scope LoopCol0/LoopSclV empty-dtor loop locals and scaleX=/volatile colour read/scaleY=/color= split (->7 insns differ); still differs: the loop (1,1) scale slot sits at 0x4c/0x50 vs scale copy at 0x44/0x48 swapped, and its immediate stores are scheduled earlier than the original (after c_str null test); text-pointer reload before fadd in the first draw block. ~50 variants plus permute (best 9).
 int MenuScreen2A8::Frame()
 {
     int done = 0;
@@ -547,22 +550,22 @@ int MenuScreen2A8::Frame()
         if (DAT_0056b0ac->BeginScene()) {
             DAT_0056b0ac->vf38(0);
             game->DrawVideo(0);
-            text->color = DAT_00508bfc;
-            text->scaleX = DAT_0056aea8 * 2.0f;
+            float s2 = DAT_0056aea8 * 2.0f;
+            int c0 = *(volatile int*)&DAT_00508bfc;
+            text->scaleX = s2;
             text->scaleY = DAT_0056aeac * 2.0f;
+            text->color = c0;
             text->Print(DAT_0056b0ac, 54.0f * DAT_0056aea8, 142.0f * DAT_0056aeac, FUN_00405380(0x3c), 0, 1.0f, 1.0f);
             text->SetScale(DAT_0056aea8, DAT_0056aeac);
             game->FUN_00435de0(517.0f, 243.0f);
             HudPoint scale = *game->GetScale();
             for (int i = 0; i < 9; i++) {
                 int selected = (i == m_selected);
-                Color col;
-                HudPoint one;
-                col.value = selected ? DAT_00508c0c : DAT_00508c04;
-                text->color = col.value;
-                one.x = 1.0f;
-                one.y = 1.0f;
-                text->Print(DAT_0056b0ac, items[i].x, items[i].y, items[i].text.c_str(), 0, 1.0f, 1.0f);
+                LoopSclV sc(1.0f, 1.0f);
+                LoopCol0 col;
+                col.v = selected ? DAT_00508c0c : DAT_00508c04;
+                text->color = col.v;
+                text->Print(DAT_0056b0ac, items[i].x, items[i].y, items[i].text.c_str(), 0, sc.x, sc.y);
                 HudPoint pos;
                 pos.x = 520.0f * DAT_0056aea8;
                 pos.y = items[i].y;
@@ -573,9 +576,11 @@ int MenuScreen2A8::Frame()
                 case 1:
                     DrawToggle(text, values1f4, pos.x, pos.y, MS2A8_COLW * sx, m_selected == 1, DAT_00501418[1], 0, 3);
                     break;
-                case 6:
                 case 7:
-                    DrawToggle(text, values284, pos.x, pos.y, MS2A8_COLW * sx, m_selected == i, DAT_00501418[9 - i], 0, 4);
+                    DrawToggle(text, values284, pos.x, pos.y, MS2A8_COLW * sx, m_selected == 7, DAT_00501418[2], 0, 4);
+                    break;
+                case 6:
+                    DrawToggle(text, values284, pos.x, pos.y, MS2A8_COLW * sx, m_selected == 6, DAT_00501418[3], 0, 4);
                     break;
                 case 5:
                     DrawToggle(text, values3c8, pos.x, pos.y, MS2A8_COLW * sx, m_selected == 5, DAT_00501418[4], 0, 2);
