@@ -1698,6 +1698,7 @@ struct AiVelocity {
 
 // NONMATCHING: RALLYTROPHY 0x49f1f0
 // 485 vs 522 bytes, 354 differing bytes; logic complete. The original copies the two velocities into locals in a mixed fld/integer
+// Tried 2026-10-31 re-pass (16 variants): named x*x temps (a, b, both) with z*z+y*y+xx and y*y+z*z+xx orders, offset.y=0 after/volatile/double dz, field-wise or reordered copies, reference-to-velocity (all 61-82 insns vs 62 baseline). Original orders: speed z*z+y*y+x*x, q y*y+z*z+x*x, a.x*a.x kept in st(0), b.x*b.x spilled to [esp+0x14], b.y/b.z kept in FPU after speed2; no source form found.
 // Tried 2026-10-30 night: const refs, component float copies, q-first sqrt(q), reordered Length/q, __forceinline by-value Len/Sq helpers (all 66-86 insns vs 62 baseline); original keeps x1 in FPU with x1*x1 reuse and spills copies at [esp+0x10..0x38], not reproduced.
 // pattern (x1 stays in the FPU, x1*x1 and x2*x2 are reused for the squared speeds) that plain struct copies and a
 // by-value helper (not inlined, EH frame) did not reproduce.
