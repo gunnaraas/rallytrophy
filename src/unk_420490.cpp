@@ -5,6 +5,7 @@
 #include "rallytrophy.h"
 #include "unk_450ee0.h"
 #include "unk_420490.h"
+#include "unk_40c280.h"
 
 extern float DAT_004e1348;
 extern DWORD DAT_0050892c;
@@ -871,6 +872,7 @@ extern void __cdecl FUN_004239c0(StageScreen* s, short sel, StageEntry* e, int s
 // NONMATCHING: RALLYTROPHY 0x423b90
 // NONMATCHING: inline std::string append/assign expansions are approximated with string methods
 // Tried 2026-10-31: Load(path,1,0,0) was already right; dir/path as StagePathText, 2nd char buf[32], pointer loop, if/else per unit (tail-merged), Length/Width AppendCall + Height/Weight std append, float factors (228->132); still differs: local layout (orig order num,path,buf,ini,dir; ours num,buf,ini,path,dir, decl order has no effect) and Weight's inline-vs-call _Eos split.
+// Tried 2026-11-01: the 8th push_back is the StageInsert template (out-of-line Ucopy/Destroy/SizeCall, StageConstruct for the inlined Ufill with M=1; helper above C_ADD) on a StageIntVec view of m_items: 62->31 insns; still differs: ours spills the first-loop cursor and keeps s in a different slot (ebx taken by end), end/last stores order; volatile-read ra, r=&vec and begin-reload idioms alone did not help.
 void StageScreen::RefreshUnits()
 {
     int n = count;
@@ -1220,6 +1222,45 @@ public:
     unsigned int len;
     unsigned int reserve;
 };
+void __cdecl StageConstruct(int* p, const int& v); // 0x403140 (std::_Construct, out of line in the original)
+
+// VC6 std::vector<int>::insert(iterator P, size_type M, const int& X) with the unreachable arms folded away.
+struct LLVec : StageIntVec { unsigned int SizeCall(); }; // 0x414460 out of line
+static __forceinline void StageInsert(LLVec* v, int* P, unsigned int M, const int& X)
+{
+    if ((unsigned int)(v->end - v->last) < M) {
+        int* f0 = v->first;
+        unsigned int n = v->Size() + (M < v->Size() ? v->Size() : M);
+        int* s = v->allocator.allocate(n, (void*)0);
+        int* q = s;
+        for (int* f = f0; f != P; ++f, ++q)
+            StageConstruct(q, *f);
+        StageConstruct(q, X);
+        ++q;
+        v->Ucopy(P, v->last, q);
+        v->Destroy(v->first, v->last);
+        StageFree(v->first);
+        int* e = s + n;
+        v->last = s + v->SizeCall() + M;
+        v->end = e;
+        v->first = s;
+    } else if ((unsigned int)(v->last - P) < M) {
+        v->Ucopy(P, v->last, P + M);
+        v->Ufill(v->last, M - (v->last - P), &X);
+        for (int* p = P; p != v->last; ++p)
+            *p = X;
+        v->last += M;
+    } else {
+        v->Ucopy(v->last - M, v->last, v->last);
+        int* d = v->last;
+        for (int* f = v->last - M; P != f; )
+            *--d = *--f;
+        for (int* p = P; p != P + M; ++p)
+            *p = X;
+        v->last += M;
+    }
+}
+
 #define C_ADD(ul, lr) \
     do { \
         rect = (UIRect*)new C_Rect(*(const C_Point*)&config.GetVector2(ul), *(const HudPoint*)&config.GetVector2(lr)); \
@@ -1251,7 +1292,9 @@ void StageScreen::LoadLayout()
     C_ADDR(rb, "CarSelectionArrow1_UpperLeft", "CarSelectionArrow1_LowerRight");
     C_ADDR(rc, "CarSelectionArrow2_UpperLeft", "CarSelectionArrow2_LowerRight");
     C_ADDR(ra, "TransmissionSelectionArrow1_UpperLeft", "TransmissionSelectionArrow1_LowerRight");
-    C_ADDR(ra, "TransmissionSelectionArrow2_UpperLeft", "TransmissionSelectionArrow2_LowerRight");
+    ra = (UIRect*)new C_Rect(*(const C_Point*)&config.GetVector2("TransmissionSelectionArrow2_UpperLeft"), *(const HudPoint*)&config.GetVector2("TransmissionSelectionArrow2_LowerRight"));
+    LLVec* sv = (LLVec*)&m_items;
+    StageInsert(sv, sv->last, 1, (int&)ra);
 }
 
 // A colour built from four float channels (each converted to a byte), with an empty destructor.
