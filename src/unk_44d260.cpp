@@ -181,6 +181,7 @@ struct FB3_Stats {
 // original: FUN_0044d260
 // NONMATCHING: RALLYTROPHY 0x44d260
 // Tried 2026-10-31: per-branch `RaceMode* race` locals fix the register allocation (66->14 insns). `char buf[1]` reaches 4 insns but _itoa would overflow it, so the buffer stays 4 bytes; what remains is the allocator temp / itoa buffer stack offsets.
+// Tried 2026-10-31 re-pass: ~30 variants (buf 5-16 bytes, file/magic/i/j/buf decl order and scope, named allocator, pad locals, volatile buf init) plus permute -r 40 stay at 14 insns; original puts the allocator temp/buf at esp+0x12, file/i at 0x18, magic at 0x1c (ours 0x1f, 0x10, 0x18) and no local mix reproduces that slot map.
 void SaveGame::SaveSlot(int slot)
 {
     FillHeader();
