@@ -283,6 +283,7 @@ struct RenderColor { DWORD c; RenderColor(DWORD v) : c(v) {} ~RenderColor() {} }
 // NONMATCHING: RALLYTROPHY 0x40a0f0
 // reason: first draft of the float/stack layout, not yet compared
 // Tried 2026-10-31: original has a third unwind object (empty-dtor DWORD holder of -1, EH state 2, now matched) and literal float constants (fld w; fmul K now matches); still differs: original keeps -1 in edi (push edi) and has one more 4-byte stack slot (sub esp,0x58), shifting every store; ~15 decl-order/int-temp/pos-readback variants did not fix it (127 insns differ, was 131). Render makes no direct Bink calls (FillVideoTextures does, already matched).
+// Tried 2026-11-01 re-pass: 16 variants of the -1-in-edi idiom (volatile/address-taken/plain int m1 passed to vf66 and the RenderColor ctor, color.c reads, color decl order) and function-scope x/y, w/h after arrays; all stay 127 insns (best), volatile m1 adds a store; edi=-1 (or edi,-1; also used for the final EH state store) is not reproduced and the frame stays 4 bytes short; too far (127) for permute.py.
 void BinkVideo::Render(RenderDevice* device)
 {
     float w = (float)DAT_0056b0ac->GetWidth();
