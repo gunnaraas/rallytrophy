@@ -116,6 +116,7 @@ inline void Extend(const Vec3& e, Vec3& mn, Vec3& mx)
 // the original) and the sign-test code (original loads the edge component on the FPU before the test) do not.
 // Tried 2026-10-30 night: Extend rewritten as e+mn, local sign words, ptr-select, pre-branch sums, volatile mn/sign (none closer); ay/az sign tests still use test [mem],eax + fld mn/fadd e where the original does mov ecx,[e]; fld e; test; fadd mn, and the frame layout (h above ay) still differs.
 // Tried 2026-10-31 pass 2 (30 variants): h declared at every position/as float[3]/split floats/aliased on sphere.center/via pointer/volatile h.x, Extend with named floats, int sign words, by-value forceinline helpers, e+mn forms; none below 167 insns (stack slot of h never moves: it stays below lo; original stores h.x*0.5 to memory and Length reloads all three, ours keeps h.x on the FPU).
+// Tried 2026-11-01 pass 3 (~65 variants): per-component Extend for ay/az as `unsigned sa=*(unsigned*)&e.c; float a=e.c; if (sg&sa){float t=a; t=t+mn.c; mn.c=t;}` DOES give the original's mov ecx,[e]; fld e; test; fadd mn shape (size 931->925) but h stays at the frame bottom; h declared before every local, h as float[3]+Vec3& (922 bytes, lo/hi slots then match but ay/az swap, h EH state lost), all 6 orders of ay/az/h, float[3] ay/az, qq volatile slot, volatile h.x store, volatile-view loads: slot order is not declaration-driven, so h above ay is unresolved.
 // original: FUN_004581f0
 void Car::FUN_004581f0()
 {
