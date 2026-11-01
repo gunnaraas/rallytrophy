@@ -86,8 +86,7 @@ void ModelFile::ReadVertices(File* file, ModelOut* out)
     file->Read(a, n * 12);
 }
 
-// NONMATCHING: RALLYTROPHY 0x4b2330 (loop/size() shape and register assignment differ from original)
-// Tried 2026-10-30 night: ~35 variants (explicit begin/end compare, hoisted begin, for/while/do forms, copy of p, at(), volatile reload); size() ternary does not fold to a direct null->throw jump and this/p swap ebx/ebp; improved 96->35 via PStr (out-of-line assign + allocator byte), forceinline FName, vector size()/operator[].
+// FUNCTION: RALLYTROPHY 0x4b2330
 void ModelFile::ReadPolylist(File* file, ModelOut* out)
 {
     int n = FUN_004af230(file);
@@ -96,14 +95,14 @@ void ModelFile::ReadPolylist(File* file, ModelOut* out)
     unsigned int* p = (unsigned int*)operator new(bytes);
     out->polys = p;
     file->Read(p, bytes);
-    int i = 0;
-    if (n > 0) for (;;) {
-        if (materials.size() <= *p) {
+    int i = 0; unsigned int* q;
+    if (i < n) for (q = p;;) {
+        unsigned int k = *q;
+        if (k >= materials.size()) {
             PStr msg("BMF polylist chunk failed: illegal material index");
             throw file_error(FName(file), *(std::string*)&msg);
         }
-        *p = (unsigned int)materials[*p];
-        i++; p += 4;
-        if (i >= n) break;
+        *q = (unsigned int)materials[k];
+        i++; q += 4; if (i >= n) break;
     }
 }
