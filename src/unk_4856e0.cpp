@@ -372,6 +372,7 @@ void RaceMode::DrawSetup(int a, ViewPoint* view)
 // all three sums follows the observed x87 order and reduces the remaining differences to 127. A local expiry
 // snapshot reproduces the target comparison direction and further reduces the residual to 125; y/z is still shared.
 // Tried 2026-10-30 night: DrawSetup shape (xx/S sums, range*range>S, volatile y/z + float sq, volatile-stored call arg) 32->10 insns, size exact 467; still differs: d copy and push registers (ecx/edx vs edx/eax), same as DrawSetup; decl-order/operand-order variants and permute -r 20 found nothing.
+// Tried 2026-10-31 re-pass: 12 more variants (brace/field-wise d init, inline expiry, volatile a at one/all call sites, pos inline/reordered, redundant int copies) and permute -r 40 stayed at 10 insns; only a-push/d-copy register choice (ecx vs edx) differs.
 // DrawSetup, skipping one car.
 void RaceMode::DrawSetupExcept(int a, ViewPoint* view, Car* skip)
 {
