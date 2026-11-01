@@ -339,6 +339,7 @@ class CarBody { public: void FUN_0046be50(int mode); };
 // improve the object comparison (158 differing bytes vs. 589 in the prior form), but the frame remains four
 // bytes smaller and the target's shared failure cleanup calls out-of-line _Tidy(true) (here expanded inline).
 // Tried 2026-10-30 night: record is {int hdr; CarRecord} (0x1d4 read, ReadSetup gets +4), global store order, cars/decl-order/pragma/early-return variants; still differs: name sits 4 bytes higher (target's cars/new temp is above PathText), fld/fstp float copy, failure-path out-of-line _Tidy(true).
+// Tried 2026-10-31 re-pass: hoisting cars/f/race/i/num/magic/has/new-temp locals above PathText, nf/nc temp-var forms, volatile cars: the new-temp slot stays at [esp+0x1c] below name (target [esp+0x2c] above it), all unchanged at 79 diff lines; volatile forms worse (164-205); 9 other diffs (fld/fstp float copy, failure-path _Tidy) untouched; too far (>10 insns) for permute.
 bool ReplayHeader::Load(int index)
 {
     PathText name("savegame/replay");
