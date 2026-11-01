@@ -1448,6 +1448,7 @@ void ServiceMenu::BuildRects()
 // mine picks edx. The status registers now match roles (DAT_00501464 in eax / DAT_00501454 in ecx), but the target
 // loads them in the opposite order and earlier relative to the scale-field stores.
 // Tried 2026-10-30 night: ~30 variants (store orders, locals for title args, volatile colour, guard blocks reordered/merged); best is guard order D458, D454, D464 (65->63 insns); still differs: color/device register choice in the title+rally block and prologue load order of D464/D454 (target eax then ecx), 1016 vs 983 bytes.
+// Tried 2026-10-31 re-pass: the three tab guards merged into the original's `if (D464 || D454) {i==3; D454&&i==2&&!D45c; D464==2|3&&i==2}` shape and D464 read once at loop top (`int f464 = DAT_00501464;`) so eax=D464/ecx=D454 as in the original: 65->57 insns, loop guards now match; ~45 variants more (colour/scale store order, rid/width locals, x/y decl order, print arg locals) fail to fix: title block picks edx for the colour and the rally-title width/rid load order, 1008 vs 983 bytes.
 // original: FUN_0044b510 (vtable slot 3, Draw; the jump table 0x44b8e8 is its switch)
 void ServiceMenu::Slot3(int skipPresent)
 {
@@ -1470,19 +1471,15 @@ void ServiceMenu::Slot3(int skipPresent)
         float x = DAT_0056aea8 * 54.0f;
         float y = DAT_0056aeac * 262.0f;
         for (int i = 0; i < 6; i++) {
+            int f464 = DAT_00501464;
             if (DAT_00501458 && !DAT_00501454 && (i == 1 || i == 2)) {
                 continue;
             }
-            if (DAT_00501454) {
+            if (f464 || DAT_00501454) {
                 if (i == 3) {
                     continue;
                 }
-                if (i == 2 && !DAT_0050145c) {
-                    continue;
-                }
-            }
-            if (DAT_00501464) {
-                if (i == 3) {
+                if (DAT_00501454 && i == 2 && !DAT_0050145c) {
                     continue;
                 }
                 if ((DAT_00501464 == 3 || DAT_00501464 == 2) && i == 2) {
