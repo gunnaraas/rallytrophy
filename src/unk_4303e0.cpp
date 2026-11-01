@@ -4367,6 +4367,7 @@ public:
 };
 
 // NONMATCHING: RALLYTROPHY 0x437770
+// Tried 2026-10-31 re-pass: 20 more variants (return sel, volatile this/self, volatile sel/selected, sel declared first/late, y-bits int local, reload selected in compares, ret var, extra locals) all 9 insns or worse; permute.py -r 40 stuck at (9,9); still the ebx/esi swap (original sel in ESI, y bits in EBX; ours reversed).
 // Tried 2026-10-30 night: unbraced body with early `if (pressed) return selected; return -1;` tail gives 36->9 insns and 1352 bytes (single result var and goto forms stay 23+); only the esi/ebx swap remains (target: choice in ESI, y bits in EBX); sel moved earlier (reloads, 137), ternary/volatile/register/`selected` re-read and permute.py -r 20 all stuck at 9.
 // Second modal confirmation (two answers "first/second" drawn as `a/b` under a title; text 0x19d, 0x22, 0x23): the
 // arrow keys 0x57ba4d/0x57ba4f move the selection and warp the mouse, the rectangles at +0x139470/+0x139474 select by
