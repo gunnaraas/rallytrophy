@@ -213,6 +213,7 @@ static inline const char* NameOf(void* p)    // object name (std::string at +0x1
 // differently, the two sign branches' shared tail is kept in the checkpoint copy (the original keeps the sign_
 // copy and jumps back), the plain-object push_back sits before the checkpoint block, and the frame layout.
 // Tried 2026-10-30 night: idx/p in dead param slot a, StBody sized 0x284 (header), int copies of sign pos, dead c[] kept via volatile stores (2957->2656 diff lines); still differs: frame 0x250 vs 0x258 (lodMask is a byte at [ebp-0x44] in the original), start-store scheduling, body->pos copy addressing, sign tail merge.
+// Tried 2026-11-01 re-pass: now 8636 vs 8656 bytes, 1115 insns differ; swapping idx/p scratch slot a->c (alloc byte stays at [ebp+0xb], original [ebp+0x13]) and moving/reordering the i/n/num declarations (10 variants) change nothing or worsen; original has i at [ebp-0x3c] below num[8] (-0x28) and the colModel string (-0x38) while ours puts i/n at -0x20/-0x24 above them, and num at -0x3c - slot assignment is not driven by declaration position; Bal sweeps pointless (call sequence already identical).
 // original: FUN_0040c9b0
 Stage::Stage(int a, int b, int c, int d)
 {
