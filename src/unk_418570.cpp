@@ -427,6 +427,7 @@ static __forceinline bool Near419(const ScenePoint& p, const Tri* t, float r) { 
 
 // NONMATCHING: RALLYTROPHY 0x4193a0
 // Tried 2026-10-31: EH frame needs a throwing call (C++-linkage TriClosest4b via /alternatename, since extern "C" is nothrow), Sph419+Near419, plain V3p lo/hi, v>=lo compare flips, ScenePoint e1/e2 with -=; 218->175 but built 874 vs 974 bytes: original has EH states 2/4/7 (we get 0/1/3: two more function-scope dtor objects plus three in the loop), cp/out-copy layout and rr hoist still differ.
+// Tried 2026-11-01: rr reuse, ScenePoint lo/hi/cp/res with dtors (extra EH states), lo/hi built from pos+-r ctor, lo/hi order swap, extra aa/spare dtor objects (14 variants, best 969 vs 974 bytes but ~190 insns differ); lo/hi prologue schedule and loop e1/e2 copy order stay misaligned and the 2/4/7 state numbering is not reached; far from 10 so no permute.
 float TriCollector::Closest(float r, float* pos, float* out, float* nrm)
 {
     float rr = r * r;
