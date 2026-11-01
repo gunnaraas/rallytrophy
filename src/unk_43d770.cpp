@@ -230,7 +230,7 @@ int PlayerNameMenu::Open(MenuGame* game, NetRace* net_)
 // The temporary selected index reduces the original candidate's 1,691 differences to 1,669 at the target's 3,832-byte
 // size. The target stores after the first increment and uses an unconditional loop back edge; this form emits a body
 // compare and conditional back edge. The title Print device load and draw-loop induction-pointer order also differ.
-// Tried 2026-10-30 night: ~12 variants of the selection-skip loop (while/for(;;)/goto/lim local/m_selected+=vert) and volatile device or title-string local at the title Print; VC6 always rotates the loop with a duplicated bottom cmp+jg (original is a single top cmp with unconditional jmp back and the m_selected store before dec ecx), and all forms grew the build to 3836 bytes; title Print device load still lands after fstp instead of before the second fmul.
+// Tried 2026-10-31 re-pass: selection-skip loop as `int s=m_selected+vert; m_selected=s; int lim=rowCount-1; while(1) with a single if (s<=lim||s>=6) break at its top` (single || break) fixed that loop and cut 83->53 insns differ (3836 vs 3832 bytes); remaining: title Print loads the device before the second fmul (original after, pushed last; named float/string locals for its args made it worse, 62-69), the draw-loop labels/positions/name lea-hoist order (970,218,24 vs ours 218,24,970; first-use reorders did nothing), and edi,edi vs lea ecx,[ecx+0] padding.
 // original: FUN_0043df70
 int PlayerNameMenu::Run()
 {
@@ -342,18 +342,14 @@ int PlayerNameMenu::Run()
             }
             m_selected = hit;
         }
-        int selected = m_selected + vert;
-        for (;;) {
-            if (selected <= rowCount - 1) {
-                break;
-            }
-            if (selected >= 6) {
-                break;
-            }
-            selected += vert;
-            m_selected = selected;
+        int s = m_selected + vert;
+        m_selected = s;
+        int lim = rowCount - 1;
+        while (1) {
+            if (s <= lim || s >= 6) break;
+            s += vert;
+            m_selected = s;
         }
-        m_selected = selected;
         if (m_selected < 0) {
             m_selected = 7;
         } else if (m_selected > 7) {
