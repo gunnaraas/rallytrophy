@@ -4174,6 +4174,7 @@ typedef void Generated_48b050();
 
 // NONMATCHING: RALLYTROPHY 0x48b080
 // Tried 2026-10-31: 188->152 insns with `RaceMode* volatile self = this` (this reloaded from its slot) and a volatile-stored zero `z` used for every flags argument (the original keeps 0 in ebp); volatile/int copies of xRank/xCar/xPoints, count/min forms, decl-order swaps and plain z (constant-folded) gave nothing more; still differs in frame size (0x48 vs 0x58) and the float local slots.
+// Tried 2026-11-01 re-pass: ~35 variants (no volatile self, plain z, result-first/result as flag arg, volatile award/count, point-loop forms, scored/count forms, iw/ih int locals, sy split, z placement); only iw/ih int locals before sx/sy helped (152->150 insns). Still differs: original keeps count/min in ebx/ebp (ours ebx/edi), spills this after push edi, and has 0x58 frame with xRank/xCar/xPoints copied through int regs at loop entry.
 // 1390 vs 1422 bytes. Logic and all call sequences match; the original spills `this` to [esp+0x28] from entry,
 // keeps count/min in ebx/ebp, keeps 0 in ebp for every flags argument, and has a 0x58 frame (this build 0x48). It
 // also copies several float locals (xRank/xCar/xPoints) through integer registers at the loop entry and places
@@ -4183,8 +4184,8 @@ typedef void Generated_48b050();
 // press ends the screen.
 int RaceMode::FUN_0048b080(int award)
 {
-    RaceMode* volatile self = this;
     TextRenderer* text = DAT_0056b0c8->text;
+    RaceMode* volatile self = this;
     if (award) {
         int count = DAT_00565490;
         int scored = count;
@@ -4203,8 +4204,11 @@ int RaceMode::FUN_0048b080(int award)
     }
     int z;
     *(volatile int*)&z = 0;
-    float sx = DAT_0056b0ac->GetWidth() * 0.0009765625f;
-    float sy = DAT_0056b0ac->GetHeight() * 0.0013020834f;
+    int iw, ih;
+    iw = DAT_0056b0ac->GetWidth();
+    ih = DAT_0056b0ac->GetHeight();
+    float sx = iw * 0.0009765625f;
+    float sy = ih * 0.0013020834f;
     self->m_image->Draw(DAT_0056b0ac, z);
     Color color(0xffffffff);
     text->color = color.value;
