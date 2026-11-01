@@ -287,6 +287,7 @@ static inline void G_Set(Vec3& v, float x, float y, float z) { v.x = x; v.y = y;
 // straight through ebx), fadd operand order for ctrl += k*vec, register choice (edx/eax/ecx) for the asm pointer
 // locals, and the load order of the ctrl9/ctrl3 dot products.
 // Tried 2026-10-30 night: forceinline G_Copy (call result stored straight to ctrl), G_AddRev (x via temp for fld order), G_Copy3 (y/z int, x float) and G_Mul for ctrl5/6 took it 147->~51 insns; still differs: ctrl5/ctrl6 copy loads (original reuses edx/ecx, ours uses eax/ecx/edx up front), hoisted `mov eax,[esi+0x24]`, call-arg lea/push order, ctrl8..ctrl11 fadd operand order; int-copy/volatile barrier variants were worse.
+// Re-pass 2026-11-01: G_AddRev for ctrl7/ctrl11 fixed their fadd order (51->46 insns); ~13 more variants (plain struct assign, int/block-temp copies, volatile gain/factor, in-order reshuffles) for ctrl5/6 call-result copy interleave were worse; still differs: that copy (original loads x,y then z after stores), hoisted mov eax,[esi+0x24], call-arg lea/push order.
 // Body-frame accelerations of the four spring points and the two SpringFollower updates.
 void Car::FUN_00452eb0(float dt)
 {
@@ -353,7 +354,7 @@ void Car::FUN_00452eb0(float dt)
     V->ctrl7.x *= 0.5f;
     V->ctrl7.y *= 0.5f;
     V->ctrl7.z *= 0.5f;
-    V->ctrl7 += V->ctrl2 * 0.5f;
+    G_AddRev(V->ctrl7, V->ctrl2 * 0.5f);
     V->ctrl8.x *= 0.5f;
     V->ctrl8.y *= 0.5f;
     V->ctrl8.z *= 0.5f;
@@ -369,7 +370,7 @@ void Car::FUN_00452eb0(float dt)
     V->ctrl11.x *= 0.65f;
     V->ctrl11.y *= 0.65f;
     V->ctrl11.z *= 0.65f;
-    V->ctrl11 += V->ctrl6 * (1.0f - 0.65f);
+    G_AddRev(V->ctrl11, V->ctrl6 * (1.0f - 0.65f));
     if (V->flag1c734) {
         Vec3 a;
         Vec3 b;
