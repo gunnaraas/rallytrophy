@@ -472,26 +472,22 @@ void SegmentInfo::Update()
 // original: 0x4ba620 etc. follow
 
 // NONMATCHING: RALLYTROPHY 0x4ba620
-// Semantics complete (inline-asm Xform/Rot, EBP frame); original has different local/register allocation (428 bytes differ).
-// Tried 2026-10-30 night: swapped compare form (q < DAT ? a : b), y/z/x dot order, c*c+farD^2+a*a tail, ~25 variants (index loops, no self, counter in param); still 66 insns differ: original keeps one pointer q (esi=this+0x64, vectors at esi-0x64) where VC6 makes a second induction pointer, and keeps tail a/c in stack temps.
+// Semantics complete (inline-asm Xform/Rot, EBP frame). 66->47 insns differ: i-indexed loop over planes/tplanes + if/else idx stores.
+// Tried 2026-10-31 re-pass: ~35 variants (param-slot counter, q-pointer vs indexed, ternary vs if/else, 6 dot orders (original y,z,x kept), while/!= loops, t hoisted, a/c tail forms, volatile self); still differs: original has one induction pointer q with jmp-to-test loop and lea of P/T after the first Xform, esi/edi prologue swapped, tail a/c in stack temps.
 void ViewFrustum::Init(FrustumDevice* device)
 {
     ViewFrustum* self = this;
     device->SetupFrustum(this);
     camera = device->GetCameraMatrix();
-    float* q = (float*)((char*)this + 100);
-    int* e = (int*)((char*)this + 0xe8);
-    int n = 6;
-    for (; n != 0; n--) {
-        P3 t = *(P3*)((char*)q - 100) * q[-0x16];
+    for (int i = 0; i < 6; i++) {
+        float* P = &planes[4*i]; float* T = &tplanes[4*i];
+        P3 t = *(P3*)P * P[3];
         XformSelf(&t.x, &t.x, self->camera);
-        Rot(q - 1, q - 0x19, self->camera);
-        q[2] = t.y * q[0] + t.z * q[1] + t.x * q[-1];
-        e[-6] = (q[-1] < DAT_004e134c) ? 0 : 3;
-        e[0] = (q[0] < DAT_004e134c) ? 1 : 4;
-        e[6] = (q[1] < DAT_004e134c) ? 2 : 5;
-        e++;
-        q += 4;
+        Rot(T, P, self->camera);
+        T[3] = t.y * T[1] + t.z * T[2] + t.x * T[0];
+        if (T[0] < DAT_004e134c) idx[i] = 0; else idx[i] = 3;
+        if (T[1] < DAT_004e134c) idx[i+6] = 1; else idx[i+6] = 4;
+        if (T[2] < DAT_004e134c) idx[i+12] = 2; else idx[i+12] = 5;
     }
     farD = -planes[7];
     nearD = planes[3];
