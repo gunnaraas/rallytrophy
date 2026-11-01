@@ -1122,6 +1122,7 @@ extern float DAT_004e138c;                                                    //
 // segment midpoint lookup + length (rewritten from the original). Left: stack-slot assignment (`path` sits 12
 // bytes lower, `magic`/`ver` swapped, the midpoint temporary is the lowest aggregate in the original).
 // Tried 2026-10-31: `int count` scoped inside the if (shares the slot with the AnimalObj temp as in the original: 142->112 insns, frame size now exact); mid kept in the loop, declared at function top / before prop / as MidOf() __forceinline temp or const& (all worse), magic/ver swap (no effect), sums-then-scale orders for mid and 0.5f literal; still differs: mid sits above prop (orig: lowest aggregate below path), model/tex strings swapped slots (orig model<tex), props.end() reload via ecx, tail loop shape.
+// Tried 2026-11-01 re-pass: tail loop fixed (parts vector is at mesh+0x30 not 0x34, no size()>0 guard, first reloaded each pass via volatile read of the begin pointer): 112->101 insns; 14 more variants (mid declared before path / after path / in File scope / before prop / plain float[3] + empty object, tex in nested scope or own subclass, model hoisted out of the File block, volatile/named-temp OR store) all equal or worse; still differs: mid lies above prop (orig: lowest aggregate below path), model/tex slots swapped (orig model<tex), `push ebp` vs `xor edx,edx` for MeshAt arg 0.
 // Loads data/stage<N>.apf props, then models/animal_run.bmf.
 void PropStage::Load()
 {
@@ -1177,9 +1178,9 @@ void PropStage::Load()
             a->active = 1;
             *(int*)(a->model + 8) = 0x7f;
             BYTE* mesh = MeshAt(a->model + 0x124, 0);
-            std::vector<int**>& parts = *(std::vector<int**>*)(mesh + 0x34);
-            for (unsigned i = 0; parts.size() > 0 && i < parts.size(); i++)
-                *(unsigned*)((BYTE*)*parts[i] + 0x98) |= 4;
+            std::vector<int**>& parts = *(std::vector<int**>*)(mesh + 0x30);
+            for (unsigned i = 0; i < parts.size(); i++)
+                *(unsigned*)((BYTE*)*(*(int*** volatile*)((BYTE*)&parts + 4))[i] + 0x98) |= 4;
         }
     }
 }
