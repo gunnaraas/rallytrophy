@@ -365,6 +365,7 @@ __forceinline const char* CS(PlaceStr* s) { return s->ptr ? s->ptr : ""; }
 
 // NONMATCHING: RALLYTROPHY 0x4150b0
 // Tried 2026-10-31: CS() forceinline helper (reloads the name pointer), no pos local, ext.z before ext.y, n+1 temp: 72 -> 31 insns.
+// Tried 2026-10-31 re-pass: ~30 variants (ext init order, brace init, pos/dir copy forms, Length as named double/temps, n+1 forms, inline-order); only pos copy via PlaceVec* p/q helped, 31 -> 29. Remaining: inlined-asm arg slot order, dir copy via mov ecx,eax, ext.y/z kept on FPU across Length.
 // Still differs: ext/asm-slot store order, pos/dir copies (original loads z early, no lea base) and the original
 // keeps ext.y/z on the FPU across Length(); variants of copies, Length, volatile stores did not move it.
 void StageSounds::FUN_004150b0(PlaceObj* o)
@@ -383,7 +384,7 @@ void StageSounds::FUN_004150b0(PlaceObj* o)
     ext.x = o->f[43];
     PlaceTransform(&ext.x, &o->f[8], &rec->end.x, &o->f[5]);
     rec->end.y = o->f[6];
-    rec->pos = *(PlaceVec*)&o->f[5];
+    { PlaceVec* p=(PlaceVec*)&o->f[5]; PlaceVec* q=&rec->pos; q->x=p->x; q->y=p->y; q->z=p->z; }
     rec->dir = rec->end;
     rec->dir -= rec->start;
     float len = rec->dir.Length();
