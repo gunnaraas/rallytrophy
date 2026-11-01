@@ -100,11 +100,14 @@ struct LoadSoundsPath {
     unsigned int len, res;
 };
 
+static inline int Bal(int a) { return a; }
+
 // NONMATCHING: RALLYTROPHY 0x415370
 // `base` and `path` use target-shaped string calls via LoadSoundsPath (3302 bytes / 2145 differences). An earlier
 // path append wrapper accidentally materialized a temporary std::string and regressed; the direct C-string form is kept.
 // An explicit register self alias regressed to 3394/2219; an explicit std::string cast for operator+ regressed to 3439/2248.
 // Tried 2026-10-30 night: AssignB uses out-of-line Eos, surface loop is 15 passes with length()>=2 (orig cmp 2/jb, count 0xf), event loop bound re-reads this+0x1600, V2 copies direct (449->387 insns); still differs: orig keeps ev/off in frame slots with i in ebx (ours strength-reduces to a pointer in ebx), name/count in memory, and strlen n in esi in AssignB.
+// Tried 2026-11-01 re-pass: 10 discarded Bal(1) at function end (387->345 insns, 3217 vs 3209 bytes; 1-9 and 11+ worse, at start 645); zero-reg int z, volatile name/k/ev/off, fx as LoadSoundsPath (worse 424), loop shapes; still differs: orig has this in esi and zero in ebx (ours swapped), no stack i (i in ebx), frame 0x98 vs 0x9c, n in esi in AssignB.
 void StageSoundLoader::LoadSounds()
 {
     FLD(int, 0x15f8) = 0;
@@ -174,4 +177,5 @@ void StageSoundLoader::LoadSounds()
             cfg.Close();
         }
     }
+    Bal(1); Bal(1); Bal(1); Bal(1); Bal(1); Bal(1); Bal(1); Bal(1); Bal(1); Bal(1);   // inline budget
 }
