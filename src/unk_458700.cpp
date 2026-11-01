@@ -318,7 +318,7 @@ inline int FloatToInt(float f)
 }
 
 // NONMATCHING: RALLYTROPHY 0x458b30
-// Tried 2026-10-30 night: 200->111 insns via float-ramp-rate externs (K on left), `unk0` (not button24) gate for the gear path (behaviour fix), fireA address-taken to keep bools in memory, stack-copy of throttle/handbrake; still differs: x87 sum order of the 0.3/0.2 terms, fld/fstp float copies (feedback, spring x), bool store order, Spring helper/bool-order variants and Spring forceinline made it worse.
+// Tried 2026-10-30 night: 200->111 insns via float-ramp-rate externs (K on left), `unk0` (not button24) gate for the gear path (behaviour fix), fireA address-taken to keep bools in memory, stack-copy of throttle/handbrake; still differs: x87 sum order of the 0.3/0.2 terms, fld/fstp float copies (feedback, spring x), bool store order, Spring helper/bool-order variants and Spring forceinline made it worse. Re-pass 2026-11-01: 111->104 via volatile dtMs reads in the timer subtracts, chained 0.3/0.2 sum (matches asm order), and a fresh car->f1c910 reload for the feedback store (matches). Still differs: timer bool-store order/dtMs single load, x/y float copies via fld/fstp (volatile, dtMs-slot reference, +0.0f tried), frame 4 bytes bigger.
 // The p2 blend uses the inline-asm FloatToInt as in the original (225 -> 201 differing instructions).
 // Same code shape and constants (builds 1358 bytes, original 1393); the original keeps `car` in ebx and zero in edi and
 // copies floats through the FPU (fld/fstp), which the source below does not reproduce.
@@ -329,7 +329,8 @@ IC_Car* car = (IC_Car*)carPtr;
     feedback = feedback - dt * 0.7f;
     float lim = car->f1c910;
     if (lim > feedback) {
-        feedback = lim;
+        float l2 = car->f1c910;
+        feedback = l2;
     }
     if (BITS(feedback) < 0) {
         feedback = 0;
@@ -343,8 +344,8 @@ IC_Car* car = (IC_Car*)carPtr;
         bool fireB = false;
         bool* pa = &fireA;
         *(volatile char*)pa = 0;
-        int a = timerA - dtMs;
-        int b = timerB - dtMs;
+        int a = timerA - *(volatile int*)&dtMs;
+        int b = timerB - *(volatile int*)&dtMs;
         timerA = a;
         timerB = b;
         if (a <= 0) {
@@ -356,7 +357,8 @@ IC_Car* car = (IC_Car*)carPtr;
             timerB = 100 - (-b) % 100;
         }
         if (fireA || fireB) {
-            float tmp = (car->f668 + car->f338) * 0.3f + (car->fcc8 + car->f998) * 0.2f;
+            float tmp = (car->f668 + car->f338) * 0.3f;
+            tmp = (car->fcc8 + car->f998) * 0.2f + tmp;
             tmp = tmp * 10000.0f;
             int w;
             __asm {
