@@ -429,6 +429,7 @@ public:
 // Tried 2026-10-30 night: ys/uiBuilt order, Style reordered/interleaved with Upload, Style via this->line* fields, chained field-major style stores, deferred field assignment; all 182 or worse (original pushes edi early and interleaves the four sprites' style stores field-major across eax/ebx/ebp/edi; no source shape reproduced it).
 // Tried 2026-10-31 second pass: 25 more variants (field-major FM macro/chained/reversed Style = 273 worse, if-wrapped body, volatile -1/self idiom early = worse, declared-first sprites, const locals); stuck at 182: original keeps `push edi` in the first block (we sink it past the new/null branch to the join), which shifts stack offsets by 4 and changes how VC6 interleaves the Style stores.
 // Tried 2026-10-31 third pass: 23 volatile/early-use variants for the early `push edi` (volatile uiBuilt read/store, volatile dummy locals, volatile xs/ys, volatile background/lineMain pre-stores, volatile self, bg local, ys before uiBuilt, int h, hoisted -1/6 consts); all 182 or worse (269-275 when a volatile is added before the new), push edi never leaves the join.
+// Tried 2026-11-01 re-pass: 11 more (Style order reversed/rotated 212/200, Style interleaved with Upload 430, volatile uiBuilt store 184, split sprite decls, int one/m1 locals, bg local, uiBuilt before xs); nothing under 182.
 // Builds the front-end once: background image, line sprites, cursor, the seven main-menu labels, the embedded
 // screens' Setup, and a random background video data/video/menu<1..11>.bik.
 void G3_Game::FUN_00430f60()
