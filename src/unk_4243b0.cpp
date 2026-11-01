@@ -338,28 +338,29 @@ int MenuScreen8DC::Frame()
 // NONMATCHING: RALLYTROPHY 0x425220
 // original: FUN_00425220 (SEH). Loads the 14 hit-test rectangles from data/menu/controlmenu.ini.
 // Tried 2026-10-31: three UIRect* locals (site 1 / 2-13 / 14) give the original's rect slots and frame size; one discarded Bal(1) before site 14 makes exactly the last two push_backs inline insert (401->77 insns differ; Bal at other sites, 2+ calls, 5 locals, per-site block scopes were worse); still differs: push_back temp slots (original [esp+0x18]/[esp+0x1c] at sites 8/9, ours 0x1c at site 2 and 0x18 at site 14) and the first inlined insert calls size() out of line for max(size(),1).
+// Tried 2026-11-01 re-pass: per-site rect slots fixed (one shared local for all sites except two own locals at sites 7/8 = ForceFeedbackStateArrow1/2; 77->68 insns differ, slots all match); 30+ variants of Bal(1) position/count and Bal inside the macro (between new and push_back) all worse; still differs: the first inlined insert (site 13) calls size() out of line for max(size(),1) where the original inlines it, plus a swapped add ecx,eax at site 14 that follows from it.
 void MenuScreen8DC::LoadLayout()
 {
     Config config;
-    UIRect* ra;
     UIRect* rb;
     UIRect* rc;
+    UIRect* rd;
     config.Define(DAT_004f64c8, 0x1c);
     C_String path("data/menu/controlmenu.ini");
     config.Load(path.c_str(), true, false, 0);
-    C_ADDR(ra, "ConfigureControllersText_UpperLeft", "ConfigureControllersText_LowerRight");
+    C_ADDR(rb, "ConfigureControllersText_UpperLeft", "ConfigureControllersText_LowerRight");
     C_ADDR(rb, "ForceFeedbackStateText_UpperLeft", "ForceFeedbackStateText_LowerRight");
     C_ADDR(rb, "ForceFeedbackLevelText_UpperLeft", "ForceFeedbackLevelText_LowerRight");
     C_ADDR(rb, "SaturationLevelText_UpperLeft", "SaturationLevelText_LowerRight");
     C_ADDR(rb, "DeadzoneLevelText_UpperLeft", "DeadzoneLevelText_LowerRight");
     C_ADDR(rb, "BackText_UpperLeft", "BackText_LowerRight");
-    C_ADDR(rb, "ForceFeedbackStateArrow1_UpperLeft", "ForceFeedbackStateArrow1_LowerRight");
-    C_ADDR(rb, "ForceFeedbackStateArrow2_UpperLeft", "ForceFeedbackStateArrow2_LowerRight");
+    C_ADDR(rc, "ForceFeedbackStateArrow1_UpperLeft", "ForceFeedbackStateArrow1_LowerRight");
+    C_ADDR(rd, "ForceFeedbackStateArrow2_UpperLeft", "ForceFeedbackStateArrow2_LowerRight");
     C_ADDR(rb, "ForceFeedbackLevelArrow1_UpperLeft", "ForceFeedbackLevelArrow1_LowerRight");
     C_ADDR(rb, "ForceFeedbackLevelArrow2_UpperLeft", "ForceFeedbackLevelArrow2_LowerRight");
     C_ADDR(rb, "SaturationLevelArrow1_UpperLeft", "SaturationLevelArrow1_LowerRight");
     C_ADDR(rb, "SaturationLevelArrow2_UpperLeft", "SaturationLevelArrow2_LowerRight");
     C_ADDR(rb, "DeadzoneLevelArrow1_UpperLeft", "DeadzoneLevelArrow1_LowerRight");
     Bal(1);
-    C_ADDR(rc, "DeadzoneLevelArrow2_UpperLeft", "DeadzoneLevelArrow2_LowerRight");
+    C_ADDR(rb, "DeadzoneLevelArrow2_UpperLeft", "DeadzoneLevelArrow2_LowerRight");
 }
