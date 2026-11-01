@@ -1320,8 +1320,9 @@ int RaceSession::RunAttract(RaceMode* mode)
 // NONMATCHING: RALLYTROPHY 0x4921d0
 // 3125 vs 3171 bytes; same structure and calls as 0x492e40 plus the demomode and round loops. Differences:
 // register allocation, stack layout (A/B/C slots) and the shared zero register of the loop counters.
-// Tried 2026-10-30 night: ~30 variants; pad[12]/&pad[8] (unused CarInput arg) restores the 0x98 frame (281->260 insns); step ternary forms, block[4] as tasks, local declaration order, volatile rect zero stores no help; still differs: original stack order is result,number,title,{tasks|name|rect},16B unknown,text (ours puts the scoped block lowest), rect built from 4 immediate stores + reload, `unk2c - best` load order.
+// Tried 2026-10-30 night: ~30 variants; pad[12]/&pad[8] (unused CarInput arg) restores the 0x98 frame (281->260 insns); step ternary forms, block[4] as tasks, local declaration order, volatile rect zero stores no help; still differs: original stack order is result,number,title,(tasks|name|rect),16B unknown,text (ours puts the scoped block lowest), rect built from 4 immediate stores + reload, unk2c - best load order.
 // demo != 0: replays data/replay/demomode<N>.rep; else one pass per local player. Returns the last loop result.
+// Re-pass 2026-11-01: ~20 variants (block locals hoisted to function scope in several orders, pad/result/number/title declaration order, u=mode->unk2c local/volatile/StageProgress* forms for the unk2c-best load order, pad 10-14); all 260-292 insns differ, a unk2c local drops 30 bytes the wrong way; locals hoisting does not move the block slot. Still 3125 vs 3171 bytes.
 int RaceSession::Run(RaceMode* mode, int demo, BYTE a, BYTE b)
 {
     int pad[12];
