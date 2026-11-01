@@ -43,7 +43,7 @@ static inline void ClearVec(Vec3* p)
 // original: FUN_00472d00
 // NONMATCHING: RALLYTROPHY 0x472d00
 // 1434 vs 1434 bytes; 82 bytes differ, 9 insns (was 711 bytes). Fixed by: volatile reads of m->indices/m->vertices into
-// idx/v (SnowFall idiom), int w = (WORD)count, and `i << 2` in the splash index loop (i * 4 folded b to 0).
+// idx/v (SnowFall idiom), int w = (WORD)count, and `i << 2` in the splash index loop (codegen only; i*4 and i<<2 are equal).
 // Remaining: queryKind store lands after the base [ebx]=0 store (original: right after the vector init, before dropCount);
 // add esp,4 one slot early and the m->indices load one slot early in each mesh block; vertices load before vs after cmp.
 // Tried 2026-10-31 night: volatile/temp/late queryKind, volatile dropCount/dropDrawCount, store reorders, i=0 before idx,
