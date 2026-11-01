@@ -120,6 +120,7 @@ void ModelFile::ReadMaterialList(File* file)
 // NONMATCHING: RALLYTROPHY 0x4b0180
 // Static string setup, material color copies, and texture path insertion code generation differ.
 // Tried 2026-10-31: 231->46 insns (size 1628 vs 1626): Vector3 c0..c3 locals before the statics (empty dtors give EH state 3/4), Set3/Set4 forceinline row copies (fld z,y,x / fstp x,y,z), Bal(1) x5 at end, Assign args via a pointer local (call before npos load), MatView for the node->name compare, Ins0 hand-written insert with out-of-line BStr::Eos/Grow; still differs: stack slots of the five FUN_004af230 results (orig b,c,d,e ascending 0x10..0x1c, ours permuted; declaration order and q[4] array did not move them), `mov [ebp+0x7c]/0x6c/0x5c,ebx` store placement, `textures` null test form, new-Node else-xor.
+// Tried 2026-11-01 re-pass: 46->28 (size 1625 vs 1626): stores into result ordered a,b,c,d,e (stack slots of the FUN_004af230 results follow first-use order), duplicate dead WORD(0x1f)=0 removed, WORD 0x1b/0x17 zero stores placed after their row copies, volatile read of f; 20+ variants for the `textures` null test (locals, volatile, casts, !x else, self ptr) and permute -r 40 all keep `cmp [esi],0` where the original has `mov eax,[esi]; test eax,eax`, which is the only real insn left.
 Sprite* BmfReader::ReadMaterial(File* file)
 {
     int a = FUN_004af230(file);
@@ -157,25 +158,23 @@ Sprite* BmfReader::ReadMaterial(File* file)
     }
     Sprite* result = new Sprite;
     WORD(result,4) = a;
-    WORD(result,6) = c;
-    WORD(result,3) = e;
     WORD(result,5) = b;
+    WORD(result,6) = c;
     WORD(result,7) = d;
-    WORD(result,0x1f) = 0;
-
+    WORD(result,3) = e;
     Set3(&FLOAT(result,0x1c), c0.x, c0.y, c0.z);
     WORD(result,0x1f) = 0;
     Set4(&FLOAT(result,0x10), c1.x, c1.y, c1.z, *(float*)&h);
-    WORD(result,0x1b) = 0;
     Set3(&FLOAT(result,0x18), c2.x, c2.y, c2.z);
-    WORD(result,0x17) = 0;
+    WORD(result,0x1b) = 0;
     Set3(&FLOAT(result,0x14), c3.x, c3.y, c3.z);
+    WORD(result,0x17) = 0;
     FLOAT(result,0x20) = power * 100.0f;
     if (d != 1) {
         WORD(result,9) = 2;
         WORD(result,12) = 3;
     }
-    WORD(result,0x2e) = f;
+    WORD(result,0x2e) = *(volatile int*)&f;
     WORD(result,0x2f) = g;
     if (FLOAT(result,0x20) < 0.99f) WORD(result,0x20) = 0;
     WORD(result,0x27) = i;
