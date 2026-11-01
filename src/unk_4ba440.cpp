@@ -591,9 +591,7 @@ static inline float PlaneDot(float a, float b, float c, const float* p)
     return a * p[-1] + c * p[1] + b * p[0];
 }
 
-// NONMATCHING: RALLYTROPHY 0x4bab80
-// Tried 2026-10-31: lea constant 0x84 (tplanes[8]+1), early-out returns, brace-init dv, TestBounds plane-loop shape, `int i = 0;` before e/p (fixed edi/ebx regs and the 0x80000000-in-ecx test: 54->17 insns), ~25 more variants (bf[] temps, term orders, Negative(), plane-term orders); still differs: original loads all three bf[] terms before multiplying (fxch) and in the plane loop does z then x then y (fld p[1]/fmul c.z first) where VC6 reorders to x,z,y regardless of source order.
-// Tried 2026-10-31 re-pass: all 12 term-order/association permutations of the plane-loop sum, a/bb/c named temps, chained t=..+t, forceinline Dot3 helper (both arg orders), z/x/y float temps and chained temps in the 4-plane loop, volatile store; none beat 15 insns differ (remaining: original keeps all three bf[] loads live on the x87 stack then fmul/fxch, ours interleaves load+fmul; loop 2 fld z*p[1] before x*p[-1] is reordered by VC6).
+// FUNCTION: RALLYTROPHY 0x4bab80
 int ViewFrustum::TestBoundsB(const SceneBounds* b)
 {
     const float* bf = (const float*)b;
@@ -601,8 +599,10 @@ int ViewFrustum::TestBoundsB(const SceneBounds* b)
         int i = 0;
         const int* e = (const int*)((const char*)this + 0xe8);
         const float* p = (const float*)((const char*)this + 100);
+        volatile float* vb = (volatile float*)bf;
         for (; i < 6; i++, e++, p += 4) {
-            float v = (bf[e[0]] * p[0] + (bf[e[6]] * p[1] + bf[e[-6]] * p[-1])) - p[2];
+            float a = vb[e[-6]]; float c = vb[e[0]]; float d = vb[e[6]];
+            float v = (d * p[1] + a * p[-1]) + c * p[0] - p[2];
             if (*(unsigned*)&v & 0x80000000)
                 return 0;
         }
@@ -631,8 +631,7 @@ int ViewFrustum::TestBoundsB(const SceneBounds* b)
         int i = 0;
         const float* p = &tplanes[8] + 1;
         for (; i < 4; i++, p += 4) {
-            if (b->c.x * p[-1] + b->c.z * p[1] + b->c.y * p[0] + b->d < p[2])
-                return 0;
+            { float t = b->c.z * p[1]; t = b->c.x * p[-1] + t; if (t + b->c.y * p[0] + b->d < p[2]) return 0; }
         }
     }
     return 1;
