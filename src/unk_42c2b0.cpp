@@ -331,6 +331,7 @@ void GameScreen1E9C::Run(MenuGame* game)
 // A title-only device pointer local (including register storage) changes text/device register allocation; a reference is neutral.
 // Explicit x/device/y locals shift the surrounding frame; a volatile device read in the first argument is emitted after y.
 // Tried 2026-10-30 night: title/device locals (call hoisted above the 1.0f pushes), volatile y/device/sx operands, swapped product operand order, permute.py -r 20 (no match); still differs only by device load eax-vs-ecx after the FUN_00405380 call (1 byte, shifts all later jump targets).
+// Tried 2026-10-31 re-pass: 24 more variants (title text/x/y/device locals in every order and scope, device local hoisted before text->color, volatile device, const device); none beat baseline, local-device forms are worse; permute.py -r 40 (best 42 insns, no MATCH).
 // original: Frame (thiscall; GameScreen1E9C::Frame)
 int GameScreen1E9C::Frame()
 {
