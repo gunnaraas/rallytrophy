@@ -220,6 +220,7 @@ int Screen1378::Open(MenuGame* game, NetRace* net)
 // constant in edi, mine the reverse (118 bytes differ, all esi/edi swaps). Tried: declaration order, dummy `this` uses.
 // original: FUN_0043a6e0 (Screen1378::Frame: modal loop; returns -1 (back), 1 or 2)
 // Tried 2026-10-30 night: ~25 variants (local declaration orders, for-loop form, wait=finished/zero local, self pointer, unk2c store hoist, loop test order); all stay 114 insns differ, pure esi/edi swap (orig this=esi, shared zero CSE=edi; ours zero first-use grabs esi).
+// Tried 2026-11-01 re-pass: ~34 more (volatile zero local for wait/quit/finished, step-while loop with one combined break, quit|finished guard, mouse declared after first call, early Layout, dir if/else, volatile unk2c store, local this copy, early-return tail, decl-order sweeps); all stay 114 insns differ (esi/edi swap only), the structural ones worse; too far for permute.py.
 int Screen1378::Frame()
 {
     int wait = 0;
