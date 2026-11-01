@@ -538,8 +538,7 @@ static inline int Negative(float f)
     return (*(unsigned int*)&v & 0x80000000) != 0;
 }
 
-// NONMATCHING: RALLYTROPHY 0x4ba9d0
-// Tried 2026-11-01: volatile float* view of bf for the three loop loads (loads all three before multiplying: 10->2 insns); still differs: plane-loop y term is fld c.y/fmul p[0] (ours fld p[0]/fmul c.y); ~35 more variants (temps, term order, index forms, volatile c.y) did not flip it.
+// FUNCTION: RALLYTROPHY 0x4ba9d0
 int ViewFrustum::TestBounds(const SceneBounds* b)
 {
     const float* bf = (const float*)b;
@@ -566,7 +565,10 @@ int ViewFrustum::TestBounds(const SceneBounds* b)
         int i = 0;
         const float* p = &tplanes[8] + 1;
         for (; i < 4; i++, p += 4) {
-            if (b->c.x * p[-1] + b->c.z * p[1] + b->c.y * p[0] + b->d < p[2])
+            float t = p[-1] * b->c.x;
+            t = p[1] * b->c.z + t;
+            float y = b->c.y;
+            if (t + y * p[0] + b->d < p[2])
                 return 0;
         }
         return 1;
