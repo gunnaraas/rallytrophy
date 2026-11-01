@@ -96,6 +96,7 @@ void AIDriver::FUN_0049ba70()
 #pragma auto_inline(off)
 // NONMATCHING: RALLYTROPHY 0x49bb80
 // Tried 2026-10-30 night: int id local for _itoa arg (fixed 35->2, size now 962); 720 tuning store orders, 3/5 moved after later stores (x anchors, 4-perms), volatile barriers, permute -r 20; only [ebp+0x190]/[0x198] stores still land before the zero stores instead of after unk168.
+// Tried 2026-10-31 re-pass: 40 variants (tuning[3]/[5] stores after unk168 plain/volatile/int-temp/block-temp, 12 tuning source orders, volatile on unk168/unk560/unk180) and permute -r 40; all stay at 2 insns (the [0x190]/[0x198] stores sink no later than the zero stores; reordering tuning loads shifts the register choice instead).
 // Init: default tuning, clears the state and reads data/extras/ai_<car model>.ini.
 void AIDriver::Init()
 {
