@@ -994,6 +994,17 @@ inline float G2_PassFloat(float v)
     return v;
 }
 
+inline void G2_NormalizeZXY(float* p)
+{
+    float s = p[2] * p[2];
+    s = p[0] * p[0] + s;
+    s = p[1] * p[1] + s;
+    float inv = 1.0f / (float)sqrt(s);
+    p[0] *= inv;
+    p[1] *= inv;
+    p[2] *= inv;
+}
+
 inline void G2_Normalize(float* p)
 {
     float inv = 1.0f / (float)sqrt(p[0] * p[0] + p[1] * p[1] + p[2] * p[2]);
@@ -1101,7 +1112,8 @@ void ViewManager::FUN_00456b10(float dt)
             c += p0;
             G2_Sphere sph;
             sph.center = c;
-            sph.radius = d.Length() * 0.5f;
+            float dl; dl = d.z * d.z; dl = d.y * d.y + dl; dl = d.x * d.x + dl;
+            sph.radius = (float)sqrt(dl) * 0.5f;
             Vec3 lo(*cam);
             Vec3 hi(*cam);
             for (int i = 0; i < 3; i++) {
@@ -1272,7 +1284,7 @@ void ViewManager::FUN_00456b10(float dt)
             const float* a = up;
             G2_CROSS();
         }
-        G2_Normalize(row0);
+        G2_NormalizeZXY(row0);
         {
             float* dst = row1;
             const float* b = row0;

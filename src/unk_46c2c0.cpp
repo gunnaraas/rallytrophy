@@ -346,7 +346,8 @@ void Wheel::UpdateForces()
 
         // Ground-plane directions: longitudinal = axle x normal, lateral = normal x forward.
         lon = FUN_004203e0(axleW, normal);
-        if (lon.x * lon.x + lon.y * lon.y + lon.z * lon.z < 0.0001f) {
+        float lx2 = lon.x * lon.x; float lonLen2; lonLen2 = lon.y * lon.y + lon.z * lon.z; lonLen2 = lonLen2 + lx2;
+        if (lonLen2 < 0.0001f) {
             lon = forwardW;
         } else {
             float inv = 1.0f / (float)sqrt(lon.y * lon.y + lon.z * lon.z + lon.x * lon.x);

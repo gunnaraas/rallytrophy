@@ -404,7 +404,8 @@ void RainEffect::Update(RenderDevice* device, Camera* camera, int a, int b, floa
             CollTri* tri = (*r)[rand() % r->size()];
             Vec3 e = tri->v1->pos;
             e -= tri->v0->pos;
-            float inv = 1.0f / (float)sqrt(e.z * e.z + e.y * e.y + e.x * e.x);
+            float el; el = e.z * e.z; el = e.y * e.y + el; el = e.x * e.x + el;
+            float inv = 1.0f / (float)sqrt(el);
             e.x *= inv;
             e.y *= inv;
             e.z *= inv;

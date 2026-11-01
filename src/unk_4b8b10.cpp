@@ -1247,7 +1247,7 @@ void MeshModel::Refresh()
                     nv[0] = pt3->x; nv[1] = pt3->y; nv[2] = pt3->z;
                     RfPod t4; RfPod* pt4 = ((RfDir*)&d->nrmB)->Scale(&t4, w);
                     { float b = RV->n[0]; float a = pt4->x; RV->n[0] = b + a; } RV->n[1] += pt4->y; RV->n[2] += pt4->z;
-                    float q = RV->n[0] * RV->n[0] + RV->n[1] * RV->n[1] + RV->n[2] * RV->n[2];
+                    float q = RV->n[0] * RV->n[0]; q = q + RV->n[1] * RV->n[1]; q = q + RV->n[2] * RV->n[2];
                     int bits = *(int*)&q;
                     int r = DAT_00573bc0[(bits >> 12) & 0xfff] + 0x3f800000 + (-(int)((bits * 2 + 0x81000001U) & 0xfe000000) >> 2);
                     r &= 0x7fffffff;
