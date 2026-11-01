@@ -282,6 +282,7 @@ extern float DAT_00500cfc;
 // not matched.
 // Tried 2026-10-31: ~15 variants (member-wise A/B/C init 809->804, z-first init, volatile reads, scoped/reused n1-n3, flat as floats, CopyXZ for A/B/C, D moved into last arm, dead diff removed); original (frame 0x94 vs our 0xb8, ~46 bytes longer) reloads the A/B/C components from memory for each sqrt and shares slots among the Vec3 temps, which no declaration/scoping change reproduced.
 // Tried 2026-11-01 re-pass: dC is computed lazily inside the compares (inline sqrt, original has 2-comp sqrt only on the dA<dB path), 1.0f/0.0f read as DAT_004e1348/DAT_004e134c (C.y, D.y use the global 0, 3 compare/fsub sites), insns 804->777; ~20 more variants (Len2D helper, volatile component reads, shared zero, D field order, double ls for il1-3, q0/q1 placement, total order) did not help or moved size away. Still differs: original reloads A/B/C z from memory (fstp+fld) where we fst, shares zero in st(0) across C.y/D.y, and keeps il sqrt on FPU stack (fdiv st,st(1)).
+// Tried 2026-11-01 pm: 0.0/1.0/5.0/36.0 compares as DAT_ globals (no change in insns), double ls for acc and segLen/t (matches the original's FPU-resident sqrt; fixes those sequences), k as plain int with k1 read via a volatile pointer: 319->314; ~30 variants (declaration orders of vel/fwd/vel2/dir/dir2, volatile phase/k, full dir2 copy, dir2.y early) no better; the original has dir/dir2/k below pts/w and acc/phase/k1 above, ours puts dir2 above w and phase low, and it reads dir.y from memory in segLen (ours folds).
 #define POS ((Vec3*)&((CarBodyV*)car->body)->position)
 float AIDriver::FUN_0049c130()
 {
@@ -1239,6 +1240,7 @@ float AIDriver::FUN_0049d950(float unused)
 
 __forceinline static void CopyXZ(Vec3& d, const Vec3& s) { d.x = s.x; d.z = s.z; }
 
+extern float DAT_004e1348, DAT_004e27c0;
 // NONMATCHING: RALLYTROPHY 0x49d970
 // 2560 vs 2631 bytes; logic complete (racing-line target: spline point, look-ahead point, lateral target, steer
 // inputs unk34/unkc8/unkd4). Differences: stack layout of the Vec3 locals (vel/fwd/vel2 at +0xb0/+0xa4/+0x88 in the
@@ -1276,19 +1278,20 @@ float AIDriver::FUN_0049d970()
     vel2.y = body->velocity[1];
     vel2.z = body->velocity[2];
     float look = 5.0f;
-    if (vel2.Length() > 0.0f) {
-        look = (vel2.y * fwd.y + vel2.z * fwd.z + vel2.x * fwd.x) * DAT_00500d00 + 1.0f;
-        if (look < 5.0f) {
+    if (vel2.Length() > DAT_004e134c) {
+        look = (vel2.y * fwd.y + vel2.z * fwd.z + vel2.x * fwd.x) * DAT_00500d00 + DAT_004e1348;
+        if (look < DAT_004e1700) {
             look = 5.0f;
         }
     }
     if (unk170 != 0) {
-        if (look > 36.0f) {
+        if (look > DAT_004e27c0) {
             look = 36.0f;
         }
     }
-    volatile int k = index;
     int phase = unkc0;
+    int k = index;
+    int* pk = &k;
     Vec3 dir;
     Vec3 dir2;
     switch (phase) {
@@ -1305,10 +1308,11 @@ float AIDriver::FUN_0049d970()
         CopyXZ(dir2, *(Vec3*)&next->unk28[0] - *(Vec3*)seg->b);
         break;
     }
-    int k1 = k + 1;
+    int k1 = *(volatile int*)pk + 1;
     dir.y = 0;
     dir2.y = 0;
-    float acc = (1.0f - (float)unkc4) * (float)sqrt(dir.x * dir.x + dir.z * dir.z);
+    double ls0 = sqrt(dir.x * dir.x + dir.z * dir.z);
+    float acc = (DAT_004e1348 - (float)unkc4) * ls0;
     while (acc < look) {
         phase++;
         if (phase > 2) {
@@ -1338,9 +1342,10 @@ float AIDriver::FUN_0049d970()
     }
     unk17c = (int)seg;
     AiSegment* seg2 = path->At(k + 2);
-    float segLen = (float)sqrt(dir.y * dir.y + dir.x * dir.x + dir.z * dir.z);
-    float t = (segLen - (acc - look)) / segLen;
-    if (t == 0.0f) {
+    double sl = sqrt(dir.y * dir.y + dir.x * dir.x + dir.z * dir.z);
+    float segLen = (float)sl;
+    float t = (float)((sl - (acc - look)) / sl);
+    if (t == DAT_004e134c) {
         t = 0.0f;
     }
     switch (phase) {
@@ -1439,6 +1444,7 @@ float AIDriver::FUN_0049d970()
     unkd4.y = 0;
     return 0.0f;
 }
+
 
 // Cubic spline parameters (t, t*t, t*t*t) laid over AIDriver::unk134; Eval is 0x4a7f30 (thiscall, ret 0x10).
 struct AiSpline {
