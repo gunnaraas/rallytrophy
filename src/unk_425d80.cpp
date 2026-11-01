@@ -502,6 +502,9 @@ __declspec(naked) CreditText::~CreditText()
 // eax: `mov eax,ecx; mov eax,[esi+eax*4]`; every other difference is a shifted jump offset).
 // Tried 2026-10-31: begin()[a8++] as operator[], pointer arithmetic, int/unsigned k temps, a line local, split increment
 // and permute.py -r 20 (best 17 insns, no MATCH); none produces the extra register copy.
+// Tried 2026-10-31 re-pass: 20 variants (local k temp/copy j, k++ vs ++k, unsigned k, pointer b[k], cl temp before/after
+// the store, modulo hoisted before/after the a8 load, volatile k/a8, a8 stored via k+1 or directly) all stay at 1106 bytes
+// or worse; permute.py -r 40 best 17 insns, no MATCH. The `mov eax,ecx` copy of the held a8 never appears.
 // The font string at 0x4f6940 is a guess (not read from rdata).
 void __fastcall FUN_00425e50(MenuGame* game)
 {
