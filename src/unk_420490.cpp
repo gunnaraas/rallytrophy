@@ -759,6 +759,7 @@ public:
 // StagePathText preserves the observed inline/out-of-line boundaries for the directory and info paths; other sites
 // and the function's full frame/EH schedule still differ.
 // Tried 2026-10-30 night: fixed itoa/Year/EngineCC/Load/0xd4+0x68 sizes, StagePathText assign/append, per-texture temp strings (412 insns differ); still differs: this/count regs (ebx/edi vs edi/esi), ctor-time EH state placement for dir/path, and the texture-name temp lifetimes.
+// Tried 2026-11-01 re-pass: Bal(1) x1..8 at start, x1..30 at end, x1/x3 mid (17 variants): start/mid no change; end 10+ only drops 412->363 by suppressing inlines (built 2872 vs orig 3273 bytes, wrong direction); gap is whole-function regalloc (ebx=this/ebp=entry vs edi/esi), not budget.
 void StageScreen::LoadCars()
 {
     int n = count;
