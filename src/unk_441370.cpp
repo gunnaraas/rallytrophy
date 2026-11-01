@@ -3794,6 +3794,7 @@ public:
 #pragma inline_depth(1)
 // NONMATCHING: RALLYTROPHY 0x443790
 // Tried 2026-10-30 night: 17 declaration-order/placement variants of text/sx/sy/hi/lo/first/wait/picked, volatile text, dead volatile pad local; none changed the 432 differing insns (text/tmp slots 0x38/0x3c stay swapped, frame 4 bytes short); cause still unfound.
+// Tried 2026-11-01: 20 more variants (selected as volatile bool: 432->410 insns, kept since the original spills it as a byte via sete; no change from address-taken/byte-store forms, `one` at function/loop scope or before the for, named int iw/ih, text declared earlier/later/volatile); `one` still lands at 0xd4 not 0x74, slots 0x38/0x3c and frame 0x100 vs 0x104 still differ, so everything after shifts.
 // Same instruction sequence in all parts (5268 vs 5277 bytes) except register/frame-slot choices: the original keeps
 // sx/sy/hi/`one` in other frame slots (frame 0x104, mine 0x100) and holds the constant 0 in edi only from the row loop
 // on, while mine hoists `xor edi,edi` to the start of the draw block. Inline budget reproduced with TSE_Str (hand-expanded
@@ -4001,7 +4002,7 @@ int TrackSelectMenu::Run()
                     continue;
                 }
                 float x = TSE_LISTX * sx;
-                bool selected = (m_selected == i);
+                volatile bool selected = (m_selected == i);
                 Color col;
                 HudPoint one;
                 std::string buf;
