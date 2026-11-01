@@ -162,9 +162,12 @@ extern float DAT_004e150c, DAT_004e1500, DAT_004e1504, DAT_004e1508;
 struct LoopE { ~LoopE() {} };
 struct LoopCol { int v; LoopCol(int c) { v = c; } ~LoopCol() {} };
 struct LoopScl { float x, y; LoopScl(float a, float b) { x = a; y = b; } ~LoopScl() {} };
+struct LoopSclV { float x, y; LoopSclV(float a, float b) { *(volatile float*)&x = a; *(volatile float*)&y = b; } ~LoopSclV() {} };
+struct LoopCol0 { int v; LoopCol0() {} ~LoopCol0() {} };
 // NONMATCHING: RALLYTROPHY 0x424960
 // original: FUN_00424960 (fastcall, SEH). Draft: logic ported from the pseudocode, not yet compared byte for byte.
 // Tried 2026-10-30 night: per-call GetPosition() args, C_Warp/C_Pt EH temps (EH states of the centre block now match), m_selected >= 6;
+// Tried 2026-11-01 (b): LoopSclV (volatile ctor stores) + LoopCol0 (empty ctor, separate col.v assign) -> 10 insns differ; sc declared earlier (function top, before scale, before BeginScene, empty-ctor LoopSc0 with volatile stores in loop, plain float[2]) and ctor-early reference all worse (11-123); permute -r 40 best 10; still sc slot 0x48 vs 0x38 and 0x11 store after jne.
 // Tried 2026-11-01: loop-body LoopCol/LoopScl objects (empty-dtor, inline ctor) give the 0x11 EH state, the colour/1.0f slots and frame 0x70; DAT_004e150c for 400.0f; scaleX=/volatile colour read/scaleY=/color= split in the first draw block (114->12 insns differ); still differs: LoopScl lands at 0x48 (declaration order after warp/scale temps) instead of 0x38, so the C_Warp/HudPoint temps sit 8 low; EH state 0x11 store and col spill placed after the jne; tried function-scope volatile float slots, LoopSt 16-byte object, early sc placement - all worse.
 int MenuScreen8DC::Frame()
 {
@@ -297,8 +300,9 @@ int MenuScreen8DC::Frame()
             HudPoint scale = *game->GetScale();
             for (int i = 0; i < 6; i++) {
                 int selected = (i == m_selected);
-                LoopScl sc(1.0f, 1.0f);
-                LoopCol col(selected ? DAT_00508c0c : DAT_00508c04);
+                LoopSclV sc(1.0f, 1.0f);
+                LoopCol0 col;
+                col.v = selected ? DAT_00508c0c : DAT_00508c04;
                 text->color = col.v;
                 text->Print(DAT_0056b0ac, six[i].x, six[i].y, six[i].text.c_str(), 0, sc.x, sc.y);
                 float x = 520.0f * DAT_0056aea8;   // 0x4e1500
