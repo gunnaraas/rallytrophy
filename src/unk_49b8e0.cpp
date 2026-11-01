@@ -281,6 +281,7 @@ extern float DAT_00500cfc;
 // Target point and lateral offset along the AI path. Logic complete; instruction scheduling and stack slots
 // not matched.
 // Tried 2026-10-31: ~15 variants (member-wise A/B/C init 809->804, z-first init, volatile reads, scoped/reused n1-n3, flat as floats, CopyXZ for A/B/C, D moved into last arm, dead diff removed); original (frame 0x94 vs our 0xb8, ~46 bytes longer) reloads the A/B/C components from memory for each sqrt and shares slots among the Vec3 temps, which no declaration/scoping change reproduced.
+// Tried 2026-11-01 re-pass: dC is computed lazily inside the compares (inline sqrt, original has 2-comp sqrt only on the dA<dB path), 1.0f/0.0f read as DAT_004e1348/DAT_004e134c (C.y, D.y use the global 0, 3 compare/fsub sites), insns 804->777; ~20 more variants (Len2D helper, volatile component reads, shared zero, D field order, double ls for il1-3, q0/q1 placement, total order) did not help or moved size away. Still differs: original reloads A/B/C z from memory (fstp+fld) where we fst, shares zero in st(0) across C.y/D.y, and keeps il sqrt on FPU stack (fdiv st,st(1)).
 #define POS ((Vec3*)&((CarBodyV*)car->body)->position)
 float AIDriver::FUN_0049c130()
 {
@@ -308,20 +309,19 @@ float AIDriver::FUN_0049c130()
     FUN_004b3dd0(POS, (Vec3*)q0, &B, &nearest);
     B = nearest - *POS;
     B.y = 0;
-    Vec3 C; C.x = seg->b->x - q1->x; C.y = 0; C.z = seg->b->z - q1->z;
+    Vec3 C; C.x = seg->b->x - q1->x; C.y = DAT_004e134c; C.z = seg->b->z - q1->z;
     float len2 = (float)sqrt(C.z * C.z + C.x * C.x);
     FUN_004b3dd0(POS, (Vec3*)q1, &C, &nearest);
     C = nearest - *POS;
-    C.y = 0;
-    Vec3 D(next->unk28[0].x - seg->b->x, 0, next->unk28[0].z - seg->b->z);
+    C.y = DAT_004e134c;
+    Vec3 D(next->unk28[0].x - seg->b->x, DAT_004e134c, next->unk28[0].z - seg->b->z);
     float len3 = (float)sqrt(D.z * D.z + D.x * D.x);
     float total = len2 + len1 + len0;
 
     float dA = A.Length();
     float dB = B.Length();
-    float dC = (float)sqrt(C.z * C.z + C.x * C.x);
     float t;
-    if (dA < dB && dC > dA) {
+    if (dA < dB && (float)sqrt(C.z * C.z + C.x * C.x) > dA) {
         // Nearest to the first edge (node a to the first corner point).
         unkc0 = 0;
         float inv0 = DAT_00500cfc / len0;
@@ -340,21 +340,21 @@ float AIDriver::FUN_0049c130()
         unk140.x = unk134.Spline(prev->unk28[1].x, seg->a->x, q0->x, q1->x);
         unk140.z = unk134.Spline(prev->unk28[1].z, seg->a->z, q0->z, q1->z);
         float t2 = t + inv0;
-        if (t2 <= 1.0f) {
+        if (t2 <= DAT_004e1348) {
             unk134.x = t2;
             unk134.y = t2 * t2;
             unk134.z = t2 * t2 * t2;
             unk14c.x = unk134.Spline(prev->unk28[1].x, seg->a->x, q0->x, q1->x);
             unk14c.z = unk134.Spline(prev->unk28[1].z, seg->a->z, q0->z, q1->z);
         } else {
-            float t3 = (t2 - 1.0f) * len0 * inv1;
+            float t3 = (t2 - DAT_004e1348) * len0 * inv1;
             unk134.x = t3;
             unk134.y = t3 * t3;
             unk134.z = t3 * t3 * t3;
             unk14c.x = unk134.Spline(seg->a->x, q0->x, q1->x, seg->b->x);
             unk14c.z = unk134.Spline(seg->a->z, q0->z, q1->z, seg->b->z);
         }
-    } else if (dC > dB) {
+    } else if ((float)sqrt(C.z * C.z + C.x * C.x) > dB) {
         // Nearest to the middle edge.
         unkc0 = 1;
         float inv1 = DAT_00500cfc / len1;
@@ -373,14 +373,14 @@ float AIDriver::FUN_0049c130()
         unk140.x = unk134.Spline(seg->a->x, q0->x, q1->x, seg->b->x);
         unk140.z = unk134.Spline(seg->a->z, q0->z, q1->z, seg->b->z);
         float t2 = t + inv1;
-        if (t2 <= 1.0f) {
+        if (t2 <= DAT_004e1348) {
             unk134.x = t2;
             unk134.y = t2 * t2;
             unk134.z = t2 * t2 * t2;
             unk14c.x = unk134.Spline(seg->a->x, q0->x, q1->x, seg->b->x);
             unk14c.z = unk134.Spline(seg->a->z, q0->z, q1->z, seg->b->z);
         } else {
-            float t3 = (t2 - 1.0f) * len1 * inv2;
+            float t3 = (t2 - DAT_004e1348) * len1 * inv2;
             unk134.x = t3;
             unk134.y = t3 * t3;
             unk134.z = t3 * t3 * t3;
@@ -394,7 +394,7 @@ float AIDriver::FUN_0049c130()
         float inv3 = DAT_00500cfc / len3;
         C += *POS;
         C -= *(Vec3*)q1;
-        C.y = 0;
+        C.y = DAT_004e134c;
         nearest = *(Vec3*)seg->b - *(Vec3*)q1;
         t = C.Length() / nearest.Length();
         unkc4 = (int)t;
@@ -406,14 +406,14 @@ float AIDriver::FUN_0049c130()
         unk140.x = unk134.Spline(q0->x, q1->x, seg->b->x, next->unk28[0].x);
         unk140.z = unk134.Spline(q0->z, q1->z, seg->b->z, next->unk28[0].z);
         float t2 = t + inv2;
-        if (t2 <= 1.0f) {
+        if (t2 <= DAT_004e1348) {
             unk134.x = t2;
             unk134.y = t2 * t2;
             unk134.z = t2 * t2 * t2;
             unk14c.x = unk134.Spline(q0->x, q1->x, seg->b->x, next->unk28[0].x);
             unk14c.z = unk134.Spline(q0->z, q1->z, seg->b->z, next->unk28[0].z);
         } else {
-            float t3 = (t2 - 1.0f) * len2 * inv3;
+            float t3 = (t2 - DAT_004e1348) * len2 * inv3;
             unk134.x = t3;
             unk134.y = t3 * t3;
             unk134.z = t3 * t3 * t3;
@@ -424,13 +424,13 @@ float AIDriver::FUN_0049c130()
 
     // Direction from the target point to the look-ahead point, and the track width at the car.
     *(Vec3*)&unk54 = *(Vec3*)&unk14c - *(Vec3*)&unk140;
-    float w = (1.0f - unk28) * seg->a->unk24 + seg->b->unk24 * unk28;
+    float w = (DAT_004e1348 - unk28) * seg->a->unk24 + seg->b->unk24 * unk28;
     unk20 = w;
     Vec3 flat(POS->x, 0, POS->z);
 
     // Distances from the car to the two edges of the track at the target point.
     Vec3 n1(-unk54.z, 0, unk54.x);
-    float il1 = 1.0f / (float)sqrt(n1.z * n1.z + n1.x * n1.x);
+    float il1 = DAT_004e1348 / (float)sqrt(n1.z * n1.z + n1.x * n1.x);
     n1.x *= il1;
     n1.z *= il1;
     n1.x *= w;
@@ -444,7 +444,7 @@ float AIDriver::FUN_0049c130()
     float d1 = (float)sqrt(n1.z * n1.z + n1.x * n1.x + n1.y * n1.y);
     unk18 = d1;
     Vec3 n2(unk54.z, 0, -unk54.x);
-    float il2 = 1.0f / (float)sqrt(n2.x * n2.x + n2.z * n2.z);
+    float il2 = DAT_004e1348 / (float)sqrt(n2.x * n2.x + n2.z * n2.z);
     n2.x *= il2;
     n2.z *= il2;
     n2.x *= w;
@@ -471,7 +471,7 @@ float AIDriver::FUN_0049c130()
 
     // Unit sideways vector; the result is the (negated) heading component along it.
     Vec3 n3(unk54.z, 0, -unk54.x);
-    float il3 = 1.0f / (float)sqrt(n3.x * n3.x + n3.z * n3.z);
+    float il3 = DAT_004e1348 / (float)sqrt(n3.x * n3.x + n3.z * n3.z);
     n3.x *= il3;
     n3.z *= il3;
     unk3c.y = 0;
@@ -484,11 +484,11 @@ float AIDriver::FUN_0049c130()
     P.y = 0;
     Vec3 Q(unk3c.x, unk3c.y, unk3c.z);
     float lp = (float)sqrt(P.z * P.z + P.x * P.x);
-    if (lp != 0.0f && Q.Length() != 0.0f) {
-        float ip = 1.0f / lp;
+    if (lp != DAT_004e134c && Q.Length() != DAT_004e134c) {
+        float ip = DAT_004e1348 / lp;
         P.x *= ip;
         P.z *= ip;
-        float iq = 1.0f / Q.Length();
+        float iq = DAT_004e1348 / Q.Length();
         Q.x *= iq;
         Q.y *= iq;
         Q.z *= iq;
