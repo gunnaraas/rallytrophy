@@ -83,6 +83,7 @@ static __forceinline void SetV3(float& x, float& y, float& z, float a, float b, 
 // 2942 vs 2914 bytes; frame is 0x24 larger (original shares stack slots between the ini-scope locals and the
 // CarBodyEnv number buffer) and the ring-key array initialisation order differs; flow, calls and strings match
 // Tried 2026-10-30 night: msg path c_str in a local, SetV3 forceinline (fld c,b,a order), re-lea loader; 342->314; still 0x24 bigger frame (num[32] not sharing slots with ini-scope arrays: block/hoist/int[8]/volatile pad all failed), key-array init order and EH-state placement differ.
+// Re-pass 2026-11-01: 13 variants (num[32] in nested block/top/mid scope, key arrays reordered/resized, skid block, Vector2/3 order, volatile sky, layer decl order): none below 314 insns differ (base); VC6 does not overlap num with the if-scope arrays, frame stays 0x24 larger; too far (724 diff lines) for permute.
 void SceneSetup::FUN_004137c0(const FlareString& dir)
 {
     if (AT(int, 0x218) != 0) {
