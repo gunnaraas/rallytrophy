@@ -505,33 +505,36 @@ void Screen1378::Layout()
 
 // NONMATCHING: RALLYTROPHY 0x43b1d0
 // Tried 2026-10-30 night: dropped the sx/sy locals (original reads DAT_0056aea8/ac fresh for each of the 12 products and stores scaleX/Y first, before loading text), net-> reloads instead of a race local (size 4949->5002 vs 5003, but VC6 then adds a push ebp/and esp,-8 frame the original lacks), z=0 volatile register, this volatile, Bal(1) sweeps, volatile net reloads; still differs: original keeps this in ebp, 0 in ebx, frame 0xb8 vs our 0xac, and ~900 insns differ by alignment drift so no variant scored better.
+// Tried 2026-11-01 re-pass: sx/sy products read the globals directly in original slot order (54 first), scale stores via locals (fld/fstp as original), `Screen1378* volatile self = this` used for net (lobby race), m_selected and DrawCursor only: 908->696 insns differ (built 5029 vs 5003); still differs: this kept in ebp by the original, frame 0xb8 vs ours, x0 slot shared with colD in the original, ~700 insns drift.
 // The session rows follow target-observed order (including the separate 0x133 row), both first-row append calls,
 // and all 21 _Grow / 13 _Eos boundaries; register/frame scheduling remains. Evidence:
 // ev_d0320ad31102fdbe186138a6333006379715eb281e74b440e51f34d3f4d12b57.
 // original: FUN_0043b1d0 (vtable slot 3, Draw)
 void Screen1378::Slot3(int noPresent)
 {
+    Screen1378* volatile self = this;
     MenuGame* game = m_game;
     TextRenderer* big = *(TextRenderer**)((BYTE*)game + 0x1390bc);
     TextRenderer* text = game->text;
-    float sx = DAT_0056aea8, sy = DAT_0056aeac;
-    float colA = sx * 88.0f, colB = sx * 345.0f, colC = sx * 630.0f, colD = sx * 880.0f, colE = sx * 920.0f;
-    float colF = sx * 450.0f;
-    float rowTop = sy * 362.0f, lineH = sy * 32.0f, rowH = sy * 20.0f, rowBot = sy * 585.0f, rowY = sy * 210.0f;
-    float x0 = sx * 54.0f;
+    float sx = DAT_0056aea8;
     big->scaleX = sx;
+    float sy = DAT_0056aeac;
     big->scaleY = sy;
+    float colA = DAT_0056aea8 * 88.0f, colB = DAT_0056aea8 * 345.0f, colC = DAT_0056aea8 * 630.0f, colD = DAT_0056aea8 * 880.0f, colE = DAT_0056aea8 * 920.0f;
+    float rowTop = DAT_0056aeac * 362.0f, lineH = DAT_0056aeac * 32.0f, rowH = DAT_0056aeac * 20.0f, rowBot = DAT_0056aeac * 585.0f;
+    float colF = DAT_0056aea8 * 450.0f;
+    float rowY = DAT_0056aeac * 210.0f;
     std::string line;
     game->UpdateVideo();
     if (DAT_0056b0ac->BeginScene()) {
         DAT_0056b0ac->vf38(0);
         game->DrawVideo(0);
-        text->scaleX = sx * 2.0f;
-        text->scaleY = sy * 2.0f;
+        text->scaleX = DAT_0056aea8 * 2.0f;
+        text->scaleY = DAT_0056aeac * 2.0f;
         text->color = DAT_00508bfc;
-        text->Print(DAT_0056b0ac, 54.0f * sx, 142.0f * sy, FUN_00405380(0x12d), 0, 1.0f, 1.0f);
-        text->scaleX = sx;
-        text->scaleY = sy;
+        text->Print(DAT_0056b0ac, 54.0f * DAT_0056aea8, 142.0f * DAT_0056aeac, FUN_00405380(0x12d), 0, 1.0f, 1.0f);
+        text->scaleX = DAT_0056aea8;
+        text->scaleY = DAT_0056aeac;
         BuildRects();
         Color white(0xffffffff);
         text->color = white.value;
@@ -543,7 +546,7 @@ void Screen1378::Slot3(int noPresent)
         count = 0;
         if (DAT_0056b0b8->GetStatus() == 1) {
             // Snapshot the players under the session lock.
-            NetRace* race = net;
+            NetRace* race = self->net;
             race->Lock();
             count = race->m_players.size();
             LobbyEntry* out = entries;
@@ -561,8 +564,8 @@ void Screen1378::Slot3(int noPresent)
             race->Unlock();
             big->SetColor(ColorArg(0xff000000));
             float ly = rowTop + lineH;
-            big->scaleX = sx * 1.5f;
-            big->scaleY = sy * 1.5f;
+            big->scaleX = DAT_0056aea8 * 1.5f;
+            big->scaleY = DAT_0056aeac * 1.5f;
             for (int k = 0; k < count; k++) {
                 LobbyEntry* e = &entries[k];
                 C4_Icon* icon = &((C4_Icon*)DAT_0056b0c8)[e->unk20 + 0xd3];
@@ -574,9 +577,9 @@ void Screen1378::Slot3(int noPresent)
                 uv[0].y = uv[1].y = icon->top;
                 uv[1].x = uv[2].x = icon->right;
                 uv[2].y = uv[3].y = icon->bottom;
-                float x1 = x0 + sx * icon->width * 0.5f;
-                float y1 = ly + sy * icon->height * 0.5f;
-                pos[0].x = pos[3].x = x0;
+                float x1 = (DAT_0056aea8 * 54.0f) + DAT_0056aea8 * icon->width * 0.5f;
+                float y1 = ly + DAT_0056aeac * icon->height * 0.5f;
+                pos[0].x = pos[3].x = (DAT_0056aea8 * 54.0f);
                 pos[0].y = pos[1].y = ly;
                 pos[1].x = pos[2].x = x1;
                 pos[2].y = pos[3].y = y1;
@@ -591,8 +594,8 @@ void Screen1378::Slot3(int noPresent)
                 }
                 ly += lineH;
             }
-            big->scaleX = sx;
-        big->scaleY = sy;
+            big->scaleX = DAT_0056aea8;
+        big->scaleY = DAT_0056aeac;
         // Session description, one "label: value" line per row.
         T_56b0b8* session = DAT_0056b0b8;
         float y = rowY;
@@ -658,14 +661,14 @@ void Screen1378::Slot3(int noPresent)
             }
             break;
         }
-        text->Print(DAT_0056b0ac, sx * 512.0f - text->GetWidth(status, 0) * 0.5f, rowBot, status, 0, 1.0f, 1.0f);
+        text->Print(DAT_0056b0ac, DAT_0056aea8 * 512.0f - text->GetWidth(status, 0) * 0.5f, rowBot, status, 0, 1.0f, 1.0f);
 
         // The three buttons.
         ((MenuGame*)DAT_0056b0c8)->FUN_00435b60(1, 2, 1, 1, 0, -1.0f);
-        float by = sy * 262.0f;
+        float by = DAT_0056aeac * 262.0f;
         for (int j = 0; j < 3; j++) {
             Color col(0);
-            col.value = (j == m_selected) ? DAT_00508c0c : DAT_00508c04;
+            col.value = (j == self->m_selected) ? DAT_00508c0c : DAT_00508c04;
             text->color = col.value;
             const char* label;
             switch (j) {
@@ -680,21 +683,21 @@ void Screen1378::Slot3(int noPresent)
                 }
                 break;
             default:
-                by = 610.0f * sy;
+                by = 610.0f * DAT_0056aeac;
                 label = FUN_00405380(0x30);
                 break;
             }
-            text->Print(DAT_0056b0ac, x0, by, label, 0, 1.0f, 1.0f);
-            by += sy * 42.0f;
+            text->Print(DAT_0056b0ac, (DAT_0056aea8 * 54.0f), by, label, 0, 1.0f, 1.0f);
+            by += DAT_0056aeac * 42.0f;
         }
-        DrawCursor(*((MouseInput*)DAT_0056b0c0)->GetPosition());
+        self->DrawCursor(*((MouseInput*)DAT_0056b0c0)->GetPosition());
         DAT_0056b0ac->EndScene();
         if (noPresent != 1) {
             DAT_0056b0ac->Present();
         }
     }
-    big->scaleX = sx;
-    big->scaleY = sy;
+    big->scaleX = DAT_0056aea8;
+    big->scaleY = DAT_0056aeac;
 }
 
 // FUNCTION: RALLYTROPHY 0x43c560
