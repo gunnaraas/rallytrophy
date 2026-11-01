@@ -53,6 +53,7 @@ SceneEntry* ModelLoader::ReadMesh(File* file, unsigned int size)
 // NONMATCHING: RALLYTROPHY 0x4b1640
 // reason: store/load scheduling of the record copies differs (592 vs 613 bytes)
 // Tried 2026-10-30 night: float locals for v (fld/fstp stores), ScenePoint struct copy for position, store reorders, flag branch flip, 14 variants (49->38 insns); still differs: new size 0x17c vs 0x178 (ShadowObject empty-dtor members pad sizeof by 4 in unk_4ba440.h) and VC6 keeps a 0 in esi instead of immediates.
+// Tried 2026-10-31 re-pass: placement new(operator new(0x178)) fixes the push size but adds a stray temp store (45 insns); volatile zero stores/Assign arg, z-local, float vs direct v.x/y/z, store reorders (38->35 with volatile w[0x16]=0, kept); still differs: VC6 keeps 0 in esi (cmp edi,esi / push esi) where the original uses test edi,edi + immediates + xor eax for 3 stores, and the ShadowObject size 0x17c vs 0x178.
 void ModelLoader::ReadLight(File* file)
 {
     ModelPartRecord* rec = FUN_004af730(file);
@@ -89,7 +90,7 @@ void ModelLoader::ReadLight(File* file)
         w[0x56] = 0x461c4000;
     ((ModelRecordString*)&w[0x45])->Assign(*(std::string*)rec, 0, std::string::npos);
     o->position = *(ScenePoint*)((char*)rec + 0x54);
-    w[0x16] = 0;
+    *(volatile int*)&w[0x16] = 0;
     w[0x15] = 0;
     w[0x14] = 0;
     w[0x2e] = RAW(rec, 0x54);
