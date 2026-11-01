@@ -13,6 +13,7 @@ static inline int Bal(int a) { return a; }
 // NONMATCHING: RALLYTROPHY 0x4b13c0
 // reason: original copies the 3rd vector through a stack EntryVec3 with fld/fst and has one EH state; ours 773 vs 626 bytes
 // Tried 2026-10-30 night: ~20 variants (199->4 insns, size 626 now equal): Bal(1) x3 at end for inline budget (first three string compares out of line), EntryVec3 a/b/c declared up front (EH state 3), ReadVertices/ReadBatch/ReadBatchSmall as (file, e) members, unsigned loop test, f[9]=f[10]=s; still differs: VC6 emits `fstp [e+0xc]` (c.x) early instead of after the f[0] store, shifting 4 store/reg insns; volatile stores, store reorders and permute -r 20 did not move it.
+// Tried 2026-11-01 re-pass: 19 more variants (f[0..5] store reorders, volatile on single stores, int-temp copy, c.x/c.y/c.z read orders, c=*pc); source store order is ignored, stays at 4 insns (volatile f[0] or f[1] gives 7-8, volatile pc->x 20); permute -r 40 best also 4.
 SceneEntry* ModelLoader::ReadMesh(File* file, unsigned int size)
 {
     SceneEntry* e = new SceneEntry;
