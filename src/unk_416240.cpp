@@ -242,25 +242,27 @@ void __cdecl S10Copy(S10Rec* a, const S10Rec* b)
 
 static __forceinline S10Rec* S10Allocate(int n) { if (n < 0) n = 0; return (S10Rec*)S10Alloc(n * 0x48); }
 static __forceinline int S10Sz(S10Rec* f, S10Rec* l) { return f == 0 ? 0 : l - f; }
+struct S10Blk { int d[16]; };
+static __forceinline void S10Asg(S10Rec* a, const S10Rec* b) { int t = b->d[17]; *(S10Blk*)a = *(const S10Blk*)b; a->d[16] = b->d[16]; a->d[17] = t; }
 // NONMATCHING: RALLYTROPHY 0x416a40
 // Tried 2026-10-30 night: rewrote as the VC6 std::vector<T>::insert(P,M,X) shape (grow / after<M / else arms, S10Copy loops, S10Raw 16+2 dword assign, branchy n<0 alloc clamp) 232->139 insns; still differs: original keeps first in an extra frame slot (esp+0x14, frame 0x10) and M in esi, ours uses edi and a 0xc frame.
+// Re-pass 2026-11-01: arms 2/3 now assign via S10Asg (16-dword block + d[16], d[17] separately, matching the original rep movs 0x10) 139->95; ~20 variants (Fv volatile, Fd copy, sz local, M volatile, hoisted F, compare flips) did not move M to esi/q to edi nor spill k as the original; permute not run (95 insns away).
 void S10Vec::Insert(S10Rec* P, unsigned M, const S10Rec* X)
 {
     if ((unsigned)(end - last) < M) {
         S10Rec* F = first;
-        S10Rec* volatile Fv = F;
-        int n = S10Sz(F, last) + (M < (unsigned)S10Sz(F, last) ? S10Sz(F, last) : M);
+                int n = S10Sz(F, last) + (M < (unsigned)S10Sz(F, last) ? S10Sz(F, last) : M);
         S10Rec* s = S10Allocate(n);
         S10Rec* q = s;
         for (S10Rec* f1 = F; f1 != P; ++f1, ++q)
             S10Copy(q, f1);
-        for (unsigned k = M; k > 0; --k, ++q)
-            S10Copy(q, X);
+        { unsigned volatile k = M; for (; k > 0; k = k - 1, ++q)
+            S10Copy(q, X); }
         for (S10Rec* f2 = P; f2 != last; ++f2, ++q)
             S10Copy(q, f2);
         for (S10Rec* f3 = F; f3 != last; ++f3)
             f3->~S10Rec();
-        S10Free(Fv);
+        S10Free(F);
         end = s + n;
         last = s + S10Sz(F, last) + M;
         first = s;
@@ -272,7 +274,7 @@ void S10Vec::Insert(S10Rec* P, unsigned M, const S10Rec* X)
         for (unsigned k = M - (last - P); k > 0; --k, ++d)
             S10Copy(d, X);
         for (S10Rec* p = P; p != last; ++p)
-            *(S10Raw*)p = *(const S10Raw*)X;
+            S10Asg(p, X);
         last += M;
     } else {
         S10Rec* d = last;
@@ -280,9 +282,9 @@ void S10Vec::Insert(S10Rec* P, unsigned M, const S10Rec* X)
             S10Copy(d, f5);
         d = last;
         for (S10Rec* f6 = last - M; f6 != P; )
-            *(S10Raw*)--d = *(S10Raw*)--f6;
+            { --d; --f6; S10Asg(d, f6); }
         for (S10Rec* p = P; p != P + M; ++p)
-            *(S10Raw*)p = *(const S10Raw*)X;
+            S10Asg(p, X);
         last += M;
     }
 }
