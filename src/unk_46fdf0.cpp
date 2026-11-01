@@ -1031,8 +1031,14 @@ inline WORD EmitVertex(WORD* slot, ShadowVertex* src)
         g_shadowVertexOut->colour[1] = g_shadowLutG[src->colour[1]];
         g_shadowVertexOut->colour[0] = g_shadowLutB[src->colour[0]];
         g_shadowVertexOut->colour[3] = 0;
-        g_shadowVertexOut->u = dd.z * g_shadowAxes.uz + dd.y * g_shadowAxes.uy + dd.x * g_shadowAxes.ux + 0.5f;
-        g_shadowVertexOut->v = dd.z * g_shadowAxes.vz + dd.y * g_shadowAxes.vy + dd.x * g_shadowAxes.vx + 0.5f;
+        float q = dd.z * g_shadowAxes.uz;
+        q = dd.y * g_shadowAxes.uy + q;
+        q = dd.x * g_shadowAxes.ux + q;
+        g_shadowVertexOut->u = q + 0.5f;
+        q = dd.z * g_shadowAxes.vz;
+        q = dd.y * g_shadowAxes.vy + q;
+        q = dd.x * g_shadowAxes.vx + q;
+        g_shadowVertexOut->v = q + 0.5f;
         g_shadowVertexOut++;
         g_shadowVertexCount++;
         g_shadowVertexBase++;
@@ -1080,7 +1086,9 @@ void ParallelShadow::ProjectMeshes(ShadowCaster* obj)
             o.y = g_shadowSphere.centre.y - cp[-1];
             o.z = g_shadowSphere.centre.z - cp[0];
             float s = g_shadowSphere.radius + faceRadius;
-            float d = o.z * LightRow(2).z + o.y * LightRow(2).y + o.x * LightRow(2).x;
+            float d = o.z * LightRow(2).z;
+            d = o.y * LightRow(2).y + d;
+            d = o.x * LightRow(2).x + d;
             if (d > s) {
                 continue;
             }

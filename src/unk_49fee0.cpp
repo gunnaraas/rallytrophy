@@ -115,17 +115,24 @@ void AIDriver::FUN_0049ffa0()
         dir.z *= inv;
         rel = Flat(other->position - ownBody->position);
         diff = other->position - ownBody->position;
+        diff.y = 0.0f;
         Vec3 r3 = Flat((other->position + *(Vec3*)&other->vx) - (ownBody->position + *(Vec3*)&ownBody->vx));
         Vec3 v4 = Flat((other->position + *(Vec3*)&other->vx) - ownBody->position);
-        float along = diff.z * forward.z + diff.y * forward.y + diff.x * forward.x;
+        float along = diff.z * forward.z;
+        along = *(volatile float*)&diff.y * forward.y + along;
+        along = diff.x * forward.x + along;
         float ownSpeed = 0;
         if (ownBody->vx * ownBody->vx + ownBody->vy * ownBody->vy + ownBody->vz * ownBody->vz > 0.0f) {
-            ownSpeed = ownFwd.y * ownBody->vy + ownFwd.z * ownBody->vz + ownFwd.x * ownBody->vx;
+            ownSpeed = ownFwd.y * ownBody->vy;
+            ownSpeed = ownFwd.z * ownBody->vz + ownSpeed;
+            ownSpeed = ownFwd.x * ownBody->vx + ownSpeed;
         }
         unk568 = ownSpeed;
         float otherSpeed = 0;
         if (other->vx * other->vx + other->vy * other->vy + other->vz * other->vz > 0.0f) {
-            otherSpeed = otherFwd.y * other->vy + otherFwd.z * other->vz + otherFwd.x * other->vx;
+            otherSpeed = otherFwd.y * other->vy;
+            otherSpeed = otherFwd.z * other->vz + otherSpeed;
+            otherSpeed = otherFwd.x * other->vx + otherSpeed;
         }
         if (along > 0.0f) {
             float distance = (float)sqrt(rel.z * rel.z + rel.x * rel.x);

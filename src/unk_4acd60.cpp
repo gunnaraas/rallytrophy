@@ -262,7 +262,9 @@ void WrappedGlyphFont::PrintWrapped(RenderDevice* device, float x, float y,
             }
             advance = (int)((float)advance * scaleX);
             if (separator || word + (float)advance >= wrapWidth) {
-                if (word + (float)advance >= wrapWidth) {
+                float fa = (float)advance;
+                float lw;
+                if (word + fa >= wrapWidth) {
                     word = 0.0f;
                     if (start < i) {
                         memcpy(DAT_00577bcc + out, text + start, (i - start) * sizeof(unsigned short));
@@ -272,11 +274,11 @@ void WrappedGlyphFont::PrintWrapped(RenderDevice* device, float x, float y,
                     start = i;
                     --i;
                     line = DAT_004e134c;
-                } else if (line + word >= wrapWidth) {
+                } else if ((lw = line + word) >= wrapWidth) {
                     DAT_00577bcc[out++] = 10;
                     line = DAT_004e134c;
                 } else {
-                    line = line + word + (float)advance;
+                    line = lw + fa;
                     word = 0.0f;
                     if (start < i) {
                         memcpy(DAT_00577bcc + out, text + start, (i - start) * sizeof(unsigned short));
