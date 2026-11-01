@@ -332,7 +332,10 @@ void SkidMarks::AddSegment(Vec3* pos, Vec3* axis, Vec3* fallback, float alpha, i
     Vec3 delta(s->b);
     delta -= s->a;
     Vec3 side;
-    float len = delta.Length();
+    float q = delta.y * delta.y;
+    q = delta.x * delta.x + q;
+    q = delta.z * delta.z + q;
+    float len = (float)sqrt(q);
     lastLength = len;
     if (len < 0.001f) {
         side.x = fallback->x;

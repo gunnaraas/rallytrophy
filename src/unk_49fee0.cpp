@@ -115,7 +115,6 @@ void AIDriver::FUN_0049ffa0()
         dir.z *= inv;
         rel = Flat(other->position - ownBody->position);
         diff = other->position - ownBody->position;
-        diff.y = 0;
         Vec3 r3 = Flat((other->position + *(Vec3*)&other->vx) - (ownBody->position + *(Vec3*)&ownBody->vx));
         Vec3 v4 = Flat((other->position + *(Vec3*)&other->vx) - ownBody->position);
         float along = diff.z * forward.z + diff.y * forward.y + diff.x * forward.x;
@@ -187,7 +186,10 @@ void AIDriver::FUN_004a0420()
     vel.x = vel.x * k;
     vel.z = vel.z * k;
     Vec3 axis(*(Vec3*)&unkd4);
-    len = (float)sqrt(axis.x * axis.x + axis.z * axis.z + axis.y * axis.y);
+    float q = axis.x * axis.x;
+    q = axis.z * axis.z + q;
+    q = axis.y * axis.y + q;
+    len = (float)sqrt(q);
     k = 1.0f / len;
     axis.x = axis.x * k;
     axis.y = axis.y * k;
@@ -265,7 +267,7 @@ void AIDriver::FUN_004a0420()
             {
                 float inv = 1.0f / (float)sqrt(dir.x * dir.x + dir.z * dir.z + dir.y * dir.y);
                 float nx = inv * dir.x, ny = inv * dir.y, nz = inv * dir.z;
-                dotV1 = nx * vel.x + ny * vel.y + nz * vel.z;
+                dotV1 = nx * vel.x + ny * *(volatile float*)&vel.y + nz * vel.z;
                 dotA1 = nx * axis.x + nz * axis.z + ny * axis.y;
             }
         select1:
@@ -325,7 +327,7 @@ void AIDriver::FUN_004a0420()
             {
                 float inv = 1.0f / (float)sqrt(dir.x * dir.x + dir.z * dir.z + dir.y * dir.y);
                 float nx = inv * dir.x, ny = inv * dir.y, nz = inv * dir.z;
-                dotV2 = nx * vel.x + ny * vel.y + nz * vel.z;
+                dotV2 = nx * vel.x + ny * *(volatile float*)&vel.y + nz * vel.z;
                 dotA2 = nx * axis.x + nz * axis.z + ny * axis.y;
             }
         select2:

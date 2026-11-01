@@ -149,7 +149,9 @@ void StageSoundLoader::LoadSounds()
             e->SetSample(smp);
             *(V2*)&e->minTime = *(V2*)&cfg.GetVector2(Event1Delay);
             *(V2*)&e->minVol = *(V2*)&cfg.GetVector2(Event1Volume);
-            *(int*)(FLD(char*, 0x15fc) + off + 0x74) = RoundF((float)(rand() & 0x7fff) * 3.0518509e-05f * e->maxTime * 1000.0f);
+            float rt = (float)(rand() & 0x7fff) * 3.0518509e-05f;
+            rt = rt * e->maxTime;
+            *(int*)(FLD(char*, 0x15fc) + off + 0x74) = RoundF(rt * 1000.0f);
         }
         FLD(int, 0x1604) = 0;
         cfg.Close();

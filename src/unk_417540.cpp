@@ -184,7 +184,10 @@ tail:
         rate = F(0x234, float);
         dv.y = *(float*)(b2 + 0x18) - F(0x137c, float);
         dv.z = *(float*)(b2 + 0x1c) - F(0x1380, float);
-        f4 = (float)sqrt(dv.y * dv.y + dv.z * dv.z + dv.x * dv.x);
+        f4 = dv.x * dv.x;
+        f4 = dv.z * dv.z + f4;
+        f4 = dv.y * dv.y + f4;
+        f4 = (float)sqrt(f4);
         if (f4 < F(0x244, float) + F(0x244, float)) {
             if (F(0x244, float) < f4) {
                 f4 = (f4 - F(0x244, float)) / F(0x244, float);
@@ -271,7 +274,10 @@ tail:
         if (h1 < DAT_004e1348 && h2 < DAT_004e1348) {
             *(AVec*)ov = n1;
             *(AVec*)ov -= n2;
-            *(AVec*)ov *= DAT_004e1348 / ((AVec*)ov)->Length();
+            float q = ((AVec*)ov)->x * ((AVec*)ov)->x;
+            q = ((AVec*)ov)->y * ((AVec*)ov)->y + q;
+            q = ((AVec*)ov)->z * ((AVec*)ov)->z + q;
+            *(AVec*)ov *= DAT_004e1348 / (float)sqrt(q);
             *(AVec*)o2 = *(AVec*)&F(0x1384, float);
             AnimCross(ov, o2, (float*)(obj + 0x30));
             *(float*)(obj + 0x14) = F(0x1378, float);

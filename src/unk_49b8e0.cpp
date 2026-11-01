@@ -1402,7 +1402,7 @@ float AIDriver::FUN_0049d970()
         w[2] = *(float*)&next->unk44; w[3] = *(float*)&next->b->unk2c;
         break;
     }
-    float f1 = DAT_00500cfc / segLen;
+    float f1 = (float)(DAT_00500cfc / sl);
     unk134.x = t;
     float l2q = dir2.z * dir2.z; l2q = dir2.x * dir2.x + l2q; l2q = *(volatile float*)&dir2.y * *(volatile float*)&dir2.y + l2q;
     float len2 = (float)sqrt(l2q);
