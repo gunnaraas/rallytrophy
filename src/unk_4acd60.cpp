@@ -11,6 +11,8 @@ extern "C" unsigned int* __fastcall fun_004ab910(VidImage*);
 extern "C" void __cdecl fun_004bd000(void*);
 extern "C" void* __cdecl fun_004c1276(int);
 extern void __fastcall ConvertImageFormat(ImgW5*, int unused, unsigned int format); // 0x4ab010
+struct CvtTwin { void Conv(unsigned fmt); };
+#pragma comment(linker, "/alternatename:?Conv@CvtTwin@@QAEXI@Z=?ConvertImageFormat@@YIXPAUImgW5@@HI@Z")
 extern unsigned short DAT_00577bcc[];
 extern float DAT_004e134c;
 extern float DAT_004e138c;
@@ -163,14 +165,15 @@ void BitmapOps::Blit(VidImage*, int, int, int, int, int, int)
     }
 }
 
-// NONMATCHING: RALLYTROPHY 0x4acd60
-// Downsampling and logic_error path are complete; loop scheduling, register allocation and EH layout differ (939 vs 933 bytes).
-// Tried 2026-10-30 night: `if (bpp != 4)` first (161->158 insns differ), decl orders of w/h/dx/dy/pw/ph, per-channel order, dst/out pointer forms, inline bottom/right, tail if/else with junk edx, oldFormat placement; still differs: whole-function register allocation (orig this=esi,w=edi,h=ebx; ours this=edi,w=ebp,h=esi) and orig passes no edx to ConvertImageFormat.
+
+struct TX { unsigned char b, g, r, a; };
+// FUNCTION: RALLYTROPHY 0x4acd60
+// Texel bytes via a plain struct (no Color EH state); output row cursor walks in the for-increment; ConvertImageFormat called through a thiscall twin so no edx is set.
 void BitmapOps::Downsample(int xShift, int yShift, int outputFormat)
 {
     int shift = xShift + yShift;
     if (shift != 0) {
-        int w = width >> xShift;
+        int w = *(volatile int*)&width >> xShift;
         int h = height >> yShift;
         int pw = 1;
         while (pw < width) pw <<= 1;
@@ -188,21 +191,23 @@ void BitmapOps::Downsample(int xShift, int yShift, int outputFormat)
         format = 7;
         unsigned* dst = (unsigned*)fun_004c1276(h * w * 4);
         data = (unsigned char*)dst;
+        palette = 0;
+        unsigned* cur = dst;
+        int y, x;
         int dx = 1 << xShift;
         int dy = 1 << yShift;
-        palette = 0;
-        for (int y = 0; y < h; ++y) {
+        for (y = 0; y < h; cur += w, ++y) {
             int top = y << yShift;
-            unsigned* out = dst;
+            unsigned* out = cur;
             int bottom = top + dy;
-            for (int x = 0; x < w; ++x) {
+            for (x = 0; x < w; ++x) {
                 int left = x << xShift;
                 unsigned b = 0, g = 0, r = 0, a = 0;
                 int right = left + dx;
                 unsigned* row = src + width * top;
                 for (int yy = top; yy < bottom; ++yy) {
                     for (int xx = left; xx < right; ++xx) {
-                        Color pixel(row[xx]);
+                        TX pixel; *(unsigned*)&pixel = row[xx];
                         b += (unsigned)pixel.b;
                         g += (unsigned)pixel.g;
                         r += (unsigned)pixel.r;
@@ -213,7 +218,6 @@ void BitmapOps::Downsample(int xShift, int yShift, int outputFormat)
                 *out++ = ((((r >> shift) & 255) | ((a >> shift) << 8)) << 8 |
                           ((g >> shift) & 255)) << 8 | ((b >> shift) & 255);
             }
-            dst += w;
         }
         fun_004bd000(src);
         pitch = w * 4;
@@ -221,7 +225,8 @@ void BitmapOps::Downsample(int xShift, int yShift, int outputFormat)
         height = h;
         bits = 32;
         bpp = 4;
-        ConvertImageFormat((ImgW5*)this, 0, outputFormat != -1 ? outputFormat : oldFormat);
+        if (outputFormat != -1) ((CvtTwin*)this)->Conv(outputFormat);
+        else ((CvtTwin*)this)->Conv(oldFormat);
     }
 }
 
