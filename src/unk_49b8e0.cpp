@@ -1421,7 +1421,8 @@ float AIDriver::FUN_0049d970()
         unk14c.x = spline->Eval(pts[0].x, pts[1].x, pts[2].x, pts[3].x);
         unk14c.z = spline->Eval(pts[0].y, pts[1].y, pts[2].y, pts[3].y);
     } else {
-        float u2 = (u - 1.0f) * segLen * f2;
+        float u2 = (u - 1.0f) * segLen;
+        u2 = u2 * f2;
         spline->t = u2;
         spline->t2 = u2 * u2;
         spline->t3 = u2 * u2 * u2;
