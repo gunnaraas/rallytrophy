@@ -3334,6 +3334,7 @@ public:
 // Stage results table: collects the players that finished every stage (sorted by FUN_00491f70), writes
 // their place to Player+0x1a58/0x1a5c and draws title, rows (rank, country, name, time) and the prompt.
 // Tried 2026-10-30 night: volatile store of DAT_00565490=0 (keeps the original's early dead store, 183->171) and volatile-read copies of x184/x510 before the row loop (->165); plain/int copies, decl-order swaps, buffer size gave no gain; original frame 0xa0 vs 0xbc-ish still differs in float slot order (sx at +0x1c, sy +0x18).
+// Tried 2026-11-01 re-pass: 25 variants, none below 165 insns differ (result in the dead recompute slot at esp+0xb8 as the original does with mov [esp+0xb8],ebx early: 174-186; count/unfinished decl order, volatile stageCount, int copies of x184/x510, sx/sy order, scaleX/scaleY split, pressed/result first, volatile-copied x234/x894/y: 165-209); original frame is 0x14 larger (extra dword copies before the loop), too far for permute.
 // Returns 1 when the continue key was pressed and the results are final.
 int RaceMode::FUN_0048a070(int recompute)
 {
