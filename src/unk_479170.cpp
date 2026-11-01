@@ -408,6 +408,7 @@ static const float C3_mixB = 0.00253906241f, C3_mixA = 0.00134765625f; // 0x4e22
 // emitted r-first; the y-velocity temp lives at [ebp-0x20] (original reuses [ebp-0x14]) and the x jitter is not
 // spilled, so the j1/j2 order differs; pool-head store and final pops are scheduled differently.
 // Tried 2026-10-30 night: split mix, copy `local` before pool-pop stores, `t2 = n2 + n1` temp (57->29 insns); decl order, operand order, age/local order, yv split no better (swapping j1/j2 rand order scores 18 but changes behaviour). Still open: original pops the pool before s_car is loaded for the position copy, s_car reloaded after the rand result, esi/edi swap of total/n2 gone but jitter y/x merge differs.
+// Tried 2026-10-31 re-pass: SpawnCore3 recipe (pool pop first, int-copy of b, position copy after lifetime) 57->22 lines; volatile j1 + size store after z 9 insns; permute -r 40 best 4 but needs a reordered float multiply (not applied). Still open: yv/j1 stack slots (-0x14/-0x20) and j2 kept on FPU stack, final pop edi/esi order.
 // Spawn core 2 (tyre-slip dust): emission amount from slip, speed and lateral slip, one particle.
 float CarEmitterB::SpawnCore2(float a, float b)
 {
@@ -463,11 +464,13 @@ float CarEmitterB::SpawnCore2(float a, float b)
         DAT_0056ae90.Grow();
     }
     Particle* p = DAT_0056ae90.head;
-    DAT_0056ae90.head = p->next;
-    Vec3 local(s_car->position);
-    p->age = b;
+    Particle* nx = p->next;
+    int ab = *(volatile int*)&b;
+    DAT_0056ae90.head = nx;
+    *(int*)&p->age = ab;
     p->unk0 = 0;
     p->lifetime = 3.5f;
+    Vec3 local = s_car->position;
     float off = (float)(rand() & 0xff) * C_off;
     if (s_car->position.x > 0.0f) {
         off = -off;
@@ -488,12 +491,13 @@ float CarEmitterB::SpawnCore2(float a, float b)
     p->velocity -= s_body->Forward() * slip * 0.15f;
     float yv = p->velocity.y + 0.1f;
     p->velocity.y = yv;
-    float j1 = (float)((rand() & 0x3fff) - 0x1fff) * C_jit;
+    float j1;
+    *(volatile float*)&j1 = (float)((rand() & 0x3fff) - 0x1fff) * C_jit;
     float j2 = (float)((rand() & 0x3fff) - 0x1fff) * 6.103515625e-5f;
     p->velocity.x = j1 + p->velocity.x;
     p->velocity.y = yv + j2;
-    p->size = 0.2f;
     p->velocity.z = (float)((rand() & 0x3fff) - 0x1fff) * C_jit + p->velocity.z;
+    p->size = 0.2f;
     p->gravity = (float)(rand() & 0x3ff) * C_spinScale + 0.3f;
     p->frame = (rand() & 3) | 0x120;
     p->color = 0xffffffff;
