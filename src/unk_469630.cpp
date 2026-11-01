@@ -200,12 +200,12 @@ void Car::FUN_00469a00(int a, int b)
 }
 
 // NONMATCHING: RALLYTROPHY 0x469a20
-// 1009 bytes, 3 insns differ (142 -> 3). Remaining: the state-0 store sits 5 insns late after the BODY_TRANSFORM
-// pointer setup, the `lea edx,[ebp-0x4c]` for the Forward40()*k temp lands after the float push, and the loop's
+// 1009 bytes, 2 insns differ (142 -> 3 -> 2; state-0 store fixed by a volatile body pointer read `bb`). Remaining: the `lea edx,[ebp-0x4c]` for the Forward40()*k temp lands after the float push, and the loop's
 // surface-pointer slot store comes before `lea ebx,[esi+0x28]`.
 // Tried 2026-10-31: fewer uses of `effect` (Spawn(effect - 1)) lets the compiler keep c in edi (frame 0x40), vel2
 // declared after vel's stores matches the EH states, `float thr`/`r` locals give fcomp+fstp, volatile kk gives
 // the double store; permute.py -r 20 found nothing better than 3.
+// Tried 2026-11-01 re-pass: ~20 variants (kk plain copy/volatile read/decl moves, Forward40 named temp, loop wheel/surf/effect reorders, volatile surf) and permute.py -r 40 stay at 2; the hidden-return `lea edx` of Forward40()*kk and the loop slot store order have no handle.
 // Per-frame particle emission of a car: exhaust smoke, spray/debris from the body, and the dust, smoke and
 // spray of each wheel that touches a surface with effects.
 void Car::EmitEffects(float a, float b, float c)
@@ -218,9 +218,10 @@ void Car::EmitEffects(float a, float b, float c)
             float thr = 0.5f - level * 0.25f;
             if (!(r <= thr)) {
                 Vec3 pos;
-                const float* trans = (const float*)&v->body->pos;
+                EmitBody* bb = *(EmitBody* volatile*)&v->body;
+                const float* trans = (const float*)&bb->pos;
                 const float* in = (const float*)&v->exhaustPos;
-                const float* mat = v->body->m;
+                const float* mat = bb->m;
                 float* out = (float*)&pos;
                 BODY_TRANSFORM();
                 EmitBody* body = v->body;
