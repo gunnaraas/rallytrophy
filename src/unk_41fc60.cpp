@@ -85,6 +85,7 @@ inline void CrossAsm(float* o, const float* a, const float* b)
 // NONMATCHING: RALLYTROPHY 0x41fc60
 // NONMATCHING: Xform (this+0x15c) and cross-product x87 blocks now inline asm like the original (shape matches); frame already matched; first loop/EH-state structure and slot allocation still differ (1719 of 1861 bytes, 1634 differing).
 // Tried 2026-10-30 night: 17 variants (function-scope Vec3 for EH state 1, v write-back in loop 1, Vec3 copies of n/v/imp/pt, n passed as *(Vec3*)c->n, dot/decl/loop-form changes) only moved 393 to 387-402 insns; original keeps loop-1 accumulators on the FPU stack, copies n/v/imp/pt through Vec3 temps (EH states 5,7,0xa) and is 185 bytes larger, needs a whole-function Vec3-operator rewrite.
+// Tried 2026-11-01 re-pass: fixed dot/pen/denominator/lp/ln/torque sums and the spd data (imp, not v) to the original's fadd order and fields, n passed as c->n; 10 more loop-1 v-copy/writeback variants (Vec3 copies, int-routed v1/v2, holder Vec3, volatile reads) stayed at 379-393 insns; still needs the whole-function Vec3 rewrite (built 1677 vs 1861 bytes).
 void U40A850Body::FUN_0041fc60(void* stage, void* unused)
 {
     int cnt = *(int*)((char*)this + 0x23c);
@@ -101,7 +102,7 @@ void U40A850Body::FUN_0041fc60(void* stage, void* unused)
     for (i = cnt; i != 0; i--, c++) {
         float nx = c->n[0], ny = c->n[1], nz = c->n[2];
         float vx = c->v[0], vy = c->v[1], vz = c->v[2];
-        float dot = vy * nx + vz * nz + vx * ny;
+        float dot = vy * ny + vz * nz + vx * nx;
         if ((BITS(dot) & 0x80000000) == 0) {
             c->active = 0;
         } else {
@@ -135,16 +136,15 @@ void U40A850Body::FUN_0041fc60(void* stage, void* unused)
         float wx = c->imp[0] * sx * c->imp[0];
         float wy = c->imp[1] * sy * c->imp[1];
         float wz = c->imp[2] * sz * c->imp[2];
-        float pen = -(wz * c->n[2] + wx * c->n[0] + wy * c->n[1]);
+        float pen = -(wy * c->n[1] + wx * c->n[0] + wz * c->n[2]);
         if (!(DAT_004e134c < pen)) continue;
         Vec3 r(c->pt[0] - F(this, 0x224), c->pt[1] - F(this, 0x228), c->pt[2] - F(this, 0x22c));
-        Vec3 n(c->n[0], c->n[1], c->n[2]);
-        Vec3 rn = FUN_004203e0(r, n);
+        Vec3 rn = FUN_004203e0(r, *(Vec3*)c->n);
         float av[3];
         Xform(av, &rn.x, (float*)((char*)this + 0x15c));
         CrossAsm(&rn.x, av, &r.x);
         float cx = rn.x, cy = rn.y, cz = rn.z;
-        float inv = DAT_004e1348 / (cx * c->n[0] + cz * c->n[2] + cy * c->n[1] + F(this, 0x130));
+        float inv = DAT_004e1348 / (cy * c->n[1] + cz * c->n[2] + cx * c->n[0] + F(this, 0x130));
         float j = inv * pen + inv * pen;
         float jx = c->n[0] * j, jy = c->n[1] * j, jz = c->n[2] * j;
         F(this, 0x1fc) = jx + F(this, 0x1fc);
@@ -157,29 +157,29 @@ void U40A850Body::FUN_0041fc60(void* stage, void* unused)
         F(this, 0x20c) = tq.y + F(this, 0x20c);
         F(this, 0x210) = tq.z + F(this, 0x210);
         if (st != 0) {
-            float spd = -(c->n[2] * c->v[2] + c->n[0] * c->v[0] + c->n[1] * c->v[1]);
+            float spd = -(c->n[1] * c->imp[1] + c->n[0] * c->imp[0] + c->n[2] * c->imp[2]);
             if (thresh < spd) {
                 float dx = c->pt[0] - F(this, 0x14);
                 float dy = c->pt[1] - F(this, 0x18);
                 float dz = c->pt[2] - F(this, 0x1c);
                 float lp[3], ln[3];
-                lp[0] = dx * F(this, 0x20) + dy * F(this, 0x24) + dz * F(this, 0x28);
-                lp[1] = dx * F(this, 0x30) + dy * F(this, 0x34) + dz * F(this, 0x38);
-                lp[2] = dx * F(this, 0x40) + dy * F(this, 0x44) + dz * F(this, 0x48);
-                ln[0] = c->n[0] * F(this, 0x20) + F(this, 0x28) * c->n[2] + F(this, 0x24) * c->n[1];
-                ln[1] = F(this, 0x30) * c->n[0] + F(this, 0x38) * c->n[2] + F(this, 0x34) * c->n[1];
-                ln[2] = c->n[0] * F(this, 0x40) + F(this, 0x48) * c->n[2] + F(this, 0x44) * c->n[1];
+                lp[0] = dz * F(this, 0x28) + dy * F(this, 0x24) + dx * F(this, 0x20);
+                lp[1] = dz * F(this, 0x38) + dy * F(this, 0x34) + dx * F(this, 0x30);
+                lp[2] = dz * F(this, 0x48) + dy * F(this, 0x44) + dx * F(this, 0x40);
+                ln[0] = F(this, 0x24) * c->n[1] + F(this, 0x28) * c->n[2] + c->n[0] * F(this, 0x20);
+                ln[1] = F(this, 0x34) * c->n[1] + F(this, 0x38) * c->n[2] + c->n[0] * F(this, 0x30);
+                ln[2] = F(this, 0x44) * c->n[1] + F(this, 0x48) * c->n[2] + c->n[0] * F(this, 0x40);
                 st->AddContact(lp, ln, spd);
                 if (F(this, 0x240) < spd * inv) {
                     F(this, 0x25c) = c->n[0];
                     F(this, 0x260) = c->n[1];
                     F(this, 0x264) = c->n[2];
-                    F(this, 0x250) = jx * F(this, 0x20) + jy * F(this, 0x24) + jz * F(this, 0x28);
-                    F(this, 0x254) = jx * F(this, 0x30) + jy * F(this, 0x34) + jz * F(this, 0x38);
+                    F(this, 0x250) = jz * F(this, 0x28) + jy * F(this, 0x24) + jx * F(this, 0x20);
+                    F(this, 0x254) = jz * F(this, 0x38) + jy * F(this, 0x34) + jx * F(this, 0x30);
                     F(this, 0x24c) = lp[2];
                     F(this, 0x248) = lp[1];
                     F(this, 0x244) = lp[0];
-                    F(this, 0x258) = jx * F(this, 0x40) + jy * F(this, 0x44) + jz * F(this, 0x48);
+                    F(this, 0x258) = jz * F(this, 0x48) + jy * F(this, 0x44) + jx * F(this, 0x40);
                     F(this, 0x240) = spd * inv;
                 }
             }
