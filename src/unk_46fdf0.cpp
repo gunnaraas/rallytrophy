@@ -647,6 +647,7 @@ inline float Dot(const Vec3& a, const Vec3& b)
 // (ours -0x28), and its inlined point*matrix transforms and cross product keep their pointer arguments in stack temps
 // with the three outputs interleaved; every inline form tried (member, free, Vec3 ctor) is optimised harder.
 // Tried 2026-10-30 night: swapped dot-product operand order (inline and via helper, VC6 emits the same x87 order), Vec3 c at function top / after fwd / per-arm copy-init / per-arm assign / per-section block scope / extra dummy Vec3 / explicit named operator* temp; the original has c at ebp-0x18 and the operator* return temp at ebp-0x24 (ours reversed) and block-scoped c fixes the slot but moves the temp to ebp-0x5c, drops c's stores and grows the function to 3520 bytes.
+// Tried 2026-11-01 re-pass: audited every float sum against the original fadd order; the plane-offset sum 0x50950c was emitted z,y,x (original x,z,y) and the three dot tests are now chained temps in the original z,y,x association; remaining sum diffs are fld/fmul operand order only (a local copy of the dir field hoists the load, volatile reorders the whole run); frame/slot differences unchanged (3537 vs 3336 bytes).
 // Prepares the shadow plane for the frame: clip planes from the camera, the light-space matrices and the casters' volume.
 // original: FUN_00470940
 void ParallelShadow::Prepare(RenderDevice* device, void* unused, DrawContext* context, Camera* camera, int unused2)
@@ -663,7 +664,10 @@ void ParallelShadow::Prepare(RenderDevice* device, void* unused, DrawContext* co
         Vec3& dir = LightRow(2);
         Vec3* fwd = &camera->forward;
         // Keep the source products in the target's observed z/y/x accumulator order.
-        if (dir.z * fwd->z + dir.y * fwd->y + dir.x * fwd->x <= 0.0f) {
+        float dt = fwd->z * dir.z;
+        dt = fwd->y * dir.y + dt;
+        dt = dir.x * fwd->x + dt;
+        if (dt <= 0.0f) {
             DAT_00509500.x = fwd->x;
             DAT_00509500.y = fwd->y;
             DAT_00509500.z = fwd->z;
@@ -678,10 +682,15 @@ void ParallelShadow::Prepare(RenderDevice* device, void* unused, DrawContext* co
             c.z = camera->position.z;
             c += *fwd * (camera->boxMin[2] - 0.01f);
         }
-        DAT_0050950c = c.x * DAT_00509500.x + c.z * DAT_00509500.z + c.y * DAT_00509500.y;
+        DAT_0050950c = c.x * DAT_00509500.x;
+        DAT_0050950c = c.z * DAT_00509500.z + DAT_0050950c;
+        DAT_0050950c = c.y * DAT_00509500.y + DAT_0050950c;
 
         Vec3* up = &camera->up;
-        if (Dot(*up, dir) <= 0.0f) {
+        float ut = up->z * dir.z;
+        ut = up->y * dir.y + ut;
+        ut = up->x * dir.x + ut;
+        if (ut <= 0.0f) {
             DAT_00509510.x = up->x;
             DAT_00509510.y = up->y;
             DAT_00509510.z = up->z;
@@ -699,7 +708,10 @@ void ParallelShadow::Prepare(RenderDevice* device, void* unused, DrawContext* co
         DAT_0050951c = DAT_00509510.z * c.z + DAT_00509510.y * c.y + c.x * DAT_00509510.x;
 
         Vec3* right = &camera->right;
-        if (Dot(dir, *right) <= 0.0f) {
+        float dz = dir.z; float rt = dz * right->z;
+        rt = right->y * dir.y + rt;
+        rt = right->x * dir.x + rt;
+        if (rt <= 0.0f) {
             DAT_00509520.x = right->x;
             DAT_00509520.y = right->y;
             DAT_00509520.z = right->z;
