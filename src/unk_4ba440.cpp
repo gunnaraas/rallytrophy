@@ -595,6 +595,7 @@ static inline float PlaneDot(float a, float b, float c, const float* p)
 
 // NONMATCHING: RALLYTROPHY 0x4bab80
 // Tried 2026-10-31: lea constant 0x84 (tplanes[8]+1), early-out returns, brace-init dv, TestBounds plane-loop shape, `int i = 0;` before e/p (fixed edi/ebx regs and the 0x80000000-in-ecx test: 54->17 insns), ~25 more variants (bf[] temps, term orders, Negative(), plane-term orders); still differs: original loads all three bf[] terms before multiplying (fxch) and in the plane loop does z then x then y (fld p[1]/fmul c.z first) where VC6 reorders to x,z,y regardless of source order.
+// Tried 2026-10-31 re-pass: all 12 term-order/association permutations of the plane-loop sum, a/bb/c named temps, chained t=..+t, forceinline Dot3 helper (both arg orders), z/x/y float temps and chained temps in the 4-plane loop, volatile store; none beat 15 insns differ (remaining: original keeps all three bf[] loads live on the x87 stack then fmul/fxch, ours interleaves load+fmul; loop 2 fld z*p[1] before x*p[-1] is reordered by VC6).
 int ViewFrustum::TestBoundsB(const SceneBounds* b)
 {
     const float* bf = (const float*)b;
