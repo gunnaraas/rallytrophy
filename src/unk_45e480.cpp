@@ -316,6 +316,7 @@ struct TexView {
 // the std::string/vector inline-vs-call decisions of VC6's per-function inline budget, which are reproduced with
 // CarString/PtrVec/ModelObject helpers (see the declarations above).
 // Tried 2026-10-30 night: 11 variants moving/scoping `number` (top, before dir, int[10], block-scoped), sized probes, hoisting driverDir; frame is 0x1d8 vs 0x1bc because `number` sits at ebp-0xe4 (below driverDir) while the original has it at -0x70 right under dir, sharing space with later scalars; block scope moves it to the bottom (-0x1e4) with no frame shrink, declaration order has no effect; still 1124 insns differ.
+// Tried 2026-11-01 re-pass: `number` was too big; VC6 sorts large locals to the bottom, so char number[0x28] sat below driverDir and grew the frame by 0x1c; char number[12] (the _itoa max for an int) matches the frame size 0x1bc and the ModelFile slots (1124->1102 insns, 13556 bytes); still differs: number sits at -0x88 not -0x70 (orig has it above the 12-byte Vec3 slots), plus const-store register choice and Bal/inline budget. Block-scoping number or the CarPath temps, driverDir hoisting, int[3] views change nothing.
 // SYMBOL: ??0CarObject@@QAE@PAVCarTextureCache@@HHHHHI@Z
 CarObject::CarObject(CarTextureCache* a, int b, int c, int d, int e, int f, unsigned int g)
 {
@@ -484,7 +485,7 @@ CarObject::CarObject(CarTextureCache* a, int b, int c, int d, int e, int f, unsi
 
     // ---- phase D: file names, the loaders, the model files ----
     CarString dir("data/cars/car_");
-    char number[0x28];
+    char number[12];
     _itoa(b, number, 10);
     dir.AppendOut(number, strlen(number));
     dir.AppendInline("/");
