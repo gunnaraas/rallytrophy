@@ -168,6 +168,7 @@ inline float ByteToUnitF(int b)
 // byte matches the target's x87 multiply order. Open: scheduling of body copies (the original loads Car+0x24 late)
 // and the hit-array induction pointer (original: Car+0x1e0c + n*12).
 // Tried 2026-10-30 night: handbrake/steerSet/steer/gear/rpm volatile barriers, hn=&hitNormal[0][2] induction pointer (hn-2/hn+18/hn+30 args; grows to 939 bytes with extra spill slots); no gain over 74 insns differ, original also stores tyre in a local and tests the call result with the else arm first.
+// Tried 2026-10-31 re-pass: inverted if(!hit){active=0}else{...} (-4 bytes) plus volatile steerSet store last (74->73); 10 further variants (steerSet/gear/rpm order, volatile handbrake, block temps, idx volatile, inline tyre) gave no gain; remaining diff is the original's late Car+0x24 body-copy load and Car+0x1e0c+n*12 induction pointers, not a small scheduling slip.
 void Car::FUN_004658a0(PlayerSample* packet)
 {
     CarStateData* state = (CarStateData*)packet;
@@ -175,10 +176,10 @@ void Car::FUN_004658a0(PlayerSample* packet)
     FUN_0045da60(ByteToUnitF(state->brake));
     V->clutch = ByteToUnitF(state->clutch);
     V->handbrake = ByteToUnitF(state->handbrake);
-    V->steerSet = 1;
     V->steer = (float)(state->steer - 128) * 0.007874016f;
     V->gear = (signed char)state->gear;
     V->rpm = (float)state->rpm;
+    *(volatile char*)&V->steerSet = 1;
     StateBody* b = V->body;
     b->unk14c = state->body[0];
     b->unk150 = state->body[1];
@@ -219,7 +220,9 @@ void Car::FUN_004658a0(PlayerSample* packet)
             float* result = (float*)&world;
             TRANSFORM_ADD();
         }
-        if (V->query.FUN_00419770(t + 0.01f, (float*)&world, V->hitNormal[i], V->hitDepth[i], V->hitPoint[i], &V->surface[i])) {
+        if (!V->query.FUN_00419770(t + 0.01f, (float*)&world, V->hitNormal[i], V->hitDepth[i], V->hitPoint[i], &V->surface[i])) {
+            w->active = 0;
+        } else {
             int idx = V->surface[i];
             int tyre = V->stage->tyre[idx];
             w->normal[0] = V->hitNormal[i][0];
@@ -229,8 +232,6 @@ void Car::FUN_004658a0(PlayerSample* packet)
             w->friction = V->stage->friction[idx];
             w->params[0] = V->stage->normal[idx][0];
             w->params[1] = V->stage->normal[idx][1];
-        } else {
-            w->active = 0;
         }
     }
     V->damageOut = (float)state->damage * 0.003921569f;
