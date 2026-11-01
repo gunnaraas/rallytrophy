@@ -1614,6 +1614,7 @@ void Car::PhysicsStep(float dt)
 // Vec3 local slots (arm/dead) and the torque add operand order (fld tmp; fadd torque) are not reproduced.
 // Anti-roll store order and aggregate initialization each worsened the count by one; a local torque result did too.
 // Tried 2026-10-30 night: 9 more variants (plain a-b, swapped mul order, split front/rear, const-ref and volatile Sub helpers, hoisted spring locals); 84-87 insns differ at best (hoisting gives 84 but +20 bytes); original keeps both compress loads on the FPU as `fld A; fld B; fxch; fsub st,st(1)` + `fstp st(0)` (a by-value inline float call) which no source form reproduced.
+// Tried 2026-10-31 re-pass: 20 more variants (named-temp spring compress pair, init of dead/arm/world Vec3 from body fields, store order of lastLoad/load, volatile lastLoad store, arb fill order, decl order of body/c, rp increment placement, per-component force); still 84-87 insns differ; dead=*(Vec3*)rotation init makes size 756 = original but 84 insns; remaining diff is the original fld A; fld B; fxch; fsub st,st(1) compress pair and its four distinct induction pointer temps, not reproduced.
 // Per wheel: spring force + anti-roll term, applied to the body force and (arm x force) torque.
 void Car::ApplySuspensionForces()
 {
