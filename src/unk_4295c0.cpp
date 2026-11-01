@@ -369,10 +369,10 @@ int MenuScreen2A8::Run(MenuGame* game, NetRace* net_)
 
 // Module end: guard-bit initialiser of the STL header statics and its atexit registration.
 
-struct LoopSclV { float x, y; LoopSclV(float a, float b) { *(volatile float*)&x = a; *(volatile float*)&y = b; } ~LoopSclV() {} };
 struct LoopCol0 { int v; LoopCol0() {} ~LoopCol0() {} };
 static float MS2A8_COLW = 400.0f; // value column width (non-const so the original fld K; fmul sx order is kept)
 
+struct LoopSclQ { float x, y; LoopSclQ() {} ~LoopSclQ() {} };
 // NONMATCHING: RALLYTROPHY 0x42a330
 // 2976 vs 2988 bytes; 783 differing bytes. Combining rows 6/7 matches the original shared case tail; remaining open items:
 // Frame of the 9-row options screen (rows 0-7 sliders/selectors, row 8 Back; 16 arrow rects at m_items[9..24]).
@@ -382,6 +382,7 @@ static float MS2A8_COLW = 400.0f; // value column width (non-const so the origin
 // tail, pushes of value/4/0 in the head); (4) (1, 1) object and scale copy sit in swapped frame slots.
 // Tried 2026-10-30 night: 30 variants (dir/zero/loop-var decl order, volatile zero, split dir, one/scale slot order, per-site point); only a plain static float for 400.0 helped (222->218 insns); ebx/ebp swap (zero vs dir) and the 6/7 tail-merge still differ, allocator priority not found.
 // Tried 2026-11-01: separate draw cases 7 and 6 (not merged via 9-i) fixed the ebx/ebp swap (218->36); file-scope LoopCol0/LoopSclV empty-dtor loop locals and scaleX=/volatile colour read/scaleY=/color= split (->7 insns differ); still differs: the loop (1,1) scale slot sits at 0x4c/0x50 vs scale copy at 0x44/0x48 swapped, and its immediate stores are scheduled earlier than the original (after c_str null test); text-pointer reload before fadd in the first draw block. ~50 variants plus permute (best 9).
+// Tried 2026-11-01 (2): sc as empty-ctor object with its volatile 1.0 stores written AFTER `const char* s = c_str()` moves the stores past the null test (7->6), but VC6 then puts them after the join, not between test and jne. Slot swap is immovable: sc declared before/after scale, at while/BeginScene/function scope, as float[2], as HudPoint member, as a temp, extra refs to either - scale copy always 0x44, sc 0x4c (not first-use/declaration order; likely VC6's per-scope packing puts the outer-scope EH object lower). Text reload: local copy of text, x+x, split s2 - no change. ~30 variants plus permute (best 6).
 int MenuScreen2A8::Frame()
 {
     int done = 0;
@@ -561,11 +562,13 @@ int MenuScreen2A8::Frame()
             HudPoint scale = *game->GetScale();
             for (int i = 0; i < 9; i++) {
                 int selected = (i == m_selected);
-                LoopSclV sc(1.0f, 1.0f);
+                LoopSclQ sc;
                 LoopCol0 col;
                 col.v = selected ? DAT_00508c0c : DAT_00508c04;
                 text->color = col.v;
-                text->Print(DAT_0056b0ac, items[i].x, items[i].y, items[i].text.c_str(), 0, sc.x, sc.y);
+                const char* s = items[i].text.c_str();
+                *(volatile float*)&sc.y = 1.0f; *(volatile float*)&sc.x = 1.0f;
+                text->Print(DAT_0056b0ac, items[i].x, items[i].y, s, 0, sc.x, sc.y);
                 HudPoint pos;
                 pos.x = 520.0f * DAT_0056aea8;
                 pos.y = items[i].y;
