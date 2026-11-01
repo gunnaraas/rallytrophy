@@ -3976,6 +3976,7 @@ extern DWORD DAT_0056543c;             // pause-menu entry colour
 // numbering (the original has no frame slot for y or x: y lives in the dead parameter slot [esp+0x3c], mine
 // puts y/x in their own slots, shifting result/flag by 4) and the scheduling of the first title print.
 // Tried 2026-10-30 night: y aliased onto the dead `reset` slot (128->123 insns, kept); x at top/position.x, result/color/step decl reorders, SetScale/color swap, volatile step/x all no better; the temp slot for fild still lands below the locals (0x10) instead of above them (0x1c), shifting result/flag by 4.
+// Tried 2026-11-01 re-pass: y in dead reset slot, `int activate = 0;` hoisted before the loop-free code, title SetScale split into scaleX / color / scaleY stores (128->97 insns); ~30 variants of x/step/result/flag/activate declaration order, inline x, int color all leave the fild/x temp slot lowest (0x10) instead of above color (0x1c), and the original keeps result=0 in ebx where we re-xor eax.
 // The pause menu: four entries (resume, options, restart, quit), with the
 // options screen (0x48d7f0) and a quit confirmation (GameView::FUN_00437220)
 // as sub-states in unk244/unk240. `reset` selects the first entry and moves
@@ -3992,15 +3993,15 @@ int RaceMode::FUN_00489300(int reset)
         position.y = DAT_0056aeac * 280.0f;
         ((MouseHud*)DAT_0056b0c0)->SetPosition(&position);
     }
-    smallText->SetScale(DAT_0056aea8 * 2.0f, DAT_0056aeac * 2.0f);
+    smallText->scaleX = DAT_0056aea8 * 2.0f;
     smallText->color = DAT_00508bfc;
+    smallText->scaleY = DAT_0056aeac * 2.0f;
     smallText->Print(DAT_0056b0ac, DAT_0056aea8 * 54.0f, DAT_0056aeac * 142.0f, FUN_00405380(0xae), 0, 1.0f, 1.0f);
     smallText->SetScale(DAT_0056aea8, DAT_0056aeac);
-    int showRestart = 1;
+    int showRestart = 1; int activate = 0;
     if (DAT_00501454 || DAT_00501472) {
         showRestart = 0;
     }
-    int activate = 0;
     if (unk240 == 0 && unk244 == 0) {
         int dir = 0;
         if (DAT_0057ba28[0x26]) {
@@ -4083,7 +4084,7 @@ int RaceMode::FUN_00489300(int reset)
 menu:
     if (unk244 == 0) {
         m_image->Draw(DAT_0056b0ac, 0);
-        float y = DAT_0056aeac * 262.0f;
+        float& y = *(float*)&reset; y = DAT_0056aeac * 262.0f;
         float step = DAT_0056aeac * 42.0f;
         for (int i = 0; i < 4; i++) {
             if (showRestart || i != 2) {
