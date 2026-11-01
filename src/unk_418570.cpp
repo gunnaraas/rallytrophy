@@ -554,7 +554,8 @@ int TriCollector::Contact(float r, float* pos, float* a_, float* b, float* c, in
         }
     }
     if (n != 0) {
-        float k = DAT_004e1348 / (float)sqrt(s[2] * s[2] + s[0] * s[0] + s[1] * s[1]);
+        float sq = s[1] * s[1]; sq = s[0] * s[0] + sq; sq = s[2] * s[2] + sq;
+        float k = DAT_004e1348 / (float)sqrt(sq);
         s[0] = k * s[0]; s[1] = s[1] * k; s[2] = s[2] * k;
     }
     a_[0] = s[0]; a_[1] = s[1]; a_[2] = s[2];

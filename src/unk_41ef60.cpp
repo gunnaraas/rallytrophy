@@ -125,7 +125,7 @@ void RespBody::Respond(void* car, void* stage, int flag)
             v.y = c.y + w->y;
             v.z = c.z + w->z;
         }
-        float d = v.x * h[6] + v.y * h[7] + v.z * h[8];
+        float d = v.x * h[6]; d = v.y * h[7] + d; d = v.z * h[8] + d;
         if (NEG(d) == 0) {
             *(int*)h = 0;
         } else {
@@ -170,7 +170,7 @@ void RespBody::Respond(void* car, void* stage, int flag)
         float e0 = a.x * h[12];
         float e1 = a.y * h[13];
         float e2 = a.z * h[14];
-        float pen = -(e0 * h[6] + e2 * h[8] + e1 * h[7]);
+        float pen = e0 * h[6]; pen = e2 * h[8] + pen; pen = -(e1 * h[7] + pen);
         if (pen <= DAT_004e134c) {
             *(int*)h = 0;
             continue;
@@ -182,13 +182,14 @@ void RespBody::Respond(void* car, void* stage, int flag)
         Xform(bv, &rn.x, (float*)((char*)this + 0x15c));
         CrossAsm(&rn.x, bv, &r.x);
         float cx = rn.x, cy = rn.y, cz = rn.z;
-        float k = DAT_004e1348 / (cx * h[6] + cz * h[8] + cy * h[7] + BF(0x130));
+        float k = cx * h[6]; k = cz * h[8] + k; k = cy * h[7] + k + BF(0x130);
+        k = DAT_004e1348 / k;
         float imp = k * pen;
 
         // tangential (friction) direction: velocity minus its normal component
         Vec3 vel(h[9], h[10], h[11]);
         Vec3 nv(h[6], h[7], h[8]);
-        float dn = vel.z * h[8] + vel.y * h[7] + vel.x * h[6];
+        float dn = vel.z * h[8]; dn = vel.y * h[7] + dn; dn = vel.x * h[6] + dn;
         Vec3 nn = nv * dn;
         float tx = vel.x - nn.x, ty = vel.y - nn.y, tz = vel.z - nn.z;
         float t2 = tz * tz + ty * ty + tx * tx;
@@ -227,27 +228,27 @@ void RespBody::Respond(void* car, void* stage, int flag)
         BF(0x20c) = tq.y + BF(0x20c);
         BF(0x210) = tq.z + BF(0x210);
         if (car != 0) {
-            float depth = -(h[12] * h[6] + h[14] * h[8] + h[13] * h[7]);
+            float depth = h[12] * h[6]; depth = h[14] * h[8] + depth; depth = -(h[13] * h[7] + depth);
             if (limit < depth) {
                 float lx = h[3] - BF(0x14), ly = h[4] - BF(0x18), lz = h[5] - BF(0x1c);
                 float p[3], q[3];
-                p[0] = lz * BF(0x28) + ly * BF(0x24) + lx * BF(0x20);
-                p[1] = lz * BF(0x38) + ly * BF(0x34) + lx * BF(0x30);
-                p[2] = lz * BF(0x48) + ly * BF(0x44) + lx * BF(0x40);
-                q[0] = BF(0x28) * h[8] + BF(0x24) * h[7] + h[6] * BF(0x20);
-                q[1] = BF(0x38) * h[8] + BF(0x34) * h[7] + h[6] * BF(0x30);
+                p[0] = lz * BF(0x28); p[0] = ly * BF(0x24) + p[0]; p[0] = lx * BF(0x20) + p[0];
+                p[1] = lz * BF(0x38); p[1] = ly * BF(0x34) + p[1]; p[1] = lx * BF(0x30) + p[1];
+                p[2] = lz * BF(0x48); p[2] = ly * BF(0x44) + p[2]; p[2] = lx * BF(0x40) + p[2];
+                q[0] = BF(0x28) * h[8]; q[0] = BF(0x24) * h[7] + q[0]; q[0] = h[6] * BF(0x20) + q[0];
+                q[1] = BF(0x38) * h[8]; q[1] = BF(0x34) * h[7] + q[1]; q[1] = h[6] * BF(0x30) + q[1];
                 q[2] = BF(0x48) * h[8] + BF(0x44) * h[7] + h[6] * BF(0x40);
                 ((Car*)car)->AddContact((Vec3*)p, (Vec3*)q, depth);
                 if (BF(0x240) < depth * k) {
                     BF(0x25c) = h[6];
                     BF(0x260) = h[7];
                     BF(0x264) = h[8];
-                    BF(0x250) = F.z * BF(0x28) + F.y * BF(0x24) + F.x * BF(0x20);
-                    BF(0x254) = F.z * BF(0x38) + F.y * BF(0x34) + F.x * BF(0x30);
+                    float s250 = F.z * BF(0x28); s250 = F.y * BF(0x24) + s250; BF(0x250) = F.x * BF(0x20) + s250;
+                    float s254 = F.z * BF(0x38); s254 = F.y * BF(0x34) + s254; BF(0x254) = F.x * BF(0x30) + s254;
                     BF(0x24c) = p[2];
                     BF(0x248) = p[1];
                     BF(0x244) = p[0];
-                    BF(0x258) = F.z * BF(0x48) + F.y * BF(0x44) + F.x * BF(0x40);
+                    float s258 = F.z * BF(0x48); s258 = F.y * BF(0x44) + s258; BF(0x258) = F.x * BF(0x40) + s258;
                     BF(0x240) = depth * k;
                 }
             }

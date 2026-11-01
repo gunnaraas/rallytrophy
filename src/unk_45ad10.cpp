@@ -1523,7 +1523,7 @@ void Car::PhysicsStep(float dt)
     Vec3 vel;
     vel.x = b->velocity[0]; vel.y = b->velocity[1]; vel.z = b->velocity[2];
     Vec3 wp2;
-    float speed2 = vel.y * vel.y + vel.z * vel.z + vel.x * vel.x;
+    float speed2 = vel.x * vel.x; speed2 = vel.z * vel.z + speed2; speed2 = vel.y * vel.y + speed2;
     float e;
     {
         float q0 = V->wheel[0].radius, q1 = V->wheel[1].radius, q2 = V->wheel[2].radius, q3 = V->wheel[3].radius;
@@ -1544,7 +1544,8 @@ void Car::PhysicsStep(float dt)
         torque += FUN_004203e0(drag, arm);
     }
     if (speed2 > 1.0f) {
-        float inv = 1.0f / (float)sqrt(vel.x * vel.x + vel.z * vel.z + vel.y * vel.y);
+        float sq = vel.x * vel.x; sq = vel.z * vel.z + sq; sq = vel.y * vel.y + sq;
+        float inv = 1.0f / (float)sqrt(sq);
         vel.x = vel.x * inv;
         vel.y = vel.y * inv;
         vel.z = vel.z * inv;
