@@ -7,7 +7,7 @@
 #include "unk_47b4c0.h"
 #include <math.h>
 #include <stdlib.h>
-extern float DAT_004e1348, DAT_004e134c, DAT_004e13ec, DAT_004e1ec8, DAT_004e228c, DAT_004e1eb8, DAT_004e1eac;
+extern float DAT_004e225c, DAT_004e1348, DAT_004e134c, DAT_004e13ec, DAT_004e1ec8, DAT_004e228c, DAT_004e1eb8, DAT_004e1eac;
 extern "C" void fun_00478960();
 extern "C" void fun_004c1998();
 extern "C" void fun_0040b0c0();
@@ -201,6 +201,7 @@ extern float DAT_00561d78[];
 // 2113 vs 2113 bytes, same structure, but stack slots/registers differ (frame 0x208 vs 0x204; the original keeps
 // the camera in esi, device in edi, the view matrix only in memory) and several commutative fadd/fmul operand orders are flipped.
 // Tried 2026-10-30 night: dropped the alias local for GetViewMatrix (224->170 insns), ~20 variants (camera/device locals, nearZ/farZ hoists, scale=DAT_004e1348, depth term order); still differs: original keeps device in edi/camera in esi before the virtual calls, scale lives on the FPU stack into 0.03f/scale (fld 1.0 / fdiv st,st(1)) and k in the dead camera param slot [ebp+0xc].
+// Tried 2026-11-01 re-pass: 0.03125f is the global DAT_004e225c (fld K; fadd v, 170->166 insns, applied); ~25 more variants (volatile or address-taken view/viewB, camera/device locals, nearZ/farZ hoists, double k) did not move edi=device/esi=camera or the memory-resident view pointers; the register allocation follows use counts and no source form changed it.
 // Draws every live particle as a streak (a quad stretched along its screen-space velocity).
 void CarEmitterC::Render(RenderDevice* device, Camera* camera)
 {
@@ -211,8 +212,8 @@ void CarEmitterC::Render(RenderDevice* device, Camera* camera)
     EffectVertex v[4];
     v[0].u = v[3].u = DAT_00561bb8[0] + DAT_00561d78[0];
     v[0].v = v[1].v = DAT_00561bb8[1] + DAT_00561d78[1];
-    v[1].u = v[2].u = v[3].u + 0.03125f;
-    v[2].v = v[3].v = v[1].v + 0.03125f;
+    v[1].u = v[2].u = v[3].u + DAT_004e225c;
+    v[2].v = v[3].v = v[1].v + DAT_004e225c;
     v[0].normal.x = 0;
     v[0].normal.y = 0;
     v[0].normal.z = 0;
@@ -227,6 +228,7 @@ void CarEmitterC::Render(RenderDevice* device, Camera* camera)
     v[3].normal.z = 0;
     const float* view = (const float*)device->GetViewMatrix();
     const float* viewB = device->GetMatrixB();
+    Camera* volatile cvol = camera; (void)cvol;
     ViewMat cam;
     float scale;
     if (camera->hasLens) {
