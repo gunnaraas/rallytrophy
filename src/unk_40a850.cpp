@@ -54,12 +54,13 @@ inline void XformT(float* o, const float* p, const float* m, const float* t)
 // NONMATCHING: RALLYTROPHY 0x40a850
 // reason: Xform+translation x87 block (mn corner) is now inline asm like the original and the ebp frame matches; remaining: original keeps this/list in stack locals (ebp-0x44/-0x54) with different register allocation and FPU scheduling (1970 vs 2098 bytes, 1692 differing).
 // Tried 2026-10-31: ~25 variants; in-place Vec3 copy-then-modify (lo/hi/ax/ay/az as the original's int copies), volatile this/list spill slots, l->items[i]->state re-read, car-first decl order took 417->405 insns; still differs: original keeps i/hit in stack slots with this=esi/list=edi, and slot order of lo/hi/ax/ay/az/v0/w0 plus FPU scheduling.
+// Tried 2026-11-01 re-pass: fixed four float-sum associations to the original's fadd order (distance x2+z2+y2, sphere radius x2+z2+y2, velocity and angular delta sums z+y+x; products already read the right fields); 12 more variants (volatile this/list, decl orders, per-axis deltas, it->state) best 405->400; still differs: original frame 0xc4 vs ours 0xbc, this/list/i/hit spilled to slots, and FPU scheduling.
 // original: FUN_0040a850
 void U40A850Prop::Fn(int dt)
 {
     U40A850List* l = list;
     time += dt;
-    U40A850Prop* volatile self = this;
+    U40A850Prop* self = this;
     U40A850List* volatile lv = l;
     int hit = 0;
     int i = 0;
@@ -71,7 +72,7 @@ void U40A850Prop::Fn(int dt)
                 U40A850Body* a = body;
                 U40A850Body* b = car->body;
                 Vec3 d(a->pos[0], a->pos[1], a->pos[2]); d.x -= b->pos[0]; d.y -= b->pos[1]; d.z -= b->pos[2];
-                if (d.y * d.y + d.z * d.z + d.x * d.x <= 1000.0f) {
+                if (d.x * d.x + d.z * d.z + d.y * d.y <= 1000.0f) {
                     if (FUN_004ad1d0((float*)a->box + 1, (float*)b->box + 1, a->mat[0], b->mat[0], a->pos, b->pos)) {
                         car->applied = 1;
                         if (it->flag48 == 0 && a->FUN_0041d7d0(b, 1)) {
@@ -122,7 +123,7 @@ void U40A850Prop::Fn(int dt)
         s[0] = (mx.x - mn.x) * 0.5f;
         s[1] = (mx.y - mn.y) * 0.5f;
         s[2] = (mx.z - mn.z) * 0.5f;
-        s[3] = (float)sqrt(s[1] * s[1] + s[2] * s[2] + s[0] * s[0]);
+        s[3] = (float)sqrt(s[0] * s[0] + s[2] * s[2] + s[1] * s[1]);
         s[0] += mn.x;
         s[1] += mn.y;
         s[2] += mn.z;
@@ -167,8 +168,8 @@ void U40A850Prop::Fn(int dt)
         float a1 = c->vel[0], a2 = c->vel[1], a3 = c->vel[2];
         float b1 = c->ang[0], b2 = c->ang[1], b3 = c->ang[2];
         if (a1 * a1 + a2 * a2 + a3 * a3 < 0.001f && b1 * b1 + b2 * b2 + b3 * b3 < 0.001f &&
-            (a1 - v0x) * (a1 - v0x) + (a2 - v0y) * (a2 - v0y) + (a3 - v0z) * (a3 - v0z) < 0.001f &&
-            (b1 - w0x) * (b1 - w0x) + (b2 - w0y) * (b2 - w0y) + (b3 - w0z) * (b3 - w0z) < 0.001f)
+            (a3 - v0z) * (a3 - v0z) + (a2 - v0y) * (a2 - v0y) + (a1 - v0x) * (a1 - v0x) < 0.001f &&
+            (b3 - w0z) * (b3 - w0z) + (b2 - w0y) * (b2 - w0y) + (b1 - w0x) * (b1 - w0x) < 0.001f)
             active = 0;
         if (30000 < time)
             active = 0;
