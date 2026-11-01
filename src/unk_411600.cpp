@@ -49,6 +49,7 @@ static __forceinline void SetSnd(std::string& d, const char* s)
 
 // NONMATCHING: RALLYTROPHY 0x411600
 // Tried 2026-10-31: switch(level), pointer-walk loops, name = copy of this+8 (not empty), SetSnd (out-of-line _Grow via /alternatename overlay) for R0-T6 sounds, 13 trailing discarded Bal(1) (10-15 tried; 13/14 best): 1306->680 insns. Still differs: cfg at ebp-0x20 not ebp-0x7c (frame 0x84 vs 0x70: VC6 does not share the buf/RoundF temp slots; block-scoping buf, decl order, plain/forceinline RoundF, Raw2/Raw3 tmp copies all no help), Vector2/3 copy load/store interleave.
+// Tried 2026-10-31 re-pass: declaration order of cfg/fog/col/buf/name (all permutations tried) never moves cfg off ebp-0x20 (frame stays 0x84); block-scoped buf, buf in a forceinline helper, loop counter volatile (sizes 8613/8593 closer but insns differ rises) and a RoundF macro with function-scope float temp (size 9042) all no help; the original has the inlined RoundF float spill at ebp-0x10 and r temps at the top of the frame with cfg lowest, ours puts them below cfg.
 void StageConfigLoader::LoadConfig(const char* path)
 {
     ConfigVector3 fog;
