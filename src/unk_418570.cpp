@@ -510,34 +510,54 @@ float TriCollector::Closest(float r, float* pos, float* out, float* nrm)
     } while (0)
 
 // NONMATCHING: RALLYTROPHY 0x419770
-// reason: first draft; SEH/temp layout unchecked. The sphere test is a float bit-compare (*(int*)&d2 <= *(int*)&rr, rr first) on Vec3 copies of pos/lo/hi; the compare alone made it 10 bytes worse without the Vec3 rewrite.
-// The (int) compare is a float bit-compare in the original (*(int*)&d2 <= *(int*)&rr, as in Closest); alone it scores 2-8 instructions worse until the Vec3 copies are restored.
-// Tried 2026-10-31: 16 variants rewriting like ContactList (Sph419 P + Near419, ScenePoint lo/hi with -=/+= r, ScenePoint e1/e2/dv -=, hoisted rr, ok-int/bool sphere flag, extra dummy ScenePoint objects for EH numbering): 217-211 insns differ vs 220 (no real gain, sizes 1093-1136 vs 1130); still differs: original has EH states 0/3 (two more function-scope objects than P/lo/hi), sphere test materialises setle al/test eax instead of jg, and frame is 0x88 with rr at [esp+0x60].
+// Tried 2026-11-01 re-pass: 220->170 insns differ (~30 variants): rewritten Closest-style (Sph419 P, ScenePoint lo/hi with lo.x = pos[0] - r, ED empty-dtor local first, float s[3], plane test dv.x = pos[0]-a->x with dot in the asm order z,y,x, int bit-compare of d2 vs q); frame 0x88 now matches. Still differs: q/d2 stack slots (orig q at 0x64, d2 at 0x6c, P at 0x70 vs ours one slot lower), shared xor-eax zero, dv.y/z int-copied then fsub in the original but fused here, bounds checks load vertex pointers up front in the original, e1/e2 int-copied first; too far for permute.
 int TriCollector::Contact(float r, float* pos, float* a_, float* b, float* c, int* surf)
 {
-    float sx = 0.0f, sy = 0.0f, sz = 0.0f;
+    struct ED { ~ED() {} } Q0;
+    float s[3];
+    float rr = r * r;
+    s[2] = s[1] = s[0] = 0.0f;
     int n = 0;
-    float px = pos[0], py = pos[1], pz = pos[2];
-    for (unsigned i = 0; hits.begin() != 0 && i < hits.size(); i++) {
+    Sph419 P(pos, r);
+    ScenePoint lo(*(ScenePoint*)pos); lo.x = pos[0] - r; lo.y -= r; lo.z -= r;
+    ScenePoint hi(*(ScenePoint*)pos); hi.x += r; hi.y += r; hi.z += r;
+    for (unsigned i = 0;
+ hits.begin() != 0 && i < hits.size(); i++) {
         Tri* t = hits[i];
-        if ((int)((px - t->cx) * (px - t->cx) + (pz - t->cz) * (pz - t->cz) + (py - t->cy) * (py - t->cy)) <=
-            (int)((r + t->r) * (r + t->r))) {
+        float q = (r + t->r) * (r + t->r);
+        float dx = P.c.x - t->cx, dy = P.c.y - t->cy, dz = P.c.z - t->cz;
+        float d2 = dx * dx + dy * dy + dz * dz;
+        int ok = *(int*)&d2 <= *(int*)&q;
+        if (ok) {
             TVert* a = t->v[0];
-            if (DAT_004e134c <= (pos[0] - a->x) * t->nx + (pos[1] - a->y) * t->ny + (pos[2] - a->z) * t->nz) {
-                unsigned s = t->sel;
-                if (px - r <= t->v[(s >> 2) & 3]->x && t->v[s & 3]->x <= px + r &&
-                    py - r <= t->v[(s >> 6) & 3]->y && t->v[(s >> 4) & 3]->y <= py + r &&
-                    pz - r <= t->v[(s & 0xc00) >> 10]->z && t->v[(s >> 8) & 3]->z <= pz + r) {
-                    CONTACT_BODY(t);
+            ScenePoint dv(*(ScenePoint*)pos); dv.x = pos[0] - a->x; dv.y -= a->y; dv.z -= a->z;
+            if (DAT_004e134c <= dv.z * t->nz + dv.y * t->ny + dv.x * t->nx) {
+                unsigned s_ = t->sel;
+                if (t->v[(s_ >> 2) & 3]->x >= lo.x && t->v[s_ & 3]->x <= hi.x &&
+                    t->v[(s_ >> 6) & 3]->y >= lo.y && t->v[(s_ >> 4) & 3]->y <= hi.y &&
+                    t->v[(s_ & 0xc00) >> 10]->z >= lo.z && t->v[(s_ >> 8) & 3]->z <= hi.z) {
+                    ScenePoint e1(*(ScenePoint*)&t->v[1]->x); e1 -= *(ScenePoint*)&a->x;
+                    ScenePoint e2(*(ScenePoint*)&t->v[2]->x); e2 -= *(ScenePoint*)&a->x;
+                    ScenePoint cp; float tmp[3];
+                    if (fun_004b3800(pos, &a->x, &e1.x, &e2.x, &cp.x) <= rr) {
+                        if (n == 0) {
+                            if (b != 0) { b[0] = cp.x; b[1] = cp.y; b[2] = cp.z; }
+                            if (c != 0) { c[0] = t->nx; c[1] = t->ny; c[2] = t->nz; }
+                            if (surf != 0) { *surf = t->id; }
+                        }
+                        float* d = ((V3Diff*)pos)->Sub(tmp, &cp.x);
+                        s[0] += d[0]; s[1] += d[1]; s[2] += d[2];
+                        n++;
+                    }
                 }
             }
         }
     }
     if (n != 0) {
-        float k = DAT_004e1348 / (float)sqrt(sz * sz + sx * sx + sy * sy);
-        sx = k * sx; sy = sy * k; sz = sz * k;
+        float k = DAT_004e1348 / (float)sqrt(s[2] * s[2] + s[0] * s[0] + s[1] * s[1]);
+        s[0] = k * s[0]; s[1] = s[1] * k; s[2] = s[2] * k;
     }
-    a_[0] = sx; a_[1] = sy; a_[2] = sz;
+    a_[0] = s[0]; a_[1] = s[1]; a_[2] = s[2];
     return n;
 }
 
