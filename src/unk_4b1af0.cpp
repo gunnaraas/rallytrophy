@@ -98,9 +98,36 @@ void ModelFile::ReadBatch(File* file, ModelOut* out)
 
 // NONMATCHING: RALLYTROPHY 0x4b1ec0 (inlined std::string/throw construction differs from original)
 // Tried 2026-10-31: record temp sized to the record (TmpN<9>) fixed the frame (0xcc->0xc4, size now equal 963); vertex store through `unsigned int* d = (uint*)v + 5` with d[-5]..d[5] gives the original's esi+0x14 base; ~25 variants (tri-loop volatile/block-temp stores, d init placement, tail volatile mesh). Still differs: lea of d lands before the n<=0 guard, r[7]/r[8] register rotation, tri-loop load/store interleave, tail mesh-field reloads.
+// Tried 2026-11-01 re-pass: ntris-as-counter / pn volatile forms (ReadBatch's 91->67 transfer: 55 insns but 964 bytes) no better; vertex word 6 via a named temp (`unsigned c = r[6]|0xff000000; q[1] = c;`) 57->6 and volatile-cast first two tri stores 6->4 (exact size 963); still differs: `mov ecx,esi / lea esi,[ecx+0x14]` and the idx reload land before the n<=0 jle, third `add esi,2` one slot early (tried q/p init placement, volatile v/idx reloads, *p++, p++ in for-increment: no effect).
 void ModelFile::ReadBatchSmall(File* file, ModelOut* out)
 {
-    BMF_BATCH_BODY(0x24, 6, 9)
+    int mat = FUN_004af230(file);
+    int nverts = FUN_004af230(file);
+    int ntris = FUN_004af230(file);
+    DynamicMesh* mesh = new DynamicMesh;
+    BmfVertex* v = new BmfVertex[nverts];
+    unsigned short* idx = (unsigned short*)operator new(ntris * 6);
+    TmpN<9> tmp; unsigned int* r = tmp.r;
+    int i; unsigned int* q;
+    for (i = nverts, q = (unsigned int*)v + 5; i > 0; i--, q += 11) {
+        file->Read(r, 0x24);
+        q[-5] = r[0]; q[-4] = r[1]; q[-3] = r[2]; q[-2] = r[3]; q[-1] = r[4]; q[0] = r[5];
+        unsigned int c = r[6] | 0xff000000; q[1] = c; q[2] = r[7]; q[3] = r[8]; q[4] = r[7]; q[5] = r[8];
+    }
+    unsigned short* p = idx;
+    for (i = 0; i < ntris; i++) {
+        unsigned short t[4];
+        file->Read(t, 6);
+        *(volatile unsigned short*)p = t[0]; p++; *(volatile unsigned short*)p = t[1]; p++; *p = t[2]; p++;
+        if ((*(volatile int*)&t[0] & 0xffff) >= nverts || (*(volatile int*)&t[1] & 0xffff) >= nverts || (*(volatile int*)&t[2] & 0xffff) >= nverts)
+            throw file_error(FName(file), *(std::string*)&BStr("BMF batch chunk failed due to illegal vertex index"));
+    }
+    *(short*)((char*)mesh + 0xe) = ntris;
+    *(short*)((char*)mesh + 0xc) = nverts;
+    *(void**)((char*)mesh + 8) = idx;
+    *(void**)((char*)mesh + 4) = v;
+    *(void**)mesh = materials[mat];
+    out->batches.push_back(mesh);
 }
 
 // FUNCTION: RALLYTROPHY 0x4b2290
