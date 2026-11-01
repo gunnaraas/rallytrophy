@@ -63,6 +63,7 @@ void ModelCacheState::Add(void* mesh)
 // NONMATCHING: RALLYTROPHY 0x4ae1f0
 // Register allocation, list unlink scheduling and vector resize inlining differ.
 // Tried 2026-10-30 night: out-of-line Size()/Erase() resize twins (ResizeB for the two-call sites), PopHead with hoisted prev, per-site node/count vars, loop shapes, one permute run (no MATCH); still differs: phase-2 count/entries regs (esi/edi vs edi/ebp), prologue push order, lea vs mov+add in count sums, unlink cmp scheduling.
+// Tried 2026-10-31 re-pass: 20 variants (local decl order, count/flags after first loop, operand order of count sums, short-width temp, volatile self, field-assign order); all stay at 40 insns differ or worse (count/flags moved after loop 1 gives 141); regalloc (count/flags in ebp/edi, phase-2 count in edi, entries ptr in ebp) unmoved.
 void ModelCacheState::Reload(RenderDevice* renderer)
 {
     device = renderer;
