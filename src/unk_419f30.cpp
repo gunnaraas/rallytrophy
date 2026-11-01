@@ -31,26 +31,26 @@ struct LL { float x, y, z; LL() {} ~LL() {} };
 
 // NONMATCHING: RALLYTROPHY 0x419f30
 // reason: logic complete; original uses an ebp frame and 2386 vs 2510 bytes (register allocation differs); throw type/ctor arity (orig takes 1 stack arg) unverified
+// Tried 2026-11-01 re-pass: plain zeroing loops + no volatile mesh reload + volatile zero reg z improved 591->557 insns differ (2529->2489 bytes); memset, tri cursor, srcV hoist, z in loops, volatile p2.y/z all worse or equal; plateau far from 10 so no permuter.
 // Tried 2026-10-31: memset zeroing, LV/LT/LL vector-ctor new[], volatile reload of the mesh param (VM), per-iteration verts reload, size CSE (630->591 insns); still differs: original keeps 0 in esi, frame 0x74 vs ours 0x80, and the tri-filter keeps p2.y/z in stack temps; Vec3-copy and EH-state variants all landed worse.
 ColModel::ColModel(void* meshp, int)
 {
     ColSrcMesh* mesh = (ColSrcMesh*)meshp;
-    root = 0;
+    int z; *(volatile int*)&z = 0;
+    root = (TriNode*)z;
     if (mesh->nVerts == 0 || mesh->nTris == 0) {
         throw std::logic_error("missing collision model");
     }
+#define VM mesh
     int srcT = mesh->nTris;
-    ColSrcMesh* volatile* vmp = (ColSrcMesh* volatile*)&meshp;
-#define VM (*vmp)
     pad24 = 1;
-    nVerts = 0;
-    nTris = 0;
-    int nbv = VM->nVerts * 4;
-    int* remap = (int*)operator new(nbv);
+    nVerts = z;
+    nTris = z;
+    int* remap = new int[mesh->nVerts];
     int* triOk = new int[srcT];
     int i;
-    memset(remap, 0, nbv);
-    memset(triOk, 0, srcT * 4);
+    for (i = 0; i < mesh->nVerts; i++) remap[i] = 0;
+    for (i = 0; i < srcT; i++) triOk[i] = 0;
     ColSrcTri* st = VM->tris;
     for (i = 0; i < srcT; i++) {
         if (st[i].obj->kind < 0x11) {
