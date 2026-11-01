@@ -21,8 +21,8 @@ struct BodyTail {                      // contact bookkeeping at the end of a bo
         Vec3 vb = ((CPointVel*)other)->PointVel(hit); \
         va.x = va.x + v1x; va.y = va.y + v1y; va.z = va.z + v1z; \
         vb.x = vb.x + v2x; vb.y = vb.y + v2y; vb.z = vb.z + v2z; \
-        Vec3 dv(va.x - vb.x, va.y - vb.y, va.z - vb.z); \
-        float dot = dv.x * A->n[0] + dv.y * A->n[1] + dv.z * A->n[2]; \
+        Vec3 dv = va; dv.x = va.x - vb.x; dv.y = va.y - vb.y; dv.z = va.z - vb.z; \
+        float dot = dv.z * A->n[2]; dot = dv.y * A->n[1] + dot; dot = dv.x * A->n[0] + dot; \
         if (*(unsigned int*)&dot & 0x80000000) { \
             c1->pt = hit; \
             c1->n.x = A->n[0]; c1->n.y = A->n[1]; c1->n.z = A->n[2]; \
@@ -34,7 +34,7 @@ struct BodyTail {                      // contact bookkeeping at the end of a bo
         } \
         if (flag != 0) { \
             Vec3 nd = -dv; \
-            float dot2 = nd.x * B->n[0] + nd.y * B->n[1] + nd.z * B->n[2]; \
+            float dot2 = nd.z * B->n[2] + nd.y * B->n[1] + nd.x * B->n[0]; \
             if (*(unsigned int*)&dot2 & 0x80000000) { \
                 c2->tri = B; \
                 c2->pt = hit; \
@@ -98,6 +98,7 @@ inline void XformT(float* o, const float* p, const float* m, const float* t)
 // NONMATCHING: RALLYTROPHY 0x41d7d0
 // NONMATCHING: centre-point Xform x87 block (box+0x1c through mat, pos) now inline asm like the original; frame matches; rest (plane build, triangle loop, register/stack allocation) differs (5502 of 6021 bytes, 5419 differing).
 // Tried 2026-10-31: plane n/d via Vec3 view with the original d sum load order, Vec3 cc/p + 2 dead Vec3 (EH state 3), rad next to cc, cull compare as int bits (dx*dx+dz*dz+dy*dy) 1399->1348 insns; still differs: this/box register roles (orig ebx/esi), EH state-0 store before plane ctor, temps at -0xd0/-0xe0, loop induction vars, frame 0x284.
+// Tried 2026-11-01 re-pass: x87 stream now identical to the original (532 ops): contact dots are z,y,x order, plane2 d is x,y,z, both cull sums are x,z,y chained, dd compare as int bits, dv built field-wise with dot chained, v1/v2 velocities copied as ints; 1348->1323 insns; still differs: this/box register roles, frame 0x284 vs 0x278, EH states, temps at -0xd0/-0xe0, loop induction vars.
 int U40A850Body::FUN_0041d7d0(U40A850Body* other, int flag)
 {
     float* bx = (float*)box;
@@ -133,7 +134,7 @@ int U40A850Body::FUN_0041d7d0(U40A850Body* other, int flag)
         p = bx[1] * row0 + pos_;
         Vec3& N = *(Vec3*)planes[2].n;
         N = row0;
-        planes[2].d = N.z * p.z + N.y * p.y + N.x * p.x;
+        planes[2].d = N.x * p.x + N.y * p.y + N.z * p.z;
     }
     {
         p = bx[4] * row0 + pos_;
@@ -172,7 +173,7 @@ int U40A850Body::FUN_0041d7d0(U40A850Body* other, int flag)
         float dx = cx - t->c[0];
         float dy = cy - t->c[1];
         float dz = cz - t->c[2];
-        float d2 = dy * dy + dz * dz + dx * dx;
+        float d2 = dx * dx; d2 = dz * dz + d2; d2 = dy * dy + d2;
         if (*(int*)&d2 <= *(int*)&r2) {
             unsigned int m0, m1, m2;
             if (*t->v[0] == 0) { m0 = FUN_0041ba60((float*)planes, (float*)(t->v[0] + 1)); *t->v[0] = m0 | 0x100; } else { m0 = *t->v[0] & 0x3f; }
@@ -200,8 +201,9 @@ int U40A850Body::FUN_0041d7d0(U40A850Body* other, int flag)
     DAT_00508510.Clear();
     CContact* c1 = B1(this)->contacts + B1(this)->cnt;
     CContact* c2 = B1(other)->contacts + B1(other)->cnt;
-    float v1x = FL(this, 0x1cc), v1y = FL(this, 0x1d0), v1z = FL(this, 0x1d4);
-    float v2x = FL(other, 0x1cc), v2y = FL(other, 0x1d0), v2z = FL(other, 0x1d4);
+    float v1x, v1y, v1z, v2x, v2y, v2z;
+    *(int*)&v1x = *(int*)&FL(this, 0x1cc); *(int*)&v1y = *(int*)&FL(this, 0x1d0); *(int*)&v1z = *(int*)&FL(this, 0x1d4);
+    *(int*)&v2x = *(int*)&FL(other, 0x1cc); *(int*)&v2y = *(int*)&FL(other, 0x1d0); *(int*)&v2z = *(int*)&FL(other, 0x1d4);
     int hits = 0;
     int gen = 1;
     float f = DAT_004e1348 / (FL(this, 0x130) + FL(other, 0x130));
@@ -218,9 +220,9 @@ int U40A850Body::FUN_0041d7d0(U40A850Body* other, int flag)
         for (int k = tm->nTris; k != 0; k--, bt++) {
             CTri* B = bt;
             float rr = (B->r + A->r) * (B->r + A->r);
-            float dd = (A->c[1] - B->c[1]) * (A->c[1] - B->c[1]) + (A->c[2] - B->c[2]) * (A->c[2] - B->c[2]) +
-                       (A->c[0] - B->c[0]) * (A->c[0] - B->c[0]);
-            if (dd <= rr) {
+            float ex = A->c[0] - B->c[0]; float ey = A->c[1] - B->c[1]; float ez = A->c[2] - B->c[2];
+            float dd = ex * ex; dd = ez * ez + dd; dd = ey * ey + dd;
+            if (*(int*)&dd <= *(int*)&rr) {
                 float* b0 = (float*)(B->v[0] + 1);
                 float* b1 = (float*)(B->v[1] + 1);
                 float* b2 = (float*)(B->v[2] + 1);
