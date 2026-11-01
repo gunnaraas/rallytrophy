@@ -36,13 +36,10 @@ void ShadowUpdater::Update(ShadowBody* body, ShadowBody* cam, const float* centr
     float* p = prod.m;
     invProd.m[12] = -(p[12] * p[0] + p[2] * p[14] + p[1] * p[13]);
     invProd.m[13] = -(p[12] * p[4] + p[13] * p[5] + p[14] * p[6]);
-    p[9] = p[9] * p[13];
-    p[13] = 0.0f;
-    p[10] = p[10] * p[14];
-    p[14] = 0.0f;
-    p[8] = p[8] * p[12];
-    p[12] = 0.0f;
-    invProd.m[14] = -(p[9] + p[10] + p[8]);
+    float t = p[9] * p[13];
+    t = p[10] * p[14] + t;
+    t = p[8] * p[12] + t;
+    invProd.m[14] = -t;
 
     float z = cm[10];
     long double x = cm[8];
