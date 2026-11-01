@@ -57,6 +57,7 @@ inline void CopyBits(Vec3* dst, const Vec3& src)
 // sinks the vptr store, keeps the count in ebx and the mesh pointer in ebp (original: ebp and ebx), and the vertex
 // fill loop spills differently (six per-field induction pointers as in the original, other register choice).
 // Tried 2026-10-31: volatile reload of m->vertices before the fill loop (114->96 insns, kept); volatile indices reload, dropCount for count, volatile stores around the lea/push hoist and vptr, explicit normal stores and per-field pointer loops (bytes closer, insns worse); still differs: vptr/size-arithmetic placement and the fill loop's pointer/spill allocation (original keeps zero in edi, two pointers spilled).
+// Tried 2026-11-01 re-pass: 96->63 insns differ (1065 vs 1048 bytes, 482 differ) with SnowFall-style strided per-field cursors (declared v2,u2,v,u,normal,color), vertex loop wrapped in if (count > 0), triangle/vertexCount stores swapped, volatile indices reload; ~40 variants (v++ field form, u2/v2-first store orders, volatile u2/v2 cursors, int w, drops count via member/volatile, owner position) none better; still differs: vptr store and new-size lea/push hoisted to the top, original stores all u2/v2 pairs first through spilled [esp+28]/[esp+10] cursors with add [mem],0x2c, and the index-loop guard jumps into the second loop's cmp.
 CarRain::CarRain(int count)
 {
     savedTrunk.m[5] = savedTrunk.m[10] = savedTrunk.m[15] = savedTrunk.m[0] = 1.0f;
@@ -91,10 +92,10 @@ CarRain::CarRain(int count)
     m->vertices = new EffectVertex[count * 4];
     m->indices = new WORD[count * 6];
     m->unk24 = 0;
-    m->triangleCount = (WORD)(dropCount * 2);
     m->vertexCount = (WORD)(dropCount * 4);
+    m->triangleCount = (WORD)(dropCount * 2);
     m->owner = 0;
-    WORD* ix = m->indices;
+    WORD* ix = *(WORD* volatile*)&m->indices;
     int i;
     for (i = 0; i < count; i++) {
         int v = i << 2;
@@ -105,36 +106,40 @@ CarRain::CarRain(int count)
         *ix++ = v + 2;
         *ix++ = v + 3;
     }
+    if (count > 0) {
     EffectVertex* v = *((EffectVertex* volatile*)&m->vertices);
+    float* pV2 = &v[0].v2;
+    float* pU2 = &v[0].u2;
+    float* pV = &v[0].v;
+    float* pU = &v[0].u;
+    float* pNormal = &v[0].normal.x;
+    DWORD* pColor = &v[0].color;
     for (i = 0; i < count; i++) {
-        memset(&v->normal, 0, sizeof(v->normal));
-        v->color = 0xffffffff;
-        v->u = 0.25f;
-        v->v = 0.5f;
-        v->u2 = 0.0f;
-        v->v2 = 0.0f;
-        v++;
-        memset(&v->normal, 0, sizeof(v->normal));
-        v->color = 0xffffffff;
-        v->u = 0.5f;
-        v->v = 0.5f;
-        v->u2 = 0.0f;
-        v->v2 = 0.0f;
-        v++;
-        memset(&v->normal, 0, sizeof(v->normal));
-        v->color = 0xffffffff;
-        v->u = 0.5f;
-        v->v = 1.0f;
-        v->u2 = 0.0f;
-        v->v2 = 0.0f;
-        v++;
-        memset(&v->normal, 0, sizeof(v->normal));
-        v->color = 0xffffffff;
-        v->u = 0.25f;
-        v->v = 1.0f;
-        v->u2 = 0.0f;
-        v->v2 = 0.0f;
-        v++;
+        *pColor = 0xffffffff; pColor += 11;
+        pNormal[0] = 0; pNormal[1] = 0; pNormal[2] = 0; pNormal += 11;
+        *pU = 0.25f; pU += 11;
+        *pV = 0.5f; pV += 11;
+        *pU2 = 0; pU2 += 11;
+        *pV2 = 0; pV2 += 11;
+        *pColor = 0xffffffff; pColor += 11;
+        pNormal[0] = 0; pNormal[1] = 0; pNormal[2] = 0; pNormal += 11;
+        *pU = 0.5f; pU += 11;
+        *pV = 0.5f; pV += 11;
+        *pU2 = 0; pU2 += 11;
+        *pV2 = 0; pV2 += 11;
+        *pColor = 0xffffffff; pColor += 11;
+        pNormal[0] = 0; pNormal[1] = 0; pNormal[2] = 0; pNormal += 11;
+        *pU = 0.5f; pU += 11;
+        *pV = 1.0f; pV += 11;
+        *pU2 = 0; pU2 += 11;
+        *pV2 = 0; pV2 += 11;
+        *pColor = 0xffffffff; pColor += 11;
+        pNormal[0] = 0; pNormal[1] = 0; pNormal[2] = 0; pNormal += 11;
+        *pU = 0.25f; pU += 11;
+        *pV = 1.0f; pV += 11;
+        *pU2 = 0; pU2 += 11;
+        *pV2 = 0; pV2 += 11;
+    }
     }
     unk8 = 0;
 }
