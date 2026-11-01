@@ -199,9 +199,12 @@ tail:
         f5 = (float)dt * DAT_004e1400;
         r = REC(cur);
         F(0x1370, int) = F(0x1370, int) + dt;
+        // the original rounds the phase to float in the dead dt slot ([ebp+0x10]) before subtracting floor
+        float& ph = *(float*)&dt;
         f4 = (f5 * F(0x23c, float) * rate) / F(0x234, float) + F(0x13a0, float);
+        *(volatile float*)&ph = f4;
         F(0x13a0, float) = f4;
-        F(0x13a0, float) = (float)(f4 - floor(f4));
+        F(0x13a0, float) = (float)(*(volatile float*)&ph - floor(f4));
         f5 = f5 * rate + F(0x139c, float);
         f4 = r[6];
         F(0x139c, float) = f5;
