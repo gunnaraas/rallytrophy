@@ -1590,7 +1590,8 @@ float AIDriver::FUN_0049e3d0()
         unk140.z = sp.Eval(prev->unk28[1].z, ((Vec3*)cur->a)->z, u0->z, u1->z);
         float t2 = t + step0;
         if (t2 > DAT_004e1348) {
-            t2 = (t2 - DAT_004e1348) * len0 * step1;
+            t2 = (t2 - DAT_004e1348) * len0; // original chains ((t2-1)*len)*step through one temp
+            t2 = t2 * step1;
             sp.t = t2;
             sp.t2 = t2 * t2;
             sp.t3 = sp.t2 * t2;
@@ -1625,7 +1626,8 @@ float AIDriver::FUN_0049e3d0()
         unk140.z = sp.Eval(((Vec3*)cur->a)->z, u0->z, u1->z, ((Vec3*)cur->b)->z);
         float t2 = t + step1;
         if (t2 > DAT_004e1348) {
-            t2 = (t2 - DAT_004e1348) * len1 * step2;
+            t2 = (t2 - DAT_004e1348) * len1; // original chains ((t2-1)*len)*step through one temp
+            t2 = t2 * step2;
             sp.t = t2;
             sp.t2 = t2 * t2;
             sp.t3 = sp.t2 * t2;
@@ -1659,7 +1661,8 @@ float AIDriver::FUN_0049e3d0()
         unk140.z = sp.Eval(u0->z, u1->z, ((Vec3*)cur->b)->z, ((Vec3*)&next->unk28[0])->z);
         float t2 = t + step2;
         if (t2 > DAT_004e1348) {
-            t2 = (t2 - DAT_004e1348) * len2 * stepGap;
+            t2 = (t2 - DAT_004e1348) * len2; // original chains ((t2-1)*len)*step through one temp
+            t2 = t2 * stepGap;
             sp.t = t2;
             sp.t2 = t2 * t2;
             sp.t3 = sp.t2 * t2;
