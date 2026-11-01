@@ -260,6 +260,7 @@ inline void SetViewColor(RaceDeviceSlots* device, float x, float y, float z)
 // states 1/9 sharing tails differently), local slot order and awards/ebx allocation differ. No jump-table bytes
 // are counted in the 5605 listed size (tables at 0x494c38 / 0x494c4c follow the code).
 // Tried 2026-10-31: ~30 variants, 597->534 insns differ: one shared `if (awards) state = 8;` after the single/loop award branches (597->551), state 1 as switch(r) (->540), first=0 before SetVolume in its -2/-1 arms (->534). Frame (0x204) already matches; declaration order of locals has no effect on slots (usage-count driven), so quit/result, wait/accum, phase/timer/ringIndex slots stay swapped; state 9 as switch and arm reorders did not help; orig keeps per-arm SetVolume/first=0 tails and interleaves quit/result stores between push 0x7f and the call.
+// Tried 2026-11-01 re-pass: Bal(1) 0-3 at start x 0-3 at end (no effect, no std::string inlining here), volatile self, volatile m_view target/local/quit stores, zero-local z, local decl reorders (all 534-557 insns differ, built 5696 vs 5672); the ~534 differing insns are structural (state-1/9 ladder copies, slot order), not scheduling.
 int RaceSession::FUN_00493650(int demo)
 {
     int quit = 0;
