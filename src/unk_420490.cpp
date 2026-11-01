@@ -1325,15 +1325,14 @@ void StageScreen::DrawPhoto(StageEntry* e, int flag)
 }
 
 
-// NONMATCHING: RALLYTROPHY 0x4239c0
-// Tried 2026-10-30 night: FColor default ctor with inline Sets, reversed chains, hand-ordered pos/uv stores, int-copy of C/D, ternary/dev-local/SetTexture variants, permuter; 9 insns differ: original loads the vtable before the sprite ternary and sets EH state 2 after it.
+// FUNCTION: RALLYTROPHY 0x4239c0
 void StageScreen::DrawBook(StageEntry* e, int flag)
 {
     Vec2 pos[4];
     Vec2 uv[4];
     FColor color;
     RaceDeviceSlots* dev = (RaceDeviceSlots*)DAT_0056b0ac;
-    dev->SetTexture(flag ? e->h1 : unk230);
+    if (flag) dev->SetTexture(e->h1); else dev->SetTexture(unk230);
     float x, y;
     pos[0].x = x = DAT_0056aea8 * DAT_004e1490;
     pos[0].y = y = DAT_0056aeac * DAT_004e1494;
