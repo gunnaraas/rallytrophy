@@ -290,6 +290,7 @@ static inline int Bal(int a) { return a + 1; }
 // (original +0x18), the digit chars are kept in cl/dl (original al), and the runtime_error copy inlines _Tidy (original
 // calls 0x402700).
 // Tried 2026-10-31 (second pass, 87->35 insns, size now 1644 = original): 6 trailing discarded Bal(1) keep the runtime_error _Tidy out of line (4 do nothing, 6-12 same); int tens/ones + (char)(t+'0') puts the digits in al; a float* cp induction (zStiffness.v[2], cp += 16) gives the original +0x18 bias. Still differs: value lands in ebx instead of ebp when cp exists (any cp placement, volatile reads of value tried), and the fld/fmul operand order of the vec3 scales (expression form, temp k, volatile all leave it). Earlier: byte-cursor induction (sibling 0x45e480 idiom) for all or only the first four stores moves the bias only to +0x14 or breaks ebp allocation; remaining diffs are EH/string setup, digit regs (cl/dl vs al) and fld/fmul operand order of the vec3 scale.
+// Tried 2026-10-31 night (third pass, 35->32): per-scale `{ float c_ = cp[k]; cp[k] = scale->f * c_; }` is the best of ~45 variants (named s/c temps, interleaved store/scale order, flips, value/cp/scale/i placement and k-copies, volatile all worse or equal); still differs: value in ebx not ebp (inline PathString strlen temp takes ebp), movs/mov-esi scheduling, and fld/fmul operand order of the vec3 scales which VC6 will not flip.
 void Car::FUN_00465e90(int value)
 {
     CarSetupView* v = (CarSetupView*)this;
@@ -346,44 +347,43 @@ void Car::FUN_00465e90(int value)
             *(int*)&cp[-1] = r.i[1];
             *(int*)&cp[0] = r.i[2];
         }
-        cp[-2] *= scale->zStiffness.v[0];
-        cp[-1] *= scale->zStiffness.v[1];
-        cp[0] *= scale->zStiffness.v[2];
+        { float c_ = cp[-2]; cp[-2] = scale->zStiffness.v[0] * c_; }
+        { float c_ = cp[-1]; cp[-1] = scale->zStiffness.v[1] * c_; }
+        { float c_ = cp[0]; cp[0] = scale->zStiffness.v[2] * c_; }
         {
             const TyreF3& r = *(const TyreF3*)&config.GetVector3(xStiffness);
             *(int*)&cp[1] = r.i[0];
             *(int*)&cp[2] = r.i[1];
             *(int*)&cp[3] = r.i[2];
         }
-        cp[1] *= scale->xStiffness.v[0];
-        cp[2] *= scale->xStiffness.v[1];
-        cp[3] *= scale->xStiffness.v[2];
+        { float c_ = cp[1]; cp[1] = scale->xStiffness.v[0] * c_; }
+        { float c_ = cp[2]; cp[2] = scale->xStiffness.v[1] * c_; }
+        { float c_ = cp[3]; cp[3] = scale->xStiffness.v[2] * c_; }
         {
             const TyreF2& r = *(const TyreF2*)&config.GetVector2(cStiffness);
             *(int*)&cp[4] = r.i[0];
             *(int*)&cp[5] = r.i[1];
         }
-        cp[4] *= scale->cStiffness.v[0];
-        cp[5] *= scale->cStiffness.v[1];
+        { float c_ = cp[4]; cp[4] = scale->cStiffness.v[0] * c_; }
+        { float c_ = cp[5]; cp[5] = scale->cStiffness.v[1] * c_; }
         {
             const TyreF2& r = *(const TyreF2*)&config.GetVector2(zFriction);
             *(int*)&cp[6] = r.i[0];
             *(int*)&cp[7] = r.i[1];
         }
-        cp[6] *= scale->zFriction.v[0];
-        cp[7] *= scale->zFriction.v[1];
+        { float c_ = cp[6]; cp[6] = scale->zFriction.v[0] * c_; }
+        { float c_ = cp[7]; cp[7] = scale->zFriction.v[1] * c_; }
         {
             const TyreF2& r = *(const TyreF2*)&config.GetVector2(xFriction);
             *(int*)&cp[8] = r.i[0];
             *(int*)&cp[9] = r.i[1];
         }
-        cp[8] *= scale->xFriction.v[0];
-        cp[9] *= scale->xFriction.v[1];
+        { float c_ = cp[8]; cp[8] = scale->xFriction.v[0] * c_; }
+        { float c_ = cp[9]; cp[9] = scale->xFriction.v[1] * c_; }
         cp += 16;
     }
     Bal(1); Bal(1); Bal(1); Bal(1); Bal(1); Bal(1);
 }
-
 // original: FUN_00466500
 // FUNCTION: RALLYTROPHY 0x466500
 void Car::FUN_00466500(int value)
