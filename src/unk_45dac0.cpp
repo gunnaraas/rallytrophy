@@ -65,6 +65,7 @@ void BarycentricWeights(const SunVertex* a, const SunVertex* b, const SunVertex*
 // The sequential h assignments follow the target's x87 term order. Cursor/index registers, local homes, and
 // vertex-index call setup still differ from the target.
 // Tried 2026-10-30 night: nx via tri->nx and ny via tri->ny (not q[]) plus part/verts/tri/count load order took 101->52 insns; ~20 variants (all-tri fields, unsigned/nonvolatile count, decl order) no better; still differs in count/idx spill order and tri/cursor registers.
+// Tried 2026-10-31: ny via q[-5] (original reads [edx-0x14]) and parts[i] re-read per field (original loads it twice) 52->50; ~25 more variants (field load order, nx via q[-6] wrong, split h terms, cand store order, unsigned/WORD count) no better; ~50 insns apart, permuter skipped.
 float Car::SunFactor(void* models)
 {
     SunModels* list = (SunModels*)models;
@@ -105,18 +106,17 @@ float Car::SunFactor(void* models)
             continue;
         }
         for (unsigned i = 0; i < tris->size(); i++) {
-            SunPart* part = mesh->parts[i];
-            SunVertex* verts = part->vertices;
             SunTri* tri = (*tris)[i];
-            int n = *(volatile unsigned short*)&part->count;
-            const unsigned short* idx = part->indices;
+            SunVertex* verts = mesh->parts[i]->vertices;
+            int n = *(volatile unsigned short*)&mesh->parts[i]->count;
+            const unsigned short* idx = mesh->parts[i]->indices;
             if (!n) {
                 continue;
             }
             float eps = 0.00001f;
             const float* q = &tri->cz;
             do {
-                if (*(int*)&tri->ny >= *(int*)&eps) {
+                if (*(int*)&q[-5] >= *(int*)&eps) {
                     float r = q[1];
                     if (!(q[-1] - p.y > r)) {
                         float tx = p.x - q[-2];
@@ -126,7 +126,7 @@ float Car::SunFactor(void* models)
                             h = h + p.x * tri->nx;
                             h = h - q[-3];
                             if (!(*(unsigned*)&h & 0x80000000)) {
-                                float t = h / tri->ny;
+                                float t = h / q[-5];
                                 if (!(t > best)) {
                                     Vec3 cand;
                                     cand.x = p.x;
