@@ -4,8 +4,11 @@
 static inline int FloatBits(const float& f) { return *(const int*)&f; }
 static inline float AbsF(float f) { return (float)fabs(f); }
 
+#pragma comment(linker, "/alternatename:_fun_004b3800=?TriClosest4b@@YAMPAM0000@Z")
 // NONMATCHING: RALLYTROPHY 0x4b3800
-float __cdecl fun_004b3800(float* point, float* origin, float* e1, float* e2, float* out)
+// SYMBOL: ?TriClosest4b@@YAMPAM0000@Z
+// Tried 2026-11-01: C++-linkage twin (TriClosest4b + alternatename) now gives the original's EH frame; END copy via a Vec3 temp 195->185; 12 declaration orders no effect (slots follow first use). Still differs: original puts e/t/s in the e1/origin/point param slots (ours e2/e1/-), keeps e1 in a register for END, and lays branches out with more duplicated tails (1473 vs 1372 bytes).
+float __cdecl TriClosest4b(float* point, float* origin, float* e1, float* e2, float* out)
 {
     Vec3 diff = *(Vec3*)origin - *(Vec3*)point;
     float a = e1[0]*e1[0] + e1[1]*e1[1] + e1[2]*e1[2];
@@ -107,7 +110,8 @@ T_NEGE:
     e = t * e + dist;
 END:
     if (out) {
-        *(Vec3*)out = *(Vec3*)origin;
+        Vec3 p = *(Vec3*)origin;
+        *(Vec3*)out = p;
         *(Vec3*)out += *(Vec3*)e1 * s;
         *(Vec3*)out += *(Vec3*)e2 * t;
     }
