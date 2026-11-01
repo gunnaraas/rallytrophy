@@ -1098,7 +1098,7 @@ int StageScreen::Layout()
                     if (!avail) {
                         text->color = DAT_00508c08;
                     }
-                    y = 42.0f * sy + y;
+                    y = 42.0f * *(volatile float*)&sy + y;
                     text->Print(DAT_0056b0ac, 54.0f * sx, y, strA.ptr ? strA.ptr : "", 0, 1.0f, 1.0f);
                     text->color = selected ? DAT_00508c0c : DAT_00508c04;
                     break;
@@ -1107,7 +1107,7 @@ int StageScreen::Layout()
                     text->Print(DAT_0056b0ac, 54.0f * sx, y, strD.ptr ? strD.ptr : "", 0, 1.0f, 1.0f);
                     break;
                 }
-                y = 42.0f * sy + y;
+                y = 42.0f * *(volatile float*)&sy + y;
             }
             int ia = *(int*)&text->scaleX;
             text->color = DAT_0050892c;
@@ -1141,10 +1141,10 @@ int StageScreen::Layout()
                 }
                 text2->scaleX = sa;
                 text2->scaleY = sb;
-                float y2 = 15.0f * sy + y;
+                float y2 = 15.0f * *(volatile float*)&sy + y;
                 text2->Print(DAT_0056b0ac, (DAT_004e1480 + 575.0f) * sx, y2, v->ptr ? v->ptr : "", 0, 1.0f, 1.0f);
                 text2->Print(DAT_0056b0ac, (DAT_004e1480 + 798.0f) * sx, y2, u->ptr ? u->ptr : "", 0, 1.0f, 1.0f);
-                y = 48.0f * sy + y;
+                y = 48.0f * *(volatile float*)&sy + y;
                 *(int*)&text2->scaleX = ia;
                 *(int*)&text2->scaleY = ib;
             }
