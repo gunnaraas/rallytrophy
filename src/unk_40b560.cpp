@@ -68,6 +68,7 @@ void TrailQueue::Push(int corner, int t)
 // Tried 2026-10-30 night: indexed for-loop (k <= 3) with separate step local, HudPoint uv[4] (offset-0 field is the per-row
 // value, pairs 0/1 and 2/3 hold the constants), 20-round permute; 2 insns differ: original has `cmp eax,4; jl`, `k < 4`
 // builds an extra lea/mov at loop entry and `k <= 3` gives `cmp eax,3; jle`.
+// Tried 2026-10-31 re-pass: ~30 loop-shape variants (k<4, k!=4, do/while ++k<4, pointer-difference p-used<4, volatile, k+1<5 folds back to cmp 3); every k<4 form adds lea eax/mov ebx,eax at entry (15 insns), k+1<5 and k<=3 give 2 insns; permute -r 40 no MATCH (best 2).
 void TrailQueue::Draw(int now)
 {
     int total = 0, alive = 0;
