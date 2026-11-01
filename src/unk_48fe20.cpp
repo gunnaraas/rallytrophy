@@ -178,38 +178,33 @@ int RecordTable::FUN_004901b0(ScoreRecord* record, int a, int b)
 // Insert by the 0x58 time, without the +3 list offset.
 // Same structure and size as the original; register allocation differs (key/record/first end up in other registers).
 // Tried 2026-10-31 night: i first + result = i, (!a ? 0 : X) + b gave 70->68; a?X:0, if-form, indexed first[i].time, record-pointer loop, base alias, key/first predeclared, volatile key did not help; original keeps i in ebx, key in esi, first in edi, time in ecx (ours: i eax, key edi, time esi).
+// Tried 2026-10-31 re-pass: char* p = records + list*230*0x60 + 0x58 stepped by 0x60, second store as first[i] = *record (70->35); ~30 variants (decl orders, p from first/&first->time, key/first order, volatile key, ternary forms) stayed at 35; ours puts key in edi and first in esi where the original has key esi, first edi (326 vs 339 bytes).
 int RecordTable::FUN_00490310(ScoreRecord* record, int a, int b)
 {
-    int i = 0;
-    int result = i;
+    int result = 0;
     int list = (!a ? 0 : a * 11 + 2) + b;
+    int i = 0;
     int key = record->time;
     ScoreRecord* first = (ScoreRecord*)records + list * 230;
-    int* time = &first->time;
-    for (; i < 10; i++, time += 0x18) {
-        if (key < *time) {
+    char* p = (char*)records + list * 230 * 0x60 + 0x58;
+    for (; i < 10; i++, p += 0x60) {
+        if (key < *(int*)p) {
             dirty = 1;
-            if (!i) {
-                result = 1;
-            }
-            for (int j = 9; j > i; j--) {
-                first[j] = first[j - 1];
-            }
+            if (!i) result = 1;
+            for (int j = 9; j > i; j--) first[j] = first[j - 1];
             ((ScoreRecord*)records)[list * 230 + i] = *record;
             break;
         }
     }
     list = list * 23 + record->unk1f;
     i = 0;
+    p = (char*)records + list * 10 * 0x60 + 0x58;
     first = (ScoreRecord*)records + list * 10;
-    time = &first->time;
-    for (; i < 10; i++, time += 0x18) {
-        if (key < *time) {
+    for (; i < 10; i++, p += 0x60) {
+        if (key < *(int*)p) {
             dirty = 1;
-            for (int j = 9; j > i; j--) {
-                first[j] = first[j - 1];
-            }
-            ((ScoreRecord*)records)[list * 10 + i] = *record;
+            for (int j = 9; j > i; j--) first[j] = first[j - 1];
+            first[i] = *record;
             break;
         }
     }
