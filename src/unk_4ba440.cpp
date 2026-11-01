@@ -539,7 +539,7 @@ static inline int Negative(float f)
 }
 
 // NONMATCHING: RALLYTROPHY 0x4ba9d0
-// Tried 2026-10-31: TestSphere shape (flags&1 first, brace-init dv, dz/dy/dx sums, tplanes[8]+1 loop), int i=0 before e/p (fixed the edi/ebx regs: 54->10 insns); still differs: original keeps 0x80000000 in ecx and loads all three bf[] before multiplying (fxch), plane-loop y term is fld c.y/fmul p[0] (ours fld p[0]/fmul c.y); ~45 variants + permute -r 20 found no match.
+// Tried 2026-11-01: volatile float* view of bf for the three loop loads (loads all three before multiplying: 10->2 insns); still differs: plane-loop y term is fld c.y/fmul p[0] (ours fld p[0]/fmul c.y); ~35 more variants (temps, term order, index forms, volatile c.y) did not flip it.
 int ViewFrustum::TestBounds(const SceneBounds* b)
 {
     const float* bf = (const float*)b;
@@ -572,11 +572,13 @@ int ViewFrustum::TestBounds(const SceneBounds* b)
         return 1;
     }
     if (b->flags & 2) {
+        volatile float* vb = (volatile float*)bf;
         int i = 0;
         const int* e = (const int*)((const char*)this + 0xe8);
         const float* p = (const float*)((const char*)this + 100);
         for (; i < 6; i++, e++, p += 4) {
-            float v = (bf[e[0]] * p[0] + (bf[e[6]] * p[1] + bf[e[-6]] * p[-1])) - p[2];
+            float a = vb[e[-6]]; float c = vb[e[0]]; float d = vb[e[6]];
+            float v = (d * p[1] + a * p[-1]) + c * p[0] - p[2];
             if (Negative(v))
                 return 0;
         }
