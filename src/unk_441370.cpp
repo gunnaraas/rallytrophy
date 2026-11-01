@@ -564,6 +564,7 @@ TrackSelectMenu::~TrackSelectMenu()
 // rally index in ebp and the RallyInfo pointer in esi (mine swaps them, so ebp is pushed lazily), and some frame slots
 // and store schedules follow from that. original: FUN_004418d0 (vtable slot 1, ret 4)
 // Tried 2026-10-30 night: 26 variants (info/r declaration order and position, while/pointer/hoisted-count loops, r1 and r10 temps, volatile start value, const pointers); none moved r into ebp/esi swap (best stays 306 insns); the allocator ranks r above info and the original also pushes ebp function-wide, cause unknown.
+// Tried 2026-11-01 re-pass: 24 more (register keyword, all info-> as rally[r]. in whole/k-loop/tail, info decl position, r1 temp, count local, while loop, volatile zero start, ip++ cursor, ++r); all 306-534 insns, none flips the r/info ebp/esi assignment (r also lives in the original in ebp from the xor before the loop).
 void TrackSelectMenu::Setup(MenuGame* game)
 {
     if (m_state) {
