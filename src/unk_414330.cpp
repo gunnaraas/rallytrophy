@@ -183,6 +183,8 @@ void S414List::RemoveNode(S414Node* n)
 
 // NONMATCHING: RALLYTROPHY 0x414550
 // Tried 2026-10-31: a replace-style rewrite (zero-fill after the grow) scored 105 insns but its copy path was not verified; the original has both a rep stos zero-fill of the inserted gap and a final rep movs copy from the source. Existing code kept. The original also reuses the `first`/`arg` parameter slots for pos/newLen.
+// Tried 2026-11-01 re-pass: 14 variants (asm-faithful middle, param-slot reuse of arg/first, one-read len-pos, VC6 _Grow-shaped tail with Copy unconditional when shared, pos/sourceLen order, non-volatile pos): 111-130 insns differ vs 112 baseline, size 515-532 vs 505; still differs: original body is replace() with memmove only when N<N0 before Grow, then after Grow `N0<N ? memmove(ptr+pos+N,ptr+pos+N0,Nm) : memset(ptr+pos,0,N)` (current body zero-fills a different range - asm shows the zero fill is N bytes at ptr+pos), newLen/len-N0 live in the arg param slot, tail reads len again and shares Copy on refcounted path; register allocation (edx/ecx/esi/ebx) diverges from the prologue so not within permuter range.
+// BEHAVIOUR: the body above differs from the original (checked against the asm 2026-11-01): after Grow the original zero-fills sourceLen bytes at ptr+pos (memset) when sourceLen <= eraseLen, and its guard is `sourceLen > 0 || eraseLen > 0`. An asm-faithful rewrite scores the same 112 insns; it was not applied because it is unverified by a match.
 // The Stage caller uses this as a thiscall member on its string-layout message object.
 StMsg& StMsg::Format(char* first, char* last, const char* fmt, const char* arg)
 {
