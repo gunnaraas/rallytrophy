@@ -1486,6 +1486,7 @@ void Car::FUN_0045b900(int dt)
 // One physics step of dt seconds: gravity, aerodynamic drag and downforce, suspension, brakes, drivetrain, tyre
 // forces, rigid body integration and the collision with the stage (restoring the pose when the body hit).
 // Tried 2026-10-31: 24 variants (PassFloat removal/order, volatile posp/rotp, gravity local, radius-sum helpers, Vec3 local order/vel field copy, const-ref f, centre volatile stores); best is field-wise vel copy plus wp declared with wp2 (270->257 insns); EH states, radius-sum FPU stack and Xform temp slots still differ.
+// Tried 2026-10-31 re-pass (257->246 insns): the original sums wheel radii as (r3+r2+r1)+r0 from four loaded locals (the draft summed r0..r3 in a different rounding order); also tried prologue int-copy of dt, Vec3 decl orders, torque field-wise add, volatile/pointer n counter loops (no gain). Still differs: n/loop counters and posp/rotp spilled to frame in original, EH state 3 persistent Vec3s, Xform temp slots.
 void Car::PhysicsStep(float dt)
 {
     W5_Body* b = V->body;
@@ -1496,8 +1497,8 @@ void Car::PhysicsStep(float dt)
     V->saved[1] = b->in14c[1];
     V->saved[2] = b->in14c[2];
     V->saved[3] = b->in14c[3];
-    float* volatile rotp = b->rot;
     Vec3* posp = (Vec3*)b->position;
+    float* volatile rotp = b->rot;
     V->savedMat = *(W5_Mat*)rotp;
     V->savedPos[0] = b->position[0];
     V->savedPos[1] = b->position[1];
@@ -1525,9 +1526,11 @@ void Car::PhysicsStep(float dt)
     float speed2 = vel.y * vel.y + vel.z * vel.z + vel.x * vel.x;
     float e;
     {
-        float s = (V->wheel[0].radius + V->wheel[1].radius + V->wheel[2].radius + V->wheel[3].radius) * 0.625f;
+        float q0 = V->wheel[0].radius, q1 = V->wheel[1].radius, q2 = V->wheel[2].radius, q3 = V->wheel[3].radius;
+        float s = (q3 + q2 + q1 + q0) * 0.625f;
         s = s * s;
-        e = (float)exp(s * s * -3.0f);
+        double ex = exp(s * s * -3.0f);
+        e = (float)ex;
     }
     {
         W5_Xform((const float*)&V->dragPoint, rotp, (float*)&wp, (const float*)posp);
