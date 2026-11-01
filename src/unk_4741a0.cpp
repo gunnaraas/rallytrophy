@@ -68,6 +68,7 @@ struct SkStr {
 // The original expands string cleanup with three separate constructor epilogues;
 // VC6 currently emits one cleanup call and merges the return paths.
 // Tried 2026-10-31: SkStr overlay with _Grow(n,true) expanded inline (hand-written, early returns in ctor or helper, bool Grow, return *this, store order, memcpy); body now matches structurally (57->43 insns) but VC6 merges the three return paths into one shared epilogue (jmp) where the original duplicates the epilogue per return.
+// Tried 2026-10-31 re-pass: 17 more variants (volatile on res/len/ptr/st/char stores per arm, per-arm store-order changes, goto-out, volatile read before return, member Assign); all stay 43 insns / 635 bytes, return paths still merge into one epilogue (jmp 0x474406) regardless of per-arm tail differences; SnowFall strided-cursor idioms do not apply (string tail, not mesh loop).
 SkidMarks::SkidMarks()
 {
     int q = DAT_00501428;
