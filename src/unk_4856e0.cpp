@@ -3499,6 +3499,7 @@ draw:
 // Returns 1 when a key was pressed (the keys are cleared).
 // Tried 2026-10-30 night: timeText/rank and float locals hoisted to function top, block-scoped/int copies of x184/x510, pressed/best decl order (all 124-125 insns; frame stays 0x58 vs original 0x6c, the original has ~5 more dword slots and 8 dwords above the title that no declaration order reproduced).
 // Tried 2026-11-01 re-pass: 15 variants (result/pressed declared first or before LapText, volatile zero, text pointer after first draw, Color late, one-use floats x234/x894/y76 inline, scale local hoisted, volatile sx); all 124-134 insns differ, none better than 124; far from permuter range. Original frame is 0x14 larger (extra int copies of x184/x510 via esp+0x1c/0x20 before the loop) with zero held in ebx and n in edi.
+// Tried 2026-11-01 re-pass 2: 19 variants of the FUN_0048c7e0 idiom (split scaleX/color/scaleY, volatile int colour copy at both colour stores, Color declared first, volatile/plain int and float copies of x184/x510 before or inside the row loop, volatile zero, x184/x510 declared late, inline x184/x510 in the header Prints, padding array); none better than 124 insns (best other: 131-138 or worse); the original Color object lives at esp+0x14 (lowest slot) and the x184/x510 copies at esp+0x1c/0x30 are not reproduced; too far for permute.
 int RaceMode::FUN_0048a920(int sort)
 {
     TextRenderer* text = DAT_0056b0c8->text;
