@@ -246,6 +246,7 @@ int RaceOptionsMenu::Run(MenuGame* game, NetRace* net_)
 // Same size (2240 with tables), 219 bytes differ. Volatile writes to a local HudPoint plus an early row-text pointer
 // improve the prior 226-byte diff; target (1,1) slots and DrawToggle registers still differ. Input and jump tables match.
 // Tried 2026-10-30 night: ~20 variants (move/hoist the dummy HudPoint one, scale split-init, one-store volatile placement, pos.x/y order, early labelText); none beat 41 insns, hoisting "one" breaks EH state numbering; still differs: one/scale stack slots swapped (0x44/0x4c), DrawToggle arg-push register choice, and lea ebp*9 placement.
+// Tried 2026-10-31 re-pass: ~35 more variants (one hoisted to 7 scopes, volatile/plain/brace one stores, scale via split/int copies, no-op volatile scale.x/y, pos order, inline labelText); all stay at 41 insns (219 bytes) or break the frame; no-op volatile scale.x gives 26 insns but 461 bytes (worse, scale.x goes via fld/fstp), so not applied.
 int RaceOptionsMenu::Frame()
 {
     int done = 0;
