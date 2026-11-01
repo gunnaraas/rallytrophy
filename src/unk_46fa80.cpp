@@ -59,6 +59,7 @@ WaterAnimator::~WaterAnimator()
 // Evidence: ev_098aeda40f3866cc5d46de6aa9df644e5a1638f8a9cce76a6f260f691961b0eb. The 428-byte target's loop and helper calls are documented in analysis/range-46d830.md.
 // A WORD-sized loop count lowers the candidate from 424/290 to 431/229 bytes/differences, matching the target's 16-bit
 // count load. The remaining mismatch includes a larger target frame, `this` in edi, and uv2.x read from the subtraction.
+// Tried 2026-10-31 re-pass: ~25 more (const-ref temp, split/hoisted uv decls, inline scale.x/y in loop 52->50 applied, int-bit stores, while loop, store orders); still 50 insns: this=esi not edi (original pushes esi only inside the n>0 guard), uv2.x taken from the call-result pointer via fld/fst not an int copy.
 // Tried 2026-10-30 night: ~35 variants; assigned (not constructed) uv1/uv2 locals with int count and for-loop gave 65->52 insns; const-ref/pointer to the subtraction temp, if/do-while, ushort count, int-copy stores were no better; still differs in this=edi vs esi allocation, frame 0x48, and uv2 stored via fst instead of an eax-pointer reload.
 void WaterAnimator::Update()
 {
@@ -72,13 +73,11 @@ void WaterAnimator::Update()
     EffectVertex* v = mesh->vertices;
     int n = mesh->vertexCount;
     Vec2* s = saved;
-    float k1 = scale.x;
-    float k2 = scale.y;
     for (int i = 0; i < n; i++) {
         Vec2 uv1;
         Vec2 uv2;
-        uv1 = (*s * k1) - d1;
-        uv2 = (*s * k2) - d2;
+        uv1 = (*s * scale.x) - d1;
+        uv2 = (*s * scale.y) - d2;
         uv2.x += 0.5f; uv2.y += 0.5f;
         v->u = uv1.x; v->v = uv1.y; v->u2 = uv2.x; v->v2 = uv2.y;
         s++;
