@@ -131,9 +131,10 @@ __forceinline void ScaleVec(Vec3& v, float k)
     v.z = v.z * k;
 }
 
-inline float Dot(const Vec3& a, const Vec3& b) { return (a.y * b.y + a.z * b.z) + a.x * b.x; }
+inline float Dot(const Vec3& a, const Vec3& b) { return (a.y * b.y + a.z * b.z) + b.x * a.x; }
 // NONMATCHING: RALLYTROPHY 0x46ea20
 // Tried 2026-10-30 night: one float t reused for facing/depth/z, float n copy of near/far bits, ScaleVec/Dot helpers (146->52 insns); still differs: v copy/EH-store schedule, normalise y/z fld order, r.x kept on FPU stack, quad p+r operand order, alpha volatile round trip; operand-order swaps in source had no effect.
+// Tried 2026-11-01 re-pass: field-wise quad += u via ta/tb temps, yy/zz plain-local copies in normalise, Dot last term b.x*a.x, r.x+p.x (52->36 insns); ~25 other variants (u scale operand orders, alpha without volatile, prologue v.x split, normalise orders) did not help; still differs: prologue v copy/EH schedule, size kept on FPU for ScaleVec(r)/ScaleVec(u), alpha volatile round trip, colour reg allocation.
 // Same algorithm and constants (1101 vs 1124 bytes; 614 differing bytes). The positive near-plane branch
 // emits the target's unordered-aware status-mask test; alpha storage, stack slots, and quad construction
 // still differ.
@@ -149,9 +150,11 @@ void CarLight::Render(RenderDevice* device, Camera* camera)
                           + v.z * camera->forward.z;
     if (forwardDistance > nearPlane) {
         float inv = 1.0f / (float)sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+        float zz = v.z;
+        float yy = v.y;
         v.x = inv * v.x;
-        v.y = v.y * inv;
-        v.z = v.z * inv;
+        v.y = yy * inv;
+        v.z = zz * inv;
         float t = Dot(-v, Forward());
         float& facing = t;
         if (*(unsigned*)&facing & 0x80000000) {
@@ -197,14 +200,18 @@ void CarLight::Render(RenderDevice* device, Camera* camera)
             s_quad[1].color = col;
             s_quad[2].color = col;
             s_quad[3].color = col;
-            s_quad[0].position.x = p.x + r.x;
+            s_quad[0].position.x = r.x + p.x;
             s_quad[0].position.y = p.y + r.y;
             s_quad[0].position.z = p.z + r.z;
-            s_quad[0].position += u;
+            s_quad[0].position.x += u.x;
+            { float ta = s_quad[0].position.y; ta = ta + u.y; s_quad[0].position.y = ta; }
+            { float ta = s_quad[0].position.z; ta = ta + u.z; s_quad[0].position.z = ta; }
             s_quad[1].position.x = p.x - r.x;
             s_quad[1].position.y = p.y - r.y;
             s_quad[1].position.z = p.z - r.z;
-            s_quad[1].position += u;
+            s_quad[1].position.x += u.x;
+            { float ta = s_quad[1].position.y; ta = ta + u.y; s_quad[1].position.y = ta; }
+            { float ta = s_quad[1].position.z; ta = ta + u.z; s_quad[1].position.z = ta; }
             s_quad[2].position.x = p.x - r.x;
             s_quad[2].position.y = p.y - r.y;
             s_quad[2].position.z = p.z - r.z;
