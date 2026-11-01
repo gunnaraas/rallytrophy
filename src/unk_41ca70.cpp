@@ -49,12 +49,15 @@ inline void Xform(float* result, const float* point, const float* matrix, const 
     }
 }
 
+static __forceinline bool In(float a, float b, float lo, float hi) { return a >= lo && b <= hi; }
+
 #define NEG(f) (*(unsigned int*)&(f) & 0x80000000)
 
 // original: FUN_0041ca70
 // NONMATCHING: RALLYTROPHY 0x41ca70
 // NONMATCHING: +19 bytes; frame is 12 bytes smaller (a Vec3 local missing), early-return epilogue and register allocation differ
 // Tried 2026-10-31: base pointer bp=&box->mn for mn/mx/ctr/rad (b+4 as in the original), mn/mx select-then-store form, extra Vec3 (EH state 5 before pl), decl-order sweeps of mn/mx/ex/ey/ez/bp; 772->752 insns; still differs: frame 12 bytes smaller (original keeps sphR, one more spill, locals at different slots), early b==0 return is an inline epilogue (original has 4 separate return epilogues, ours merges them).
+// Tried 2026-11-01 re-pass: overlap test as `a >= lo && b <= hi` through a forceinline In() (752->751, +13 bytes); the original preloads the second vertex value (fld tv4->y; fld tv6->y; jb pops it) which no helper signature, temp pair, double args, & or ! forms reproduced; ey/ez chains (original hoists fld ey before the sign test, mov ecx,[ey]) unchanged by float/unsigned temps; x87 mnemonic streams otherwise agree.
 int ColBody::Collide(TriCollector* q, int unused)
 {
     nHits = 0;
@@ -103,9 +106,9 @@ int ColBody::Collide(TriCollector* q, int unused)
             CTri* t = *it;
             unsigned short s = t->sel;
             TVert** tv = (TVert**)t->v;
-            if (mn.y <= tv[(s >> 6) & 3]->y && tv[(s >> 4) & 3]->y <= mx.y
-                && mn.x <= tv[(s >> 2) & 3]->x && tv[s & 3]->x <= mx.x
-                && mn.z <= tv[(s & 0xc00) >> 10]->z && tv[(s >> 8) & 3]->z <= mx.z) {
+            if (In(tv[(s >> 6) & 3]->y, tv[(s >> 4) & 3]->y, mn.y, mx.y)
+                && In(tv[(s >> 2) & 3]->x, tv[s & 3]->x, mn.x, mx.x)
+                && In(tv[(s & 0xc00) >> 10]->z, tv[(s >> 8) & 3]->z, mn.z, mx.z)) {
                 *(int*)t->v[0] = 0;
                 *(int*)t->v[2] = 0;
                 *(int*)t->v[1] = 0;
