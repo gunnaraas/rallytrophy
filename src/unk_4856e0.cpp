@@ -2377,6 +2377,7 @@ extern float DAT_0057ba00, DAT_0057ba04;   // mouse position
 extern int DAT_0057ba20, DAT_0057ba24;     // left / right button pressed
 
 // NONMATCHING: RALLYTROPHY 0x48cf80
+// Tried 2026-11-01 re-pass: result declared first (fixes prologue + EH state stores), delta chain as goto-shared tail, y step through two temps (fixes fld order) cut the diff from about 216 to 21 diff lines (about 10 insns). Still differs: dead reset=0 store plus enter read from that slot (any volatile access of reset blows regalloc, folded otherwise), mov ecx,1 constant register in the delta chain, the byte copy of noRestart / EH temp in the noRestart slot (ours uses reset slot). permute -r 40: no match.
 // Tried 2026-10-30 night: reading the second stage array via [unk28] instead of [stage] defeats CSE (121 -> 91 insns); volatile reset store/read made it worse (400+ lines diff); still differs in the dead reset=0 store, the setne enter ternary and cross-jumped sel=1 tails.
 // 2121 vs 2145 bytes, 96% of the instruction stream aligns. Open: the original keeps a never-folded zero in
 // the dead `reset` slot ([esp+0x5c] = 0, read back as `enter`), indexes the two stage-record arrays twice
@@ -2386,10 +2387,11 @@ extern int DAT_0057ba20, DAT_0057ba24;     // left / right button pressed
 // mouse. Returns 1 for the first entry, -1 for the second, -2 when the quit dialog was confirmed.
 int RaceMode::PauseMenu(int reset, int noRestart)
 {
+    int result = 0;
     TextRenderer* smallFont = DAT_0056b0c8->smallText;
     TextRenderer* big = DAT_0056b0c8->bigText;
     LapString text;
-    int result = 0;
+    int atBest = 0;
     Vec2 pos;
     if (reset) {
         unk24c = 0;
@@ -2397,7 +2399,6 @@ int RaceMode::PauseMenu(int reset, int noRestart)
         pos.y = DAT_0056aeac * 280.0f;
         ((MouseView*)DAT_0056b0c0)->SetPosition(&pos);
     }
-    int atBest = 0;
     if (DAT_00501464 == 1 || DAT_00501464 == 0) {
         int stage = unk28;
         int time = unk2c;
@@ -2436,12 +2437,12 @@ int RaceMode::PauseMenu(int reset, int noRestart)
             unk24c = 0;
         }
         if (!showFirst && unk24c == 0) {
-            if (delta == 1) {
-                unk24c = 1;
-            } else if (delta == -1) {
+            if (delta == 1) goto one;
+            if (delta == -1) {
                 unk24c = 2;
             } else {
                 delta = 1;
+            one:
                 unk24c = 1;
             }
         }
@@ -2580,7 +2581,7 @@ int RaceMode::PauseMenu(int reset, int noRestart)
             }
             float x = (float)DAT_0056b0ac->GetWidth() * 0.5f - big->GetWidth(text.c_str(), 0) * 0.5f;
             big->Print(DAT_0056b0ac, x, y, text.c_str(), 0, 1.0f, 1.0f);
-            y += step;
+            { float a = y; float c = step; y = c + a; }
         }
     }
 done:
@@ -2597,7 +2598,6 @@ done:
     FUN_0048e4c0(*(HudPoint*)mouse);
     return result;
 }
-
 // The device in DAT_0056b0ac as the menus use it: a character queue (slot 8 reads one
 // character, slot 9 flushes) and the text input switch at +0x2c.
 class TextDevice {
