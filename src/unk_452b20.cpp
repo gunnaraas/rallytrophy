@@ -1156,20 +1156,20 @@ void Car::FUN_00454d10()
     len2 = v.z * v.z + len2;
     len2 = v.x * v.x + len2; // original: (y*y + z*z) + x*x
     if (len2 > 196.0f) {
-        float s = 1.0f / v.Length();
-        v.y = v.y * s;
-        v.z = v.z * s;
-        v.x = v.x * s;
+        // Original keeps the scale in len2's slot: x times the unrounded value (fst; fmulp), y/z times the stored
+        // float; the volatile stores keep y/z in memory as the original does (they are stored there in every branch).
+        v.x = v.x * (len2 = 1.0f / v.Length());
+        *(volatile float*)&v.y = v.y * len2;
+        *(volatile float*)&v.z = v.z * len2;
     } else if (len2 < 4.0f) {
         v.x = 0.0f;
         v.y = 0.0f;
         v.z = 0.0f;
     } else {
         float len = (float)sqrt(len2);
-        len2 = (len - 2.0f) / (len * 12.0f);
-        v.x = v.x * len2;
-        v.y = v.y * len2;
-        v.z = v.z * len2;
+        v.x = v.x * (len2 = (len - 2.0f) / (len * 12.0f));
+        *(volatile float*)&v.y = v.y * len2;
+        *(volatile float*)&v.z = v.z * len2;
     }
     F2_BodyView* b = c->body;
     F2_V d;
