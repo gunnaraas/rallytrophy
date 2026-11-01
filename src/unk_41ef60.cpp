@@ -94,6 +94,7 @@ inline void CrossAsm(float* o, const float* a, const float* b)
 // original: FUN_0041ef60
 // NONMATCHING: RALLYTROPHY 0x41ef60
 // Tried 2026-10-30 night: first loop rewritten with Vec3 v/c locals, direct PointVel pointer use, sign-branch order and negS compare flipped, 24 declaration-order permutations of posS/negS/limit/c (740->734 insns); loops 2-3 differ structurally (original has inlined Vec3 helper/normalize/operator* temps, 3319 vs our 3079 bytes), not reachable by local variants.
+// Tried 2026-11-01 re-pass: re-derived every float sum association from the original x87 (pen, k denominator, dn, t2, p/q/F projections, work, first-loop d), fixed the depth test to read h[12..14] (n*d) not h[9..11]; e0..e2 now (a*s)*h[12] via a Vec3 copy; 740->712 insns, 3122 of 3319 bytes; still differs structurally (inlined Vec3 helper temps, per-axis select copies through int slots).
 // NONMATCHING: Xform (this+0x15c) and cross-product x87 blocks now inline asm like the original; frame matches; remaining diffs are register/stack allocation and statement order (3107 of 3319 bytes, 2990 differing).
 void RespBody::Respond(void* car, void* stage, int flag)
 {
@@ -124,7 +125,7 @@ void RespBody::Respond(void* car, void* stage, int flag)
             v.y = c.y + w->y;
             v.z = c.z + w->z;
         }
-        float d = v.z * h[8] + v.y * h[7] + v.x * h[6];
+        float d = v.x * h[6] + v.y * h[7] + v.z * h[8];
         if (NEG(d) == 0) {
             *(int*)h = 0;
         } else {
@@ -161,13 +162,15 @@ void RespBody::Respond(void* car, void* stage, int flag)
     h = *(float**)((char*)this + 0x238);
     for (i = 0; i < *(unsigned int*)((char*)this + 0x23c); i++, h += 20) {
         if (*(int*)h == 0) continue;
-        float s0 = NEG(h[12]) ? negS[0] : posS[0];
-        float s1 = NEG(h[13]) ? negS[1] : posS[1];
-        float s2 = NEG(h[14]) ? negS[2] : posS[2];
-        float e0 = h[12] * s0 * h[12];
-        float e1 = h[13] * s1 * h[13];
-        float e2 = h[14] * s2 * h[14];
-        float pen = -(e1 * h[7] + e2 * h[8] + e0 * h[6]);
+        Vec3 a = *(Vec3*)&h[12];
+        float s0 = NEG(a.x) ? negS[0] : posS[0];
+        float s1 = NEG(a.y) ? negS[1] : posS[1];
+        float s2 = NEG(a.z) ? negS[2] : posS[2];
+        a.x = a.x * s0; a.y = a.y * s1; a.z = a.z * s2;
+        float e0 = a.x * h[12];
+        float e1 = a.y * h[13];
+        float e2 = a.z * h[14];
+        float pen = -(e0 * h[6] + e2 * h[8] + e1 * h[7]);
         if (pen <= DAT_004e134c) {
             *(int*)h = 0;
             continue;
@@ -179,16 +182,16 @@ void RespBody::Respond(void* car, void* stage, int flag)
         Xform(bv, &rn.x, (float*)((char*)this + 0x15c));
         CrossAsm(&rn.x, bv, &r.x);
         float cx = rn.x, cy = rn.y, cz = rn.z;
-        float k = DAT_004e1348 / (cy * h[7] + cz * h[8] + cx * h[6] + BF(0x130));
+        float k = DAT_004e1348 / (cx * h[6] + cz * h[8] + cy * h[7] + BF(0x130));
         float imp = k * pen;
 
         // tangential (friction) direction: velocity minus its normal component
         Vec3 vel(h[9], h[10], h[11]);
         Vec3 nv(h[6], h[7], h[8]);
-        float dn = vel.x * h[6] + vel.y * h[7] + vel.z * h[8];
+        float dn = vel.z * h[8] + vel.y * h[7] + vel.x * h[6];
         Vec3 nn = nv * dn;
         float tx = vel.x - nn.x, ty = vel.y - nn.y, tz = vel.z - nn.z;
-        float t2 = tx * tx + ty * ty + tz * tz;
+        float t2 = tz * tz + ty * ty + tx * tx;
         if (t2 <= DAT_004e1444) {
             *(int*)h = 0;
         } else {
@@ -224,27 +227,27 @@ void RespBody::Respond(void* car, void* stage, int flag)
         BF(0x20c) = tq.y + BF(0x20c);
         BF(0x210) = tq.z + BF(0x210);
         if (car != 0) {
-            float depth = -(h[10] * h[7] + h[11] * h[8] + h[9] * h[6]);
+            float depth = -(h[12] * h[6] + h[14] * h[8] + h[13] * h[7]);
             if (limit < depth) {
                 float lx = h[3] - BF(0x14), ly = h[4] - BF(0x18), lz = h[5] - BF(0x1c);
                 float p[3], q[3];
-                p[0] = lx * BF(0x20) + ly * BF(0x24) + lz * BF(0x28);
-                p[1] = lx * BF(0x30) + ly * BF(0x34) + lz * BF(0x38);
-                p[2] = lx * BF(0x40) + ly * BF(0x44) + lz * BF(0x48);
-                q[0] = BF(0x20) * h[6] + BF(0x24) * h[7] + BF(0x28) * h[8];
-                q[1] = h[6] * BF(0x30) + BF(0x34) * h[7] + BF(0x38) * h[8];
-                q[2] = BF(0x40) * h[6] + BF(0x44) * h[7] + BF(0x48) * h[8];
+                p[0] = lz * BF(0x28) + ly * BF(0x24) + lx * BF(0x20);
+                p[1] = lz * BF(0x38) + ly * BF(0x34) + lx * BF(0x30);
+                p[2] = lz * BF(0x48) + ly * BF(0x44) + lx * BF(0x40);
+                q[0] = BF(0x28) * h[8] + BF(0x24) * h[7] + h[6] * BF(0x20);
+                q[1] = BF(0x38) * h[8] + BF(0x34) * h[7] + h[6] * BF(0x30);
+                q[2] = BF(0x48) * h[8] + BF(0x44) * h[7] + h[6] * BF(0x40);
                 ((Car*)car)->AddContact((Vec3*)p, (Vec3*)q, depth);
                 if (BF(0x240) < depth * k) {
                     BF(0x25c) = h[6];
                     BF(0x260) = h[7];
                     BF(0x264) = h[8];
-                    BF(0x250) = F.x * BF(0x20) + F.y * BF(0x24) + F.z * BF(0x28);
-                    BF(0x254) = F.x * BF(0x30) + F.y * BF(0x34) + F.z * BF(0x38);
+                    BF(0x250) = F.z * BF(0x28) + F.y * BF(0x24) + F.x * BF(0x20);
+                    BF(0x254) = F.z * BF(0x38) + F.y * BF(0x34) + F.x * BF(0x30);
                     BF(0x24c) = p[2];
                     BF(0x248) = p[1];
                     BF(0x244) = p[0];
-                    BF(0x258) = F.x * BF(0x40) + F.y * BF(0x44) + F.z * BF(0x48);
+                    BF(0x258) = F.z * BF(0x48) + F.y * BF(0x44) + F.x * BF(0x40);
                     BF(0x240) = depth * k;
                 }
             }
@@ -269,7 +272,7 @@ void RespBody::Respond(void* car, void* stage, int flag)
         float g0 = fm * dx * m0;
         float g1 = fm * dy * m1;
         float g2 = fm * m2 * dz;
-        float work = (dy * g1 + dz * g2 + dx * g0) * SF(0x42c + SID(h) * 4);
+        float w0 = dx * g0; w0 = w0 + dz * g2; w0 = w0 + dy * g1; float work = w0 * SF(0x42c + SID(h) * 4);
         if (*(int*)((char*)stage + 0x4cc + SID(h) * 4) != 0 && DAT_004e13dc < h[19] && BF(0x268) < work) {
             BF(0x268) = work;
             BF(0x26c) = h[3];
