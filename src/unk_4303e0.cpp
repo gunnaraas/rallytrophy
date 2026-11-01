@@ -3742,6 +3742,7 @@ struct G13_WarpPoint {
 // Tried 2026-10-31: 100+ variants (all 48 orders of wait/choice/first/color/x,y declarations, Refcnt-style dtor, c_str via std::string cast,
 // volatile stores, separate init statements, permute -r 20): declaring choice first fixes the back-edge `mov edi,1 / xor ebx,ebx` order but then the
 // prologue stores [esp+10]/[esp+1c] swap; the original has wait,choice order in the prologue and edi,ebx at the back-edge, which no single declaration order gives.
+// Tried 2026-11-01 re-pass: volatile init of wait/choice/first, volatile wait store-back, volatile first read, extra int local, result via temp, permute -r 40 (best 1 insn, no MATCH); still only the back-edge `mov edi,1 / xor ebx,ebx` order differs (VC6 re-materialises the two constants after the inlined G13_String dtor).
 // Modal "question / Yes / No" dialog: Left/Right or the mouse pick the answer, Enter or a click confirms, Esc cancels.
 // Returns 1 for Yes (class Game in the merged header). original: FUN_00436250
 int GameObj::FUN_00436250(MenuScreen* screen)
