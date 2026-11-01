@@ -1123,6 +1123,7 @@ __forceinline void F2_Copy3(F2_V& d, const F2_V& s) { *(int*)&d.y = *(int*)&s.y;
 // component loads and initial square sequence. Remaining differences include the x87 addition/normalization order,
 // and the first part's y/z position stores; the function static (0x508c60, atexit 0x455060) is in place.
 // Tried 2026-10-30 night: ~35 variants (sum/normalise order, F2_Copy3 y/z int-copy + x float store, d.z/d.x tail order; 98->49 insns). Still differs: y/z load order and spilled x/y stay in the opposite order at the top (z loaded before y), the x-first normalise form re-enregisters y/z, and the F2_Cross call takes lea edi/push edi instead of an in-place esi add.
+// Tried 2026-10-31 re-pass: reusing len2 as the sqrt-branch scale k (original keeps it in the len2 slot [ebp-4]) 49->47 insns; ~15 more variants (len2 reuse in the 1/Length branch, sum orders, double len, operand order) no better; x87 order of the normalise/rotate sums and the F2_Cross edi/lea call form still differ.
 void Car::FUN_00454d10()
 {
     F2_CarView* c = (F2_CarView*)this;
@@ -1140,10 +1141,10 @@ void Car::FUN_00454d10()
         v.z = 0.0f;
     } else {
         float len = (float)sqrt(len2);
-        float k = (len - 2.0f) / (len * 12.0f);
-        v.x = v.x * k;
-        v.y = v.y * k;
-        v.z = v.z * k;
+        len2 = (len - 2.0f) / (len * 12.0f);
+        v.x = v.x * len2;
+        v.y = v.y * len2;
+        v.z = v.z * len2;
     }
     F2_BodyView* b = c->body;
     F2_V d;
