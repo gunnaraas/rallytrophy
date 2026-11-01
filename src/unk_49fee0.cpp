@@ -8,6 +8,7 @@
 extern int DAT_0050132c;               // difficulty class
 extern float DAT_00500e98;             // base avoidance distance
 extern float DAT_004e134c;
+extern float DAT_004e1348;
 extern "C" void* dat_004de1d8;
 extern "C" void fun_0049ffa0();
 extern "C" void fun_004a0420();
@@ -476,10 +477,10 @@ float AIDriver::FUN_004a0e60(Obstacle* ob, Vec3* unused)
 
 
 // NONMATCHING: RALLYTROPHY 0x4a1050
-// Logic complete (806 vs 819 bytes, 70 -> 40 insns differ). Fixed: `best` assigned after the z add in the side branch
+// Logic complete (819 bytes, 70 -> 18 insns differ). Tried 2026-10-31 re-pass: f scale via `double ls = sqrt(..); float inv2 = (float)(DAT_004e1348 / ls);` (fld dword K; fdiv st,st(1)), ez/ey temps with e.x read directly, idx read after perp. Fixed: `best` assigned after the z add in the side branch
 // (keeps the two y/z add tails from merging), volatile read of `side` for idx (no ebx hoist), e/f sums in original
 // order. Tried 2026-10-31: inline-function and macro forms of the transform, operand swaps, volatile on matrix/point,
-// many tails for f; still differs: register choice in the matrix/position pointer chains (ecx vs edx/eax), the
+// many tails for f; Still differs: matrix/position pointer chain regs (ecx vs edx/eax), ebx=side load one slot early, return fld [ebp+0x10] one slot early; older note: the
 // perp.z / EH-state store scheduling before the loop, and f's 1/len kept in memory (fdiv st,st(1)).
 float AIDriver::FUN_004a1050(Obstacle* ob, Vec3* dir, int side)
 {
@@ -513,11 +514,11 @@ float AIDriver::FUN_004a1050(Obstacle* ob, Vec3* dir, int side)
         c.y = c.y + pos->y;
         c.z = c.z + pos->z;
     }
+    int idx = (*(volatile int*)&side);
     Vec3 perp;
     perp.x = forward.z;
     perp.y = 0;
     perp.z = -forward.x;
-    int idx = (*(volatile int*)&side);
     for (int i = 0; i < 8; i++) {
         Vec3 t = *(Vec3*)&ob->corners[i] - ((AiBody*)car->body)->position;
         float d = t.z * perp.z + t.x * perp.x;
@@ -542,11 +543,14 @@ float AIDriver::FUN_004a1050(Obstacle* ob, Vec3* dir, int side)
     f.x = dir->x;
     f.y = dir->y;
     f.z = dir->z;
-    float inv2 = 1.0f / (float)sqrt(f.z * f.z + f.y * f.y + f.x * f.x);
-    f.x = inv2 * f.x;
-    f.y = inv2 * f.y;
-    f.z = inv2 * f.z;
-    return 1.0f - (e.z * f.z + e.y * f.y + e.x * f.x);
+    double ls = sqrt(f.z * f.z + f.y * f.y + f.x * f.x);
+    float inv2 = (float)(DAT_004e1348 / ls);
+    float x = f.x, y = f.y, z = f.z;
+    f.x = inv2 * x;
+    f.y = inv2 * y;
+    f.z = inv2 * z;
+    float ez = e.z, ey = e.y;
+    return 1.0f - (ez * f.z + ey * f.y + e.x * f.x);
 }
 
 // original: FUN_004a1390
