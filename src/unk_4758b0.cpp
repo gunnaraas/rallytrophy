@@ -219,6 +219,7 @@ void Sky::Render(SkyDevice* device, Camera* camera)
 // 1437 vs 1441 bytes; call sequence, FPU algorithm and all 18 EH states match. Remaining: camera/this register swap (ebx/esi),
 // the original keeps inv = 1/len in the dead device argument slot, a different scheduling of the argument pushes around the four
 // vertex expressions, and about 110 of 441 instructions differ by order or stack slot (stack slots of P/A/B/vw/vh).
+// Tried 2026-11-01 re-pass: Length sum written z,x,y (emits y,x,z like the original) and phase as separate px/py 116->105; vw/vh/vx/vy declaration permutations (all 24), n.y/inv operand flips, hasLens order, k in prev slot gave nothing; still differs: GetViewport vw/vh slots swapped, k/y slots, camera/this regs, push order around Project/Length call.
 // Tried 2026-10-30 night: ~40 variants; iw/ih reorder (int iw, float w, int ih, float h) and kEight global fixed registers 179->116; still differs: Length() sum order (z,x,y emitted vs y,x,z), Vec3 temp/quad stack slots, 12 bytes short, EH-state store placement in the quad block.
 void Sky::Update(SkyDevice* device, Camera* camera, SkyWorld* world, float dt)
 {
@@ -236,7 +237,7 @@ void Sky::Update(SkyDevice* device, Camera* camera, SkyWorld* world, float dt)
         return;
     }
     Vec3 n(clip.x, clip.y, clip.w);
-    float len = (float)sqrt(n.y * n.y + n.x * n.x + n.z * n.z);
+    float len = (float)sqrt(n.z * n.z + n.x * n.x + n.y * n.y);
     float inv = 1.0f / len;
     n.x = inv * n.x;
     n.y = n.y * inv;
@@ -278,7 +279,9 @@ void Sky::Update(SkyDevice* device, Camera* camera, SkyWorld* world, float dt)
     ((SkyDevice*)DAT_0056b0ac)->GetViewport(&vx, &vy, &vw, &vh);
     float ar = w / h;
     y = (float)vw / vh / ar * y;
-    float phase = (clip.x / w + clip.y / h) * 3.1415927f;
+    float px = clip.x / w;
+    float py = clip.y / h;
+    float phase = (px + py) * 3.1415927f;
     Vec2 quad[4];
     int last = layerCount - 1;
     if (!(DAT_00501428 && DAT_0050142c) && last > 1) {
