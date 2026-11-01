@@ -133,10 +133,10 @@ void U40A850Body::FUN_0041fc60(void* stage, void* unused)
         float sx = ((BITS(c->imp[0]) & 0x80000000) != 0) ? negA : posA;
         float sy = ((BITS(c->imp[1]) & 0x80000000) != 0) ? negB : posB;
         float sz = ((BITS(c->imp[2]) & 0x80000000) != 0) ? negC : posC;
-        float wx = c->imp[0] * sx * c->imp[0];
-        float wy = c->imp[1] * sy * c->imp[1];
-        float wz = c->imp[2] * sz * c->imp[2];
-        float pen = -(wy * c->n[1] + wx * c->n[0] + wz * c->n[2]);
+        float wx = c->imp[0] * sx; wx = wx * c->imp[0];
+        float wy = c->imp[1] * sy; wy = wy * c->imp[1];
+        float wz = c->imp[2] * sz; wz = wz * c->imp[2];
+        float pen = wy * c->n[1]; pen = wx * c->n[0] + pen; pen = wz * c->n[2] + pen; pen = -pen;
         if (!(DAT_004e134c < pen)) continue;
         Vec3 r(c->pt[0] - F(this, 0x224), c->pt[1] - F(this, 0x228), c->pt[2] - F(this, 0x22c));
         Vec3 rn = FUN_004203e0(r, *(Vec3*)c->n);
@@ -157,29 +157,29 @@ void U40A850Body::FUN_0041fc60(void* stage, void* unused)
         F(this, 0x20c) = tq.y + F(this, 0x20c);
         F(this, 0x210) = tq.z + F(this, 0x210);
         if (st != 0) {
-            float spd = -(c->n[1] * c->imp[1] + c->n[0] * c->imp[0] + c->n[2] * c->imp[2]);
+            float spd = c->n[1] * c->imp[1]; spd = c->n[0] * c->imp[0] + spd; spd = c->n[2] * c->imp[2] + spd; spd = -spd;
             if (thresh < spd) {
                 float dx = c->pt[0] - F(this, 0x14);
                 float dy = c->pt[1] - F(this, 0x18);
                 float dz = c->pt[2] - F(this, 0x1c);
                 float lp[3], ln[3];
                 lp[0] = dz * F(this, 0x28) + dy * F(this, 0x24) + dx * F(this, 0x20);
-                lp[1] = dz * F(this, 0x38) + dy * F(this, 0x34) + dx * F(this, 0x30);
-                lp[2] = dz * F(this, 0x48) + dy * F(this, 0x44) + dx * F(this, 0x40);
+                lp[1] = dz * F(this, 0x38); lp[1] = dy * F(this, 0x34) + lp[1]; lp[1] = dx * F(this, 0x30) + lp[1];
+                lp[2] = dz * F(this, 0x48); lp[2] = dy * F(this, 0x44) + lp[2]; lp[2] = dx * F(this, 0x40) + lp[2];
                 ln[0] = F(this, 0x24) * c->n[1] + F(this, 0x28) * c->n[2] + c->n[0] * F(this, 0x20);
-                ln[1] = F(this, 0x34) * c->n[1] + F(this, 0x38) * c->n[2] + c->n[0] * F(this, 0x30);
-                ln[2] = F(this, 0x44) * c->n[1] + F(this, 0x48) * c->n[2] + c->n[0] * F(this, 0x40);
+                ln[1] = F(this, 0x34) * c->n[1]; ln[1] = F(this, 0x38) * c->n[2] + ln[1]; ln[1] = c->n[0] * F(this, 0x30) + ln[1];
+                ln[2] = F(this, 0x44) * c->n[1]; ln[2] = F(this, 0x48) * c->n[2] + ln[2]; ln[2] = c->n[0] * F(this, 0x40) + ln[2];
                 st->AddContact(lp, ln, spd);
                 if (F(this, 0x240) < spd * inv) {
                     F(this, 0x25c) = c->n[0];
                     F(this, 0x260) = c->n[1];
                     F(this, 0x264) = c->n[2];
                     F(this, 0x250) = jz * F(this, 0x28) + jy * F(this, 0x24) + jx * F(this, 0x20);
-                    F(this, 0x254) = jz * F(this, 0x38) + jy * F(this, 0x34) + jx * F(this, 0x30);
+                    float t254 = jz * F(this, 0x38); t254 = jy * F(this, 0x34) + t254; F(this, 0x254) = jx * F(this, 0x30) + t254;
                     F(this, 0x24c) = lp[2];
                     F(this, 0x248) = lp[1];
                     F(this, 0x244) = lp[0];
-                    F(this, 0x258) = jz * F(this, 0x48) + jy * F(this, 0x44) + jx * F(this, 0x40);
+                    float t258 = jz * F(this, 0x48); t258 = jy * F(this, 0x44) + t258; F(this, 0x258) = jx * F(this, 0x40) + t258;
                     F(this, 0x240) = spd * inv;
                 }
             }

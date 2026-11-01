@@ -72,7 +72,8 @@ void U40A850Prop::Fn(int dt)
                 U40A850Body* a = body;
                 U40A850Body* b = car->body;
                 Vec3 d(a->pos[0], a->pos[1], a->pos[2]); d.x -= b->pos[0]; d.y -= b->pos[1]; d.z -= b->pos[2];
-                if (d.x * d.x + d.z * d.z + d.y * d.y <= 1000.0f) {
+                float q = d.x * d.x; q = d.z * d.z + q; q = d.y * d.y + q;
+                if (q <= 1000.0f) {
                     if (FUN_004ad1d0((float*)a->box + 1, (float*)b->box + 1, a->mat[0], b->mat[0], a->pos, b->pos)) {
                         car->applied = 1;
                         if (it->flag48 == 0 && a->FUN_0041d7d0(b, 1)) {
@@ -123,7 +124,8 @@ void U40A850Prop::Fn(int dt)
         s[0] = (mx.x - mn.x) * 0.5f;
         s[1] = (mx.y - mn.y) * 0.5f;
         s[2] = (mx.z - mn.z) * 0.5f;
-        s[3] = (float)sqrt(s[0] * s[0] + s[2] * s[2] + s[1] * s[1]);
+        float rq = s[0] * s[0]; rq = s[2] * s[2] + rq; rq = s[1] * s[1] + rq;
+        s[3] = (float)sqrt(rq);
         s[0] += mn.x;
         s[1] += mn.y;
         s[2] += mn.z;
@@ -144,9 +146,9 @@ void U40A850Prop::Fn(int dt)
         Vec3 g(0.0f, c->mass * -14.715f, 0.0f);
         c->force[1] += g.y;
         Vec3 n(c->vel[0], c->vel[1], c->vel[2]);
-        float m2 = n.z * n.z + n.y * n.y + n.x * n.x;
+        float m2 = n.x * n.x + (n.y * n.y + n.z * n.z);
         if (0.1f < m2) {
-            float inv = 1.0f / (float)sqrt(n.y * n.y + n.z * n.z + n.x * n.x);
+            float inv = 1.0f / (float)sqrt(n.x * n.x + (n.z * n.z + n.y * n.y));
             n.x = inv * n.x;
             n.y = n.y * inv;
             n.z = n.z * inv;
@@ -167,9 +169,11 @@ void U40A850Prop::Fn(int dt)
         c->FUN_0041c220(0.1f, 0.15f);
         float a1 = c->vel[0], a2 = c->vel[1], a3 = c->vel[2];
         float b1 = c->ang[0], b2 = c->ang[1], b3 = c->ang[2];
+        float dvx = a1 - v0x, dvy = a2 - v0y, dvz = a3 - v0z;
+        float dwx = b1 - w0x, dwy = b2 - w0y, dwz = b3 - w0z;
         if (a1 * a1 + a2 * a2 + a3 * a3 < 0.001f && b1 * b1 + b2 * b2 + b3 * b3 < 0.001f &&
-            (a3 - v0z) * (a3 - v0z) + (a2 - v0y) * (a2 - v0y) + (a1 - v0x) * (a1 - v0x) < 0.001f &&
-            (b3 - w0z) * (b3 - w0z) + (b2 - w0y) * (b2 - w0y) + (b1 - w0x) * (b1 - w0x) < 0.001f)
+            dvz * dvz + dvy * dvy + dvx * dvx < 0.001f &&
+            dwz * dwz + dwy * dwy + dwx * dwx < 0.001f)
             active = 0;
         if (30000 < time)
             active = 0;

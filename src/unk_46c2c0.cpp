@@ -366,7 +366,8 @@ void Wheel::UpdateForces()
         }
 
         // Camber sine (signed) from the axle against the ground lateral direction.
-        float c = (float)fabs(axleW.z * lat.z + axleW.y * lat.y + axleW.x * lat.x);
+        float cq = axleW.z * lat.z; cq = axleW.y * lat.y + cq; cq = axleW.x * lat.x + cq;
+        float c = (float)fabs(cq);
         if (!(c < 1.0f)) {
             c = 1.0f;
         }
@@ -504,7 +505,8 @@ void Wheel::UpdateForces()
                 slip = latVel * lat;
                 slip += slipSpeed0 * lon;
                 dir = slip;
-                float len = (float)sqrt(slip.z * slip.z + slip.y * slip.y + slip.x * slip.x);
+                float lq = slip.z * slip.z; lq = slip.y * slip.y + lq; lq = slip.x * slip.x + lq;
+                float len = (float)sqrt(lq);
                 if (len > 0.00001f) {
                     float inv = 1.0f / len;
                     dir.x = slip.x * inv;
