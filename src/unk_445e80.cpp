@@ -1029,6 +1029,7 @@ void ServiceMenu::DrawInfo()
 // Logic and instruction stream ~88% aligned (3024 vs 3004 bytes incl. jump table). Open: the original keeps the -1 colour
 // in ebp (or ebp,-1 / mov [slot],ebp / push ebp) and has its EH Color slot above pos[]/uv[] (frame 0x90, mine 0x78).
 // Tried 2026-10-31: buf[16]->buf[40] matches the original frame size 0x90 (279->229); 720 decl-order permutations of uv/pos/color/buf/i/unused, x/y swap, separate j counter, color.value=-1, volatile z did not beat it; still differs: uv/pos/color/i slot order (original: i low, uv/pos above, Color above them) and -1 held in ebp.
+// Tried 2026-11-01 re-pass: ~20 variants (tune loop as do-while over int* tp with volatile k=5 like DrawRepair, k/row/i merged into one local, y/x and k/row/dummy decl orders, buf[32]/[40]); the code already equals the original apart from stack offsets (loops, -1 in ebp, calls identical) and decl order never moves scalar slots; original frame has x/y at 0x18/0x14 with a hole at 0x10 and row/k shared at 0x1c below uv/pos, ours puts x/y at 0x10/0x14 and the counter above pos (229 insns differ, all slot offsets); no behaviour bug found (per-entry tune[i] vs tuneOrig[i] already correct).
 // original: FUN_00449860 (page 1, the Tune tab)
 void ServiceMenu::DrawTune()
 {
