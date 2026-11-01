@@ -1536,8 +1536,9 @@ CarBody::~CarBody()
 }
 
 // NONMATCHING: RALLYTROPHY 0x41bab0
-// NONMATCHING: by-value SetScale argument copy and statement scheduling differ (EH state set matches)
+// NONMATCHING: statement scheduling differs (8 insns: vtable store and EH-state store placement around the SetScale arg copy; EH temp now matches)
 // Tried 2026-10-30 night: explicit inertia stores (not loop) + DWORD* up copy took 89->19 insns; ~14 variants of the SetScale temp (local DV3, brace init, hoisted, reordered) not better; original copy is interleaved with the zero stores and registers an EH temp slot ([esp+0x4c]=esp) that we never emit.
+// Tried 2026-10-31 re-pass: DV3 got an inline copy ctor (fixes the [esp+0x4c]=esp EH temp, 19->9 insns); volatile on force2.x gives 8; 30 other volatile/order/ctor-body variants and permute -r 40 gave nothing; vtable store and the 0x15 EH-state store still land after the arg copy instead of before/after the zero stores.
 CarBody::CarBody(const CarBody* proto, float m, const DWORD* s, const DWORD* u)
 {
     float inv = DAT_004e1348 / m;
@@ -1557,7 +1558,7 @@ CarBody::CarBody(const CarBody* proto, float m, const DWORD* s, const DWORD* u)
     centre = pos + up.Rot(&rot);
     force.z = 0; force.y = 0; force.x = 0;
     torque.z = 0; torque.y = 0; torque.x = 0;
-    force2.z = 0; force2.y = 0; force2.x = 0;
+    force2.z = 0; force2.y = 0; *(volatile float*)&force2.x = 0;
     *(DWORD*)&dt = 0x3c23d70a;
     torque2.z = 0; torque2.y = 0; torque2.x = 0;
     mesh.Insert(((CarBody*)proto)->mesh.At(0), 0.0f);

@@ -51,6 +51,8 @@ struct Mat4 {                           // 4x4 float matrix with the empty destr
 
 struct DV3 {                            // three dwords with the empty destructor
     DWORD x, y, z;
+    DV3() {}
+    DV3(const DV3& o) { x = o.x; y = o.y; z = o.z; }
     ~DV3() {}
 };
 
