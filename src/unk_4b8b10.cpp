@@ -1043,6 +1043,7 @@ struct DefStr {                            // std::string(const char*) as the or
 // NONMATCHING: RALLYTROPHY 0x4b91c0
 // logic complete; push_back is a call to out-of-line vector::insert (0x4bc680); string temps now match the original expansion
 // Tried 2026-10-31: DefStr (Tidy+AssignCall / Tidy+Grow+Eos) for the throws, out-of-line Insert, sa/d/sb orders, volatile on dirty/weight/vertex stores; 185->127 insns differ: this lives in ebx (orig ebp), zero hoisted into esi, loop uses one d pointer (orig d and d+0x14, sb spilled).
+// Tried 2026-11-01: 20 more variants (volatile sb/d/verts/stores, sb declared before sa 127->124, decl/order swaps of mine/theirs, a/b, i, l, temp copies); still 124 insns differ: this in ebx not ebp, zero hoisted to esi, sb spilled with d and d+0x14 pointers in orig.
 // original: FUN_004b91c0
 void MeshModel::SetDeformSource(MeshModel* other)
 {
@@ -1058,8 +1059,8 @@ void MeshModel::SetDeformSource(MeshModel* other)
         l->count = a->count;
         l->dirty = 1;
         l->verts = new DeformVertex[l->count];
-        SceneVertex* sa = a->vertices;
         SceneVertex* sb = b->vertices;
+        SceneVertex* sa = a->vertices;
         { ChunkVec* v = (ChunkVec*)&deform; v->Insert(v->last, 1, *(int*)&l); }
         DeformVertex* d = l->verts;
         for (int n = 0; n < l->count; n++, d++, sa++, sb++) {
