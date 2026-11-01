@@ -1456,6 +1456,7 @@ __forceinline static void Copy(Vec3& d, const Vec3& s) { d.x = s.x; d.y = s.y; d
 // 3680 vs 3592 bytes; logic complete (control flow, calls and constants checked against the disassembly; not tuned). Finds the AiSegment the car is on from the p 1.43 s
 // ahead of it, evaluates the racing line (Catmull-Rom through the segment's nodes/corner points) at the car and 1.25
 // units ahead, offsets the p sideways by the road width and derives the steering offset (unk34).
+// Tried 2026-11-01 re-pass: lazy dist2 sqrt inside the && compares and 0.0f read as DAT_004e134c for v0/v1/v2/gap/unk14c .y (787->698 insns, 3502->3543 bytes vs 3592); ~30 variants (other .y sites, p.y, unk28, dist order, local pointer/declaration order) no better; still differs: original keeps player in edi/path in ebp (ours ebp/ebx) so the whole register allocation and several fst/fstp reloads of the n/v components differ.
 float AIDriver::FUN_0049e3d0()
 {
     Vec3 p;
@@ -1507,39 +1508,38 @@ float AIDriver::FUN_0049e3d0()
     Vec3 v1;
     Vec3 v2;
     v0.x = u0->x - cur->a->x;
-    v0.y = 0;
+    v0.y = DAT_004e134c;
     v0.z = u0->z - cur->a->z;
     float len0 = (float)sqrt(v0.z * v0.z + v0.x * v0.x);
     FUN_004b3dd0(&p, (Vec3*)cur->a, &v0, &n);
     v0 = n - p;
-    v0.y = 0;
+    v0.y = DAT_004e134c;
     v1.x = u1->x - u0->x;
-    v1.y = 0;
+    v1.y = DAT_004e134c;
     v1.z = u1->z - u0->z;
     float len1 = (float)sqrt(v1.z * v1.z + v1.x * v1.x);
     FUN_004b3dd0(&p, u0, &v1, &n);
     v1 = n - p;
-    v1.y = 0;
+    v1.y = DAT_004e134c;
     v2.x = ((Vec3*)cur->b)->x - u1->x;
-    v2.y = 0;
+    v2.y = DAT_004e134c;
     v2.z = ((Vec3*)cur->b)->z - u1->z;
     float len2 = (float)sqrt(v2.z * v2.z + v2.x * v2.x);
     FUN_004b3dd0(&p, u1, &v2, &n);
     v2 = n - p;
-    v2.y = 0;
+    v2.y = DAT_004e134c;
 
     // Gap between this segment's end and the next segment's first corner.
     Vec3 gap;
     gap.x = ((Vec3*)&next->unk28[0])->x - ((Vec3*)cur->b)->x;
-    gap.y = 0;
+    gap.y = DAT_004e134c;
     gap.z = ((Vec3*)&next->unk28[0])->z - ((Vec3*)cur->b)->z;
     float lenGap = (float)sqrt(gap.z * gap.z + gap.x * gap.x);
     float total = len2 + len1 + len0;
 
     float dist0 = v0.Length();
     float dist1 = v1.Length();
-    float dist2 = v2.Length();
-    if (dist0 < dist1 && dist0 < dist2) {
+    if (dist0 < dist1 && dist0 < v2.Length()) {
         // Nearest to the first piece.
         float step0 = DAT_00500cfc / len0;
         float step1 = DAT_00500cfc / len1;
@@ -1547,7 +1547,7 @@ float AIDriver::FUN_0049e3d0()
         v0.y = p.y + v0.y;
         v0.z = p.z + v0.z;
         v0 -= *(Vec3*)cur->a;
-        v0.y = 0;
+        v0.y = DAT_004e134c;
         n = *u0 - *(Vec3*)cur->a;
         float t = v0.Length() / n.Length();
         sp.t = t;
@@ -1572,7 +1572,7 @@ float AIDriver::FUN_0049e3d0()
             unk14c.x = sp.Eval(prev->unk28[1].x, ((Vec3*)cur->a)->x, u0->x, u1->x);
             unk14c.z = sp.Eval(prev->unk28[1].z, ((Vec3*)cur->a)->z, u0->z, u1->z);
         }
-    } else if (dist2 > dist1) {
+    } else if (v2.Length() > dist1) {
         // Nearest to the middle piece.
         float step1 = DAT_00500cfc / len1;
         float step2 = DAT_00500cfc / len2;
@@ -1580,7 +1580,7 @@ float AIDriver::FUN_0049e3d0()
         v1.y = p.y + v1.y;
         v1.z = p.z + v1.z;
         v1 -= *u0;
-        v1.y = 0;
+        v1.y = DAT_004e134c;
         n = *u1 - *u0;
         float t = v1.Length() / n.Length();
         sp.t = t;
@@ -1613,7 +1613,7 @@ float AIDriver::FUN_0049e3d0()
         v2.y = p.y + v2.y;
         v2.z = p.z + v2.z;
         v2 -= *u1;
-        v2.y = 0;
+        v2.y = DAT_004e134c;
         n = *(Vec3*)cur->b - *u1;
         float t = v2.Length() / n.Length();
         sp.t = t;
@@ -1638,7 +1638,7 @@ float AIDriver::FUN_0049e3d0()
             unk14c.x = sp.Eval(u0->x, u1->x, ((Vec3*)cur->b)->x, ((Vec3*)&next->unk28[0])->x);
             unk14c.z = sp.Eval(u0->z, u1->z, ((Vec3*)cur->b)->z, ((Vec3*)&next->unk28[0])->z);
         }
-        unk14c.y = 0;
+        unk14c.y = DAT_004e134c;
     }
 
     // Blend the node values and take the line direction.
