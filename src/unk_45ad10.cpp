@@ -1825,6 +1825,7 @@ void Car::SetupBrakes()
 // Remaining issues include transform operand/Vec3 frame slots, the x87 schedule of dir *= k, and query-box / settle-
 // loop register allocation. Evidence: ev_dd5399404fe4d12b8d49a8529f09c470d3a5a926f29c4ce866384c642263bd97;
 // hit-slot detail: ev_94c4b49df374c54afa3ccb2d12c5551b367a918fb3e2702ae31379d071864a29.
+// Tried 2026-11-01 re-pass: 12 variants (wheel-reset loop as separate j/countdown/pointer/volatile index, 0.02f via local, v1408 volatile mix, trans[0] volatile, pos add field-wise, body->pos store order, z20a8 order); all stay at 253 insns differ or worse (still far from the permuter range; frame slots and query-box schedule dominate).
 void Car::FUN_0045cc30(StartPosition* start, void* world)
 {
     W7_Car* v = (W7_Car*)this;
