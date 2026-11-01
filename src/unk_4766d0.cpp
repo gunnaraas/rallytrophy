@@ -17,6 +17,7 @@ extern "C" void fun_004c1998();
 // 916 vs 924 bytes / 369 differing bytes. Continuous field streams, a guarded do/while, and delayed UV offsets
 // approach the target quad layout; FPU/store scheduling still differs.
 // Tried 2026-10-30 night: ~25 variants (volatile/plain vertices+color, guard placement, store/zero-reg order, u1/v1 hoist, tail store reorder); only the tail store order helped (49->45); the quad loop interleaves FPU stores across vertices and the 8-byte size gap is unexplained.
+// Tried 2026-10-31 re-pass: cursor pointers declared reverse (v2,u2,v,u,normal,color) fixes the lea/register order; vx load hoisted above the guard (45->39); ~14 more variants (plain color, volatile u/v/u2, u1/v1 hoist, u0/v0 swap, for-loop) no better; original defers u/v fstp across vertices with pending 0x2c adds folded into disp (e.g. [edx-0x2c]).
 WindowRain::WindowRain(int count)
 {
     drops = 0;
@@ -44,15 +45,15 @@ WindowRain::WindowRain(int count)
         *ix++ = v + 2;
         *ix++ = v + 3;
     }
+    EffectVertex* vx = *((EffectVertex* volatile*)&m->vertices);
     i = 0;
     if (count > 0) {
-        EffectVertex* vx = *((EffectVertex* volatile*)&m->vertices);
+        float* v2 = &vx[0].v2;
+        float* u2 = &vx[0].u2;
+        float* v = &vx[0].v;
+        float* u = &vx[0].u;
         float* normal = &vx[0].normal.x;
         volatile DWORD* color = &vx[0].color;
-        float* u = &vx[0].u;
-        float* v = &vx[0].v;
-        float* u2 = &vx[0].u2;
-        float* v2 = &vx[0].v2;
         do {
             float u0 = (float)(i & 3) * 0.0625f + 0.75f;
             float v0 = (float)((i >> 2) & 3) * 0.0625f + 0.75f;
