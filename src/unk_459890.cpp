@@ -244,11 +244,18 @@ public:
     float m[16];
 };
 // Inverts a rotation + translation matrix in place (inlined in the original).
-static inline void InvertRigid(float* m, const float& tz)
+static inline void InvertRigid(float* m, float tz)
 {
-    float x = -(m[0] * m[12] + m[2] * tz + m[1] * m[13]);
-    float y = -(m[4] * m[12] + m[6] * tz + m[5] * m[13]);
-    float z = -(m[8] * m[12] + m[10] * tz + m[9] * m[13]);
+    float a0 = m[0], a1 = m[1], a4 = m[4], a5 = m[5], a8 = m[8], a9 = m[9];
+    float x = a0 * m[12];
+    x = m[2] * tz + x;
+    x = -(a1 * m[13] + x);
+    float y = a4 * m[12];
+    y = m[6] * tz + y;
+    y = -(a5 * m[13] + y);
+    float z = a8 * m[12];
+    z = m[10] * tz + z;
+    z = -(a9 * m[13] + z);
     m[12] = x;
     m[13] = y;
     m[14] = z;
@@ -304,6 +311,7 @@ void Car::AddContact(Vec3* a, Vec3* b, float strength)
 }
 
 // NONMATCHING: RALLYTROPHY 0x459910
+// Tried 2026-11-01 re-pass: fixed x87 sum association (InvertRigid chained with m0*m12 via locals, d2 as dx,dz,dy chain, wheel k as chained temp) and spilled this via volatile sv for the trunk loop bound: 490->409 insns differ; all x87 arithmetic order now equals the original, left is allocation/spill drift and ~24 stack-slot shifts.
 // Tried 2026-10-31: the float constants are already literals (values checked against the exe); what remains is stack/register allocation, the record cursor register and trunk/hood x87 order.
 // 3695 vs 3722 bytes; logic complete (every branch, constant and call in the original is present). Delaying the
 // recs pointer, separating both PartMatrix lifetimes, using volatile translation reads and a by-reference Z, and
@@ -314,6 +322,7 @@ void Car::AddContact(Vec3* a, Vec3* b, float strength)
 void Car::ProcessContacts()
 {
     ContactView* v = (ContactView*)this;
+    ContactView* volatile sv = v;
     int i1, i2, i3, i4, i5, i6, i7, i8, i9;
     int w;
     if (v->count == 0) {
@@ -424,10 +433,10 @@ void Car::ProcessContacts()
         PartMatrix inv2;
         DentMesh* pm = part->meshes.At(0);
         inv2 = *(PartMatrix*)part->matrix;
-        inv2.m[12] = *(volatile float*)&part->pos[0];
-        inv2.m[13] = *(volatile float*)&part->pos[1];
+        *(int*)&inv2.m[12] = *(int*)&part->pos[0];
+        *(int*)&inv2.m[13] = *(int*)&part->pos[1];
         InvertRigid(inv2.m, part->pos[2]);
-        for (i3 = 0; i3 < v->count; i3++) {
+        for (i3 = 0; i3 < sv->count; i3++) {
             HitRec* r = &recs[i3];
             Vec3 local;
             const float* in = r->pos;
@@ -445,8 +454,8 @@ void Car::ProcessContacts()
         PartMatrix inv2;
         DentMesh* pm = part->meshes.At(0);
         inv2 = *(PartMatrix*)part->matrix;
-        inv2.m[12] = *(volatile float*)&part->pos[0];
-        inv2.m[13] = *(volatile float*)&part->pos[1];
+        *(int*)&inv2.m[12] = *(int*)&part->pos[0];
+        *(int*)&inv2.m[13] = *(int*)&part->pos[1];
         InvertRigid(inv2.m, part->pos[2]);
         for (i4 = 0; i4 < v->count; i4++) {
             HitRec* r = &recs[i4];
@@ -475,7 +484,7 @@ void Car::ProcessContacts()
                 float dx = wp.x - r->pos[0];
                 float dy = wp.y - r->pos[1];
                 float dz = wp.z - r->pos[2];
-                float d2 = dy * dy + dz * dz + dx * dx;
+                float d2 = dx * dx; d2 = dz * dz + d2; d2 = dy * dy + d2;
                 float rad = r->f24;
                 float r2 = rad * rad;
                 if (d2 < r2) {
@@ -502,7 +511,7 @@ void Car::ProcessContacts()
                 float dx = wp.x - r->pos[0];
                 float dy = wp.y - r->pos[1];
                 float dz = wp.z - r->pos[2];
-                float d2 = dy * dy + dz * dz + dx * dx;
+                float d2 = dx * dx; d2 = dz * dz + d2; d2 = dy * dy + d2;
                 float rad = r->f24 * 1.5f;
                 float r2 = rad * rad;
                 if (d2 < r2) {
@@ -511,7 +520,7 @@ void Car::ProcessContacts()
                     float k = r->f1c;
                     if (d2 > g2) {
                         float t = (r2 - d2) * (1.0f / (r2 - g2));
-                        k = (3.0f - (t + t)) * r->f1c * t * t;
+                        k = (3.0f - (t + t)); k = k * r->f1c * t; k = k * t;
                     }
                     if ((rand() & 0x7f) < 0x28) {
                         b += k * 0.03f;
@@ -546,7 +555,7 @@ void Car::ProcessContacts()
             float dx = px - r->pos[0];
             float dy = -r->pos[1];
             float dz = pz - r->pos[2];
-            float d2 = dy * dy + dz * dz + dx * dx;
+            float d2 = dx * dx; d2 = dz * dz + d2; d2 = dy * dy + d2;
             float rad = r->f24;
             float r2 = rad * rad;
             if (d2 < r2) {
