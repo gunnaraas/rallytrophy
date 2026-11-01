@@ -124,6 +124,7 @@ struct QuatTmp {
 
 // NONMATCHING: RALLYTROPHY 0x41c540
 // NONMATCHING: logic complete; improved 116->74 insns (QuatTmp dq with dtor gives the 2nd EH state, off+pos at the end, 0.5f literal). Tried 2026-10-31: forceinline Quat* helper (gives ecx addressing but forwards q fields and shrinks code), volatile v224 stores, k chain; still differs: original reloads q fields via ecx with no store forwarding and runs the v224 += dv and += off passes unfused.
+// Tried 2026-11-01 re-pass: Quat* qp=&q for the q+=dq adds (74->41 insns, ecx addressing now there), pos via Vec3* pp, volatile views, qp for products/normalize, v224 unfusing via volatile/temps, pos copy after Xform; still differs: original does v224+=dv and +=off as two unfused passes and uses ecx for the dq products and normalize but esi for the n sum; any qp use in those places moves the lea or fuses the passes.
 void PhysBody::FUN_0041c540()
 {
     Vec3 w = v1d8;
@@ -150,11 +151,14 @@ void PhysBody::FUN_0041c540()
     dq.y = P * k;
     dq.z = t1 * k;
     dq.w = t2 * k;
-    q.x = dq.x + q.x;
-    q.y = dq.y + q.y;
-    q.z = dq.z + q.z;
-    q.w = dq.w + q.w;
-    float n = q.w * q.w + q.z * q.z + q.y * q.y + q.x * q.x;
+    Quat* qp = &q;
+    qp->x = dq.x + qp->x;
+    qp->y = dq.y + qp->y;
+    qp->z = dq.z + qp->z;
+    qp->w = dq.w + qp->w;
+    volatile Quat* qv = (volatile Quat*)&q;
+    float n3 = qv->w, n2 = qv->z, n1 = qv->y, n0 = qv->x;
+    float n = n3 * n3 + n2 * n2 + n1 * n1 + n0 * n0;
     if (n < DAT_004e1438 || n > DAT_004e1430) {
         float s = DAT_004e1348 / (float)sqrt(n);
         q.x = s * q.x;
@@ -163,13 +167,14 @@ void PhysBody::FUN_0041c540()
         q.w = s * q.w;
     }
     q.ToMatrix(m);
-    pos.x = *(float*)&v224[0];
-    pos.y = *(float*)&v224[1];
-    pos.z = *(float*)&v224[2];
+    Vec3* pp = &pos;
+    pp->x = *(float*)&v224[0];
+    pp->y = *(float*)&v224[1];
+    pp->z = *(float*)&v224[2];
     Xform(&off.x, &a, m);
-    pos.x -= off.x;
-    pos.y -= off.y;
-    pos.z -= off.z;
+    pp->x -= off.x;
+    pp->y -= off.y;
+    pp->z -= off.z;
     const DWORD* r = (const DWORD*)Addr(off + pos);
     v224[0] = r[0];
     v224[1] = r[1];
