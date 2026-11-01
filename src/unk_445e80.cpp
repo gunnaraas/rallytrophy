@@ -925,6 +925,7 @@ int ServiceMenu::Frame()
 // Tried 2026-10-30 night: single-expression `x = K - GetWidth(..)` (fixes the x temp slot and sel slot) and folding 0x39a4 into `off`
 // (moves the DAT_0056b0c8 load after the offset math) took 80->20 insns; still differs: original keeps the constant out of the lea
 // ([eax+ebp+0x39a8], 1 byte shorter) and the EH-dtor tail picks eax/cl instead of ecx/al. Declaration moves, helper structs, operand swaps did nothing.
+// Tried 2026-10-31 re-pass: off without 0x39a4 + constant in each SMF_STR use, padded-struct field access, BYTE* row/gb base pointers, s0[24]/s0[12] string walk, operand-swapped macro, volatile off, split rally base: all 45-90 insns (DAT load hoisted above the offset math, regs swap); only the 20-insn form (constant folded into off) keeps the original order, so the lea-constant and ecx/al tail diffs stay.
 void ServiceMenu::DrawInfo()
 {
     SMF_Str unused;
