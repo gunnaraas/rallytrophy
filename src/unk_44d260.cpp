@@ -546,6 +546,7 @@ bool SlotStore::LoadRelay()
 // The original copies each per-player 10-dword block through a stack temporary (frame 0x3c); VC6 elides the temporary
 // here (no source form found), so the frame is 0x28 smaller; the rest of the body is the same shape.
 // Tried 2026-10-30 night: 14 variants (local/block-scope/volatile-pointer stats copies, struct assign vs memcpy, size-sum load orders); VC6 still reads the 2nd copy from the player block (not the stack temp) and spills the buffer differently, so 51 insns remain.
+// Tried 2026-10-31 re-pass: 25 more variants (struct assign, by-value forceinline getter/param, SC copy-ctor class, volatile pointer/field barriers, per-player pointer local); only plain temps get elided (57 insns), volatile temp keeps 51, volatile self-store after memcpy 50 but still re-reads the player block for copy 2; remaining diffs are buffer spill [esp+0x5c] and size-sum load order (n2 loaded first here), too many for permute.
 void SlotStore::SaveRelay(char level, char advance)
 {
     int magic0 = 0x63777472;
