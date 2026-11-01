@@ -160,6 +160,7 @@ static __forceinline int RoundF(float v)
 
 // NONMATCHING: RALLYTROPHY 0x4021b0 (union mirrors the target reuse of the spline double slot high dword for an index; 836 vs 824 bytes, 564 differing bytes; remaining frame/register layout differs)
 // Tried 2026-10-30 night: plain double/int locals, cached frames, volatile stores, b-load sinking; best is union word only for the first RoundF + separate idx local + volatile reads of d[3..5] (177->151); still differs in register assignment (idx/frames swap esi/ebx), spilled offset slots and an extra 12-byte frame.
+// Tried 2026-11-01 re-pass: normalize tail via volatile loads into locals z,y,x (151->116 insns); 13 more variants (offset placement, decl order, count local, clamp form, self ptr) all stay at 116; remaining diff is this/idx/frames register assignment (esi/edi/ebx) and offset-hoist order after the count test.
 void MeshSet::Interp(float t)
 {
     if (owner == 0)
@@ -239,13 +240,14 @@ void MeshSet::Interp(float t)
         d[4] = sp.Spline(*(float*)(b + 4 + op), *(float*)(b + 4 + oc), *(float*)(b + 4 + on), *(float*)(b + 4 + on2));
         d[5] = sp.Spline(*(float*)(b + 8 + op), *(float*)(b + 8 + oc), *(float*)(b + 8 + on), *(float*)(b + 8 + on2));
         volatile float* vd = d;
-        float q = vd[5] * vd[5] + vd[4] * vd[4] + vd[3] * vd[3];
+        float z = vd[5], y = vd[4], x = vd[3];
+        float q = z * z + y * y + x * x;
         int bits = *(int*)&q;
         int r = DAT_00573bc0[(bits >> 12) & 0xfff] + 0x3f800000 + (-(int)((bits * 2 + 0x81000001U) & 0xfe000000) >> 2);
         r &= 0x7fffffff;
         float inv = *(float*)&r;
-        d[3] = inv * d[3];
-        d[4] = inv * d[4];
-        d[5] = inv * d[5];
+        d[3] = inv * x;
+        d[4] = inv * y;
+        d[5] = inv * z;
     }
 }
