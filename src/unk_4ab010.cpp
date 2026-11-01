@@ -37,6 +37,7 @@ static inline int Bal(int a) { return a + 1; }
 // original: FUN_004ab010
 // reason: first draft; inlined throw/string construction and loop scheduling unverified
 // Tried 2026-10-31: per-site ALLOC macro (inline logic_error throw; AStr = inline zeroing + out-of-line assign for sites 1-6/fmt10, CStr = out-of-line _Grow/_Eos for the fmt0 site), 8 discarded Bal(1) at function end (inline budget), n computed per branch, PoolFree(src) not advanced s (fixes a behavioural bug), copy pointers dd/s; 572->~380 insns, size 2314 vs 2302. Bit-mask expansions were already right. Still differs: loop pointer/temp registers (original keeps s in ecx, d in edx, v in eax) and prologue eax/ecx choices.
+// Tried 2026-11-01 re-pass: ~35 variants (Bal(1) start x end grid saturates, s declared per branch/after ALLOC, src as fmt-slot reference, volatile src/PoolFree(src), s via &src[0]/casts/second local, indexed src loops); none beat baseline 381 insns differ. Original keeps src in ebp only to copy it into s (ecx, d copy in edx) then reuses ebp as a temp and reloads src from its slot; VC6 coalesces s with src (s=ebp) in every form tried.
 void __fastcall ConvertImageFormat(ImgW5* img, int edx, unsigned int fmt)
 {
     if (fmt == (unsigned int)img->format) return;
