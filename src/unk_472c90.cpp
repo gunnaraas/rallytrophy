@@ -263,11 +263,13 @@ TriVector::iterator TriVector::Erase(iterator first, iterator last) { return era
 // 3318 vs 3324 bytes; same calls, EH states and FPU code. Open: register assignment (original this=ebx saved to
 // [ebp-0x124], vertex/device=edi; here this=edi) and the lo/hi/sphere setup and tri-pick temporaries of the splash part.
 // Tried 2026-10-30 night: local `r=&tris` pointer (449->443), step/right/world declaration orders, late step, size/begin locals in the tri pick; whole-function reg allocation still differs (orig spills this, size in ebx; wind slot 0x14 higher).
+// Re-pass 2026-11-01: float sums checked against the original (same fadd association, only fld/fmul operand order differs in the splash facing test); `RainEffect* volatile self = this;` read for threshold and splashSizeOld/New brought 443->348 insns differ (3323 vs 3324 bytes); tried self for other fields, px/py/pz or int-copied camera position before WorldMatrix, decl order of step/world, no r pointer; still differs: this in ebx with automatic spill vs ours volatile self push, WorldMatrix init order after camera loads, slot offsets.
 void RainEffect::Update(RenderDevice* device, Camera* camera, int a, int b, float dt)
 {
     if (DAT_00501428 == 0) {
         return;
     }
+    RainEffect* volatile self = this;
     int step = FloatToInt(dt * 1000.0f);
     WorldMatrix world;
     world.m[12] = camera->position.x;
@@ -332,7 +334,7 @@ void RainEffect::Update(RenderDevice* device, Camera* camera, int a, int b, floa
         rel.x -= half;
         rel.y -= half;
         rel.z -= half;
-        if (rel.z * fwd->z + rel.y * fwd->y + rel.x * fwd->x > threshold) {
+        if (rel.z * fwd->z + rel.y * fwd->y + rel.x * fwd->x > self->threshold) {
             Set(v->position, rel + qa);
             v++;
             Set(v->position, rel + qb);
@@ -427,7 +429,7 @@ void RainEffect::Update(RenderDevice* device, Camera* camera, int a, int b, floa
             Vec3 A = s->axisA;
             Vec3 B = s->axisB;
             float t = (float)s->delay * 0.003921569f;
-            float size = t * splashSizeOld + (1.0f - t) * splashSizeNew;
+            float size = t * self->splashSizeOld + (1.0f - t) * self->splashSizeNew;
             A.x *= size;
             A.y *= size;
             A.z *= size;
