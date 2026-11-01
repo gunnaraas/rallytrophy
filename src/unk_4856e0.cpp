@@ -2628,6 +2628,7 @@ public:
 // Name menu: two buttons and eight name slots; a slot is chosen with the mouse or the keys, a
 // filled slot opens a confirmation dialog (game+0x437770) and an empty one is edited with the
 // Tried 2026-10-31: 360->333 insns with a volatile-stored dead `int z` (frame slot) passed to Draw; z/self-volatile for other stores, loop var hoisted as shared zero, const this copy, volatile local: no better (z folds to 0). Still differs: this lands in ebp and zero in edi (original ebx/esi, zero shared with loop counter).
+// Tried 2026-11-01: shared zero `int k=0` as Draw arg + reset-loop counter (puts zero in esi like the original, 333->335 insns, this still ebp); m_editing volatile reads, step/switch/click tests against k, inline profiles, declaration swaps: no better. Still differs: this in ebp not ebx (m_editing CSE'd into bl takes ebx) and the later zeros (step, clickSel) share esi where the original has separate edi/ebp.
 // keyboard into m_text. Returns 1 when the menu is left.
 int RaceMode::NameMenu(int reset)
 {
