@@ -271,6 +271,7 @@ __forceinline void SkCopy(Vec3& d, const Vec3& r)
 // ev_67f3ea7db45baa110e290e5d865f5e9d6c3f59005a093d7d924247edaa3d24f2 has no 0x40b0c0 scale-helper call.
 // Ring-advance, corner-base CSE, and Cross/Scale argument homes remain different (PE observations).
 // Tried 2026-10-30 night: 30+ variants; local width + __forceinline SkCopy(dst, a+side) (copies straight from the call's eax pointer) took 90->58 insns; still differs: ebx kept as zero reg in the original (ours hoists lea ebx,&s->b / xor edx later), inv/side scale fld order, fst/fstp pair order, p->b copy scheduling.
+// Tried 2026-10-31 re-pass: 18 more variants (volatile zero reg zz for isNew/linked/v, componentwise delta, scale order permutations, double reciprocal, volatile cur/width, pos copied via Vec3 local, local pointer to s->b, side decl moved into branch); none beat 58 insns differ (several worse, up to 82); mesh volatile/WORD idioms do not apply (no mesh pointers). Still 58 insns, too far for permute.py.
 // Appends one tyre-mark quad at pos; pos == 0 closes the current mark.
 void SkidMarks::AddSegment(Vec3* pos, Vec3* axis, Vec3* fallback, float alpha, int newId)
 {
