@@ -17,6 +17,7 @@ struct LL { float x, y, z; LL() {} ~LL() {} };
 // NONMATCHING: RALLYTROPHY 0x41a890
 // reason: original uses an ebp frame (cause unknown; ours is esp-based) and reuses arg slots as temps; logic complete, tri loop/EH states approximated
 // Tried 2026-10-31: locals V/W + chained float stores (429->226 insns), volatile pad24/ints/zero, z-pointer/ptr-increment copy loops, loop counters in dead mesh/b slots; still differs: original keeps 0 in edi (cmp eax,edi, immediate 1s) while ours puts 1 in a register, and the tri loop temps/regs swap.
+// Tried 2026-11-01: 25 variants of the entry (zero as register var feeding root/b==/cnt, volatile or plain pad24, plain 1-store placement, bb=b first); all stay at 227-231 insns differ: original keeps 0 in edi (no stack zero slot, W null path needs no xor, 1s stay immediates) while ours CSEs 1 into edi and zero into ebx, which cascades through the whole function.
 ColModel::ColModel(void* mesh, int a, int b)
 {
     float* p = (float*)mesh;
