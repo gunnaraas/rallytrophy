@@ -1211,6 +1211,7 @@ void ServiceMenu::DrawTune()
 // (the loop index reuses it) where the original keeps -1 in ebx and the loop index in ebp, so registers and frame slots
 // differ (the original also has a separate memory loop counter for the damage loop).
 // Tried 2026-10-30 night: 277->176 via damage loop on a separate int j with float* dp walking damage[] (repair read as dp[-14], same data), x/y decl swap, bool selected; still differs: original keeps -1 in ebx (or ebx,-1 / push ebx) where we push imm, and first-loop index/pointer regs (ebp/ebx) are swapped; z=-1 volatile store, white locals, Color/int variants did not move it.
+// Tried 2026-11-01 re-pass: 176->168 insns (1105->925 bytes): damage loop as a do-while over `float* dp` with a volatile down-counter k=7 (the original has dp walking in ebp, the count in a [esp+0x24] slot, no guard), y(248) assigned before x(601) so the slot stores follow the original; ~25 variants (decl order of i/dp/k, loop forms, -1 via int/white temp, ptr walk of SMH_PartText, i==unk2c, unsigned i, if/else colour) did not change the remaining diff: first loop has i/ptr in ebx/ebp swapped vs the original's ebp/ebx and -1 lands in ebp not ebx after the loop (so DrawQuad pushes ebp), loop x/y slots 0x14/0x18 swapped; the original has no EH states in the loop so empty-dtor colour structs do not apply.
 // original: FUN_0044a420 (page 2 of Draw)
 void ServiceMenu::DrawRepair()
 {
@@ -1242,12 +1243,14 @@ void ServiceMenu::DrawRepair()
             y = DAT_0056aeac * 42.0f + y;
         }
         DAT_0056b0ac->vf35(&damageIcons);
-        x = DAT_0056aea8 * 601.0f;
-        col.value = -1;
         y = DAT_0056aeac * 248.0f;
-        int j; float* dp = damage;
-        for (j = 0; j < 7; j++) {
-            if (dp[j] > 0.0f) {
+        col.value = -1;
+        x = DAT_0056aea8 * 601.0f;
+        float* dp = damage;
+        volatile int k;
+        k = 7;
+        do {
+            if (*dp > 0.0f) {
                 pos[0].x = pos[3].x = x;
                 pos[1].x = pos[2].x = DAT_0056aea8 * 32.0f + x;
                 pos[0].y = pos[1].y = y;
@@ -1255,9 +1258,9 @@ void ServiceMenu::DrawRepair()
                 int level;
                 if (*(int*)(dp - 14)) {
                     level = 0;
-                } else if (dp[j] > 0.66f) {
+                } else if (*dp > 0.66f) {
                     level = 3;
-                } else if (dp[j] > 0.33f) {
+                } else if (*dp > 0.33f) {
                     level = 2;
                 } else {
                     level = 1;
@@ -1277,7 +1280,8 @@ void ServiceMenu::DrawRepair()
                 ((RaceDeviceSlots*)DAT_0056b0ac)->DrawQuad((Vec2*)pos, (Vec2*)uv, col, 1.0f, 1.0f);
             }
             y = DAT_0056aeac * 42.0f + y;
-        }
+            dp++;
+        } while (--k != 0);
         float d = damage[unk2c];
         if (repair[unk2c]) {
             d = 0.0f;
