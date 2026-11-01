@@ -69,6 +69,7 @@ float __cdecl TriTestB(void* model, unsigned short* tri, void* verts, float* pt)
 // NONMATCHING: RALLYTROPHY 0x4bb3a0
 // Logic complete; original keeps the node in ebx and 0 in edi, and orders the translation dot-products differently (1662 vs 1635 bytes).
 // Tried 2026-10-30 night: AddTo inline vec add, copy-init Vec3, switch(DAT_00581e28), d/e/facing in dead param slot, GV3 memory diff vectors, TraceMeshPart nTris at 0x0e, guard first, reversed dot order; still differs: original keeps 0 in edi (i=0 CSE'd with push 0/cmp), c/rad reloaded from [ebx+0xc4] without address CSE, translation dot loads w[14] first, stack slot order.
+// Re-pass 2026-11-01: all 15 float sums re-associated to the asm fadd order (m12-14, d, df, tri d, ef, t, second, den; rounding fix, score unchanged 251 insns); also tried zero-in-edi (i/volatile z at top), set/list/seg/guard declaration order, volatile list load: no change or worse.
 float __cdecl TraceNodeSweep(TraceNode* nParam)
 {
     TraceNode* n = nParam;
@@ -87,7 +88,7 @@ float __cdecl TraceNodeSweep(TraceNode* nParam)
             m.SetInverseOf(w);
             m.m[12] = -(w[14] * w[2] + w[13] * w[1] + w[12] * w[0]);
             m.m[13] = -(w[14] * w[6] + w[13] * w[5] + w[12] * w[4]);
-            m.m[14] = -(w[8] * w[12] + w[13] * w[9] + w[14] * w[10]);
+            m.m[14] = -(w[14] * w[10] + w[13] * w[9] + w[8] * w[12]);
             Xform(loc.a, DAT_00581de8.a, m.m);
             Xform(loc.b, DAT_00581de8.b, m.m);
             loc.Update();
@@ -103,7 +104,7 @@ float __cdecl TraceNodeSweep(TraceNode* nParam)
             AddTo(q, d * *(Vec3*)(s + 9));
             GV3 dfv; float* df = dfv.v;
             df[0] = q.x - c[0]; df[1] = q.y - c[1]; df[2] = q.z - c[2];
-            if (df[1] * df[1] + df[2] * df[2] + df[0] * df[0] <= rad * rad) {
+            if (df[0] * df[0] + df[2] * df[2] + df[1] * df[1] <= rad * rad) {
                 float best = 1.0f;
                 for (unsigned i = 0; i < list->size(); i++) {
                     TraceMeshPart* part = set->parts[i];
@@ -118,7 +119,7 @@ float __cdecl TraceNodeSweep(TraceNode* nParam)
                         d = p[-4] * s[11] + p[-5] * s[10] + s[9] * tv[0];
                         if (twoSided != 0 || *(int*)&d <= 0) {
                             float r = p[1];
-                            d = (s[9] * p[-2] + s[10] * p[-1] + s[11] * p[0]) - s[12];
+                            d = (s[11] * p[0] + s[10] * p[-1] + s[9] * p[-2]) - s[12];
                             if (-r <= d && d <= r + s[13]) {
                                 Vec3 w = *(Vec3*)(s + 3);
                                 AddTo(w, d * *(Vec3*)(s + 9));
@@ -126,10 +127,10 @@ float __cdecl TraceNodeSweep(TraceNode* nParam)
                                 ef[0] = w.x - p[-2]; ef[1] = w.y - p[-1]; ef[2] = w.z - p[0];
                                 float t;
                                 float den;
-                                if (ef[1] * ef[1] + ef[2] * ef[2] + ef[0] * ef[0] <= r * r
-                                    && (t = (tv[0] * s[3] + s[4] * p[-5] + s[5] * p[-4]) - p[-3],
-                                        ((s[6] * tv[0] + s[7] * p[-5] + s[8] * p[-4]) - p[-3]) * t <= DAT_004e134c)
-                                    && (den = s[0] * tv[0] + s[1] * p[-5] + s[2] * p[-4], DAT_004e2a98 <= (float)fabs(den))
+                                if (ef[0] * ef[0] + ef[2] * ef[2] + ef[1] * ef[1] <= r * r
+                                    && (t = (s[5] * p[-4] + s[4] * p[-5] + tv[0] * s[3]) - p[-3],
+                                        ((s[8] * p[-4] + s[7] * p[-5] + s[6] * tv[0]) - p[-3]) * t <= DAT_004e134c)
+                                    && (den = s[2] * p[-4] + s[1] * p[-5] + s[0] * tv[0], DAT_004e2a98 <= (float)fabs(den))
                                     && (t = -(t / den), DAT_004e134c <= t && t <= DAT_004e1348)) {
                                     Vec3 hit = *(Vec3*)(s + 3);
                                     AddTo(hit, t * *(Vec3*)s);
