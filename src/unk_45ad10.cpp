@@ -631,7 +631,6 @@ struct W6_Wheel {
 
 // The body at Car+0x24 (the part the suspension reads; the rest is WheelBody).
 struct W6_Body : public WheelBody {
-    BYTE unk22c[0x230 - 0x22c];
     float depth;                       // 0x230
 };
 
@@ -1679,6 +1678,7 @@ void Car::ApplySuspensionForces()
 // for local and caching ly-r[-3] as a spring-minimum local were worse. Other open differences: local-y x87 stack use
 // and hoisting zero in ECX for the contact flag. Evidence: ev_af5f5586f35ae18eb2ec962f2895369e53df17277d2c787e5bd8b75f92d812f0.
 // Tried 2026-10-30 night: Surface() args fixed to nz-2/nz+0x78/4/nz+0x48/4 (original disasm: base-8,+0x48,+0x78; was off by 8 bytes); rideHeight int-copy, lx/lz int-copy loads, local/world hoisted, dir default-ctor, swapped surfP/nz decls, nz-2 cast forms: no gain (176 insns); still differs: orig keeps only nz (not nz-2) as loop pointer, EH state 3 at Trace (ours 2), dist<rideTop branch layout without hoisted xor ecx.
+// Tried 2026-11-01 re-pass: W6_Body::depth was at 0x234 (bogus pad), fixed to 0x230; volatile loop pointers surfP/nz (original reloads both from slots, no hoisted nz-2) and a volatile int copy of rideHeight after rideTop took 176->136 insns; ~35 variants of body->depth/comp order, empty-dtor locals, dist flag layout, rideHeight/radius slot forms gave no more; still differs: radius/loadForce slot numbers, EH state 3 at Trace (ours 2), original loads depth first in comp (fld depth; fld st(1)), dist<rideTop branch without hoisted xor ecx.
 // Per wheel: ground ray cast, suspension integration step (explicit spring/damper/bump stop), surface lookup.
 void Car::UpdateWheelContact()
 {
@@ -1687,10 +1687,11 @@ void Car::UpdateWheelContact()
     float loadForce = c->loadScale * c->body->rotation[5] * 9.81f;
     float* r = &c->spring[0].vel;
     float* wp = &c->wheel[0].pos[2];
-    int* surfP = &c->wheelSurface[0];
-    float* nz = &c->hitNormal[0][2];
+    int* volatile surfP = &c->wheelSurface[0];
+    float* volatile nz = &c->hitNormal[0][2];
     for (int i = 0; i < 4; i++) {
         float rideTop = r[-2] + c->rideHeight;
+        int rhi = *(volatile int*)&c->rideHeight;
         Vec3 local;
         local.x = wp[-2];
         local.y = wp[-1] + radius;
@@ -1724,7 +1725,7 @@ void Car::UpdateWheelContact()
             ((int*)wp)[0x16c / 4] = 0;
             d = rideTop;
         }
-        float x = d - c->rideHeight;
+        float x = d - *(float*)&rhi;
         if (x < 0.0f) {
             x = 0.0f;
         }
