@@ -113,6 +113,7 @@ struct F_CarView {
 
 // NONMATCHING: RALLYTROPHY 0x452b20
 // Tried 2026-10-30 night: ~80 variants (struct copy, += forms, x as one expression, volatile on copy/add/expr per axis); best is x as a
+// Re-pass 2026-11-01: sums rewritten in the asm's fadd order (chained temps in H_Normalize/H_Normalize1/lenSq, loc.* dot as z,y,x chain written into loc directly), H_AddPos as fld o; fadd p via a temp, one function-scope H_V3 dir puts the float temps in the original's -0x34 slot (insdiff 362->237 lines); still differs: dir/A/B Vec copy order at the part2020/2024 blocks, normalise tail (fld st(0); fmul mem vs fld mem; fmul st,st(1)), lea/pointer-setup order in H_Cross sites, EH-state init order at 0xd8/0xc8.
 // volatile expression + volatile y/z adds (23->17); the original delays the y/z fstp past the argument setup, which no form reproduces.
 // Tried 2026-10-31 re-pass: ~50 more variants (plain/two-temp/int-copy/volatile y,z; forceinline Add helpers; x as volatile expr or two-temp); none beat 17 insns, permute -r 40 found nothing; the original interleaves the F_STORE copy loads with fld/fadd and delays fstp p.x/y/z, which no source form reproduces.
 void Car::FUN_00452b20()
@@ -637,9 +638,9 @@ inline void H_Cross(const float* a, const float* b, float* dst)
 // Adds the offset to a position (inline function with pointer arguments in the original).
 inline void H_AddPos(H_Vec* p, const Vec3* o)
 {
-    p->x = o->x + p->x;
-    p->y = o->y + p->y;
-    p->z = o->z + p->z;
+    float a = o->x; p->x = a + p->x;
+    a = o->y; p->y = a + p->y;
+    a = o->z; p->z = a + p->z;
 }
 
 inline float H_Dot(const H_Vec* a, const float* b)
@@ -658,14 +659,21 @@ inline float H_Ratio(float a, float b)
 // Unit-length scaling of a three-float vector (inline function in the original).
 inline void H_Normalize(float* v)
 {
-    float len = (float)sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
-    v[0] *= 1.0f / len;
-    v[1] *= 1.0f / len;
+    float s = v[0] * v[0];
+    s = s + v[1] * v[1];
+    s = s + v[2] * v[2];
+    float len = (float)sqrt(s);
+    float inv = 1.0f / len;
+    v[0] *= inv;
+    v[1] *= inv;
     v[2] *= 1.0f / len;
 }
 inline void H_Normalize1(float* v)
 {
-    float len = (float)sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+    float s = v[0] * v[0];
+    s = s + v[1] * v[1];
+    s = s + v[2] * v[2];
+    float len = (float)sqrt(s);
     float inv = 1.0f / len;
     v[0] = v[0] * inv;
     v[1] *= 1.0f / len;
@@ -680,6 +688,7 @@ inline void H_Normalize1(float* v)
 void Car::FUN_00453940(float k)
 {
     H_Car* V = (H_Car*)this;
+    H_V3 dir;
     if (V->wiperOn && V->wiper) {
         float t = V->wiperPhase + V->wiperPhase;
         if (!(t < 1.0f)) {
@@ -891,7 +900,9 @@ void Car::FUN_00453940(float k)
     H_Vec d(V->ctrl10);
     H_Vec loc;
     {
-        float lenSq = d.x * d.x + d.z * d.z + d.y * d.y;
+        float lenSq = d.x * d.x;
+        lenSq = lenSq + d.z * d.z;
+        lenSq = lenSq + d.y * d.y;
         float c;
         *(int*)&c = *(int*)&lenSq;
         float scale;
@@ -915,9 +926,15 @@ void Car::FUN_00453940(float k)
         d.z *= scale;
     }
 scaled:
-    loc.x = H_Dot(&d, &V->body->m[0]);
-    loc.y = H_Dot(&d, &V->body->m[4]);
-    loc.z = H_Dot(&d, &V->body->m[8]);
+    loc.x = d.z * V->body->m[2];
+    loc.x = d.y * V->body->m[1] + loc.x;
+    loc.x = d.x * V->body->m[0] + loc.x;
+    loc.y = d.z * V->body->m[6];
+    loc.y = d.y * V->body->m[5] + loc.y;
+    loc.y = d.x * V->body->m[4] + loc.y;
+    loc.z = d.z * V->body->m[10];
+    loc.z = d.y * V->body->m[9] + loc.z;
+    loc.z = d.x * V->body->m[8] + loc.z;
     V->vec20ac.x = loc.x * gain1 + keep1 * V->vec20ac.x;
     V->vec20ac.y = loc.y * gain1 + keep1 * V->vec20ac.y;
     V->vec20ac.z = loc.z * gain1 + keep1 * V->vec20ac.z;
@@ -946,7 +963,7 @@ scaled:
             A.x -= t;
             B.z = q->boxMax;
             A.y = A.y - loc.y * 0.024f;
-            H_V3 dir = B - A;
+            dir = B - A;
             float inv = 1.0f / (float)sqrt(dir.x * dir.x + dir.z * dir.z + dir.y * dir.y);
             dir.x = dir.x * inv;
             dir.y = dir.y * inv;
@@ -966,7 +983,7 @@ scaled:
             B.z = q->boxMax;
             A.y = A.y - loc.y * 0.024f;
             H_V3 dir2 = B - A;
-            H_V3 dir = dir2;
+            dir = dir2;
             float inv = 1.0f / (float)sqrt(dir.z * dir.z + dir.y * dir.y + dir.x * dir.x);
             dir.x = dir.x * inv;
             dir.y = dir.y * inv;
