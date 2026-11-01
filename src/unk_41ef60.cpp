@@ -270,9 +270,9 @@ void RespBody::Respond(void* car, void* stage, int flag)
         float m1 = NEG(dy) == 0 ? sc[1] : sc[4];
         float m2 = (NEG(dz) != 0) ? sc[5] : sc[2];
         float fm = h[15];
-        float g0 = fm * dx * m0;
-        float g1 = fm * dy * m1;
-        float g2 = fm * m2 * dz;
+        float g0 = fm * (dx * m0); // original: fm * (dx*m0), not (fm*dx)*m0
+        float g1 = fm * (dy * m1);
+        float g2 = fm * (m2 * dz);
         float w0 = dx * g0; w0 = w0 + dz * g2; w0 = w0 + dy * g1; float work = w0 * SF(0x42c + SID(h) * 4);
         if (*(int*)((char*)stage + 0x4cc + SID(h) * 4) != 0 && DAT_004e13dc < h[19] && BF(0x268) < work) {
             BF(0x268) = work;

@@ -250,9 +250,19 @@ void CarEmitterC::Render(RenderDevice* device, Camera* camera)
         lens.m[13] = camera->lensPos[1];
         lens.m[14] = camera->lensPos[2];
         cam.SetInverseOf(lens);
-        cam.m[12] = -(lens.m[12] * lens.m[0] + lens.m[14] * lens.m[2] + lens.m[13] * lens.m[1]);
-        cam.m[13] = -(lens.m[4] * lens.m[12] + lens.m[14] * lens.m[6] + lens.m[13] * lens.m[5]);
-        cam.m[14] = -(lens.m[8] * lens.m[12] + lens.m[14] * lens.m[10] + lens.m[13] * lens.m[9]);
+        // chained z, x, y like the original (VC6 re-associates the one-line form to x, y, z)
+        float t0 = lens.m[14] * lens.m[2];
+        t0 = lens.m[12] * lens.m[0] + t0;
+        t0 = lens.m[13] * lens.m[1] + t0;
+        cam.m[12] = -t0;
+        float t1 = lens.m[6] * lens.m[14];
+        t1 = lens.m[12] * lens.m[4] + t1;
+        t1 = lens.m[13] * lens.m[5] + t1;
+        cam.m[13] = -t1;
+        float t2 = lens.m[10] * lens.m[14];
+        t2 = lens.m[12] * lens.m[8] + t2;
+        t2 = lens.m[13] * lens.m[9] + t2;
+        cam.m[14] = -t2;
         scale = camera->lensScale;
     } else {
         cam = *(const ViewMat*)view;

@@ -806,10 +806,15 @@ void ParallelShadow::Prepare(RenderDevice* device, void* unused, DrawContext* co
             if (o->IsCurrent() && o->type == 1 && (o->flags & 4) && o->faceTable != 0) {
                 Vec3 d(g_shadowSphere.centre.x - o->center.x, g_shadowSphere.centre.y - o->center.y, g_shadowSphere.centre.z - o->center.z);
                 float r = g_shadowSphere.radius + o->radius;
-                float dist = d.z * dir.z + d.y * dir.y + d.x * dir.x;
+                float dist = d.z * dir.z; // chained: the original sums z, y, x in that association
+                dist = d.y * dir.y + dist;
+                dist = d.x * dir.x + dist;
                 if (dist >= -r) {
                     d -= dist * dir;
-                    if (r * r >= d.z * d.z + d.y * d.y + d.x * d.x)
+                    float d2 = d.z * d.z;
+                    d2 = d.y * d.y + d2;
+                    d2 = d.x * d.x + d2;
+                    if (r * r >= d2)
                         ProjectMeshes(o);
                 }
             }

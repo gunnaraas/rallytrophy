@@ -588,7 +588,8 @@ int TriCollector::ContactList(float r, float* pos, float* a_, float* b, float* c
                 TVert* a = t->v[0];
                 ScenePoint dv(*(ScenePoint*)pos);
                 dv -= *(ScenePoint*)&a->x;
-                if (DAT_004e134c <= dv.x * t->nx + dv.y * t->ny + dv.z * t->nz) {
+                float dp = dv.z * t->nz; dp = dv.y * t->ny + dp; dp = dv.x * t->nx + dp; // original: ((z*nz)+y*ny)+x*nx
+                if (dp >= DAT_004e134c) {
                     ScenePoint e1(*(ScenePoint*)&t->v[1]->x);
                     e1 -= *(ScenePoint*)&a->x;
                     ScenePoint e2(*(ScenePoint*)&t->v[2]->x);

@@ -370,6 +370,18 @@ inline int FloatToInt(float f)
         } \
     }
 
+// Length() with the sum associated as the original's second speed block does it: (y*y + z*z) + x*x.
+static __forceinline float LengthYZX(const Vec3& a)
+{
+    float z = *(const volatile float*)&a.z;
+    float y = *(const volatile float*)&a.y;
+    float x = *(const volatile float*)&a.x;
+    float s = y * y;
+    s = z * z + s;
+    s = x * x + s;
+    return (float)sqrt(s);
+}
+
 // NONMATCHING: RALLYTROPHY 0x467440
 // Same size (4039) but 950 bytes differ: register choices (ebx/edi swaps, edx/ecx for the pointer temps), the best-surface
 // search keeps `best` in memory where the original has it in edi, the wheel sum loop uses fxch+fadd instead of fld+faddp,
@@ -593,7 +605,7 @@ void Car::FUN_00467440(int dt)
         float a70 = sum70 * inv;
 
         SURFACE_BLOCK(0, SoundForSpeed, v->body->velocity.Length(), 1)
-        SURFACE_BLOCK(1, SoundForSpeed2, v->body->velocity.Length(), 1)
+        SURFACE_BLOCK(1, SoundForSpeed2, LengthYZX(v->body->velocity), 1)
         SURFACE_BLOCK(2, SoundForSlip, (float)(fabs(a70) * fabs(a64) * 0.63662), 1)
         SURFACE_BLOCK(3, SoundForRoll, a6c, a6c > 0)
         SURFACE_BLOCK(4, SoundForRoll2, (float)fabs(a6c), a6c < 0)

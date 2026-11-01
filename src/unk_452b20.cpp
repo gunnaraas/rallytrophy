@@ -984,7 +984,10 @@ scaled:
             A.y = A.y - loc.y * 0.024f;
             H_V3 dir2 = B - A;
             dir = dir2;
-            float inv = 1.0f / (float)sqrt(dir.z * dir.z + dir.y * dir.y + dir.x * dir.x);
+            float lq = dir.z * dir.z;
+            lq = dir.y * dir.y + lq;
+            lq = dir.x * dir.x + lq; // original: (z*z + y*y) + x*x on the dir slots
+            float inv = 1.0f / (float)sqrt(lq);
             dir.x = dir.x * inv;
             dir.y = dir.y * inv;
             dir.z = dir.z * inv;
@@ -1146,8 +1149,9 @@ void Car::FUN_00454d10()
 {
     F2_CarView* c = (F2_CarView*)this;
     F2_V v = c->ctrl;
-    float len2 = v.x * v.x + v.y * v.y;
-    len2 += v.z * v.z;
+    float len2 = v.y * v.y;
+    len2 = v.z * v.z + len2;
+    len2 = v.x * v.x + len2; // original: (y*y + z*z) + x*x
     if (len2 > 196.0f) {
         float s = 1.0f / v.Length();
         v.y = v.y * s;
