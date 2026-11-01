@@ -228,6 +228,7 @@ struct OldScoreRecord {
 // 914 vs 929 bytes (86 insns differ, was 94). Structure, loops and frame are the same; the register assignment differs (this in ebp instead of ebx),
 // so the loop counters and several operands are swapped.
 // Tried 2026-10-30 night: OldScoreRecord needed pad25 (date at 0x28, 94->~92), `!g ? g : X` for the g loop base (94->86); folding the unk1f/+3 terms (c+1, old.unk24, base+h+3, count-counts), loop var declaration order and row hoisting leave 86; original keeps two induction values (230*(b+h) in ebp, 23*(b+h)+1 in a stack slot) and this in ebx.
+// Tried 2026-10-31 re-pass: two induction ints r230=230*base (+=230) and r23=23*base+1 (+=23) in the h for-increment, as the original keeps them in stack slots (86->143 insns, ~15 variants incl. volatile r230, decl order, old.unk24 for unk1f, row temp, counter hoisting); compiler then hoists a records+r230*0x60 pointer and still puts this in ebp not ebx.
 // Loads the highscore file: the current format is the whole table, enciphered; the older formats are converted.
 void RecordTable::FUN_00490470(const char* file)
 {
