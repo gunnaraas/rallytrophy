@@ -637,6 +637,7 @@ extern int DAT_004f6150[];
 // loads 0x501458 before 0x5014cc and keeps the mask in edx; volatile sequencing, a register sel hint, and their combination
 // did not improve it.
 // Tried 2026-10-30 night: cached DAT_00501454 in a local, d==0-first branch order, flipped final compare (42->22); still differs: sel lands in ecx not edx (g loaded into edx, d hoisted above the g test) and the m-path and-tail is not shared; ~25 variants (volatile reads, ternary, load orders, m temp) did not move it.
+// Tried 2026-10-31 re-pass: ~38 more variants (goto-structured head matching the original's g/d/common/dpath CFG, m-temp for the shared `and`, direct DAT reads, volatile sel/d/mask, re-reading *p in the loop to free eax for the list[n].flag index reload, bit<<=1/+=); all 22 insns or worse (goto forms 40+); head still differs by sel in ecx and the unshared and-tail, loop by edx vs eax reload.
 void StageScreen::Start(DWORD mask, int a, int b)
 {
     unk238 = a;
