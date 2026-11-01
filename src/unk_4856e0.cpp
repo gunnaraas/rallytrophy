@@ -4268,6 +4268,7 @@ int RaceMode::FUN_0048b080(int award)
 // never CSEs -1, reads the Color back from its stack slot in the button loop (this build folds it to an
 // immediate and swaps the color/result slots), and orders a few register loads differently.
 // Tried 2026-10-30 night: unk238 as a byte (cast), result declared just before the RETURN test (108 -> 67 insns); Color/position declaration orders and split init worsened it; still differs in the SetQuad store interleave and the Color slot (original [esp+0x28], ours [esp+0x14]).
+// Re-pass 2026-11-01: SetQuad replaced by hand stores in the original order (right x, top y, bottom y, left x=0) matched the position-store block, 67 -> 61 insns. ~20 more variants (Color declared after/between the position stores or SetTexture, volatile/int-temp colour, split second colour) 61-131; the original sinks `mov edi,0x80000000` and its [esp+0x28] store after `lea edx,[esp+0x48]`, ours hoists them above the array-ctor pushes, and the register rotation (ecx vs eax/edx) then spreads through the text section.
 // Replay control bar: seven buttons below the picture (hit-tested against the mouse, moved with the
 // left/right keys) and the driver's name, time and position. Sets unk23c to the chosen action (0-4);
 // returns -1 for "leave", 1 for "continue". With `reset` set the selection is cleared first.
@@ -4345,7 +4346,10 @@ int RaceMode::FUN_0048b620(int reset)
     }
     Color color(0x80000000);
     Vec2 position[4];
-    SetQuad(position, DAT_0056aea8 * 1024.0f * 0.0f, DAT_0056aeac * 704.0f, DAT_0056aea8 * 1024.0f, DAT_0056aeac * 768.0f);
+    position[1].x = position[2].x = DAT_0056aea8 * 1024.0f;
+    position[0].y = position[1].y = DAT_0056aeac * 704.0f;
+    position[2].y = position[3].y = DAT_0056aeac * 768.0f;
+    position[0].x = position[3].x = DAT_0056aea8 * 1024.0f * 0.0f;
     ((RaceDeviceSlots*)DAT_0056b0ac)->SetTexture(&m_sprite254);
     ((RaceDeviceSlots*)DAT_0056b0ac)->DrawRect(position, color, 1.0f, 1.0f);
     color.value = 0xffffffff;
