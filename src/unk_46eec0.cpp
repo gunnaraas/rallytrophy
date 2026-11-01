@@ -175,7 +175,8 @@ void CityLight::Render(RenderDevice* device, Camera* camera)
     if (*(int*)&depth <= nearZ) {
         *(int*)&depth = nearZ;
     }
-    float inv = 1.0f / (float)sqrt(d.x * d.x + d.y * d.y + d.z * d.z);
+    float ls = d.x * d.x; ls = d.z * d.z + ls; ls = d.y * d.y + ls;
+    float inv = 1.0f / (float)sqrt(ls);
     d.x = inv * d.x;
     d.y = d.y * inv;
     d.z = d.z * inv;

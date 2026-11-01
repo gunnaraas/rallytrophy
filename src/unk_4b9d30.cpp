@@ -155,8 +155,8 @@ void ShadowUpdater::Update(ShadowBody* body, ShadowBody* cam, const float* centr
         for (unsigned n = meshes[i]->count; n != 0; n--) {
             float g1 = cl[8] * v->pos[2] + cl[4] * v->pos[1] + cl[0] * v->pos[0];
             float g2 = cl[9] * v->pos[2] + cl[5] * v->pos[1] + cl[1] * v->pos[0];
-            float g3 = q[0] * v->normal[0] + q[8] * v->normal[2] + q[4] * v->normal[1];
-            float g4 = q[1] * v->normal[0] + q[9] * v->normal[2] + q[5] * v->normal[1];
+            float g3 = q[0] * v->normal[0]; g3 = q[8] * v->normal[2] + g3; g3 = q[4] * v->normal[1] + g3;
+            float g4 = q[1] * v->normal[0]; g4 = q[9] * v->normal[2] + g4; g4 = q[5] * v->normal[1] + g4;
             float uu = g3 + g1; uu = uu + f4;
             float vv = f8 - g2; vv = vv - g4;
             v->u = uu; v->v = vv;

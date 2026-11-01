@@ -414,9 +414,9 @@ int FUN_004ad1d0(float* boxA, float* boxB, float* matrixA, float* matrixB,
         Vec3 projected;
         float r00, r01, r02, r10, r11, r12, r20, r21, r22;
         float a00, a01, a02, a10, a11, a12, a20, a21, a22;
-        r00 = axisB[0].x * axisA[0].x + axisA[0].z * axisB[0].z + axisA[0].y * axisB[0].y;
+        { float q = axisB[0].x * axisA[0].x; q = axisA[0].z * axisB[0].z + q; r00 = axisA[0].y * axisB[0].y + q; }
         r01 = axisB[1].z * axisA[0].z + axisB[1].y * axisA[0].y + axisB[1].x * axisA[0].x;
-        r02 = axisB[2].x * axisA[0].x + axisB[2].z * axisA[0].z + axisB[2].y * axisA[0].y;
+        { float q = axisB[2].x * axisA[0].x; q = axisB[2].z * axisA[0].z + q; r02 = axisB[2].y * axisA[0].y + q; }
         projected.x = axisA[0].z * delta.z + axisA[0].y * delta.y + axisA[0].x * delta.x;
         a00 = fabs(r00);
         a01 = fabs(r01);
@@ -424,9 +424,9 @@ int FUN_004ad1d0(float* boxA, float* boxB, float* matrixA, float* matrixB,
         if (a02 * extentB.z + a01 * extentB.y + a00 * extentB.x + extentA.x < fabs(projected.x)) {
           return 0;
         }
-        r10 = axisB[0].x * axisA[1].x + axisA[1].z * axisB[0].z + axisA[1].y * axisB[0].y;
+        { float q = axisB[0].x * axisA[1].x; q = axisA[1].z * axisB[0].z + q; r10 = axisA[1].y * axisB[0].y + q; }
         r11 = axisB[1].z * axisA[1].z + axisB[1].y * axisA[1].y + axisB[1].x * axisA[1].x;
-        r12 = axisB[2].x * axisA[1].x + axisB[2].z * axisA[1].z + axisB[2].y * axisA[1].y;
+        { float q = axisB[2].x * axisA[1].x; q = axisB[2].z * axisA[1].z + q; r12 = axisB[2].y * axisA[1].y + q; }
         projected.y = axisA[1].z * delta.z + axisA[1].y * delta.y + axisA[1].x * delta.x;
         a10 = fabs(r10);
         a11 = fabs(r11);
@@ -434,19 +434,20 @@ int FUN_004ad1d0(float* boxA, float* boxB, float* matrixA, float* matrixB,
         if (a12 * extentB.z + a11 * extentB.y + a10 * extentB.x + extentA.y < fabs(projected.y)) {
           return 0;
         }
-        r20 = axisB[0].x * axisA[2].x + axisA[2].z * axisB[0].z + axisA[2].y * axisB[0].y;
+        { float q = axisB[0].x * axisA[2].x; q = axisA[2].z * axisB[0].z + q; r20 = axisA[2].y * axisB[0].y + q; }
         r21 = axisB[1].z * axisA[2].z + axisB[1].y * axisA[2].y + axisB[1].x * axisA[2].x;
-        r22 = axisB[2].x * axisA[2].x + axisB[2].z * axisA[2].z + axisB[2].y * axisA[2].y;
+        { float q = axisB[2].x * axisA[2].x; q = axisB[2].z * axisA[2].z + q; r22 = axisB[2].y * axisA[2].y + q; }
         projected.z = axisA[2].z * delta.z + axisA[2].y * delta.y + axisA[2].x * delta.x;
         a20 = fabs(r20);
         a21 = fabs(r21);
         a22 = fabs(r22);
         if (fabs(projected.z) <= a22 * extentB.z + a21 * extentB.y + a20 * extentB.x + extentA.z) {
-          if (a20 * extentA.z + a10 * extentA.y + a00 * extentA.x + extentB.x <
-              fabs(axisB[0].x * delta.x + delta.z * axisB[0].z + delta.y * axisB[0].y)) return 0;
+          float pb0 = axisB[0].x * delta.x; pb0 = delta.z * axisB[0].z + pb0; pb0 = delta.y * axisB[0].y + pb0;
+          if (a20 * extentA.z + a10 * extentA.y + a00 * extentA.x + extentB.x < fabs(pb0)) return 0;
           if (a21 * extentA.z + a11 * extentA.y + a01 * extentA.x + extentB.y <
               fabs(axisB[1].z * delta.z + axisB[1].y * delta.y + axisB[1].x * delta.x)) return 0;
-          if (fabs(axisB[2].x * delta.x + axisB[2].z * delta.z + axisB[2].y * delta.y) <=
+          float pb2 = axisB[2].x * delta.x; pb2 = axisB[2].z * delta.z + pb2; pb2 = axisB[2].y * delta.y + pb2;
+          if (fabs(pb2) <=
               a22 * extentA.z + a12 * extentA.y + a02 * extentA.x + extentB.z) {
             if ((a20 * extentA.y + a10 * extentA.z) + (a01 * extentB.z + a02 * extentB.y) <
                 fabs(projected.z * r10 - r20 * projected.y)) return 0;

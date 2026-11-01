@@ -906,7 +906,8 @@ Particle* CarParticles::SpawnCoreD(float rate)
     p->velocity.x = vel0.x;
     p->velocity.y = vel0.y;
     p->velocity.z = vel0.z;
-    float f = (float)sqrt(s_body->vel.x * s_body->vel.x + s_body->vel.y * s_body->vel.y + s_body->vel.z * s_body->vel.z) * (1.0f / 35.0f);
+    float fs = s_body->vel.z * s_body->vel.z; fs = s_body->vel.x * s_body->vel.x + fs; fs = s_body->vel.y * s_body->vel.y + fs;
+    float f = (float)sqrt(fs) * (1.0f / 35.0f);
     if (*(int*)&f < 0) {
         f = 0;
     } else if (*(int*)&f > 0x3f800000) {
