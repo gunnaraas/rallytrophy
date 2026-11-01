@@ -2153,7 +2153,7 @@ struct CarTextureView {
             } \
         } else { \
             node = (v)->spriteFree; \
-            (v)->spriteFree = node->next; \
+            { SpriteNode* nx = node->next; (v)->spriteFree = nx; } \
             __asm dec dword ptr [esi+0xfd0] /* target: dec spriteFreeCount in place */ \
         } \
         tail = (v)->spriteTail; \
@@ -2165,12 +2165,13 @@ struct CarTextureView {
         } else { \
             (v)->spriteHead = node; \
         } \
-        (v)->spriteTail = node; \
         ++(v)->spriteCount; \
+        (v)->spriteTail = node; \
     } while (0)
 
 // NONMATCHING: RALLYTROPHY 0x463940
 // 2026-10-31: 30 trailing discarded Bal(1) calls (N 27..37; fewer do nothing, 38+ over-spend) keep the early-return _Tidy calls out of line, chained cache stores reversed: 190->150 insns. Tried: JoinPath temp as the Assign argument (worse, 2977 bytes). Still differs: ADD_SPRITE count inc scheduling (mov/inc/mov vs inc mem), the original passes the operator+ result eax straight to Assign instead of lea of a named tmp, sprite store order.
+// Tried 2026-11-01 re-pass: ADD_SPRITE with count inc before the tail store and the free-list next in a block temp, flareBrake stored before the name Assign, volatile color40[0] at the Brake site: 311->263 diff lines. Count inc deferral past the next call's arg pushes, node reg (ecx vs edx) and color40/color60 store order at Brake/Reverse sites still differ (about 120 insns; permute not run, too far).
 // Built 2983 bytes against 2926, 1773 differing bytes. Volatile stores at three flare sites plus the explicit
 // free-count DEC reduce the mismatch; target still differs in register/scheduling choices and sprite-list updates.
 // Loads the flare sprites, the light, window and overlay textures of the car from its data directory.
@@ -2226,8 +2227,8 @@ void Car::LoadTextures(const std::string& dir)
 
     a.Assign(SoundPath(dir, "FlareBrake.tga"), 0, std::string::npos);
     s = (FlareSprite*)new Sprite;
-    ((SpriteName*)&s->name)->Assign("flare brake");
     v->flareBrake = s;
+    ((SpriteName*)&s->name)->Assign("flare brake");
     s->texture = v->cache->Load(a.c_str(), 0x40);
     s->blendSrc = 2;
     s->blendDst = 2;
@@ -2236,7 +2237,7 @@ void Car::LoadTextures(const std::string& dir)
     s->color60[2] = 0;
     s->color60[3] = 0;
     s->unk98 = 0xb;
-    s->color40[0] = 1.0f;
+    *(volatile float*)&s->color40[0] = 1.0f;
     s->color40[1] = 1.0f;
     s->color40[2] = 1.0f;
     s->color40[3] = 1.0f;
