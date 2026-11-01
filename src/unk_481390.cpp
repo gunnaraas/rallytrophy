@@ -1946,6 +1946,7 @@ void NetRace::OnReceive(Player* sender, const BYTE* data, DWORD size)
 // case, assigning the parameter, and inline per-message handlers (worse:
 // nested inlining stops vector::size from inlining).
 // Tried 2026-10-30 night: ~20 variants (early/late result assignment, goto-done, volatile/reference result, size reused as result, unsigned switch, dummy locals); result constants still fold into returns instead of living in ebp, 52 insns differ; all 128 splits of return K vs length=K;break across the 7 cases (the Player::FUN_00491490 form) compile to identical bytes (52 differ, 127=all-return gives 55), as do `length=K; return length;`, `return length=K;`, and do/while wrapping.
+// Tried 2026-10-31 re-pass: case 6 as an inline loop with no null test (matches the original; 52->50); ~18 more variants (size as result with return/break/(size=K), uninit length + default, register/unsigned/goto-done, type local, dead size store): ebp still never holds the result, constants fold into returns; the only remaining case-6 diff (strcpy dest spilled to [esp+0x18]) is a consequence of ebp being busy in the original.
 // Handles one race message; returns its size.
 int NetRace::OnMessage(const BYTE* data, int size)
 {
@@ -2036,10 +2037,13 @@ int NetRace::OnMessage(const BYTE* data, int size)
         break;
     case 6: {
         Lock();
-        Player* player = FindPlayer(*(DWORD*)(data + 2));
-        if (player) {
-            strcpy(player->unk1839, (const char*)data + 6);
-            player->unk182c = 3;
+        for (unsigned int i = 0; i < m_players.size(); i++) {
+            if (m_players[i]->id == *(DWORD*)(data + 2)) {
+                Player* player = m_players[i];
+                strcpy(player->unk1839, (const char*)data + 6);
+                player->unk182c = 3;
+                break;
+            }
         }
         Unlock();
         length = 0x4f;
