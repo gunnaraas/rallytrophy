@@ -24,12 +24,14 @@ extern "C" int __cdecl FUN_004ce290(const char* a, const char* b);   // case-ins
 // NONMATCHING: RALLYTROPHY 0x410720
 #define PV (*(int* volatile*)&p)
 // Tried 2026-10-30 night: p reads via volatile pointer (PV) + kindv re-read in waterfall block gave 167->126; kind still not in edi (any non-volatile kind folds the cascade), 2-3 block store order/ push 0x30 placement and Vec2 copy order differ.
+// Tried 2026-11-01 re-pass: kind re-read as local in waterfall cmp, shared goto STORE tail for the 3 TexScroller blocks (126->106); address-taken/volatile-ptr kind, volatile-store kind, water-block tail variants no help; still differs: kind not in edi in prologue/cascade, 2/3-river store order (zero stores sit before ds loads in original), water block own store tail merges here, name-string ctor Vec2 copy order.
 void StageScene::LoadEffect(int* p)
 {
     int* m = (int*)p[0];                               // the mesh's material
     const char* volatile* namep = (const char* volatile*)((BYTE*)m + 0xa8);
     const char* name = *namep;
-    volatile int kindv = m[0x2f];
+    int kind0 = m[0x2f];
+    volatile int kindv = kind0;
     if (name == 0) name = DAT_004e1344;
     if (FUN_004ce290("waterfall_1", name) == 0) {
         kindv = 2;
@@ -46,6 +48,7 @@ void StageScene::LoadEffect(int* p)
         }
     }
 
+    TexScroller* s;
     int kind = kindv;
     if (kind == 2 || kind == 3) {
         if (AT(int, 0x85c) == 0) {
@@ -67,15 +70,15 @@ void StageScene::LoadEffect(int* p)
         m[0] = AT(int, 0x860);
         m[1] = AT(int, 0x864);
         float sx, sy, vx, vy;
-        if (kindv == 2) {
+        if (kind == 2) {
             sx = DAT_00508438.x; sy = DAT_00508438.y;
             vx = DAT_00508428.x; vy = DAT_00508428.y;
         } else {
             sx = DAT_00508430.x; sy = DAT_00508430.y;
             vx = DAT_00508420.x; vy = DAT_00508420.y;
         }
-        TexScroller* s = new TexScroller((DynamicMesh*)PV, sx, sy, vx, vy);
-        PV[5] = (int)s;
+        s = new TexScroller((DynamicMesh*)PV, sx, sy, vx, vy);
+        goto STORE;
     } else if (kind == 4) {
         if (AT(int, 0x868) == 0) {
             AT(Texture*, 0x86c) = LOADER->Load("data/global/effects/river1_1.tga", 0x40);
@@ -96,8 +99,8 @@ void StageScene::LoadEffect(int* p)
         m[0x27] = 2; m[6] = 5; m[7] = 6; m[9] = 4; m[0x28] = 0; m[0x12] = 0; m[0x13] = 0x3f000000;
         float sx, sy, vx, vy;
         sx = DAT_00508418.x; sy = DAT_00508418.y; vx = DAT_00508410.x; vy = DAT_00508410.y;
-        TexScroller* s = new TexScroller((DynamicMesh*)PV, sx, sy, vx, vy);
-        PV[5] = (int)s;
+        s = new TexScroller((DynamicMesh*)PV, sx, sy, vx, vy);
+        goto STORE;
     } else if (kind == 5) {
         if (AT(int, 0x874) == 0) {
             AT(Texture*, 0x878) = LOADER->Load("data/global/effects/river2_1.tga", 0x40);
@@ -118,8 +121,8 @@ void StageScene::LoadEffect(int* p)
         m[0x27] = 2; m[6] = 5; m[7] = 6; m[9] = 4; m[0x28] = 0; m[0x12] = 0; m[0x13] = 0x3f000000;
         float sx, sy, vx, vy;
         sx = DAT_00508408.x; sy = DAT_00508408.y; vx = DAT_00508400.x; vy = DAT_00508400.y;
-        TexScroller* s = new TexScroller((DynamicMesh*)PV, sx, sy, vx, vy);
-        PV[5] = (int)s;
+        s = new TexScroller((DynamicMesh*)PV, sx, sy, vx, vy);
+        goto STORE;
     } else if (kind == 6) {
         if (AT(int, 0x880) == 0) {
             int len = strlen(DAT_004f3ba0);
@@ -149,4 +152,7 @@ void StageScene::LoadEffect(int* p)
                                              (Vec2*)&DAT_005083f8, (Vec2*)&DAT_005083f0, (Vec2*)&DAT_005083e8);
         PV[5] = (int)w;
     }
+    return;
+STORE:
+    PV[5] = (int)s;
 }
