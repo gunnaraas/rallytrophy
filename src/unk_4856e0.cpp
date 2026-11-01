@@ -1876,6 +1876,7 @@ void RaceMode::FUN_00487920()
 // 488 vs 484 bytes, 14 insns differ (was 56): the player-collection loop still loads the element into ebp and
 // re-adds the index (the original keeps the element in eax and the active flag in ebp).
 // Tried 2026-10-31: FUN_00405380 results into locals (fixed arg order), m_players[i] read twice (CSEs begin); int act / volatile / pointer-to-vector / counter-order / loop-var-hoist variants of the collect loop did not change the 14.
+// Tried 2026-10-31 re-pass: ~30 more variants (Player* p / int act / volatile active read / volatile p / entry++-> / reordered count++ / continue form / Player*& ref / DWORD+bool act / volatile m_entries,m_localPlayer / RaceMode* volatile self / Color declared after Unlock or before the if) all stay at 14 insns (Color late: size 484 but 18 insns); original loads the element into eax and active into ebp (`mov ebp,[eax+0x1824]; test ebp,ebp`), VC6 always CSEs the element address (lea eax,[eax+ecx*4]) instead.
 // Builds the table of active players at 0x7b0 and draws "name: status" lines.
 void RaceMode::FUN_00488690()
 {
