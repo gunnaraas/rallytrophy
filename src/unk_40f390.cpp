@@ -24,6 +24,7 @@ static __forceinline int RoundF(float v)
 // NONMATCHING: RALLYTROPHY 0x40f390
 // reason: RoundF applied (EBP frame now from inline asm); built 2391 vs 2340 bytes, 2153 differ, regalloc differs.
 // Tried 2026-10-30 night: decl order/register/while-loop/pointer-walk/+1-folded nx variants, `StageGrid* g = this` member access + volatile diag in loop 1 (627->603 insns); still differs: original keeps this in esi and gx/gy/i in registers across loop tops (ours spills), x87 round interleave.
+// Tried 2026-11-01 repass: x87 association checked (only fsub/fsubr and slot differences, sums/lim/round chains agree); 11 variants (this-> direct, pointer-walk and count-down x loops, rows/cols locals, volatile g, double diag, while gy) all 599-642 insns differ vs 603 base; original uses count-down inner loops with cursor spills, ours differs in regalloc throughout, not within permuter range.
 // The point transform is the X87XformT asm helper (657 -> 627 differing instructions; the positional byte count got worse, 2153 -> 2190).
 void StageGrid::FillCells()
 {
