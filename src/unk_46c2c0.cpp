@@ -304,6 +304,7 @@ void Wheel::Reset()
 
 // NONMATCHING: RALLYTROPHY 0x46c790
 // original: FUN_0046c790
+// Re-pass 2026-11-01: float-sum audit vs original fadd order; fixed latVel/lonVel (x,z,y chain), latLen2 (y,x,z chain), blendSpeed and slip relax (K before unk2ec); all other sums and field reads already agree; 420->414 insns differ, rest is frame size 0xfc vs 0xe4 and x87 lifetimes.
 // Tried 2026-10-30 night: ~16 variants (load int local 433->420, vel field-wise, Vec3/array localPos, decl order, volatile S/ld, slip copy, fy/L2 split); remaining diff is frame size 0xfc vs 0xe4 (asm pointer temps share float slots in the original), missing EH-state store timing, and x87 lifetimes.
 // 3506 vs 3573 bytes (2843 differing bytes). Stiction vector declaration groups reproduce target EH transitions 8,
 // 0xb and 0xd before the scale, subtraction, and output stages (REA Evidence
@@ -354,7 +355,7 @@ void Wheel::UpdateForces()
             lon.z = inv * lon.z;
         }
         lat = FUN_004203e0(normal, forwardW);
-        float latLen2 = lat.x * lat.x + lat.y * lat.y + lat.z * lat.z;
+        float latLen2; latLen2 = lat.y * lat.y; latLen2 = lat.x * lat.x + latLen2; latLen2 = latLen2 + lat.z * lat.z;
         if (latLen2 < 0.0001f) {
             lat = *(Vec3*)up * *(const RotMatrix*)body->rotation;
         } else {
@@ -388,8 +389,8 @@ void Wheel::UpdateForces()
         float invLoad = 1.0f / (load * peakLat2);
 
         // Contact velocity along the ground directions.
-        float latVel = vel.x * lat.x + vel.z * lat.z + vel.y * lat.y;
-        float lonVel = vel.x * lon.x + vel.z * lon.z + vel.y * lon.y;
+        float latVel; latVel = vel.x * lat.x; latVel = vel.z * lat.z + latVel; latVel = vel.y * lat.y + latVel;
+        float lonVel; lonVel = vel.x * lon.x; lonVel = vel.z * lon.z + lonVel; lonVel = vel.y * lon.y + lonVel;
         slipB = latVel;
         unk308 = latVel;
         float wheelSpeed = spin * unk268;
@@ -397,7 +398,7 @@ void Wheel::UpdateForces()
         slipA = slipSpeed0;
 
         // Slip ratio: direct at speed, relaxed (first order) below the stiction speed.
-        float blendSpeed = (float)fabs(lonVel) * DAT_0050941c * unk2ec * 2.0f;
+        float blendSpeed; blendSpeed = (float)fabs(lonVel) * DAT_0050941c; blendSpeed = blendSpeed * unk2ec; blendSpeed = blendSpeed * 2.0f;
         float slipRatio;
         if (!(blendSpeed < 1.0f)) {
             slipRatio = slipSpeed0 / (float)fabs(lonVel);
@@ -406,7 +407,7 @@ void Wheel::UpdateForces()
             if (((*(int*)&unk2f0 ^ *(int*)&lonVel) & 0x80000000) != 0) {
                 unk2f8 = unk2f8 * -0.7f;
             }
-            unk2f8 = ((lonVel - wheelSpeed) - (float)fabs(lonVel) * unk2f8) * DAT_0050941c * unk2ec + unk2f8;
+            float dd = ((lonVel - wheelSpeed) - (float)fabs(lonVel) * unk2f8); dd = dd * DAT_0050941c; dd = dd * unk2ec; unk2f8 = dd + unk2f8;
             if (unk2f8 > 10.0f) {
                 unk2f8 = 10.0f;
             } else if (unk2f8 < -10.0f) {
