@@ -511,13 +511,13 @@ inline void Cross(float* o,const float* a,const float* b)
     if (P01>0.0f) { A=V2; B=(V0-V2)*D2; C=(V1-V2)*D2; X0=D2-D0; X1=D2-D1; } \
     else if (P02>0.0f) { A=V1; B=(V0-V1)*D1; C=(V2-V1)*D1; X0=D1-D0; X1=D1-D2; } \
     else if (D1*D2>0.0f || D0!=0.0f) { A=V0; B=(V1-V0)*D0; C=(V2-V0)*D0; X0=D0-D1; X1=D0-D2; } \
-    else if (D1!=0.0f) { A=V1; B=(V0-V1)*D1; C=(V2-V1)*D1; X0=D1-D0; X1=D1-D2; } \
-    else if (D2==0.0f) return t->Coplanar(); \
-    else { A=V2; B=(V0-V2)*D2; C=(V1-V2)*D2; X0=D2-D0; X1=D2-D1; }
+    else if (D1==0.0f) { if (D2==0.0f) return t->Coplanar(); A=V2; B=(V0-V2)*D2; C=(V1-V2)*D2; X0=D2-D0; X1=D2-D1; } \
+    else { A=V1; B=(V0-V1)*D1; C=(V2-V1)*D1; X0=D1-D0; X1=D1-D2; }
 
 // NONMATCHING: RALLYTROPHY 0x4b59b0
 // Interval temporaries, x87 scheduling and exception-frame allocation differ.
 // Tried 2026-10-30 night: 319->146 insns via preloaded axis values, shared product temps pu1/pu2 (u1*u0,u2*u0) reused by INTERVAL, x reused as running max with (float)bits(y)>x, final arm as D2==0?Coplanar:arm; still differs: arms 2 and 5 laid out-of-line (VC6 merges the duplicated V1/V2 arms), Vec3 direction at -0x40 not -0x48 (frame 0x34 vs 0x3c), tail x87 store slots.
+// Tried 2026-11-01 re-pass: 146->105 insns by restructuring INTERVAL tail as else-if D1==0 with nested D2==0 Coplanar test then the V1 arm last (breaks VC6 arm merging), V2 arm in that branch storing X1 before X0; ~25 more variants (Moller-style D1!=0/D2!=0/else Coplanar = 188, v0 normal[0]-first sum and volatile/temp chains, no effect on fld order) failed; still differs: Coplanar block placed inline not after arm6, Vec3 direction at -0x40 not -0x48 (frame 0x34 vs 0x3c), tail x87 store slots; sums already match the asm order.
 int Tri3::Overlap(const float* a,const float* b,const float* c,const float* normal,float plane)
 {
     TriangleProjection* t=(TriangleProjection*)this;
@@ -527,7 +527,7 @@ int Tri3::Overlap(const float* a,const float* b,const float* c,const float* norm
     if (FloatBits((float)fabs(u2))<DAT_004e29b8) u2=0;
     float pu1=u1*u0,pu2=u2*u0;
     if(pu1>0 && pu2>0) return false;
-    float v0=((t->v[0][2]*normal[2]+t->v[0][1]*normal[1])+t->v[0][0]*normal[0])-plane,v1=((t->v[1][2]*normal[2]+t->v[1][1]*normal[1])+t->v[1][0]*normal[0])-plane,v2=((t->v[2][2]*normal[2]+t->v[2][1]*normal[1])+normal[0]*t->v[2][0])-plane;
+    float v0=((t->v[0][2]*normal[2]+t->v[0][1]*normal[1])+normal[0]*t->v[0][0])-plane,v1=((t->v[1][2]*normal[2]+t->v[1][1]*normal[1])+t->v[1][0]*normal[0])-plane,v2=((t->v[2][2]*normal[2]+t->v[2][1]*normal[1])+normal[0]*t->v[2][0])-plane;
     if (FloatBits((float)fabs(v0))<DAT_004e29b8) v0=0;
     if (FloatBits((float)fabs(v1))<DAT_004e29b8) v1=0;
     if (FloatBits((float)fabs(v2))<DAT_004e29b8) v2=0;
