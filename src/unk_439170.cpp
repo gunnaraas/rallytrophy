@@ -151,6 +151,7 @@ int MenuScreenA48::Run(MenuGame* game, NetRace* session)
 // Same size (1948 bytes with tables), 218 bytes differ. Loading row text before explicit volatile HudPoint stores improves
 // the 224-byte candidate; GetScale and (1,1) still use swapped slots (0x44/0x4c vs target 0x4c/0x44), with case scheduling open.
 // Tried 2026-10-30 night: reordering switch cases, moving/declaring scale/one elsewhere, volatile/hoisted title temps; a local `RenderDevice* d = DAT_0056b0ac` for the title Print improves 44->33 insns (fixes the switch-case layout), still differs in text/device register choice (ebp vs ebx), the late device load, and swapped scale/one slots (0x44/0x4c).
+// Tried 2026-10-31 re-pass: one/scale declared early/late/function-scope, local LP/LD point classes for scale and one, float[2] one (frame shrinks, worse), volatile/early/late d, title string/xy temps; slots scale 0x44/one 0x4c stay swapped (34 insns differ, unchanged) since one's EH state follows its declaration point.
 // original: FUN_004398e0 (thiscall; MenuScreenA48::Frame)
 int MenuScreenA48::Frame()
 {
