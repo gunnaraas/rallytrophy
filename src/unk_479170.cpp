@@ -285,6 +285,7 @@ static const float C1_SLIP2_LO = 4.0f, C1_SLIP2_HI = 35.0f;   // 0x4e219c, 0x4e2
 // order or block scope changes it); and a few schedule differences (pool head store, x/y velocity
 // jitter adds with a CSE'd velocity.x, epilogue pop order).
 // Tried 2026-10-30 night: split alpha sum, `t2 = n3 + n2`, `Vec3 local` copied before the pool-pop stores (77->64 insns); decl order of r/t2/n1, local/age placement, yv split and `j + v` jitter forms no better. Still open: float scratch slot ebp-0x10 vs n1 home ebp-0x14 swapped, original pops pool before loading s_car, 1377 vs 1382 bytes.
+// Tried 2026-10-31 re-pass: SpawnCore3/4 pool-pop recipe applied (pop, int copy of age, unk0/lifetime, then position copy; 125->99 diff lines); SpawnCore2 volatile j1/yv jitter form and slipLong in dead age slot made it worse (101/137), n1/slip decl-order sweeps worse (123). Still open: n1 home ebp-0x14 vs scratch ebp-0x10 swapped, j1 not in its own slot, slipLong push order.
 // Spawn core 1: emits one particle with a probability from the slips and the body speed.
 float CarEmitterB::SpawnCore1(float scale, float age)
 {
@@ -342,11 +343,13 @@ float CarEmitterB::SpawnCore1(float scale, float age)
         DAT_0056ae90.Grow();
     }
     Particle* p = DAT_0056ae90.head;
-    DAT_0056ae90.head = p->next;
-    Vec3 local(s_car->position);
-    p->age = age;
+    Particle* nx = p->next;
+    int ab = *(volatile int*)&age;
+    DAT_0056ae90.head = nx;
+    *(int*)&p->age = ab;
     p->unk0 = 0;
     p->lifetime = 3.5f;
+    Vec3 local = s_car->position;
     float jx = (rand() & 0xff) * 0.00039062500582f;
     if (s_car->position.x > 0.0f) {
         jx = -jx;
