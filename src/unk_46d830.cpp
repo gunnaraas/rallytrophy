@@ -183,11 +183,13 @@ inline void CarRain::Respawn(CarDrop* drop)
 // whole function (locals, vector-null tests, first GetMeshData(0), `cmp eax,edi` after new) and recomputes
 // n*12 for the memcpy, where this version keeps the zero in ecx (shared with i) and CSEs n*12 into edi.
 // Tried 2026-10-30 night: 17 variants (i declared first/after/via for-loop/while, pointer init forms and order, a named zero int, n/Vec3* temps declared up top); all fold to the same 144-insn output, VC6 still gives the zero to ecx shared with i instead of a separate edi zero with its own xor, which also lets it CSE n*12 across the new call.
+// Tried 2026-11-01 re-pass: 144->32 insns differ via a volatile-zero local z (`int z; *(volatile int*)&z = 0;`) for body/trunk/hood init, memcpy size re-read as body->vertexCount*12 (stops n*12 CSE), and the drop loop as `for (i..) { CarDrop* d = drops + i; }`; permute -r 40 found nothing; still differs: extra z store and param load/push edi order in prologue, hood/body count register order and sum order for totalCount.
 void CarRain::Init(RainScene* scene)
 {
-    WindowMeshData* body = 0;
-    WindowMeshData* trunk = 0;
-    WindowMeshData* hood = 0;
+    int z; *(volatile int*)&z = 0;
+    WindowMeshData* body = (WindowMeshData*)z;
+    WindowMeshData* trunk = (WindowMeshData*)z;
+    WindowMeshData* hood = (WindowMeshData*)z;
     int i = 0;
     for (;;) {
         if (i >= (int)scene->objects.size()) {
@@ -235,24 +237,24 @@ void CarRain::Init(RainScene* scene)
     int n = body->vertexCount;
     bodyCount = n;
     bodyVerts = new Vec3[n];
-    memcpy(bodyVerts, body->vertices, n * sizeof(Vec3));
+    memcpy(bodyVerts, body->vertices, body->vertexCount * sizeof(Vec3));
     if (trunk != 0) {
         n = trunk->vertexCount;
         trunkCount = n;
         trunkVerts = new Vec3[n];
-        memcpy(trunkVerts, trunk->vertices, n * sizeof(Vec3));
+        memcpy(trunkVerts, trunk->vertices, trunk->vertexCount * sizeof(Vec3));
     }
     if (hood != 0) {
         n = hood->vertexCount;
         hoodCount = n;
         hoodVerts = new Vec3[n];
-        memcpy(hoodVerts, hood->vertices, n * sizeof(Vec3));
+        memcpy(hoodVerts, hood->vertices, hood->vertexCount * sizeof(Vec3));
     }
     totalCount = trunkCount + hoodCount + bodyCount;
     int count = dropCount;
     if (count > 0) {
-        CarDrop* d = drops;
-        for (i = 0; i < count; i++, d++) {
+        for (i = 0; i < count; i++) {
+            CarDrop* d = drops + i;
             d->phase = (float)i / (float)count;
             Respawn(d);
         }
