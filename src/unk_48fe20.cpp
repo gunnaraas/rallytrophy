@@ -102,6 +102,7 @@ RecordEntry* RecordTable::FUN_00490010(int a, int b, int c, int d)
 // Insert by the 0x54 time into the list of the stage and the list of the car class.
 // Same structure and size as the original; register allocation differs (key/record/first end up in other registers).
 // Tried 2026-10-30 night: declaring i after result (i gets ebx) and `!a ? 0 : a*11+2` (jne layout) took 70->61; indexed loops, key/first order, self pointer, tp++ walkers did not help; original keeps this in ebp, key in esi, first in edi, ours allocates them differently (330 vs 341 bytes).
+// Tried 2026-10-31 re-pass: char* p computed from the base (records + list*230*0x60 + 0x54) beside first took 61->43 insns; ~45 variants (decl-order permutations, list/key forms, volatile record/this, rederived first, first[i] stores) stayed at 43; original keeps this in ebp/record in eax short-lived and spills list into the key slot, ours puts this in eax and record in ebp (332 vs 341 bytes).
 int RecordTable::FUN_00490050(ScoreRecord* record, int a, int b)
 {
     int result = 0;
@@ -110,30 +111,24 @@ int RecordTable::FUN_00490050(ScoreRecord* record, int a, int b)
     int i = 0;
     int key = record->splits[9];
     ScoreRecord* first = (ScoreRecord*)records + list * 230;
-    int* time = &first->splits[9];
-    for (; i < 10; i++, time += 0x18) {
-        if (key < *time) {
+    char* p = (char*)records + list * 230 * 0x60 + 0x54;
+    for (; i < 10; i++, p += 0x60) {
+        if (key < *(int*)p) {
             dirty = 1;
-            if (!i) {
-                result = 1;
-            }
-            for (int j = 9; j > i; j--) {
-                first[j] = first[j - 1];
-            }
+            if (!i) result = 1;
+            for (int j = 9; j > i; j--) first[j] = first[j - 1];
             ((ScoreRecord*)records)[list * 230 + i] = *record;
             break;
         }
     }
     list = list * 23 + record->unk1f;
     i = 0;
+    p = (char*)records + list * 10 * 0x60 + 0x54;
     first = (ScoreRecord*)records + list * 10;
-    time = &first->splits[9];
-    for (; i < 10; i++, time += 0x18) {
-        if (key < *time) {
+    for (; i < 10; i++, p += 0x60) {
+        if (key < *(int*)p) {
             dirty = 1;
-            for (int j = 9; j > i; j--) {
-                first[j] = first[j - 1];
-            }
+            for (int j = 9; j > i; j--) first[j] = first[j - 1];
             ((ScoreRecord*)records)[list * 10 + i] = *record;
             break;
         }
