@@ -184,6 +184,7 @@ extern int DAT_004f9ca8[];             // tab text ids {120, 121, 122, 124, 23, 
 // original issues the 1.0f stores of the first sprites ahead of the mode/int blocks and delays the 5/6/2/0xf int stores
 // (the sprite order damageIcons, damageBar, tuneSelectors, repair, tune, info, startRace, load is right). original: FUN_00445e80
 // Tried 2026-10-30 night: reordered SMA_SPRITE stores (floats+ints first, unk98/unk9c last: 82->69 insns), pointer loops, per-loop macros, 6 other orders; the original schedules sprite int stores in a different interleave and its loop base is sprite+0x68 (ours +0x98), not reachable from source order.
+// Tried 2026-10-31 re-pass: swept all 24 orders of the four store groups (unk9c/98, f60, f40, ints) = 68 best vs 69; the loop body order 9c,98,f60,f40,18,1c,24,20 reproduces the original loop but the strength-reduced base stays sprite+0x98/0x64 (original +0x68), also with explicit base-pointer stores, Sprite& and Sprite* forms; the non-loop sprites need the unexplained cross-sprite interleave; 68 insns, permute skipped.
 ServiceMenu::ServiceMenu()
 {
     m_selected = 0;
