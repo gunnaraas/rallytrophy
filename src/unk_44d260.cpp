@@ -429,6 +429,7 @@ loaded:
 // Candidate is 1259/1321 bytes with 947 differing bytes. The target uses a 0x48 frame and local failure epilogues;
 // candidate uses a 0x44 frame and merges the three failure exits into one shared tail. Both use the per-player 10-dword stack temporary.
 // Tried 2026-10-31: 132 insns now (was 142: per-use car->snapshot[2] and a local CarSnapshot* per buffer block, dropped the bogus Close on bad headers). No source form stopped the failure-exit tail merge (return 0 vs false, nested else, goto, cipher/race decl positions, race copies per branch); int return (xor eax,eax) is right per the callers but changing the header affects other files.
+// Tried 2026-11-01 re-pass: 13 variants (int return via header + return 0, result local, volatile zero return, folded return exprs size-size/done&0/stage-stage, volatile level/DAT reads, store-order swap of level/stage, volatile loop stores, separate loop pointer); int return alone is 132 insns too and the three failure epilogues still merge into one tail (volatile zero return unmerges the tail but adds a spilled return slot, 129 insns, 1302 bytes); original also has 0x10 more below the cipher temp, not explained; 132 insns, too far for permute.
 bool SlotStore::LoadRelay()
 {
     DAT_00501472 = 0;
