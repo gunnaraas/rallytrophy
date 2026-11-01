@@ -316,9 +316,11 @@ __declspec(naked) void SnowFall::InitParticles()
     __asm fstp dword ptr [eax+4] \
     __asm fstp dword ptr [eax+8]
 
+static __forceinline void CpV(Vec3& d, const Vec3& s){ d.x=s.x; d.y=s.y; d.z=s.z; }
 // original: FUN_004751b0
 // NONMATCHING: RALLYTROPHY 0x4751b0
 // Tried 2026-10-31: kInvFixed written as the literal 1/65536 in the unit.x/y/z products fixes their fld/fmul order; register assignment (this/flake/vertex) and quad-corner temp slots still differ.
+// Tried 2026-11-01: CpV forceinline field copy of v->position (147->47 insns), cursors ca/cb declared after world.m stores, chained dot (dq) in asm order, p++ before i++, volatile float reads for fov/near/far (-> 21 insns differ); still differs: offX/offY memory-operand subs and phase/y load order in the flake loop, push 1.0f/fld fov order in vf51.
 // 1747 vs 1741 bytes, same instruction mix and EH states. Open: register assignment (original this=edi,
 // flake=ebx, vertex=esi) and the stack slot order of the quad corners / hidden-return Vec3 temporaries.
 void SnowFall::Update(RenderDevice* device, Camera* camera, int a, int b, float dt)
@@ -326,13 +328,13 @@ void SnowFall::Update(RenderDevice* device, Camera* camera, int a, int b, float 
     if (DAT_00501428 == 0) {
         return;
     }
-    Vec3* ca = &camera->up;
-    Vec3* cb = &camera->forward;
     Vec3* cresult;
     WorldMatrix world;
     world.m[12] = camera->position.x;
     world.m[13] = camera->position.y;
     world.m[14] = camera->position.z;
+    Vec3* cb = &camera->forward;
+    Vec3* ca = &camera->up;
     Vec3 qa, qc, qb, qd;
     Vec3 right;
     cresult = &right;
@@ -357,7 +359,7 @@ void SnowFall::Update(RenderDevice* device, Camera* camera, int a, int b, float 
     SnowFlake* p = flakes;
     EffectVertex* v = mesh->vertices;
     int drawn = 0;
-    for (int i = 0; i < drawCount; i++, p++) {
+    for (int i = 0; i < drawCount; p++, i++) {
         p->y -= FloatToInt(fallScale * p->fall);
         if (p->y < 0) {
             p->y &= 0xffff;
@@ -374,24 +376,25 @@ void SnowFall::Update(RenderDevice* device, Camera* camera, int a, int b, float 
         rel.y = rel.y - box.y * 0.5f;
         rel.z = rel.z - box.z * 0.5f;
         Vec3* fwd = &camera->forward;
-        if (rel.z * fwd->z + rel.y * fwd->y + rel.x * fwd->x > threshold) {
+        float dq = rel.z * fwd->z; dq = dq + rel.y * fwd->y; dq = dq + rel.x * fwd->x;
+        if (dq > threshold) {
             float u0 = p->u;
             float v0 = p->v;
             float u1 = u0 + 0.5f;
             float v1 = v0 + 0.5f;
-            v->position = rel + qa;
+            CpV(v->position, rel + qa);
             v->u = u0;
             v->v = v0;
             v++;
-            v->position = rel + qb;
+            CpV(v->position, rel + qb);
             v->u = u1;
             v->v = v0;
             v++;
-            v->position = rel + qc;
+            CpV(v->position, rel + qc);
             v->u = u1;
             v->v = v1;
             v++;
-            v->position = rel + qd;
+            CpV(v->position, rel + qd);
             v->u = u0;
             v->v = v1;
             v++;
@@ -403,7 +406,7 @@ void SnowFall::Update(RenderDevice* device, Camera* camera, int a, int b, float 
     m->vertexCount = drawn * 4;
     device->vf46(world.m, 1);
     device->vf48((const float*)&camera->right, 1);
-    device->vf51(camera->fov, 1.0f, *(float*)&camera->nearBits, *(float*)&camera->farBits, 1);
+    device->vf51(*(volatile float*)&camera->fov, 1.0f, *(volatile float*)&camera->nearBits, *(volatile float*)&camera->farBits, 1);
     device->SetRenderState(5, 0);
     device->vf42(4);
     device->vf35(material);
