@@ -33,6 +33,7 @@ struct StMsg {
     StMsg& AssignCall(const char* text, unsigned int n);
     unsigned int MaxSize() const;
     void Copy(unsigned int n);
+    void Eos(unsigned int n);
     StMsg& Format(char* first, char* last, const char* fmt, const char* arg);
     std::allocator<char> alloc;
     char* ptr;

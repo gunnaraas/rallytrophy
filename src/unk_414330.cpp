@@ -179,12 +179,13 @@ void S414List::RemoveNode(S414Node* n)
 #pragma comment(linker, "/alternatename:?Tidy@StMsg@@QAEX_N@Z=?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z")
 #pragma comment(linker, "/alternatename:?AssignCall@StMsg@@QAEAAV1@PBDI@Z=?assign@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@QAEAAV12@PBDI@Z")
 #pragma comment(linker, "/alternatename:?MaxSize@StMsg@@QBEIXZ=?max_size@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@QBEIXZ")
+#pragma comment(linker, "/alternatename:?Eos@StMsg@@QAEXI@Z=?_Eos@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEXI@Z")
 #pragma comment(linker, "/alternatename:?Copy@StMsg@@QAEXI@Z=?_Copy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEXI@Z")
 
 // NONMATCHING: RALLYTROPHY 0x414550
 // Tried 2026-10-31: a replace-style rewrite (zero-fill after the grow) scored 105 insns but its copy path was not verified; the original has both a rep stos zero-fill of the inserted gap and a final rep movs copy from the source. Existing code kept. The original also reuses the `first`/`arg` parameter slots for pos/newLen.
 // Tried 2026-11-01 re-pass: 14 variants (asm-faithful middle, param-slot reuse of arg/first, one-read len-pos, VC6 _Grow-shaped tail with Copy unconditional when shared, pos/sourceLen order, non-volatile pos): 111-130 insns differ vs 112 baseline, size 515-532 vs 505; still differs: original body is replace() with memmove only when N<N0 before Grow, then after Grow `N0<N ? memmove(ptr+pos+N,ptr+pos+N0,Nm) : memset(ptr+pos,0,N)` (current body zero-fills a different range - asm shows the zero fill is N bytes at ptr+pos), newLen/len-N0 live in the arg param slot, tail reads len again and shares Copy on refcounted path; register allocation (edx/ecx/esi/ebx) diverges from the prologue so not within permuter range.
-// BEHAVIOUR: the body above differs from the original (checked against the asm 2026-11-01): after Grow the original zero-fills sourceLen bytes at ptr+pos (memset) when sourceLen <= eraseLen, and its guard is `sourceLen > 0 || eraseLen > 0`. An asm-faithful rewrite scores the same 112 insns; it was not applied because it is unverified by a match.
+// BEHAVIOUR: verified against the asm 2026-11-01 (after Grow: memmove only when eraseLen<sourceLen, then ALWAYS memset sourceLen bytes at ptr+pos; guard sourceLen>0||eraseLen>0; tail re-reads len, unshared n==0 calls _Eos(0)). Body now equals the original semantically; still NONMATCHING (about 129 vs 141 differing insns).
 // The Stage caller uses this as a thiscall member on its string-layout message object.
 StMsg& StMsg::Format(char* first, char* last, const char* fmt, const char* arg)
 {
@@ -224,33 +225,39 @@ StMsg& StMsg::Format(char* first, char* last, const char* fmt, const char* arg)
                 suffixLen);
     }
     unsigned int newLen = baseLen + sourceLen;
-    if (sourceLen > eraseLen || eraseLen != 0) {
+    if (sourceLen > 0 || eraseLen > 0) {
         if (Grow(newLen, false)) {
-            if (sourceLen < eraseLen) {
-                memset(ptr + pos + sourceLen + len - pos - eraseLen, 0,
-                       eraseLen - sourceLen);
-            } else if (sourceLen > eraseLen) {
+            if (eraseLen < sourceLen) {
                 memmove(ptr + pos + sourceLen, ptr + pos + eraseLen,
-                        len - pos - eraseLen);
+                        suffixLen);
             }
+            memset(ptr + pos, 0, sourceLen);
             len = newLen;
             ptr[newLen] = 0;
         }
     }
     if (ptr != 0 && ptr[-1] != 0 && ptr[-1] != (char)0xff) {
-        unsigned int max = MaxSize();
-        if (max < newLen)
+        unsigned int n = len;
+        if (MaxSize() < n)
             std::_Xlen();
-        if (newLen == 0) {
-            ptr[-1]--;
-            Tidy(false);
-        } else if (res < newLen) {
-            Copy(newLen);
+        if (ptr != 0 && ptr[-1] != 0 && ptr[-1] != (char)0xff) {
+            if (n == 0) {
+                ptr[-1]--;
+                Tidy(false);
+            } else {
+                Copy(n);
+            }
+        } else if (n == 0) {
+            if (ptr != 0)
+                Eos(0);
+        } else if (res < n) {
+            Copy(n);
         }
     }
     if (ptr != 0)
         ptr[-1] = (char)0xff;
-    if (sourceLen != 0)
-        memcpy(ptr + pos, fmt, sourceLen);
+    char* d = ptr + pos;
+    if (sourceLen > 0)
+        memcpy(d, fmt, sourceLen);
     return *this;
 }
