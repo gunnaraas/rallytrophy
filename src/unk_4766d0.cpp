@@ -147,9 +147,9 @@ void WindowRain::vf6(RenderDevice* device, Camera* camera, int unused)
 }
 
 // NONMATCHING: RALLYTROPHY 0x476be0
-// 949 vs 955 bytes / 362 differing bytes. Expanding the y-delta expressions removes 37 differences, but the frame
-// remains four bytes larger and the bounds-copy registers and x87 comparison stack still differ.
+// 955 vs 955 bytes; 72 -> 36 insns differ (cursor/idiom pass 2026-11-01).
 // Tried 2026-10-30 night: dy as a local, int copy of the vertex into a Vec3* w = &s->world (gets the ecx=&world.z base, frame size now matches; 127->72 insns); separate angle pointers, store reorders, indexed spots[j] did not add the original second induction pointer (edx=s) or its imm 100.0 stores; bounds-copy register rotation still differs.
+// Tried 2026-11-01: cursor float* cz=&s->world.z re-derived in the for-increment (keeps edx=s and ecx separate), dy declared after the right/up constant stores, drops loop as indexed dr=&drops[j]; 72->36 insns, size 955 matches. Left: bounds-copy register rotation (orig starts eax, ours edx; bounds.w/struct copy/vmd/reverse order no help), zero/imm store order in loop, add ecx,0x2c vs lea ecx,[edx+0x10]; volatile barriers on cz stores only reach 34.
 void WindowRain::Init(RainScene* scene)
 {
     int i = 0;
@@ -202,20 +202,20 @@ void WindowRain::Init(RainScene* scene)
     float min1 = viewRange[1].x < viewRange[1].y ? viewRange[1].x : viewRange[1].y;
     float max1 = viewRange[1].x > viewRange[1].y ? viewRange[1].x : viewRange[1].y;
     RainSpot* s = spots;
+    float* cz = &s->world.z;
     Vec3* src = md->vertices;
     int j;
-    for (j = 0; j < n; j++, s++, src++) {
-        Vec3* w = &s->world;
-        w->x = src->x; w->y = src->y; w->z = src->z;
-        s->right.y = 0.0f;
-        s->right.z = 0.0f;
-        s->up.x = 0.0f;
-        s->up.z = 0.0f;
-        float dx = s->world.x - viewPos[0].x;
-        s->angleA = s->angleB = 100.0f;
-        s->right.x = 1.0f;
-        s->up.y = 1.0f;
-        float dy = s->world.y - viewPos[0].y;
+    for (j = 0; j < n; j++, s++, src++, cz = &s->world.z) {
+        cz[-2] = src->x; cz[-1] = src->y; cz[0] = src->z;
+        cz[3] = 0.0f;
+        cz[6] = 0.0f;
+        float dx = cz[-2] - viewPos[0].x;
+        s->angleA = 100.0f; cz[-3] = 100.0f;
+        cz[1] = 1.0f;
+        cz[2] = 0.0f;
+        cz[5] = 1.0f;
+        cz[4] = 0.0f;
+        float dy = cz[-1] - viewPos[0].y;
         float d = dy * dy + dx * dx;
         if (d >= r1 && d <= r2) {
             float ang = (float)atan2(dy, dx);
@@ -224,19 +224,20 @@ void WindowRain::Init(RainScene* scene)
             }
         }
         if (viewCount > 1) {
-            dx = s->world.x - viewPos[1].x;
-            dy = s->world.y - viewPos[1].y;
+            dx = cz[-2] - viewPos[1].x;
+            dy = cz[-1] - viewPos[1].y;
             d = dy * dy + dx * dx;
             if (d >= r1 && d <= r2) {
                 float ang = (float)atan2(dy, dx);
                 if (ang >= min1 && ang <= max1) {
-                    s->angleB = ang;
+                    cz[-3] = ang;
                 }
             }
         }
     }
-    RainDrop* dr = drops;
-    for (j = 0; j < dropCount; j++, dr++) {
+    RainDrop* dr;
+    for (j = 0; j < dropCount; j++) {
+        dr = &drops[j];
         dr->age = (float)j / (float)dropCount;
         dr->spot = &spots[rand() % n];
     }
