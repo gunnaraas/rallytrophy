@@ -28,12 +28,35 @@ __forceinline void CopyV(Vec3& d, const Vec3& s)
     *(int*)&d.z = z;
 }
 
+struct TmpLV : public ViewMat {
+    TmpLV(LightSource* c) {
+        m[0] = c->matrix.m[0];
+        m[1] = c->matrix.m[1];
+        m[2] = c->matrix.m[2];
+        m[3] = c->matrix.m[3];
+        m[4] = c->matrix.m[4];
+        m[5] = c->matrix.m[5];
+        m[6] = c->matrix.m[6];
+        m[7] = c->matrix.m[7];
+        m[8] = c->matrix.m[8];
+        m[9] = c->matrix.m[9];
+        m[10] = c->matrix.m[10];
+        m[11] = c->matrix.m[11];
+        *(volatile float*)&m[12] = c->matrix.translation.x;
+        *(volatile float*)&m[13] = c->matrix.translation.y;
+        *(volatile float*)&m[14] = c->matrix.translation.z;
+        *(volatile float*)&m[15] = c->matrix.w;
+        m[12] = c->position.x;
+        *(volatile float*)&m[13] = c->position.y;
+    }
+};
 // NONMATCHING: RALLYTROPHY 0x46eec0
 // The original copies the child matrix with 16 strictly sequential ecx load/store pairs and keeps three
 // overwritten translation stores. Volatile destination stores preserve those three, and scalar translation
 // copies avoid three indirect stores; current candidate is 975/1044 bytes with 630 differing bytes. The
 // corner helper still uses a different register schedule.
 // Tried 2026-10-31: CopyV int copy for corner stores plus this->corner[k] for corners 1-3 (c only for corner 0) took 101->~19 insns; kind/flags barriers and load permutations done; still differs in EH state store placement (early vs just before Concat), flags/position14 register choice, and x87 operand order of the first corner add.
+// Tried 2026-10-31 re-pass: local ViewMat-derived TmpLV with inline copy ctor (EH state 2 now lands before Concat as in the original) and tmp.m[14] stored after it took 19->14 insns; sweeps of flags/position14 load order, glow/flare/matrix store order, volatile tmp stores, and AddRC/AddCR x87 operand helpers did not move the remaining diffs (add esi,0x20 slot, edx/eax roles for position14/flags, first-component fld order of corners 0 and 1).
 CityLight::CityLight(LightSource* source, TextureLoader* loader, Sprite* glowSprite, Sprite* flareSprite)
 {
     unk8 = 0;
@@ -48,25 +71,7 @@ CityLight::CityLight(LightSource* source, TextureLoader* loader, Sprite* glowSpr
     matrix.translation.z = source->position.z;
     LightSource* child = source->child;
     if (child) {
-        ViewMat tmp;
-        tmp.m[0] = child->matrix.m[0];
-        tmp.m[1] = child->matrix.m[1];
-        tmp.m[2] = child->matrix.m[2];
-        tmp.m[3] = child->matrix.m[3];
-        tmp.m[4] = child->matrix.m[4];
-        tmp.m[5] = child->matrix.m[5];
-        tmp.m[6] = child->matrix.m[6];
-        tmp.m[7] = child->matrix.m[7];
-        tmp.m[8] = child->matrix.m[8];
-        tmp.m[9] = child->matrix.m[9];
-        tmp.m[10] = child->matrix.m[10];
-        tmp.m[11] = child->matrix.m[11];
-        *(volatile float*)&tmp.m[12] = child->matrix.translation.x;
-        *(volatile float*)&tmp.m[13] = child->matrix.translation.y;
-        *(volatile float*)&tmp.m[14] = child->matrix.translation.z;
-        *(volatile float*)&tmp.m[15] = child->matrix.w;
-        tmp.m[12] = child->position.x;
-        *(volatile float*)&tmp.m[13] = child->position.y;
+        TmpLV tmp(child);
         tmp.m[14] = child->position.z;
         ((LightView*)&matrix)->Concat(tmp);
     }
