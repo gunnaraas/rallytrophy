@@ -16,6 +16,7 @@ struct V3Sub { float x, y, z; float* Sub(float* out, const float* o) const; }; /
 
 // NONMATCHING: RALLYTROPHY 0x4b9d30 (draft: the world-point transform (centre*matA + pos) is the Xform asm block (frame now ebp as original; 1563 vs 1750 bytes, ~1395 differ mostly from shifts). Remaining: EH state 3 and sub esp 0x224 (ours 2 / 0x210), the original reuses the arg slots [ebp+8..0x14] for temporaries (more asm), different dot-product order in the vertex loop)
 // Tried 2026-10-30 night: cam/body matrices via local pointers (cm), 4 early + 5 late dtor objects (V3E w/tmp/X5) gives sp 0x224, EH state 3 and 1748 bytes (326->316 insns; cm alone 308); operand order of the translation products ignores source order, matrix slots ignore declaration order (original: invBody -0x230, invProd -0x1f0, clip -0x1b0, invCam -0x170, invAxes -0x130, prod -0xf0); X5 candidates u/a/d/up all worse.
+// Tried 2026-11-01 re-pass: vertex loop and pre-loop scaling rewritten to the original's fadd association (clip scaled in place after the q copy; u=(g3+g1)+(f4+ang), v=(f8-g2)-g4; a rounding fix, 316->319 insns only because of slot cascade); matrix declaration order (6 orders, incl. original slot order) and q[16] position make no difference to slots; temps/volatile on g2/g4 and bm-sum temp variants worse; 313-331 insns differ, too far for permute.
 void ShadowUpdater::Update(ShadowBody* body, ShadowBody* cam, const float* centre, float radius)
 {
     struct V3E { float x, y, z; V3E() {} ~V3E() {} };
@@ -135,24 +136,33 @@ void ShadowUpdater::Update(ShadowBody* body, ShadowBody* cam, const float* centr
     float q[16];
     for (int j = 0; j < 16; j++)
         q[j] = clip.m[j];
-    float f7 = clip.m[0] * k * DAT_004e138c;
-    float f6 = clip.m[4] * k * DAT_004e138c;
-    float f5 = clip.m[8] * k * DAT_004e138c;
-    float f4 = clip.m[12] * k * DAT_004e138c;
+    float* cl = clip.m;
+    cl[0] = cl[0] * k * DAT_004e138c;
+    cl[1] = cl[1] * k;
+    cl[4] = cl[4] * k * DAT_004e138c;
+    cl[5] = cl[5] * k;
+    cl[8] = cl[8] * k * DAT_004e138c;
+    cl[9] = cl[9] * k;
+    cl[12] = cl[12] * k * DAT_004e138c;
+    cl[13] = cl[13] * k;
     q[0] = q[0] * DAT_004e1e88;
     q[1] = q[1] * DAT_004e1be8;
     q[4] = q[4] * DAT_004e1e88;
     q[5] = q[5] * DAT_004e1be8;
     q[8] = q[8] * DAT_004e1e88;
     q[9] = q[9] * DAT_004e1be8;
-    float f8 = DAT_004e138c - clip.m[13] * k;
+    float f8 = DAT_004e138c - cl[13];
+    float f4 = cl[12] + ang;
     for (unsigned i = 0; !meshes.empty() && i < (unsigned)meshes.size(); i++) {
         ShadowVertex* v = meshes[i]->verts;
         for (unsigned n = meshes[i]->count; n != 0; n--) {
-            v->u = q[4] * v->normal[1] + q[8] * v->normal[2] + q[0] * v->normal[0] + f7 * v->pos[0] +
-                   f6 * v->pos[1] + f5 * v->pos[2] + f4 + ang;
-            v->v = (f8 - (clip.m[1] * k * v->pos[0] + clip.m[5] * k * v->pos[1] + clip.m[9] * k * v->pos[2])) -
-                   (q[5] * v->normal[1] + q[9] * v->normal[2] + q[1] * v->normal[0]);
+            float g1 = cl[8] * v->pos[2] + cl[4] * v->pos[1] + cl[0] * v->pos[0];
+            float g2 = cl[9] * v->pos[2] + cl[5] * v->pos[1] + cl[1] * v->pos[0];
+            float g3 = q[0] * v->normal[0] + q[8] * v->normal[2] + q[4] * v->normal[1];
+            float g4 = q[1] * v->normal[0] + q[9] * v->normal[2] + q[5] * v->normal[1];
+            float uu = g3 + g1; uu = uu + f4;
+            float vv = f8 - g2; vv = vv - g4;
+            v->u = uu; v->v = vv;
             v++;
         }
     }
