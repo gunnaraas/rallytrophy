@@ -332,8 +332,8 @@ inline int FloatToInt(float f)
 // One looped surface source: fades the stage's surface sound for `x` in or out and applies the curves.
 #define SURFACE_BLOCK(SRC, GETTER, XEXPR, GUARD) \
     { \
-        SurfaceSound* entry = v->stage->GETTER(bestId); \
-        Sample* sample = entry->sample; \
+        entry = v->stage->GETTER(bestId); \
+        sample = entry->sample; \
         if (sample && GUARD) { \
             int level = v->slot[SRC].source.unk54; \
             if (sample != v->slot[SRC].source.sample) { \
@@ -375,11 +375,14 @@ inline int FloatToInt(float f)
 // search keeps `best` in memory where the original has it in edi, the wheel sum loop uses fxch+fadd instead of fld+faddp,
 // and the x*x+y*y+z*z order of the second speed block. Not resolved after ~35 variants.
 // Tried 2026-10-30 night: 26 try_variants (local decl order of rpm/volume/i/fade, fade via temps/volatile, rpm split, wheel-sum forms, best/bestId order); all 283-299 insns, none improve; rpm slot is -0x1c in the original vs -0x14 here and the fade[0] store follows the next call's this-load, which no declaration shuffle changed.
+// Tried 2026-11-01 re-pass: SURFACE_BLOCK entry/sample hoisted to function-scope locals (fixes the rpm slot -0x1c, 284->249 insns); ~45 more variants (hoisted ints, decl order of i/volume/rpm/Vec3 positions, float q=0 for sum68, best at function scope) did not help; still differs: loop-index/float-temp slot swap in the engine loops, enginePos/exhaustPos slots, `xor edi,edi` before the local test, wheel-sum fxch pattern.
 // Car::UpdateSounds(dt): per-frame update of the speech/crash one-shots, the engine and exhaust layers and the surface loops.
 void Car::FUN_00467440(int dt)
 {
     CarSoundView* v = (CarSoundView*)this;
     int i;
+    SurfaceSound* entry;
+    Sample* sample;
     int own = v->player->local;
     if (own) {
         for (i = 0; i < 8; i++) {
