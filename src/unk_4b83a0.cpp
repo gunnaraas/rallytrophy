@@ -28,6 +28,7 @@ SceneEntry::SceneEntry(): sets()
 // SYMBOL: ??4SceneEntry@@QAEAAV0@ABV0@@Z
 // reason: draft of the deep-copy assignment
 // Tried 2026-10-30 night: 366->53 insns differ (delete data4c, inline sets.size(), EntryMesh copy ctor + 0x38 size, unrolled head copy, memcpy, no sets push (the original leaks the copied sets, then calls LinkDeformVertices 0x4b9170 and returns its eax)); still differs: original keeps `this` in [esp+0x18] and reuses ebp for the new set, has an unused zero-init local at esp+0x14 (a dummy volatile local gave 46 but is unfaithful), and Erase arg load order.
+// Tried 2026-11-01 re-pass: 53->7 insns differ (same size 871): Erase via local SetVec*/MeshVec* pointers (push order, no this-spill needed), sets guard as size()>0, volatile dummy int zz=0 stored before both Erase blocks (original has an unused zero store at esp+0x14); 45 variants + permute -r 40 (best 7). Remaining: m (EntryMesh* temp) takes slot esp+0x14 and the new[] temps esp+0x10 where the original has them swapped (zz/new temps at 0x14, m at 0x10), plus the two zz stores placed one slot off.
 SceneEntry& SceneEntry::operator=(const SceneEntry& o)
 {
     int i;
@@ -39,15 +40,20 @@ SceneEntry& SceneEntry::operator=(const SceneEntry& o)
         delete[] sets[i]->mats;
         delete sets[i];
     }
-    unsigned n = sets.size();
-    if (n)
-        sets.Erase(sets.begin(), sets.end());
-    if (ml.meshes.Size() > 0)
-        ml.meshes.Erase(ml.meshes.begin(), ml.meshes.end());
+    int zz;
+    *(volatile int*)&zz = 0;
+    SetVec* sp = &sets;
+        if (sp->size() > 0)
+        sp->Erase(sp->begin(), sp->end());
+    *(volatile int*)&zz = 0;
+    MeshVec* mp = &ml.meshes;
+    if (mp->Size() > 0)
+        mp->Erase(mp->begin(), mp->end());
     for (i = 0; (unsigned)i < o.ml.meshes.size(); i++)
         {
         EntryMesh* m = new EntryMesh(*o.ml.meshes[i]);
-        ml.meshes.Ins(ml.meshes.end(), 1, m);
+        MeshVec* r = &ml.meshes;
+        r->Ins(r->end(), 1, m);
     }
     head[0] = o.head[0]; head[1] = o.head[1]; head[2] = o.head[2]; head[3] = o.head[3];
     head[4] = o.head[4]; head[5] = o.head[5]; head[6] = o.head[6]; head[7] = o.head[7];
