@@ -262,6 +262,7 @@ static __forceinline void ClampChannel(float& v)
 // Bilinear arithmetic is complete; x87 temporaries, clamp expansion and register allocation differ.
 // Tried 2026-10-30 night: byte-struct texels (PxQ), per-channel hi/lo clamp locals in the x loop, bpp branch flip, b ternary/else forms (260->140); j=ix+(ix<w-1) still sbb/neg vs original mov 1/jb/xor, sum order c3..c0 and stack slots still differ.
 // Tried 2026-11-01 re-pass: 4 j=ix+(ix<w-1) forms (if/else, ++, int k; 160-196 worse) and 6 hi/lo clamp-local declaration orders (140-142, no gain); remaining 140 insns are slot allocation of hi/lo/weights, sum order and hoisted y-loop regs, too many for local edits.
+// Tried 2026-11-01 Bal sweep: Bal(1) x0-12 at start crossed with end 0,1,2,3,4,6 (77 variants) all identical 140 insns/1074 bytes (no std::string in this function, so no inline budget to move); sum order c3..c0 with 7 hi/lo declaration orders, and 24 weight declaration permutations (151+ worse, 1067 bytes): no gain; original stores w0->-8,w1->-0x14,w2->-0x1c with w3 on the x87 stack and sums terms in w3,w2,w1,w0 order.
 void __fastcall FUN_004ac920(ImgW5* img, int edx, unsigned int width, unsigned int height, unsigned int format)
 {
     struct PxQ { unsigned char b,g,r,a; };
