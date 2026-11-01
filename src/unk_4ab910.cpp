@@ -9,6 +9,7 @@ static inline int Bal(int a){return a;}
 // NONMATCHING: RALLYTROPHY 0x4ab910
 // MSVC6 exception temporary layout and per-format loop register allocation differ.
 // Tried 2026-10-31: 6 discarded Bal(1) calls at start restore the out-of-line std::string _Eos/inline budget (348->199 with palette index form + exact 565/5551/4444 expressions from the asm); volatile zero `z` for the null test, h loaded before w: 175. Still differs: original keeps 0 in ebp (cmp esi,ebp in h guards, xor ebp,ebp after the call, not before) and `mov [esp+0x18],edi` spills sit after the alloc args; per-case row/h spill registers differ.
+// Tried 2026-11-01 re-pass: 21 variants (z read-zero after alloc, h>z/x>z guards, volatile w/h loads, w-before-h, n=w*h*4 local, result split decl, fm local, named string temp, Bal moves): all 175-198 vs base 175; the compiler ignores z in guards and the ebp-zero / post-alloc spill order never moved.
 unsigned int* __fastcall FUN_004ab910(ImgW5* img, int)
 {
     Bal(1);Bal(1);Bal(1);Bal(1);Bal(1);Bal(1);
