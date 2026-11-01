@@ -127,6 +127,7 @@ void NetRace::Slot4(int mode)
 }
 
 // NONMATCHING: RALLYTROPHY 0x481940
+// Tried 2026-11-01: volatile read of unk40 fixes the prologue ebp/counter order (103->96 insns); volatile unk87c, zero local, split loop index, volatile loop index, localBit order did not remove the cached zero in edi (original compares with test, no zero register).
 // Tried 2026-10-30 night: if-not-unk48 else restructure of the first player loop (163->~104 insns, kept); volatile zero stores, split loop index, register hint, counter temps did not help. Still differs: original keeps `started` in ebp and the loop index in memory, ours keeps a cached zero in edi and the index in ebp.
 // 1235 vs 1240 bytes; logic complete. Register allocation differs: this
 // build keeps 0 in edi and the player index in ebp, the original keeps the
@@ -139,7 +140,7 @@ void NetRace::Update(int dt)
     unk8d8[unk8d4] = dt;
     unk8d4 = (unk8d4 + 1) & 7;
     unk8d0++;
-    int started = unk40;
+    int started = *(volatile int*)&unk40;
     ServiceNetwork();
     if (unk870) {
         int step = dt;
@@ -157,13 +158,13 @@ void NetRace::Update(int dt)
     if (unk8d0 == 10 && !unk48) {
         SendState(5);
     }
-    if (unk87c) {
+    if (*(volatile int*)&unk87c) {
         int elapsed = timeGetTime() - unk878;
         if (elapsed >= 4) {
             dt = elapsed - (elapsed & 3);
             unk40 = 1;
             started = 1;
-            unk87c = 0;
+            *(volatile int*)&unk87c = 0;
         }
     }
     FUN_00481e20();
