@@ -390,6 +390,7 @@ extern float DAT_004e1338;
 
 // NONMATCHING: RALLYTROPHY 0x4013c0. Sampling/playback behavior matches the observed PE paths; current candidate is 558/579 bytes with 451 differing bytes, primarily frame and register allocation. Plain PE/object comparison.
 // Tried 2026-10-30 night: volatile self copy of this (spill slot), else-arm cur=0, volatile c->time compare, >=0x28 (169->59 insns); still differs: car/clock registers swapped (ebx/ebp), 'mov dl' byte load vs dword, so the Lerp8 arg reloads differ.
+// Tried 2026-11-01 re-pass: ~30 variants (m0 read before self store, volatile mode/clock/car/player reads, local copies of car/clock, named Lerp8 temps per call, volatile 0x1350 byte store, early/late player load, extra clock uses); none moved the ebx/ebp swap (use-count driven) or the Lerp8 byte-arg register order; best 57 vs 59 insns differ, not an improvement in kind.
 void RecPool::Push(Car* car, int clock)
 {
     RecPool* volatile self = this;
