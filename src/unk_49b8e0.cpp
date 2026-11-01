@@ -443,7 +443,7 @@ float AIDriver::FUN_0049c130()
     n1.x *= il1;
     n1.z *= il1;
     n1.x *= w;
-    n1.y *= w;
+    n1.y = *(volatile float*)&n1.y * w; // original multiplies the stored 0
     n1.z *= w;
     n1.x += unk140.x;
     n1.y += unk140.y;
@@ -458,7 +458,7 @@ float AIDriver::FUN_0049c130()
     n2.x *= il2;
     n2.z *= il2;
     n2.x *= w;
-    n2.y *= w;
+    n2.y = *(volatile float*)&n2.y * w; // original multiplies the stored 0
     n2.z *= w;
     n2.x += unk140.x;
     n2.y += unk140.y;
@@ -489,7 +489,8 @@ float AIDriver::FUN_0049c130()
     n3.x *= il3;
     n3.z *= il3;
     unk3c.y = 0;
-    float rs = n3.z * forward.z; rs = n3.y * forward.y + rs; rs = n3.x * forward.x + rs;
+    // original keeps the n3.y (= 0) term
+    float rs = n3.z * forward.z; rs = *(volatile float*)&n3.y * forward.y + rs; rs = n3.x * forward.x + rs;
     float result = -rs;
     unk78 = unk7c;
     unk3c.x = n3.x * unk7c + unk140.x;
@@ -499,11 +500,14 @@ float AIDriver::FUN_0049c130()
     P = Vec3(P.x, 0, P.z);
     Vec3 Q(unk3c.x, unk3c.y, unk3c.z);
     float lp = (float)sqrt(P.z * P.z + P.x * P.x);
-    if (lp != DAT_004e134c && Q.Length() != DAT_004e134c) {
+    if (lp != DAT_004e134c && ((Vec3*)&unk3c)->Length() != DAT_004e134c) {
         float ip = DAT_004e1348 / lp;
         P.x *= ip;
         P.z *= ip;
-        float iq = DAT_004e1348 / Q.Length();
+        // original recomputes |Q| here as (y*y + z*z) + x*x
+        float qs = Q.y * Q.y + Q.z * Q.z;
+        qs = qs + Q.x * Q.x;
+        float iq = DAT_004e1348 / (float)sqrt(qs);
         Q.x *= iq;
         Q.y *= iq;
         Q.z *= iq;
@@ -1564,7 +1568,7 @@ float AIDriver::FUN_0049e3d0()
 
     float dist0 = v0.Length();
     float dist1 = v1.Length();
-    if (dist0 < dist1 && dist0 < v2.Length()) {
+    if (dist0 < dist1 && dist0 < (float)sqrt(v2.x * v2.x + v2.z * v2.z)) {
         // Nearest to the first piece.
         float step0 = DAT_00500cfc / len0;
         float step1 = DAT_00500cfc / len1;
@@ -1574,7 +1578,9 @@ float AIDriver::FUN_0049e3d0()
         v0 -= *(Vec3*)cur->a;
         v0.y = DAT_004e134c;
         n = *u0 - *(Vec3*)cur->a;
-        float t = v0.Length() / n.Length();
+        float nl = n.x * n.x + n.z * n.z;
+        nl = nl + n.y * n.y;
+        float t = v0.Length() / (float)sqrt(nl);
         sp.t = t;
         AI_FLOAT(0x2c) = t * len0 / total;
         sp.t2 = t * t;
@@ -1597,7 +1603,7 @@ float AIDriver::FUN_0049e3d0()
             unk14c.x = sp.Eval(prev->unk28[1].x, ((Vec3*)cur->a)->x, u0->x, u1->x);
             unk14c.z = sp.Eval(prev->unk28[1].z, ((Vec3*)cur->a)->z, u0->z, u1->z);
         }
-    } else if (v2.Length() > dist1) {
+    } else if ((float)sqrt(v2.x * v2.x + v2.z * v2.z) > dist1) {
         // Nearest to the middle piece.
         float step1 = DAT_00500cfc / len1;
         float step2 = DAT_00500cfc / len2;
@@ -1607,7 +1613,9 @@ float AIDriver::FUN_0049e3d0()
         v1 -= *u0;
         v1.y = DAT_004e134c;
         n = *u1 - *u0;
-        float t = v1.Length() / n.Length();
+        float nl = n.x * n.x + n.z * n.z;
+        nl = nl + n.y * n.y;
+        float t = v1.Length() / (float)sqrt(nl);
         sp.t = t;
         AI_FLOAT(0x2c) = (t * len1 + len0) / total;
         sp.t2 = t * t;
@@ -1635,12 +1643,13 @@ float AIDriver::FUN_0049e3d0()
         float step2 = DAT_00500cfc / len2;
         float stepGap = DAT_00500cfc / lenGap;
         v2.x = p.x + v2.x;
-        v2.y = p.y + v2.y;
         v2.z = p.z + v2.z;
         v2 -= *u1;
         v2.y = DAT_004e134c;
         n = *(Vec3*)cur->b - *u1;
-        float t = v2.Length() / n.Length();
+        float nl = n.x * n.x + n.z * n.z;
+        nl = nl + n.y * n.y;
+        float t = v2.Length() / (float)sqrt(nl);
         sp.t = t;
         AI_FLOAT(0x2c) = (t * len2 + len1 + len0) / total;
         sp.t2 = t * t;
@@ -1688,7 +1697,7 @@ float AIDriver::FUN_0049e3d0()
 
     // Steering offset: the target's side of the car's heading.
     n.x = unk48.x;
-    n.y = unk48.y;
+    n.y = *(volatile float*)&unk48.y; // original re-reads the 0 stored above
     n.z = unk48.z;
     Vec3* pos = (Vec3*)car->body->unk14;
     n.x = n.x - pos->x;
@@ -1701,7 +1710,7 @@ float AIDriver::FUN_0049e3d0()
     float inv2 = DAT_004e1348 / (float)sqrt(n.x * n.x + n.z * n.z);
     n.x = n.x * inv2;
     n.z = n.z * inv2;
-    unk34 = n.y * forward.y + n.z * forward.z + n.x * forward.x;
+    unk34 = *(volatile float*)&n.y * forward.y + n.z * forward.z + n.x * forward.x; // original keeps the n.y (= 0) term
 
     pos = (Vec3*)player->car->body->unk14;
     Copy(*(Vec3*)&unkc8, *(Vec3*)&unk3c - *pos);
