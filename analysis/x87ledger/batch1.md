@@ -323,3 +323,6 @@ Generated from `python3 tools/x87check.py --sym --list SRC:ADDR` after `tools/ma
 
 - 0x47610e | 0x25e | NOISE | orig `fld [0x4e2048]` (8.0); built `fld kEight`, which is `extern const float kEight` at 0x4e2048. The unresolved extern shows as G; same constant
 
+
+
+Orchestrator verification (0x45d780, Cast and rideHeight): the only call between the orig int copy of [ebx+0x10fc] (0x45d61f) and its use (0x45d780) is `call 0x418b90` (SweepQuery::Cast) at 0x45d71e with this = a local query at [ebp-0x20]; the full 2054-byte body of 0x418b90 has no reference to offset 0x10fc, so the field is unchanged and both reads give the same value.

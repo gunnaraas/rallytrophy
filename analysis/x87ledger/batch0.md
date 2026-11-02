@@ -243,3 +243,6 @@ Events from `x87check.py --sym --list` before any fix. Format: `orig_addr | buil
 ## 0x4751b0 src/unk_474c50.cpp: events 4/4, 1 differ, unreliable
 
 0x4756aa | 0x4fe | REAL-FIXED | constant value: orig unit = box * 1.52590219e-05 (0x37800080 at 0x4e2010, 4754e6 fmul ds:0x4e2010), built used 1/65536 = 1.52587891e-05 (0x37800000); kInvFixed and the unit.x/y/z literals now 1.0f/65535.0f, x87check 0 differ
+
+
+Orchestrator verification (0x411600 moved pointer): orig `mov ebx,ecx` at 0x41161e (ebx = this); the first table loop does `add ebx,0x250c` at 0x413524 and leaves via `jmp 0x413761`, the second path starts with ebx = this and does `add ebx,0x250c` at 0x413669, so its stores [ebx-0x28]/[ebx] are this+0x24e4/this+0x250c (+4 per row) - the same fields as the build's FLD(int,0x250c). The tool's this+0x49f4/0x4a1c is its linear walk adding 0x250c twice.
