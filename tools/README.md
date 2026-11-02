@@ -34,6 +34,10 @@ They expect locally supplied game files and toolchain components; see
   `--sym` evaluates the x87 stack symbolically and prints only float stores,
   call arguments and compares whose expression trees differ (commutative order
   normalised, association not), which also catches `(a+b)+c` vs `a+(b+c)`.
+  Events carry their address (original VA / object offset); float constants
+  are compared by value (exe `.rdata`, `__real@` literals, read-only object
+  data, `DAT_xxxxxxxx` externs). `--sym --list` prints one line per differing
+  event: `orig_addr | built_off | orig tree | built tree` (`-` = unpaired).
 - [`insdiff.py`](insdiff.py): aligned instruction diff of one NONMATCHING
   function against the original (after `match.py` on its source).
 - [`structural.py`](structural.py): cluster NONMATCHING functions by stack
