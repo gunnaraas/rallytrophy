@@ -202,7 +202,7 @@ Events from `x87check.py --sym --list` before any fix. Format: `orig_addr | buil
 
 0x4406e4 | 0x714 | NOISE | 400*sx: built reads static B2_COLW (400.0 = 0x4e1834, verified) - writable static
 0x440712 | 0x743 | NOISE | 0*400: pushed-register naming of a non-float arg; B2_COLW static
-0x440744 | 0x774 | NOISE | same as above
+0x440744 | 0x774 | NOISE | same as 0x440712: pushed-register naming of a non-float argument; B2_COLW static holds the original constant
 0x440754 | 0x784 | NOISE | orig 440754 push eax (int arg) named by a stale fp value; built 784 push ecx likewise - naming
 0x440776 | 0x7a1 | NOISE | orig 440776 fstp [esp] = B2_COLW*sx (44075d fld 4e1834; fmul [esp+0x14]) vs built 7a6 same; pairing of the stale push events
 - | 0x7a6 | NOISE | built extra stale-push event (7a1 push ecx) - naming

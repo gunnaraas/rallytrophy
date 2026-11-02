@@ -91,11 +91,11 @@ One line per differing event of `tools/x87check.py --sym --list` (run before the
 - 0x41aa5c | 0x1ca | NOISE | identical fld/fst chain (`fld [eax]; fst [ebx+0x74]; fst [ebx+0x44]...`); the tool resolves the original ebx as a writable global (G) and the built one as a call result R0 - base naming only
 - 0x41aa5f | 0x1cd | NOISE | identical fld/fst chain (`fld [eax]; fst [ebx+0x74]; fst [ebx+0x44]...`); the tool resolves the original ebx as a writable global (G) and the built one as a call result R0 - base naming only
 - 0x41b0b6 | 0x837 | NOISE | X87Cross(n, l28, l20): same 12-instruction cross; original reads a/b through the returned pointers of 0x414330 ([ebp-0x24], [ebp-0x1c]), built through the out temps [ebp-0x30]/[ebp-0x3c]; a = v1-v0, b = v2-v0 on both sides, dst n
-- 0x41b0b8 | 0x839 | NOISE | as 0x41b0b6
-- 0x41b0bb | 0x83c | NOISE | as 0x41b0b6
+- 0x41b0b8 | 0x839 | NOISE | as 0x41b0b6: same 12-instruction X87Cross; original reads a/b through the returned pointers of 0x414330, built through its out temps - same values
+- 0x41b0bb | 0x83c | NOISE | as 0x41b0b6: same 12-instruction X87Cross; original reads a/b through the returned pointers of 0x414330, built through its out temps - same values
 - 0x41b101 | 0x878 | NOISE | normalise: same sum (z*z + (x*x + y*y)) and fields; address form abs+M*1+0x18 vs M+0*1+0x18 only
-- 0x41b10b | 0x882 | NOISE | as 0x41b101
-- 0x41b113 | 0x88a | NOISE | as 0x41b101
+- 0x41b10b | 0x882 | NOISE | as 0x41b101: normalise with the same sum (z*z + (x*x + y*y)) and fields; only the address-expression form differs
+- 0x41b113 | 0x88a | NOISE | as 0x41b101: normalise with the same sum (z*z + (x*x + y*y)) and fields; only the address-expression form differs
 - 0x41b13a | 0x8b9 | NOISE | plane d chain: same order and fields; address form only
 
 ## 0x46c790 Wheel::UpdateForces (src/unk_46c2c0.cpp)
@@ -256,7 +256,7 @@ One line per differing event of `tools/x87check.py --sym --list` (run before the
 `0x467440 src/unk_4666a0.cpp: events 33/31, 3 differ, unreliable`
 
 - 0x467d31 | - | NOISE | surface sum store fstp [ebp-0x18] right after a push: the unreliable esp walk takes it for an arg slot; built stores the same sums to [ebp-0x1c]/[ebp-0x14] (same fdivr 1/n scaling)
-- 0x467d53 | - | NOISE | as 0x467d31
+- 0x467d53 | - | NOISE | as 0x467d31: surface sum stored right after a push, mistaken for an arg slot by the esp walk; built stores the same sums (same fdivr 1/n scaling)
 - 0x4680a0 | 0xc5d | REAL-FIXED | constant: original `fmul QWORD PTR ds:0x4e1ea0` = 0.6366197546520227, built 0.63662; now that literal (double 0x3fe45f306446f9b4)
 
 ## 0x4b95b0 FUN_004b95b0 (src/unk_4b8b10.cpp)
