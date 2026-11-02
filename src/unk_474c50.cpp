@@ -12,7 +12,7 @@
 extern int DAT_00501428; // graphics quality: 0 = effects off, 2 = high
 
 static const float kFixedScale = 3.9999390f;       // 0x4e2008: 16383 * this = 65535
-static const float kInvFixed = 1.0f / 65536.0f;    // 0x4e2010
+static const float kInvFixed = 1.0f / 65535.0f;    // 0x4e2010 (0x37800080, not 1/65536)
 static const float kMaxFixed = 65535.0f;           // 0x4e2040
 static const float kTwoPiOver1024 = 0.0061359233f; // 0x4e2044
 static const float kOnePointFive = 1.5f;
@@ -349,9 +349,9 @@ void SnowFall::Update(RenderDevice* device, Camera* camera, int a, int b, float 
     qc += (right * s) * 0.5f;
     qd -= (right * s) * 0.5f;
     Vec3 unit;
-    unit.x = box.x * (1.0f / 65536.0f);
-    unit.y = box.y * (1.0f / 65536.0f);
-    unit.z = box.z * (1.0f / 65536.0f);
+    unit.x = box.x * (1.0f / 65535.0f);
+    unit.y = box.y * (1.0f / 65535.0f);
+    unit.z = box.z * (1.0f / 65535.0f);
     float fallScale = dt / unit.y;
     int offX = FloatToInt(world.m[12] / unit.x);
     int offY = FloatToInt(world.m[13] / unit.y);

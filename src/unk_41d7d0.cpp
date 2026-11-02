@@ -15,7 +15,10 @@ struct BodyTail {                      // contact bookkeeping at the end of a bo
 #define B1(p) ((BodyTail*)(p))
 #define FL(p, o) (*(float*)((char*)(p) + (o)))
 
-#define RECORD() \
+// DOT2: the original chains dot2 z,y,x for the shA edges and x,z,y for the shB edges.
+#define DOT2_ZYX float dot2 = nd.z * B->n[2]; dot2 = nd.y * B->n[1] + dot2; dot2 = nd.x * B->n[0] + dot2;
+#define DOT2_XZY float dot2 = nd.x * B->n[0]; dot2 = nd.z * B->n[2] + dot2; dot2 = nd.y * B->n[1] + dot2;
+#define RECORD(DOT2) \
     { \
         Vec3 va = ((CPointVel*)this)->PointVel(hit); \
         Vec3 vb = ((CPointVel*)other)->PointVel(hit); \
@@ -34,7 +37,7 @@ struct BodyTail {                      // contact bookkeeping at the end of a bo
         } \
         if (flag != 0) { \
             Vec3 nd = -dv; \
-            float dot2 = nd.z * B->n[2] + nd.y * B->n[1] + nd.x * B->n[0]; \
+            DOT2 \
             if (*(unsigned int*)&dot2 & 0x80000000) { \
                 c2->tri = B; \
                 c2->pt = hit; \
@@ -229,31 +232,31 @@ int U40A850Body::FUN_0041d7d0(U40A850Body* other, int flag)
                 if (shA.Test(b0, b1, b2, B->n, B->d)) {
                     if ((int)*B->e[0] != gen && shA.Edge(b0, b1, (float*)&hit, (float*)&tmp) < DAT_004e1348) {
                         *B->e[0] = gen;
-                        RECORD()
+                        RECORD(DOT2_ZYX)
                     }
                     if ((int)*B->e[1] != gen && shA.Edge(b1, b2, (float*)&hit, (float*)&tmp) < DAT_004e1348) {
                         *B->e[1] = gen;
-                        RECORD()
+                        RECORD(DOT2_ZYX)
                     }
                     if ((int)*B->e[2] != gen && shA.Edge(b2, b0, (float*)&hit, (float*)&tmp) < DAT_004e1348) {
                         *B->e[2] = gen;
-                        RECORD()
+                        RECORD(DOT2_ZYX)
                     }
                     shB.Init(b0, b1, b2, B->n, B->d);
                     if (DAT_00508510.Test((unsigned int)B, (int)A->e[0]) == 0 &&
                         shB.Edge(a0, a1, (float*)&hit, (float*)&tmp) < DAT_004e1348) {
                         DAT_00508510.Set((unsigned int)B, (int)A->e[0]);
-                        RECORD()
+                        RECORD(DOT2_XZY)
                     }
                     if (DAT_00508510.Test((unsigned int)B, (int)A->e[1]) == 0 &&
                         shB.Edge(a1, a2, (float*)&hit, (float*)&tmp) < DAT_004e1348) {
                         DAT_00508510.Set((unsigned int)B, (int)A->e[1]);
-                        RECORD()
+                        RECORD(DOT2_XZY)
                     }
                     if (DAT_00508510.Test((unsigned int)B, (int)A->e[2]) == 0 &&
                         shB.Edge(a2, a0, (float*)&hit, (float*)&tmp) < DAT_004e1348) {
                         DAT_00508510.Set((unsigned int)B, (int)A->e[2]);
-                        RECORD()
+                        RECORD(DOT2_XZY)
                     }
                 }
             }
