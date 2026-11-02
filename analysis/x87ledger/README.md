@@ -30,3 +30,17 @@ Batch 3: 181 agree, 3 disagree - rounding-point-only fixes in 0x49e3d0 (identica
 reclassified as NOISE. Integer bug found by the batch-3 reviewer outside the x87 scope and fixed: 0x43ffd0 case 2
 of both switches read option slot DAT_00501300[6] where the original reads 0x50131c = [7] (orig 44052d push
 0x50131c, 440725 mov edx,ds:0x50131c; build now push/mov DAT_00501300+0x1c).
+
+Orchestrator line-by-line verification of the two functions most often questioned (all events read from
+both instruction streams, current HEAD):
+- 0x46c790 Wheel::UpdateForces, 24 events: identical sequences up to relocated constants (cc9d, cd0a, cd10,
+  cd2b, cf14), same commutative products/quotients with slot renames (cc7f, ccb9, cd6d, cd73 - orig st(1) is
+  [esi+0x2ac] loaded at 46cd4d; slot map orig -0x64/-0x54/-0x48/-0x50/-0x80 = built -0x2c/-0x4c/-0x54/-0x58/-0x3c),
+  the 0x2f4 relaxation/blend (cd99, cda2, cdd3) and 0x314 product (d060) with the same operands, the 9.81 grip
+  compare (d0eb: |(-0x80)*[0x509418]| vs (-0x64)*9.81 = built |(-0x3c)*DAT_00509418| vs (-0x2c)*9.81), int pushes
+  (built 96f), and two-term force/torque adds of a call result (d443..d4dc, built cfe/d10).
+- 0x41ef60 RespBody::Respond, 40 events: same dot fields with a 0x20-shifted base (f08c), two-factor h[9..14]
+  stores in a different order (f0d6..f0ed), accumulator adds into renamed slots (f106, f11f), the t2 sum and
+  normalisation paired one-off (f50c..f557), cap scaling with renamed slots (f586..f623), two-term force/torque
+  adds of call results (f6a2..f742, built 797, fb73..fc1a), compare with swapped operands (f866), two-term sum
+  into 0x258 (f909), the K/s divides unrolled in the original vs a loop (f979..f9d5), compare forms (fac6, fad6).
