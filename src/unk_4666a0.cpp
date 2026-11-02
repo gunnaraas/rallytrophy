@@ -606,7 +606,7 @@ void Car::FUN_00467440(int dt)
 
         SURFACE_BLOCK(0, SoundForSpeed, v->body->velocity.Length(), 1)
         SURFACE_BLOCK(1, SoundForSpeed2, LengthYZX(v->body->velocity), 1)
-        SURFACE_BLOCK(2, SoundForSlip, (float)(fabs(a70) * fabs(a64) * 0.63662), 1)
+        SURFACE_BLOCK(2, SoundForSlip, (float)(fabs(a70) * fabs(a64) * 0.6366197546520227), 1) // the original's double 0x3fe45f306446f9b4
         SURFACE_BLOCK(3, SoundForRoll, a6c, a6c > 0)
         SURFACE_BLOCK(4, SoundForRoll2, (float)fabs(a6c), a6c < 0)
     }

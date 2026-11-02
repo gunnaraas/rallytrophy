@@ -425,7 +425,7 @@ void Wheel::UpdateForces()
         // Lateral slip tangent, relaxed in the same way.
         unk2f4 = (latVel - unk2f4 * (float)fabs(lonVel)) * unk2e8 * DAT_0050941c + unk2f4;
         if (blendSpeed < 1.0f) {
-            unk2f4 = (1.0f - blendSpeed) * (float)(latVel / (fabs(lonVel) + 0.01)) + unk2f4 * blendSpeed;
+            unk2f4 = (1.0f - blendSpeed) * (float)(latVel / (fabs(lonVel) + 0.0099999997764825821)) + unk2f4 * blendSpeed; // the original's double is (double)0.01f
         }
         float slipTan = unk2f4;
         float alpha = (float)atan(slipTan);
@@ -568,7 +568,7 @@ void Wheel::UpdateForces()
     } else {
         unk2f4 = unk2f8 = unk314 = unk310 = unk30c = params.z = torqueB.x = torqueB.y = torqueB.z = unk2e4 = forceA.x = forceA.y = forceA.z = 0.0f;
     }
-    torqueB.z = (steer * 0.981f + 0.00981f) * (spin * unk278 * unk264) + torqueB.z;
+    torqueB.z = (steer * 0.98100006580352783f + 0.0098100006580352783f) * (spin * unk278 * unk264) + torqueB.z; // the original's floats are 1 ulp above 0.981f / 0.00981f
 }
 
 // FUNCTION: RALLYTROPHY 0x46d590

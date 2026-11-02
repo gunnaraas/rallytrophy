@@ -64,8 +64,9 @@ struct AVec {
     }
     float Length() const
     {
-        float a = x, b = y, c = z;
-        return (float)sqrt(a * a + b * b + c * c);
+        float c = z, b = y, a = x;
+        float s = a * a; s = b * b + s; s = c * c + s; // original: (x*x + y*y) + z*z
+        return (float)sqrt(s);
     }
 };
 

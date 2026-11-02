@@ -289,6 +289,7 @@ static inline void G_Set(Vec3& v, float x, float y, float z) { v.x = x; v.y = y;
 // locals, and the load order of the ctrl9/ctrl3 dot products.
 // Tried 2026-10-30 night: forceinline G_Copy (call result stored straight to ctrl), G_AddRev (x via temp for fld order), G_Copy3 (y/z int, x float) and G_Mul for ctrl5/6 took it 147->~51 insns; still differs: ctrl5/ctrl6 copy loads (original reuses edx/ecx, ours uses eax/ecx/edx up front), hoisted `mov eax,[esi+0x24]`, call-arg lea/push order, ctrl8..ctrl11 fadd operand order; int-copy/volatile barrier variants were worse.
 // Re-pass 2026-11-01: G_AddRev for ctrl7/ctrl11 fixed their fadd order (51->46 insns); ~13 more variants (plain struct assign, int/block-temp copies, volatile gain/factor, in-order reshuffles) for ctrl5/6 call-result copy interleave were worse; still differs: that copy (original loads x,y then z after stores), hoisted mov eax,[esi+0x24], call-arg lea/push order.
+extern float DAT_004e1ae8; // 0.0100000007 (the next float above 0.01f), read from .rdata
 // Body-frame accelerations of the four spring points and the two SpringFollower updates.
 void Car::FUN_00452eb0(float dt)
 {
@@ -297,7 +298,7 @@ void Car::FUN_00452eb0(float dt)
     Vec3 v(V->body->velocity);
     float sp2 = v.y * v.y + v.z * v.z + v.x * v.x;
     float factor = 0.0f;
-    if (sp2 > 0.01f) {
+    if (sp2 > DAT_004e1ae8) {
         if (sp2 > 0.25f) {
             factor = 1.0f;
         } else {

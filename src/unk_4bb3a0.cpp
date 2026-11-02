@@ -98,13 +98,14 @@ float __cdecl TraceNodeSweep(TraceNode* nParam)
         float* c = &nf[0x2e];              // sphere center 0xb8
         float* radp = &nf[0x31]; float& rad = *radp;
         float& d = *(float*)&nParam;
-        d = (c[2] * s[11] + c[1] * s[10] + c[0] * s[9]) - s[12];
+        d = c[2] * s[11]; d = c[1] * s[10] + d; d = c[0] * s[9] + d; d = d - s[12]; // chained: VC6 re-associates the one-expression sum
         if (-rad <= d && d <= s[13] + rad) {
             Vec3 q = *(Vec3*)(s + 3);
             AddTo(q, d * *(Vec3*)(s + 9));
             GV3 dfv; float* df = dfv.v;
             df[0] = q.x - c[0]; df[1] = q.y - c[1]; df[2] = q.z - c[2];
-            if (df[0] * df[0] + df[2] * df[2] + df[1] * df[1] <= rad * rad) {
+            float dq = df[0] * df[0]; dq = df[2] * df[2] + dq; dq = df[1] * df[1] + dq;
+            if (dq <= rad * rad) {
                 float best = 1.0f;
                 for (unsigned i = 0; i < list->size(); i++) {
                     TraceMeshPart* part = set->parts[i];
@@ -116,10 +117,10 @@ float __cdecl TraceNodeSweep(TraceNode* nParam)
                     unsigned twoSided = ((int*)model)[0x27] & 1;
                     float* p = tv + 6;
                     while (cnt != 0) {
-                        d = p[-4] * s[11] + p[-5] * s[10] + s[9] * tv[0];
+                        d = p[-4] * s[11]; d = p[-5] * s[10] + d; d = s[9] * tv[0] + d;
                         if (twoSided != 0 || *(int*)&d <= 0) {
                             float r = p[1];
-                            d = (s[11] * p[0] + s[10] * p[-1] + s[9] * p[-2]) - s[12];
+                            d = s[11] * p[0]; d = s[10] * p[-1] + d; d = s[9] * p[-2] + d; d = d - s[12];
                             if (-r <= d && d <= r + s[13]) {
                                 Vec3 w = *(Vec3*)(s + 3);
                                 AddTo(w, d * *(Vec3*)(s + 9));
@@ -127,9 +128,12 @@ float __cdecl TraceNodeSweep(TraceNode* nParam)
                                 ef[0] = w.x - p[-2]; ef[1] = w.y - p[-1]; ef[2] = w.z - p[0];
                                 float t;
                                 float den;
-                                if (ef[0] * ef[0] + ef[2] * ef[2] + ef[1] * ef[1] <= r * r
+                                float eq = ef[0] * ef[0]; eq = ef[2] * ef[2] + eq; eq = ef[1] * ef[1] + eq;
+                                float t2;
+                                if (eq <= r * r
                                     && (t = (s[5] * p[-4] + s[4] * p[-5] + tv[0] * s[3]) - p[-3],
-                                        ((s[8] * p[-4] + s[7] * p[-5] + s[6] * tv[0]) - p[-3]) * t <= DAT_004e134c)
+                                        t2 = s[8] * p[-4], t2 = s[7] * p[-5] + t2, t2 = s[6] * tv[0] + t2,
+                                        (t2 - p[-3]) * t <= DAT_004e134c)
                                     && (den = s[2] * p[-4] + s[1] * p[-5] + s[0] * tv[0], DAT_004e2a98 <= (float)fabs(den))
                                     && (t = -(t / den), DAT_004e134c <= t && t <= DAT_004e1348)) {
                                     Vec3 hit = *(Vec3*)(s + 3);

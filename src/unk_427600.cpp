@@ -24,11 +24,11 @@ class H2b_Game {
 public:
     void FUN_00437e20(float a, float b, float c, float d, int e); // 0x437e20 (ret 0x14)
 };
-static float H2b_firstY = 262.0f;      // 0x4e155c
-static float H2b_step = 42.0f;         // 0x4e1560
-static float H2b_backY = 610.0f;       // 0x4e1564
-static float H2b_toggleW = 64.0f;      // 0x4e1570
-static float H2b_listW = 350.0f;       // 0x4e1574
+static const float H2b_firstY = 262.0f;      // 0x4e155c (.rdata in the original: read as constants)
+static const float H2b_step = 42.0f;         // 0x4e1560
+static const float H2b_backY = 610.0f;       // 0x4e1564
+static const float H2b_toggleW = 64.0f;      // 0x4e1570
+static const float H2b_listW = 350.0f;       // 0x4e1574
 
 // The mouse warp temporary: inline ctor, empty dtor (as ServiceMenu::Frame).
 struct H2b_WarpPoint {

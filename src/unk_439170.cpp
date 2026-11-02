@@ -13,9 +13,9 @@
 extern "C" void __fastcall FUN_00485400(void* host); // T_56b0b8::FUN_00485400 (thiscall)
 
 // ---- from group draft Z3 ----
-static float B2_titleX = 54.0f;    // 0x4e1714 (plain static: the original multiplies const * scale)
-static float B2_titleY = 142.0f;   // 0x4e1718
-static float B2_COLW = 400.0f;     // 0x4e171c
+static const float B2_titleX = 54.0f;    // 0x4e1714 (.rdata in the original: a read-only constant, still loaded first: fld const; fmul scale)
+static const float B2_titleY = 142.0f;   // 0x4e1718
+static const float B2_COLW = 400.0f;     // 0x4e171c
 
 
 // ---- from group draft Z4 ----

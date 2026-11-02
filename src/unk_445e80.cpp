@@ -174,9 +174,9 @@ struct SMI_Name {
 extern SMI_Name DAT_00501338[];        // player-name table (stride 30)
 extern int DAT_0050145c;
 extern int DAT_00501458;
-static const float SMI_TITLEX = 54.0f; // 0x4f9f84
-static const float SMI_TITLEY = 142.0f; // 0x4f9f88
-static const float SMI_RALLYY = 630.0f; // 0x4f9f90
+static float SMI_TITLEX = 54.0f; // 0x4f9f84 (writable .data in the original, not .rdata)
+static float SMI_TITLEY = 142.0f; // 0x4f9f88
+static float SMI_RALLYY = 630.0f; // 0x4f9f90
 extern int DAT_004f9ca8[];             // tab text ids {120, 121, 122, 124, 23, 30}
 
 // NONMATCHING: RALLYTROPHY 0x445e80
