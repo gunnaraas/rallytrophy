@@ -21,7 +21,7 @@ inline int FloatToInt(float f)
     return i;
 }
 
-static const float kDropSizeStep = 5.371e-5f; // 0x4e1f60: 0.055 / 1024
+static const float kDropSizeStep = 5.3710937e-5f; // 0x4e1f60 (0x386147ae): 0.055 / 1024
 static const float kDropPeriod = 0.25f;       // 0x4e1f38: seconds a drop takes to run its course
 
 // dst += o with the operands added in the original's order (o first).

@@ -80,7 +80,8 @@ void TrailQueue::Draw(int now)
             } else {
                 int age = now - t;
                 if (age < 500) {
-                    float scaled = (float)age * DAT_004e13b0 * DAT_004e13ac;
+                    float scaled = (float)age * DAT_004e13b0; // original: (age * 0.002) * 255, VC6 regroups the one-liner
+                    scaled = scaled * DAT_004e13ac;
                     int a = TrailFloatToInt(scaled);
                     BYTE alpha = (BYTE)a;
                     ((BYTE*)&color[k])[3] = alpha;
@@ -88,7 +89,8 @@ void TrailQueue::Draw(int now)
                 }
                 else if (age > 0x1194)
                 {
-                    float scaled = (float)(age - 0x1194) * DAT_004e13b0 * DAT_004e13ac;
+                    float scaled = (float)(age - 0x1194) * DAT_004e13b0;
+                    scaled = scaled * DAT_004e13ac;
                     int delta = TrailFloatToInt(scaled);
                     ((BYTE*)&color[k])[3] = (BYTE)(0xff - delta);
                     total += 0x1fe - (BYTE)(0xff - delta);

@@ -1581,8 +1581,8 @@ float AIDriver::FUN_0049e3d0()
         float nl = n.x * n.x + n.z * n.z;
         nl = nl + n.y * n.y;
         float t = v0.Length() / (float)sqrt(nl);
-        sp.t = t;
         AI_FLOAT(0x2c) = t * len0 / total;
+        sp.t = t;
         sp.t2 = t * t;
         sp.t3 = sp.t2 * t;
         AI_FLOAT(0x80) = sp.Eval(prev->unk44, cur->a->unk2c, cur->unk40, cur->unk44);
@@ -1617,8 +1617,8 @@ float AIDriver::FUN_0049e3d0()
         float nl = n.x * n.x + n.z * n.z;
         nl = nl + n.y * n.y;
         float t = v1.Length() / (float)sqrt(nl);
-        sp.t = t;
         AI_FLOAT(0x2c) = (t * len1 + len0) / total;
+        sp.t = t;
         sp.t2 = t * t;
         sp.t3 = sp.t2 * t;
         AI_FLOAT(0x80) = sp.Eval(cur->a->unk2c, cur->unk40, cur->unk44, cur->b->unk2c);
@@ -1652,8 +1652,8 @@ float AIDriver::FUN_0049e3d0()
         float nl = n.x * n.x + n.z * n.z;
         nl = nl + n.y * n.y;
         float t = v2.Length() / (float)sqrt(nl);
-        sp.t = t;
         AI_FLOAT(0x2c) = (t * len2 + len1 + len0) / total;
+        sp.t = t;
         sp.t2 = t * t;
         sp.t3 = sp.t2 * t;
         AI_FLOAT(0x80) = sp.Eval(cur->unk40, cur->unk44, cur->b->unk2c, next->unk40);
@@ -1748,7 +1748,7 @@ int AIDriver::FUN_0049f1f0(Player* other)
     offset.y = 0;
     float distance = (float)sqrt(offset.z * offset.z + offset.x * offset.x);
     float closeness = 15.0f - distance;
-    if (closeness < 0.0f) {
+    if (closeness < DAT_004e1348) {
         closeness = 1.0f;
     }
     AiVelocity a = *(AiVelocity*)player->car->body->velocity;

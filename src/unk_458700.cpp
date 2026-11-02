@@ -427,7 +427,7 @@ IC_Car* car = (IC_Car*)carPtr;
             }
             int period = 0;
             if (rumble != 0) {
-                float k = speed * 0.02857143f;
+                float k = speed * 0.028571429f;
                 if (k > 1.0f) {
                     k = 1.0f;
                 }

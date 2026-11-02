@@ -370,7 +370,7 @@ Stage::Stage(int a, int b, int c, int d)
                         f[0xe] = inv * f[0xe];
                     }
                 }
-            } else if (IV(p, 0x124) == 2 && FV(p, 0x10c) != 0.0f) {
+            } else if (IV(p, 0x124) == 2 && IV(p, 0x10c) != 0) {
                 StCityLight* light = new StCityLight(p, &AT(StTexCache, 0xd4), &AT(Sprite, 0x6b4), &AT(Sprite, 0x788));
                 ((StShow*)p)->Show();
                 (*(StageLightVector*)((BYTE*)this + 0x68)).Insert((*(StageLightVector*)((BYTE*)this + 0x68)).end(), 1, light);
