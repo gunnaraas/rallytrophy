@@ -26,3 +26,7 @@ reference to those .data/.rdata addresses is an fld read, and reclassified them 
 Side notes checked by the orchestrator: CityLight::Render's sign clamp is present in both builds (same
 test/jge/mov 0 after the sign-bit exit); AIDriver::FUN_0049ffa0's lea [this+0x1b0] vs [this+0x1a8] is the
 same obstacle record (the original's cursor points 8 bytes in: its [ebx+0xc] = 0 is the build's [ecx+0x14] = 0).
+Batch 3: 181 agree, 3 disagree - rounding-point-only fixes in 0x49e3d0 (identical at 24-bit precision),
+reclassified as NOISE. Integer bug found by the batch-3 reviewer outside the x87 scope and fixed: 0x43ffd0 case 2
+of both switches read option slot DAT_00501300[6] where the original reads 0x50131c = [7] (orig 44052d push
+0x50131c, 440725 mov edx,ds:0x50131c; build now push/mov DAT_00501300+0x1c).

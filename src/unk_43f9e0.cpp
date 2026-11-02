@@ -354,7 +354,7 @@ int RaceOptionsMenu::Frame()
                 Toggle(&DAT_00501304, dir);
                 break;
             case 2:
-                Toggle(&DAT_00501300[6], dir);
+                Toggle(&DAT_00501300[7], dir);
                 break;
             case 3:
                 Toggle(&DAT_00501478, dir);
@@ -394,7 +394,7 @@ int RaceOptionsMenu::Frame()
                     DrawToggle(text, onOff, pos.x, pos.y, B2_COLW * sx, selected, DAT_00501304, 0, 1);
                     break;
                 case 2:
-                    DrawToggle(text, onOff, pos.x, pos.y, B2_COLW * sx, selected, DAT_00501300[6], 0, 1);
+                    DrawToggle(text, onOff, pos.x, pos.y, B2_COLW * sx, selected, DAT_00501300[7], 0, 1);
                     break;
                 case 3:
                     DrawToggle(text, onOff, pos.x, pos.y, B2_COLW * sx, selected, DAT_00501478, 0, 1);
