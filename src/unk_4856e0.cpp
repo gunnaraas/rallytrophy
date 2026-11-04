@@ -2300,19 +2300,16 @@ void LapString::AppendFill(size_t n, char c)
 }
 #pragma auto_inline(on)
 
-// NONMATCHING: RALLYTROPHY 0x487b50
-// Same size and instruction stream; only stack slots differ (the original frame is 8 bytes smaller:
-// it shares slots between the early y/x2 temporaries and the later locals).
-// Tried 2026-10-30 night: ~35 variants (decl order of y/x2/buffer, buffer/rest in nested blocks, inlined x/y/x2, folded sx/sy) and permute -r 20; all stay 45 insns (permuter best 41, not applied); the 8-byte frame difference (buffer/x/sx/sy slot sharing) is not reproduced.
-// Tried 2026-11-01 re-pass: 21 more variants (buffer/x in nested blocks, split scaleX=/color=/scaleY= stores, text declared after label, y/x2 declared early or late, sx/sy/x in dead lap/laps slots, volatile laps, x reused for sx, colour via int store); all stay 45 insns with the 8-byte-larger frame, the rest unchanged.
+// FUNCTION: RALLYTROPHY 0x487b50
+// char buffer[4] (the original overflows it for 4+ digit numbers); sx/sy are copies of scale multiplied in place.
 // Draws the lap counter "N/M" with the large font, with a unit label under it.
 void RaceMode::FUN_00487b50()
 {
     LapString lapText;
     Color color(0xffffffff);
+    TextRenderer* text = DAT_0056b0c8->bigText;
     int lap = m_localPlayer->unk1a1c + 1;
     int laps = DAT_00501468;
-    TextRenderer* text = DAT_0056b0c8->bigText;
     text->color = color.value;
     if (lap > laps) {
         lap = laps;
@@ -2321,7 +2318,7 @@ void RaceMode::FUN_00487b50()
     text->SetScale(DAT_0056aea8 * 0.85f, DAT_0056aeac * 0.85f);
     float y = DAT_00565480.y * DAT_0056aeac;
     float x2 = DAT_00565480.x * DAT_0056aea8;
-    char buffer[10];
+    char buffer[4];
     _itoa(lap, buffer, 10);
     size_t length = strlen(buffer);
     if (lapText.Grow(length, true)) {
@@ -2334,8 +2331,10 @@ void RaceMode::FUN_00487b50()
     float x = DAT_0056aea8 * 1014.0f - text->GetWidth(lapText.c_str(), 0);
     text->Print(DAT_0056b0ac, x, y, lapText.c_str(), 0, 1.0f, 1.0f);
     float scale = 48.0f / text->GetWidth(label, 0);
-    float sx = scale * DAT_0056aea8;
-    float sy = scale * DAT_0056aeac;
+    float sx = scale;
+    float sy = scale;
+    sx *= DAT_0056aea8;
+    sy *= DAT_0056aeac;
     if (sx > 0.85f) {
         sx = 0.85f;
     }
