@@ -6,7 +6,7 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Status
 
-- Marker inventory: 1824/2084 byte-exact (87.52%); 2084/2084 functions written (100.00%), from `tools/progress.py`.
+- Marker inventory: 1866/2084 byte-exact (89.54%; 49.18% of game-code bytes); 2084/2084 functions written (100.00%), from `tools/progress.py` (2026-11-04).
 - Game code: about 1,690 functions in `0x401000`–`0x4bcfc6`
 
 ## Queue
