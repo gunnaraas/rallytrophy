@@ -1,7 +1,9 @@
 // Car body contact response: turns the contact records into forces/torques on the body.
 #include "unk_41ef60.h"
 
-Vec3 FUN_004203e0(const Vec3& a, const Vec3& b); // 0x4203e0 cross product
+struct PV { float x, y, z; };
+struct PVm { float x, y, z; PV operator*(float k) const; };   // 0x40b0c0, POD result read through eax
+PV FUN_004203e0(const Vec3& a, const Vec3& b); // 0x4203e0 cross product
 #include <math.h>
 extern float DAT_004e1348;
 extern float DAT_004e1448;
@@ -15,6 +17,8 @@ extern float DAT_004e13dc;
 #define SF(o) (*(float*)((char*)stage + (o)))
 // Stage per-surface tables indexed by the triangle's id.
 #define SID(h) (*(short*)(*(char**)&(h)[2] + 0x10))
+
+inline int FB(float f) { return *(int*)&f; }
 
 // Hand-written x87 blocks (inline assembler in the original).
 inline void Xform(float* o, const float* p, const float* m)
@@ -101,8 +105,10 @@ void RespBody::Respond(void* car, void* stage, int flag)
     if (*(int*)((char*)this + 0x23c) == 0) {
         return;
     }
-    float posS[3];
-    posS[0] = posS[1] = posS[2] = 0.0f;
+    Vec3 posS;
+    posS.x = posS.y = posS.z = 0.0f;
+    Vec3 negS;
+    negS.x = negS.y = negS.z = 0.0f;
     float limit;
     if (car == 0) {
         limit = 1000.0f;
@@ -110,12 +116,11 @@ void RespBody::Respond(void* car, void* stage, int flag)
         limit = *(float*)((char*)car + 0x1080);
     }
     Vec3 c = *(Vec3*)((char*)this + 0x1cc);
-    float negS[3];
-    negS[0] = negS[1] = negS[2] = 0.0f;
     float* h = *(float**)((char*)this + 0x238);
     unsigned int i;
     for (i = 0; i < *(unsigned int*)((char*)this + 0x23c); i++, h += 20) {
         Vec3 v;
+        Vec3 av;
         if (flag == 0) {
             v.x = h[9];
             *(int*)&v.y = *(int*)&h[10];
@@ -124,7 +129,6 @@ void RespBody::Respond(void* car, void* stage, int flag)
             v = c;
             Vec3* w = &FUN_004204f0(*(Vec3*)&h[3]);
             v.x = c.x + w->x;
-            // original rounds y and z to float slots before the dot product (x stays on the FPU)
             float ty = c.y + w->y;
             *(int*)&v.y = *(int*)&ty;
             float tz = c.z + w->z;
@@ -135,175 +139,186 @@ void RespBody::Respond(void* car, void* stage, int flag)
             *(int*)h = 0;
         } else {
             *(int*)h = 1;
-            float ax = h[6] * d, ay = h[7] * d, az = h[8] * d;
+            av.x = h[6] * d; av.y = h[7] * d; av.z = h[8] * d;
             h[10] = v.y;
             h[11] = v.z;
             h[9] = v.x;
-            h[12] = ax;
-            h[13] = ay;
-            h[14] = az;
-            if (NEG(ax) != 0) negS[0] = negS[0] + ax; else posS[0] = posS[0] + ax;
-            if (NEG(ay) != 0) negS[1] = negS[1] + ay; else posS[1] = posS[1] + ay;
-            if (NEG(az) != 0) negS[2] = negS[2] + az; else posS[2] = posS[2] + az;
+            h[12] = av.x;
+            h[13] = av.y;
+            h[14] = av.z;
+            if (NEG(av.x) != 0) negS.x = negS.x + av.x; else posS.x = posS.x + av.x;
+            if (NEG(av.y) != 0) negS.y = negS.y + av.y; else posS.y = posS.y + av.y;
+            if (NEG(av.z) != 0) negS.z = negS.z + av.z; else posS.z = posS.z + av.z;
         }
     }
-    if (*(int*)&posS[0] < 0x3a83126f) posS[0] = 0.001f;
-    if (*(int*)&posS[1] < 0x3a83126f) posS[1] = 0.001f;
-    if (*(int*)&posS[2] < 0x3a83126f) posS[2] = 0.001f;
-    if (negS[0] > DAT_004e1448) negS[0] = -0.001f;
-    if (negS[1] > DAT_004e1448) negS[1] = -0.001f;
-    if (negS[2] > DAT_004e1448) negS[2] = -0.001f;
-    negS[0] = DAT_004e1348 / negS[0];
-    negS[1] = DAT_004e1348 / negS[1];
-    negS[2] = DAT_004e1348 / negS[2];
-    posS[0] = DAT_004e1348 / posS[0];
-    posS[1] = DAT_004e1348 / posS[1];
-    posS[2] = DAT_004e1348 / posS[2];
+    if (*(int*)&posS.x < FB(0.001f)) posS.x = 0.001f;
+    if (*(int*)&posS.y < FB(0.001f)) posS.y = 0.001f;
+    if (*(int*)&posS.z < FB(0.001f)) posS.z = 0.001f;
+    if (negS.x > DAT_004e1448) negS.x = -0.001f;
+    if (negS.y > DAT_004e1448) negS.y = -0.001f;
+    if (negS.z > DAT_004e1448) negS.z = -0.001f;
+    negS.x = DAT_004e1348 / negS.x;
+    negS.y = DAT_004e1348 / negS.y;
+    negS.z = DAT_004e1348 / negS.z;
+    posS.x = DAT_004e1348 / posS.x;
+    posS.y = DAT_004e1348 / posS.y;
+    posS.z = DAT_004e1348 / posS.z;
     float invDt = DAT_004e1348 / BF(0x214);
 
-    float fp[3], fn[3];             // accumulated impulse per axis (positive / negative parts)
-    fp[0] = fp[1] = fp[2] = 0.0f;
-    fn[0] = fn[1] = fn[2] = 0.0f;
+    Vec3 fp, fn;                    // accumulated impulse per axis (positive / negative parts)
+    fp.x = fp.y = fp.z = 0.0f;
+    fn.x = fn.y = fn.z = 0.0f;
     h = *(float**)((char*)this + 0x238);
     for (i = 0; i < *(unsigned int*)((char*)this + 0x23c); i++, h += 20) {
-        if (*(int*)h == 0) continue;
-        Vec3 a = *(Vec3*)&h[12];
-        float s0 = NEG(a.x) ? negS[0] : posS[0];
-        float s1 = NEG(a.y) ? negS[1] : posS[1];
-        float s2 = NEG(a.z) ? negS[2] : posS[2];
-        a.x = a.x * s0; a.y = a.y * s1; a.z = a.z * s2;
-        float e0 = a.x * h[12];
-        float e1 = a.y * h[13];
-        float e2 = a.z * h[14];
-        float pen = e0 * h[6]; pen = e2 * h[8] + pen; pen = -(e1 * h[7] + pen);
-        if (pen <= DAT_004e134c) {
-            *(int*)h = 0;
-            continue;
-        }
-        Vec3 r(h[3] - BF(0x224), h[4] - BF(0x228), h[5] - BF(0x22c));
-        Vec3 nrm(h[6], h[7], h[8]);
-        Vec3 rn = FUN_004203e0(r, nrm);
-        float bv[3];
-        Xform(bv, &rn.x, (float*)((char*)this + 0x15c));
-        CrossAsm(&rn.x, bv, &r.x);
-        float cx = rn.x, cy = rn.y, cz = rn.z;
-        float k = cx * h[6]; k = cz * h[8] + k; k = cy * h[7] + k + BF(0x130);
-        k = DAT_004e1348 / k;
-        float imp = k * pen;
+        if (*(int*)h != 0) {
+            Vec3 a = *(Vec3*)&h[12];
+            a.x = a.x * (NEG(a.x) ? negS.x : posS.x);
+            a.y = a.y * (NEG(a.y) ? negS.y : posS.y);
+            a.z = a.z * (NEG(a.z) ? negS.z : posS.z);
+            a.x = a.x * h[12];
+            a.y = a.y * h[13];
+            a.z = a.z * h[14];
+            float pen = a.x * h[6]; pen = a.z * h[8] + pen; pen = -(a.y * h[7] + pen);
+            if (pen > DAT_004e134c) {
+                Vec3 r = *(Vec3*)&h[3];
+                r -= *(Vec3*)((char*)this + 0x224);
+                Vec3 rn;
+                Vec3 bv;
+                *(PV*)&rn = FUN_004203e0(r, *(Vec3*)&h[6]);
+                Xform(&bv.x, &rn.x, (float*)((char*)this + 0x15c));
+                CrossAsm(&rn.x, &bv.x, &r.x);
+                float k = rn.x * h[6]; k = rn.z * h[8] + k; k = rn.y * h[7] + k + BF(0x130);
+                k = DAT_004e1348 / k;
+                float imp = k * pen;
 
-        // tangential (friction) direction: velocity minus its normal component
-        Vec3 vel(h[9], h[10], h[11]);
-        Vec3 nv(h[6], h[7], h[8]);
-        float dn = vel.z * h[8]; dn = vel.y * h[7] + dn; dn = vel.x * h[6] + dn;
-        Vec3 nn = nv * dn;
-        float tx = vel.x - nn.x, ty = vel.y - nn.y, tz = vel.z - nn.z;
-        float t2 = tz * tz + ty * ty + tx * tx;
-        if (t2 <= DAT_004e1444) {
-            *(int*)h = 0;
-        } else {
-            float tl = (float)sqrt(t2);
-            float inv = DAT_004e1348 / tl;
-            tx = inv * tx;
-            h[16] = tx;
-            ty = ty * inv;
-            h[17] = ty;
-            tz = inv * tz;
-            h[19] = tl;
-            h[18] = tz;
-            float grip = SF(0x42c + SID(h) * 4) * DAT_004e1440;
-            tl = tl * invDt;
-            float f = imp * invDt;
-            if (tl < grip) {
-                f = (tl / grip) * f;
-            }
-            h[15] = f;
-            float fx = h[16] * f, fy = h[17] * f;
-            if (NEG(h[16]) == 0) fp[0] = fp[0] + fx; else fn[0] = fn[0] - fx;
-            if (NEG(h[17]) == 0) fp[1] = fp[1] + fy; else fn[1] = fn[1] - fy;
-            if (NEG(h[18]) == 0) fp[2] = fp[2] + f * h[18]; else fn[2] = fn[2] - f * h[18];
-        }
-        float bounce = SF(0x29c + SID(h) * 4) * imp;
-        Vec3 F(h[6] * bounce, h[7] * bounce, h[8] * bounce);
-        BF(0x1fc) = F.x + BF(0x1fc);
-        BF(0x200) = F.y + BF(0x200);
-        BF(0x204) = F.z + BF(0x204);
-        Vec3 arm(h[3] - BF(0x224), h[4] - BF(0x228), h[5] - BF(0x22c));
-        Vec3 tq = FUN_004203e0(F, arm);
-        BF(0x208) = BF(0x208) + tq.x;
-        BF(0x20c) = tq.y + BF(0x20c);
-        BF(0x210) = tq.z + BF(0x210);
-        if (car != 0) {
-            float depth = h[12] * h[6]; depth = h[14] * h[8] + depth; depth = -(h[13] * h[7] + depth);
-            if (limit < depth) {
-                float lx = h[3] - BF(0x14), ly = h[4] - BF(0x18), lz = h[5] - BF(0x1c);
-                float p[3], q[3];
-                p[0] = lz * BF(0x28); p[0] = ly * BF(0x24) + p[0]; p[0] = lx * BF(0x20) + p[0];
-                p[1] = lz * BF(0x38); p[1] = ly * BF(0x34) + p[1]; p[1] = lx * BF(0x30) + p[1];
-                p[2] = lz * BF(0x48); p[2] = ly * BF(0x44) + p[2]; p[2] = lx * BF(0x40) + p[2];
-                q[0] = BF(0x28) * h[8]; q[0] = BF(0x24) * h[7] + q[0]; q[0] = h[6] * BF(0x20) + q[0];
-                q[1] = BF(0x38) * h[8]; q[1] = BF(0x34) * h[7] + q[1]; q[1] = h[6] * BF(0x30) + q[1];
-                q[2] = BF(0x48) * h[8] + BF(0x44) * h[7] + h[6] * BF(0x40);
-                ((Car*)car)->AddContact((Vec3*)p, (Vec3*)q, depth);
-                if (BF(0x240) < depth * k) {
-                    BF(0x25c) = h[6];
-                    BF(0x260) = h[7];
-                    BF(0x264) = h[8];
-                    float s250 = F.z * BF(0x28); s250 = F.y * BF(0x24) + s250; BF(0x250) = F.x * BF(0x20) + s250;
-                    float s254 = F.z * BF(0x38); s254 = F.y * BF(0x34) + s254; BF(0x254) = F.x * BF(0x30) + s254;
-                    BF(0x24c) = p[2];
-                    BF(0x248) = p[1];
-                    BF(0x244) = p[0];
-                    float s258 = F.z * BF(0x48); s258 = F.y * BF(0x44) + s258; BF(0x258) = F.x * BF(0x40) + s258;
-                    BF(0x240) = depth * k;
+                // tangential (friction) direction: velocity minus its normal component
+                Vec3 vel = *(Vec3*)&h[9];
+                const PV& nn = ((PVm*)&h[6])->operator*(h[11] * h[8] + h[10] * h[7] + h[9] * h[6]);
+                vel.x = vel.x - nn.x;
+                vel.y = vel.y - nn.y;
+                vel.z = vel.z - nn.z;
+                float t2 = vel.z * vel.z + vel.y * vel.y + vel.x * vel.x;
+                if (t2 > DAT_004e1444) {
+                    float tl = (float)sqrt(t2);
+                    float inv = DAT_004e1348 / tl;
+                    vel.x = inv * vel.x;
+                    h[16] = vel.x;
+                    vel.y = vel.y * inv;
+                    h[17] = vel.y;
+                    vel.z = inv * vel.z;
+                    h[19] = tl;
+                    h[18] = vel.z;
+                    float grip = SF(0x42c + SID(h) * 4) * DAT_004e1440;
+                    tl = tl * invDt;
+                    float f = imp * invDt;
+                    if (tl < grip) {
+                        f = (tl / grip) * f;
+                    }
+                    h[15] = f;
+                    float a0 = h[16], a1 = h[17], a2 = h[18];
+                    float fx = a0 * f, fy = a1 * f;
+                    if (NEG(a0) == 0) fp.x = fp.x + fx; else fn.x = fn.x - fx;
+                    if (NEG(a1) == 0) fp.y = fp.y + fy; else fn.y = fn.y - fy;
+                    if (NEG(a2) == 0) fp.z = fp.z + f * a2; else fn.z = fn.z - f * a2;
+                } else {
+                    *(int*)h = 0;
                 }
+                float bounce = SF(0x29c + SID(h) * 4) * imp;
+                Vec3 F = *(Vec3*)&h[6];
+                F.x = F.x * bounce;
+                F.y = F.y * bounce;
+                F.z = F.z * bounce;
+                BF(0x1fc) = F.x + BF(0x1fc);
+                BF(0x200) = F.y + BF(0x200);
+                BF(0x204) = F.z + BF(0x204);
+                {
+                    Vec3 arm = *(Vec3*)&h[3];
+                    arm -= *(Vec3*)((char*)this + 0x224);
+                    const PV& tq = FUN_004203e0(F, arm);
+                    BF(0x208) = BF(0x208) + tq.x;
+                    BF(0x20c) = tq.y + BF(0x20c);
+                    BF(0x210) = tq.z + BF(0x210);
+                }
+                if (car != 0) {
+                    float depth = h[12] * h[6]; depth = h[14] * h[8] + depth; depth = -(h[13] * h[7] + depth);
+                    if (limit < depth) {
+                        Vec3 l = *(Vec3*)&h[3];
+                        l -= *(Vec3*)((char*)this + 0x14);
+                        Vec3 p, q;
+                        p.x = l.z * BF(0x28); p.x = l.y * BF(0x24) + p.x; p.x = l.x * BF(0x20) + p.x;
+                        p.y = l.z * BF(0x38); p.y = l.y * BF(0x34) + p.y; p.y = l.x * BF(0x30) + p.y;
+                        p.z = l.z * BF(0x48); p.z = l.y * BF(0x44) + p.z; p.z = l.x * BF(0x40) + p.z;
+                        q.x = BF(0x28) * h[8]; q.x = BF(0x24) * h[7] + q.x; q.x = h[6] * BF(0x20) + q.x;
+                        q.y = BF(0x38) * h[8]; q.y = BF(0x34) * h[7] + q.y; q.y = h[6] * BF(0x30) + q.y;
+                        q.z = BF(0x48) * h[8]; q.z = BF(0x44) * h[7] + q.z; q.z = h[6] * BF(0x40) + q.z;
+                        ((Car*)car)->AddContact(&p, &q, depth);
+                        if (BF(0x240) < depth * k) {
+                            BF(0x25c) = h[6];
+                            BF(0x260) = h[7];
+                            BF(0x264) = h[8];
+                            BF(0x250) = F.z * BF(0x28) + F.y * BF(0x24) + F.x * BF(0x20);
+                            BF(0x254) = F.z * BF(0x38) + F.y * BF(0x34) + F.x * BF(0x30);
+                            BF(0x24c) = p.z;
+                            BF(0x248) = p.y;
+                            BF(0x244) = p.x;
+                            BF(0x258) = F.z * BF(0x48) + F.y * BF(0x44) + F.x * BF(0x40);
+                            BF(0x240) = depth * k;
+                        }
+                    }
+                }
+            } else {
+                *(int*)h = 0;
             }
         }
     }
 
     float cap = BF(0x12c) * DAT_004e1440;
-    float sc[6];
-    float acc[6] = { fp[0], fp[1], fp[2], fn[0], fn[1], fn[2] };
-    for (int j = 0; j < 6; j++) {
-        if (*(int*)&cap < *(int*)&acc[j]) sc[j] = cap / acc[j]; else sc[j] = 1.0f;
-    }
+    if (*(int*)&cap < *(int*)&fp.x) fp.x = cap / fp.x; else fp.x = 1.0f;
+    if (*(int*)&cap < *(int*)&fp.y) fp.y = cap / fp.y; else fp.y = 1.0f;
+    if (*(int*)&cap < *(int*)&fp.z) fp.z = cap / fp.z; else fp.z = 1.0f;
+    if (*(int*)&cap < *(int*)&fn.x) fn.x = cap / fn.x; else fn.x = 1.0f;
+    if (*(int*)&cap < *(int*)&fn.y) fn.y = cap / fn.y; else fn.y = 1.0f;
+    if (*(int*)&cap < *(int*)&fn.z) fn.z = cap / fn.z; else fn.z = 1.0f;
 
     h = *(float**)((char*)this + 0x238);
     for (i = 0; i < *(unsigned int*)((char*)this + 0x23c); i++, h += 20) {
-        if (*(int*)h == 0) continue;
-        float dx = h[16], dy = h[17], dz = h[18];
-        float m0 = NEG(dx) == 0 ? sc[0] : sc[3];
-        float m1 = NEG(dy) == 0 ? sc[1] : sc[4];
-        float m2 = (NEG(dz) != 0) ? sc[5] : sc[2];
-        float fm = h[15];
-        // original: fm * (dx*m0), not (fm*dx)*m0; dx*m0, dy*m1 and g2 are rounded to float slots
-        // (m2*dz is not), so copy them through ints to keep VC6 from holding them on the FPU
-        float p0 = dx * m0, p1 = dy * m1, q0, q1;
-        *(int*)&q0 = *(int*)&p0;
-        *(int*)&q1 = *(int*)&p1;
-        float g0 = fm * q0;
-        float g1 = fm * q1;
-        float p2 = fm * (m2 * dz), g2;
-        *(int*)&g2 = *(int*)&p2;
-        float w0 = dx * g0; w0 = w0 + dz * g2; w0 = w0 + dy * g1; float work = w0 * SF(0x42c + SID(h) * 4);
-        if (*(int*)((char*)stage + 0x4cc + SID(h) * 4) != 0 && DAT_004e13dc < h[19] && BF(0x268) < work) {
-            BF(0x268) = work;
-            BF(0x26c) = h[3];
-            BF(0x270) = h[4];
-            BF(0x274) = h[5];
-            BF(0x278) = h[6];
-            BF(0x27c) = h[7];
-            BF(0x280) = h[8];
+        if (*(int*)h != 0) {
+            Vec3 unused3;
+            Vec3 m;
+            Vec3 d = *(Vec3*)&h[16];
+            *(int*)&m.x = NEG(d.x) != 0 ? *(int*)&fn.x : *(int*)&fp.x;
+            *(int*)&m.y = NEG(d.y) != 0 ? *(int*)&fn.y : *(int*)&fp.y;
+            float m2 = (NEG(d.z) != 0) ? fn.z : fp.z;
+            m.x = d.x * m.x;
+            m.y = d.y * m.y;
+            m.x = h[15] * m.x;
+            m.y = h[15] * m.y;
+            m.z = h[15] * (m2 * d.z);
+            float w0 = d.x * m.x; w0 = w0 + d.z * m.z; w0 = w0 + d.y * m.y; float work = w0 * SF(0x42c + SID(h) * 4);
+            if (*(int*)((char*)stage + 0x4cc + SID(h) * 4) != 0 && h[19] > DAT_004e13dc && work > BF(0x268)) {
+                BF(0x268) = work;
+                BF(0x26c) = h[3];
+                BF(0x270) = h[4];
+                BF(0x274) = h[5];
+                BF(0x278) = h[6];
+                BF(0x27c) = h[7];
+                BF(0x280) = h[8];
+            }
+            Vec3 g = *(Vec3*)&h[16];
+            g.x = g.x * work;
+            g.y = g.y * work;
+            g.z = g.z * work;
+            Vec3 ng = -g;
+            BF(0x1e4) = BF(0x1e4) + ng.x;
+            BF(0x1e8) = ng.y + BF(0x1e8);
+            BF(0x1ec) = ng.z + BF(0x1ec);
+            Vec3 arm = *(Vec3*)&h[3];
+            arm -= *(Vec3*)((char*)this + 0x224);
+            const PV& tq = FUN_004203e0(ng, arm);
+            BF(0x1f0) = tq.x + BF(0x1f0);
+            BF(0x1f4) = tq.y + BF(0x1f4);
+            BF(0x1f8) = tq.z + BF(0x1f8);
         }
-        Vec3 g(dx * work, dy * work, dz * work);
-        Vec3 ng = -g;
-        BF(0x1e4) = BF(0x1e4) + ng.x;
-        BF(0x1e8) = ng.y + BF(0x1e8);
-        BF(0x1ec) = ng.z + BF(0x1ec);
-        Vec3 arm(h[3] - BF(0x224), h[4] - BF(0x228), h[5] - BF(0x22c));
-        Vec3 tq = FUN_004203e0(ng, arm);
-        BF(0x1f0) = tq.x + BF(0x1f0);
-        BF(0x1f4) = tq.y + BF(0x1f4);
-        BF(0x1f8) = tq.z + BF(0x1f8);
     }
     FUN_0041c010();
     *(int*)((char*)this + 0x23c) = 0;
