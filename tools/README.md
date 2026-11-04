@@ -40,6 +40,15 @@ They expect locally supplied game files and toolchain components; see
   event: `orig_addr | built_off | orig tree | built tree` (`-` = unpaired).
 - [`insdiff.py`](insdiff.py): aligned instruction diff of one NONMATCHING
   function against the original (after `match.py` on its source).
+- [`calls.py`](calls.py): side-by-side call sequence of one NONMATCHING
+  function (original vs build); the first `!` row is usually the structural
+  difference (missing/extra inline expansion, wrong operand type, moved block).
+- [`ehmap.py`](ehmap.py): the original's C++ EH FuncInfo for a function:
+  unwind map (state, parent state, cleanup funclet with its destructor and
+  `[ebp-X]` slot) and try blocks, i.e. every destructible local/temporary.
+- [`mkws.sh`](mkws.sh): make a scratch workspace (tracked files from HEAD plus
+  links to `orig/`, `toolchain/`, `extracted/` and a private `build/`) so
+  parallel agents never share `build/obj`.
 - [`structural.py`](structural.py): cluster NONMATCHING functions by stack
   frame, EH-state and call-count differences from the original (`--rows` for
   per-function detail).
