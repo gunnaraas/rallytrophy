@@ -825,14 +825,13 @@ public:
 // Tried 2026-11-01 re-pass: Bal(1) x1..8 at start, x1..30 at end, x1/x3 mid (17 variants): start/mid no change; end 10+ only drops 412->363 by suppressing inlines (built 2872 vs orig 3273 bytes, wrong direction); gap is whole-function regalloc (ebx=this/ebp=entry vs edi/esi), not budget.
 void StageScreen::LoadCars()
 {
+    int i = 0;
     int n = count;
-    entries = new StageEntry[n];
-    int i;
-    for (i = 0; i < n; i++) {
-        ((DWORD*)&entries[i])[0x28] = 0;
-        ((DWORD*)&entries[i])[0x29] = 0;
+    StageEntry* e = entries = new StageEntry[n];
+    for (int k = 0; k < n; k++) {
+        ((DWORD*)&entries[k])[0x28] = 0;
+        ((DWORD*)&entries[k])[0x29] = 0;
     }
-    StageEntry* e = entries;
         for (i = 0; i < n; i++, e++) {
             IniFile ini;
             ini.Open((const char*)&PTR_DAT_004f6078, 0xb);
