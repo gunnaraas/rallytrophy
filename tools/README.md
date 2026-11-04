@@ -46,6 +46,9 @@ They expect locally supplied game files and toolchain components; see
 - [`ehmap.py`](ehmap.py): the original's C++ EH FuncInfo for a function:
   unwind map (state, parent state, cleanup funclet with its destructor and
   `[ebp-X]` slot) and try blocks, i.e. every destructible local/temporary.
+- [`dossier.py`](dossier.py): rank every NONMATCHING function by structural
+  lead strength (EH map vs stored states, misaligned calls, frame deltas, prior
+  log mentions) into `analysis/dossier.md`; pick agent targets from the top.
 - [`mkws.sh`](mkws.sh): make a scratch workspace (tracked files from HEAD plus
   links to `orig/`, `toolchain/`, `extracted/` and a private `build/`) so
   parallel agents never share `build/obj`.

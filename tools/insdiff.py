@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """Aligned instruction diff of one NONMATCHING function: original vs build/obj (run match.py on SOURCE first).
 
-usage: insdiff.py SOURCE ADDRESS
+usage: insdiff.py [--norm] SOURCE ADDRESS
+  --norm  mask stack offsets, jump targets and immediates first, so a frame-size
+          shift does not count every [esp+X] operand as a difference
 """
+import re
 import difflib
 import os
 import sys
@@ -15,7 +18,11 @@ from triage import compare  # noqa: E402
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
-def main(source, address):
+def norm(lines):
+    return [re.sub(r"0x[0-9a-f]+", "N", l) for l in lines]
+
+
+def main(source, address, normalise=False):
     address = int(address, 16)
     pe = PE(TARGET_EXE)
     symbol = next(n for a, n, _ in marked_functions(source) if a == address)
@@ -23,9 +30,12 @@ def main(source, address):
                 if l.startswith(f"| 0x{address:x} "))
     obj = os.path.join(ROOT, "build", "obj", os.path.splitext(os.path.basename(source))[0] + ".obj")
     orig, built, *_ = compare(obj, symbol, pe, relocations(pe), address, size, None)
+    if normalise:
+        orig, built = norm(orig), norm(built)
     for line in difflib.unified_diff(orig, built, "original", "built", n=2, lineterm=""):
         print(line)
 
 
 if __name__ == "__main__":
-    main(*sys.argv[1:3])
+    args = [a for a in sys.argv[1:] if a != "--norm"]
+    main(*args[:2], normalise="--norm" in sys.argv)
