@@ -741,7 +741,8 @@ void ParallelShadow::Prepare(RenderDevice* device, void* unused, DrawContext* co
             lo.y = low;
         lo.x -= 0.1f;
         hi.x += 0.1f;
-        Vec3 half = lo + hi;
+        Vec3 half;
+        half = lo + hi;
         half.x *= 0.5f;
         half.y *= 0.5f;
         half.z *= 0.5f;
@@ -770,23 +771,39 @@ void ParallelShadow::Prepare(RenderDevice* device, void* unused, DrawContext* co
         DAT_00509600.Multiply((const float*)&camera->right, DAT_00509640);
 
         Vec3 corners[8];
-        corners[0] = Vec3(lo.x, lo.y, lo.z);
-        corners[1] = Vec3(lo.x, lo.y, hi.z);
-        corners[2] = Vec3(hi.x, lo.y, hi.z);
-        corners[3] = Vec3(hi.x, lo.y, lo.z);
-        corners[4] = Vec3(lo.x, hi.y, lo.z);
-        corners[5] = Vec3(lo.x, hi.y, hi.z);
-        corners[6] = Vec3(hi.x, hi.y, hi.z);
-        corners[7] = Vec3(hi.x, hi.y, lo.z);
+        corners[0].x = lo.x;
+        corners[0].y = lo.y;
+        corners[0].z = lo.z;
+        corners[1].x = lo.x;
+        corners[1].y = lo.y;
+        corners[1].z = hi.z;
+        corners[2].x = hi.x;
+        corners[2].y = lo.y;
+        corners[2].z = hi.z;
+        corners[3].x = hi.x;
+        corners[3].y = lo.y;
+        corners[3].z = lo.z;
+        corners[4].x = lo.x;
+        corners[4].y = hi.y;
+        corners[4].z = lo.z;
+        corners[5].x = lo.x;
+        corners[5].y = hi.y;
+        corners[5].z = hi.z;
+        corners[6].x = hi.x;
+        corners[6].y = hi.y;
+        corners[6].z = hi.z;
+        corners[7].x = hi.x;
+        corners[7].y = hi.y;
+        corners[7].z = lo.z;
         float maxX = 0.0f;
         float maxY = 0.0f;
         for (int j = 0; j < 8; j++) {
             Vec3 t;
             X87Xform(&t.x, &corners[j].x, DAT_00509600.m);
-            if (fabsf(t.x) > maxX)
-                maxX = fabsf(t.x);
-            if (fabsf(t.y) > maxY)
-                maxY = fabsf(t.y);
+            if (fabs(t.x) > maxX)
+                maxX = (float)fabs(t.x);
+            if (fabs(t.y) > maxY)
+                maxY = (float)fabs(t.y);
         }
         DAT_005096e0 = maxX * 1.01f;
         g_shadowSphere.radius = camera->radius;
