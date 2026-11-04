@@ -438,6 +438,7 @@ loaded:
 // Candidate is 1259/1321 bytes with 947 differing bytes. The target uses a 0x48 frame and local failure epilogues;
 // candidate uses a 0x44 frame and merges the three failure exits into one shared tail. Both use the per-player 10-dword stack temporary.
 // Tried 2026-10-31: 132 insns now (was 142: per-use car->snapshot[2] and a local CarSnapshot* per buffer block, dropped the bogus Close on bad headers). No source form stopped the failure-exit tail merge (return 0 vs false, nested else, goto, cipher/race decl positions, race copies per branch); int return (xor eax,eax) is right per the callers but changing the header affects other files.
+// Tried 2026-11-04 (ws-X): reading the player stats temp through a volatile int* keeps VC6 from turning the 10-dword copy loop into rep movs like the original (norm 229->208, 132->128 insns). Epilogue duplication of the done/stage failure exits is robust against: operator delete/scalar delete, alias pointers, inline helper returns, casts, decl order of race/player/cipher (toy tests: identical exits always cross-jump when the epilogue has >=4 pops; only differing code before the epilogue unmerges them). Per-block CarSnapshot* s / size temps: worse (138-150 insns).
 // Tried 2026-11-01 re-pass: 13 variants (int return via header + return 0, result local, volatile zero return, folded return exprs size-size/done&0/stage-stage, volatile level/DAT reads, store-order swap of level/stage, volatile loop stores, separate loop pointer); int return alone is 132 insns too and the three failure epilogues still merge into one tail (volatile zero return unmerges the tail but adds a spilled return slot, 129 insns, 1302 bytes); original also has 0x10 more below the cipher temp, not explained; 132 insns, too far for permute.
 bool SlotStore::LoadRelay()
 {
@@ -525,9 +526,8 @@ bool SlotStore::LoadRelay()
         int tmp[10];
         memcpy(tmp, in, 0x28);
         in += 0x28;
-        for (int k = 0; k < 10; k++) {
-            player->unk1a28[k] = tmp[k];
-        }
+        volatile int* vt = tmp;
+        for (int k = 0; k < 10; k++) player->unk1a28[k] = vt[k];
         int used = FB3_BODY(this)->stage - 1;
         player->unk1a50 = used;
         for (int i = 0; i < 0x13; i++) {
@@ -552,6 +552,7 @@ bool SlotStore::LoadRelay()
     DAT_00501472 = 1;
     return true;
 }
+
 
 // NONMATCHING: RALLYTROPHY 0x44e3e0
 // The original copies each per-player 10-dword block through a stack temporary (frame 0x3c); VC6 elides the temporary
