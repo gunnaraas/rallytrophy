@@ -25,7 +25,11 @@ static inline int RoundF(float v)
     return r;
 }
 
+static __forceinline void Set4(float* d, float a, float b, float c, float e) { d[0] = a; d[1] = b; d[2] = c; d[3] = e; }
 #define FLD(T, o) (*(T*)((unsigned char*)this + (o)))
+#define CP2(o, e) { r_ = (const int*)&(e); FLD(int, o) = r_[0]; FLD(int, (o) + 4) = r_[1]; }
+#define CP3(o, e) { r_ = (const int*)&(e); FLD(int, o) = r_[0]; FLD(int, (o) + 4) = r_[1]; FLD(int, (o) + 8) = r_[2]; }
+#define CP4(o, e) { r_ = (const int*)&(e); FLD(int, o) = r_[0]; FLD(int, (o) + 4) = r_[1]; FLD(int, (o) + 8) = r_[2]; FLD(int, (o) + 12) = r_[3]; }
 
 // Sound-name assigns of R0-T6: the original calls std::string::_Grow out of line but copies and terminates inline.
 struct SndStr {
@@ -47,23 +51,36 @@ static __forceinline void SetSnd(std::string& d, const char* s)
     }
 }
 
+static __forceinline void AppS(std::string& d, const char* s)
+{
+    SndStr& t = (SndStr&)d;
+    unsigned n = strlen(s);
+    if ((unsigned)-1 - t.n <= n)
+        std::_Xlen();
+    if (n != 0 && t.Grow(n += t.n, false)) {
+        memcpy(t.p + t.n, s, n - t.n);
+        t.p[t.n = n] = 0;
+    }
+}
+
 // NONMATCHING: RALLYTROPHY 0x411600
 // Tried 2026-10-31: switch(level), pointer-walk loops, name = copy of this+8 (not empty), SetSnd (out-of-line _Grow via /alternatename overlay) for R0-T6 sounds, 13 trailing discarded Bal(1) (10-15 tried; 13/14 best): 1306->680 insns. Still differs: cfg at ebp-0x20 not ebp-0x7c (frame 0x84 vs 0x70: VC6 does not share the buf/RoundF temp slots; block-scoping buf, decl order, plain/forceinline RoundF, Raw2/Raw3 tmp copies all no help), Vector2/3 copy load/store interleave.
 // Tried 2026-10-31 re-pass: declaration order of cfg/fog/col/buf/name (all permutations tried) never moves cfg off ebp-0x20 (frame stays 0x84); block-scoped buf, buf in a forceinline helper, loop counter volatile (sizes 8613/8593 closer but insns differ rises) and a RoundF macro with function-scope float temp (size 9042) all no help; the original has the inlined RoundF float spill at ebp-0x10 and r temps at the top of the frame with cfg lowest, ours puts them below cfg.
 void StageConfigLoader::LoadConfig(const char* path)
 {
+    const int* r_;
     ConfigVector3 fog;
     Config cfg;
     cfg.Define(DAT_004f3198, 0x11d);
     cfg.Load(path, true, false, 0);
-    *(Raw2*)&FLD(int, 0x234) = *(Raw2*)&cfg.GetVector2("AnimalSpeed");
+    CP2(0x234, cfg.GetVector2("AnimalSpeed"));
     FLD(float, 0x23c) = cfg.GetFloat("AnimalAnimationSpeed");
     FLD(float, 0x240) = cfg.GetFloat("AnimalActivateDistance");
     FLD(float, 0x244) = cfg.GetFloat("AnimalScareDistance");
     FLD(float, 0x248) = cfg.GetFloat("AnimalPropability");
     FLD(int, 0x22c) = cfg.GetInt("WeatherEffect");
     FLD(int, 0x1a4) = cfg.GetInt("FogMode");
-    *(Raw2*)&FLD(int, 0x1ac) = *(Raw2*)&cfg.GetVector2("FogRange");
+    CP2(0x1ac, cfg.GetVector2("FogRange"));
     FLD(float, 0x1b4) = cfg.GetFloat("FogDensity");
     fog = cfg.GetVector3("FogColor");
     FLD(unsigned char, 0x1ab) = 0;
@@ -71,35 +88,29 @@ void StageConfigLoader::LoadConfig(const char* path)
     FLD(char, 0x1a9) = (char)RoundF(fog.values[1]);
     FLD(char, 0x1a8) = (char)RoundF(fog.values[2]);
     FLD(float, 0x230) = cfg.GetFloat("DriveLightIntensity");
-    *(Raw3*)&FLD(float, 0x1b8) = *(Raw3*)&cfg.GetVector3("SkidMarkColor");
-    FLD(float, 0x1b8) *= DAT_004e13a8;
-    FLD(float, 0x1bc) *= DAT_004e13a8;
-    FLD(float, 0x1c0) *= DAT_004e13a8;
-    *(Raw3*)&FLD(float, 0x1c4) = *(Raw3*)&cfg.GetVector3("AmbientColor");
-    FLD(float, 0x1c4) *= DAT_004e13a8;
-    FLD(float, 0x1c8) *= DAT_004e13a8;
-    FLD(float, 0x1cc) *= DAT_004e13a8;
-    *(Raw3*)&FLD(float, 0x1d0) = *(Raw3*)&cfg.GetVector3("SunColorStatic");
-    *(Raw3*)&FLD(float, 0x1dc) = *(Raw3*)&cfg.GetVector3("SunColorDynamic");
-    FLD(float, 0x1d0) *= DAT_004e13a8;
-    FLD(float, 0x1d4) *= DAT_004e13a8;
-    FLD(float, 0x1d8) *= DAT_004e13a8;
-    FLD(float, 0x1dc) *= DAT_004e13a8;
-    FLD(float, 0x1e0) *= DAT_004e13a8;
-    FLD(float, 0x1e4) *= DAT_004e13a8;
-    *(Raw2*)&FLD(int, 0x1e8) = *(Raw2*)&cfg.GetVector2("ShadowRange");
-    *(Raw2*)&FLD(int, 0x1f0) = *(Raw2*)&cfg.GetVector2("ShadowScale");
+    CP3(0x1b8, cfg.GetVector3("SkidMarkColor"));
+    FLD(float, 0x1b8) *= 0.003921569f;
+    FLD(float, 0x1bc) *= 0.003921569f;
+    FLD(float, 0x1c0) *= 0.003921569f;
+    CP3(0x1c4, cfg.GetVector3("AmbientColor"));
+    FLD(float, 0x1c4) *= 0.003921569f;
+    FLD(float, 0x1c8) *= 0.003921569f;
+    FLD(float, 0x1cc) *= 0.003921569f;
+    CP3(0x1d0, cfg.GetVector3("SunColorStatic"));
+    CP3(0x1dc, cfg.GetVector3("SunColorDynamic"));
+    FLD(float, 0x1d0) *= 0.003921569f;
+    FLD(float, 0x1d4) *= 0.003921569f;
+    FLD(float, 0x1d8) *= 0.003921569f;
+    FLD(float, 0x1dc) *= 0.003921569f;
+    FLD(float, 0x1e0) *= 0.003921569f;
+    FLD(float, 0x1e4) *= 0.003921569f;
+    CP2(0x1e8, cfg.GetVector2("ShadowRange"));
+    CP2(0x1f0, cfg.GetVector2("ShadowScale"));
     ConfigVector4 col;
     col = cfg.GetVector4("ParticleColor");
-    FLD(float, 0x1f8) = col.values[0] * DAT_004e13a8;
-    FLD(float, 0x1fc) = col.values[1] * DAT_004e13a8;
-    FLD(float, 0x200) = col.values[2] * DAT_004e13a8;
-    FLD(float, 0x204) = col.values[3] * DAT_004e13a8;
+    Set4(&FLD(float, 0x1f8), col.values[0] * 0.003921569f, col.values[1] * 0.003921569f, col.values[2] * 0.003921569f, col.values[3] * 0.003921569f);
     col = cfg.GetVector4("InteriorWindowColor");
-    FLD(float, 0x208) = col.values[0] * DAT_004e13a8;
-    FLD(float, 0x20c) = col.values[1] * DAT_004e13a8;
-    FLD(float, 0x210) = col.values[2] * DAT_004e13a8;
-    FLD(float, 0x214) = col.values[3] * DAT_004e13a8;
+    Set4(&FLD(float, 0x208), col.values[0] * 0.003921569f, col.values[1] * 0.003921569f, col.values[2] * 0.003921569f, col.values[3] * 0.003921569f);
     FLD(int, 0x218) = cfg.GetInt("LensFlare");
     FLD(std::string, 0x21c) = cfg.GetString("LensFlareSettings");
     FLD(float, 0x1a0) = cfg.GetFloat("FlareAlphaScale");
@@ -311,26 +322,26 @@ void StageConfigLoader::LoadConfig(const char* path)
     FLD(int, 0x380) = cfg.GetInt("S2Reset");
     FLD(int, 0x384) = cfg.GetInt("S3Reset");
     FLD(int, 0x388) = cfg.GetInt("S4Reset");
-    *(Raw2*)&FLD(int, 0x38c) = *(Raw2*)&cfg.GetVector2("R0ForceRange");
-    *(Raw2*)&FLD(int, 0x394) = *(Raw2*)&cfg.GetVector2("R1ForceRange");
-    *(Raw2*)&FLD(int, 0x39c) = *(Raw2*)&cfg.GetVector2("R2ForceRange");
-    *(Raw2*)&FLD(int, 0x3a4) = *(Raw2*)&cfg.GetVector2("R3ForceRange");
-    *(Raw2*)&FLD(int, 0x3ac) = *(Raw2*)&cfg.GetVector2("R4ForceRange");
-    *(Raw2*)&FLD(int, 0x3b4) = *(Raw2*)&cfg.GetVector2("T0ForceRange");
-    *(Raw2*)&FLD(int, 0x3bc) = *(Raw2*)&cfg.GetVector2("T1ForceRange");
-    *(Raw2*)&FLD(int, 0x3c4) = *(Raw2*)&cfg.GetVector2("T2ForceRange");
-    *(Raw2*)&FLD(int, 0x3cc) = *(Raw2*)&cfg.GetVector2("T3ForceRange");
-    *(Raw2*)&FLD(int, 0x3d4) = *(Raw2*)&cfg.GetVector2("T4ForceRange");
-    *(Raw2*)&FLD(int, 0x3dc) = *(Raw2*)&cfg.GetVector2("T5ForceRange");
-    *(Raw2*)&FLD(int, 0x3e4) = *(Raw2*)&cfg.GetVector2("T6ForceRange");
-    *(Raw2*)&FLD(int, 0x3ec) = *(Raw2*)&cfg.GetVector2("T7ForceRange");
-    *(Raw2*)&FLD(int, 0x3f4) = *(Raw2*)&cfg.GetVector2("T8ForceRange");
-    *(Raw2*)&FLD(int, 0x3fc) = *(Raw2*)&cfg.GetVector2("T9ForceRange");
-    *(Raw2*)&FLD(int, 0x404) = *(Raw2*)&cfg.GetVector2("S0ForceRange");
-    *(Raw2*)&FLD(int, 0x40c) = *(Raw2*)&cfg.GetVector2("S1ForceRange");
-    *(Raw2*)&FLD(int, 0x414) = *(Raw2*)&cfg.GetVector2("S2ForceRange");
-    *(Raw2*)&FLD(int, 0x41c) = *(Raw2*)&cfg.GetVector2("S3ForceRange");
-    *(Raw2*)&FLD(int, 0x424) = *(Raw2*)&cfg.GetVector2("S4ForceRange");
+    CP2(0x38c, cfg.GetVector2("R0ForceRange"));
+    CP2(0x394, cfg.GetVector2("R1ForceRange"));
+    CP2(0x39c, cfg.GetVector2("R2ForceRange"));
+    CP2(0x3a4, cfg.GetVector2("R3ForceRange"));
+    CP2(0x3ac, cfg.GetVector2("R4ForceRange"));
+    CP2(0x3b4, cfg.GetVector2("T0ForceRange"));
+    CP2(0x3bc, cfg.GetVector2("T1ForceRange"));
+    CP2(0x3c4, cfg.GetVector2("T2ForceRange"));
+    CP2(0x3cc, cfg.GetVector2("T3ForceRange"));
+    CP2(0x3d4, cfg.GetVector2("T4ForceRange"));
+    CP2(0x3dc, cfg.GetVector2("T5ForceRange"));
+    CP2(0x3e4, cfg.GetVector2("T6ForceRange"));
+    CP2(0x3ec, cfg.GetVector2("T7ForceRange"));
+    CP2(0x3f4, cfg.GetVector2("T8ForceRange"));
+    CP2(0x3fc, cfg.GetVector2("T9ForceRange"));
+    CP2(0x404, cfg.GetVector2("S0ForceRange"));
+    CP2(0x40c, cfg.GetVector2("S1ForceRange"));
+    CP2(0x414, cfg.GetVector2("S2ForceRange"));
+    CP2(0x41c, cfg.GetVector2("S3ForceRange"));
+    CP2(0x424, cfg.GetVector2("S4ForceRange"));
     SetSnd(FLD(std::string, 0x23c8), cfg.GetString("R0Sound"));
     SetSnd(FLD(std::string, 0x23d8), cfg.GetString("R1Sound"));
     SetSnd(FLD(std::string, 0x23e8), cfg.GetString("R2Sound"));
@@ -350,9 +361,9 @@ void StageConfigLoader::LoadConfig(const char* path)
     char buf[32];
     itoa(FLD(int, 4), buf, 10);
     std::string name(FLD(std::string, 8));
-    name += "data/stagetimes";
-    name += buf;
-    name += ".ini";
+    AppS(name, "data/stagetimes");
+    AppS(name, buf);
+    AppS(name, ".ini");
     cfg.Define(DAT_004f3a80, 0x1a);
     cfg.Load(name.c_str(), true, false, 0);
     int level = DAT_0050132c;
@@ -361,52 +372,52 @@ void StageConfigLoader::LoadConfig(const char* path)
     int& i = *(int*)&path;
     if (DAT_00501460) {
         switch (level) {
-        case 0: *(Raw3*)&FLD(int, 0x24d8) = *(Raw3*)&cfg.GetVector3("CommentTimesFTCNovice"); break;
-        case 2: *(Raw3*)&FLD(int, 0x24d8) = *(Raw3*)&cfg.GetVector3("CommentTimesFTCExpert"); break;
-        default: *(Raw3*)&FLD(int, 0x24d8) = *(Raw3*)&cfg.GetVector3("CommentTimesFTCIntermediate"); break;
+        case 0: CP3(0x24d8, cfg.GetVector3("CommentTimesFTCNovice")); break;
+        case 2: CP3(0x24d8, cfg.GetVector3("CommentTimesFTCExpert")); break;
+        default: CP3(0x24d8, cfg.GetVector3("CommentTimesFTCIntermediate")); break;
         }
         int* p = &FLD(int, 0x250c);
         for (i = 0; i < 10; i++) {
             DAT_004f3bc8[11] = (char)(i + '0');
-            ConfigVector3 v = cfg.GetVector3("CPUFTCSplit0");
+            ConfigVector3 v; v = cfg.GetVector3("CPUFTCSplit0");
             switch (level) {
             case 0:
-                p[-10] = RoundF(v.values[0] * DAT_004e13a0);
-                { float q = DAT_0050150c * v.values[0]; q = q * DAT_004e13a0; p[0] = RoundF(q); }
+                p[-10] = RoundF(v.values[0] * 1000.0f);
+                { float q = DAT_0050150c * v.values[0]; q = q * 1000.0f; p[0] = RoundF(q); }
                 break;
             case 2:
-                p[-10] = RoundF(v.values[2] * DAT_004e13a0);
-                { float q = DAT_00501514 * v.values[2]; q = q * DAT_004e13a0; p[0] = RoundF(q); }
+                p[-10] = RoundF(v.values[2] * 1000.0f);
+                { float q = DAT_00501514 * v.values[2]; q = q * 1000.0f; p[0] = RoundF(q); }
                 break;
             default:
-                p[-10] = RoundF(v.values[1] * DAT_004e13a0);
-                { float q = v.values[1] * DAT_00501510; q = q * DAT_004e13a0; p[0] = RoundF(q); }
+                p[-10] = RoundF(v.values[1] * 1000.0f);
+                { float q = v.values[1] * DAT_00501510; q = q * 1000.0f; p[0] = RoundF(q); }
                 break;
             }
             p++;
         }
     } else {
         switch (level) {
-        case 0: *(Raw3*)&FLD(int, 0x24d8) = *(Raw3*)&cfg.GetVector3("CommentTimesNovice"); break;
-        case 2: *(Raw3*)&FLD(int, 0x24d8) = *(Raw3*)&cfg.GetVector3("CommentTimesExpert"); break;
-        default: *(Raw3*)&FLD(int, 0x24d8) = *(Raw3*)&cfg.GetVector3("CommentTimesIntermediate"); break;
+        case 0: CP3(0x24d8, cfg.GetVector3("CommentTimesNovice")); break;
+        case 2: CP3(0x24d8, cfg.GetVector3("CommentTimesExpert")); break;
+        default: CP3(0x24d8, cfg.GetVector3("CommentTimesIntermediate")); break;
         }
         int* p = &FLD(int, 0x250c);
         for (i = 0; i < 10; i++) {
             DAT_004f3bd8[8] = (char)(i + '0');
-            ConfigVector3 v = cfg.GetVector3("CPUSplit0");
+            ConfigVector3 v; v = cfg.GetVector3("CPUSplit0");
             switch (level) {
             case 0:
-                p[-10] = RoundF(v.values[0] * DAT_004e13a0);
-                { float q = v.values[0] * DAT_0050150c; q = q * DAT_004e13a0; p[0] = RoundF(q); }
+                p[-10] = RoundF(v.values[0] * 1000.0f);
+                { float q = v.values[0] * DAT_0050150c; q = q * 1000.0f; p[0] = RoundF(q); }
                 break;
             case 2:
-                p[-10] = RoundF(v.values[2] * DAT_004e13a0);
-                { float q = v.values[2] * DAT_00501514; q = q * DAT_004e13a0; p[0] = RoundF(q); }
+                p[-10] = RoundF(v.values[2] * 1000.0f);
+                { float q = v.values[2] * DAT_00501514; q = q * 1000.0f; p[0] = RoundF(q); }
                 break;
             default:
-                p[-10] = RoundF(v.values[1] * DAT_004e13a0);
-                { float q = v.values[1] * DAT_00501510; q = q * DAT_004e13a0; p[0] = RoundF(q); }
+                p[-10] = RoundF(v.values[1] * 1000.0f);
+                { float q = v.values[1] * DAT_00501510; q = q * 1000.0f; p[0] = RoundF(q); }
                 break;
             }
             p++;
