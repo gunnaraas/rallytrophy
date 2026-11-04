@@ -1558,9 +1558,9 @@ void Car::PhysicsStep(float dt)
             down = (d2 * V->aero.z * d2 + d1 * V->aero.y * d1 + d0 * V->aero.x * d0) * sc * speed2;
         }
         W5_Xform((const float*)&V->downPoint, rotp, (float*)&wp2, (const float*)posp);
+        Vec3 arm2(wp2.x - b->centre[0], wp2.y - b->centre[1], wp2.z - b->centre[2]);
         const Vec3& f = vel * -down;
         force += f;
-        Vec3 arm2(wp2.x - b->centre[0], wp2.y - b->centre[1], wp2.z - b->centre[2]);
         torque += FUN_004203e0(f, arm2);
     }
     ApplySuspensionForces();
@@ -1704,6 +1704,7 @@ void Car::UpdateWheelContact()
         const float* matrix = c->body->rotation;
         const float* point = (const float*)&local;
         Vec3 world;
+        Vec3 unused;
         float* result = (float*)&world;
         W6_XFORM_ROW();
         Vec3 dir = *(Vec3*)&c->body->rotation[4];
@@ -1777,10 +1778,7 @@ void Car::UpdateWheelContact()
         r[0] = vel;
         wp[-0x114 / 4] = t2;
         if (((int*)wp)[0x16c / 4]) {
-            Vec3 tmp = *(Vec3*)&c->body->rotation[4] * dist;
-            world.x -= tmp.x;
-            world.y -= tmp.y;
-            world.z -= tmp.z;
+            world -= *(Vec3*)&c->body->rotation[4] * dist;
             if (!c->query.Surface(radius + 0.01f, &world, nz - 2, nz + 0x78 / 4, nz + 0x48 / 4, surfP)) {
                 ((int*)wp)[0x16c / 4] = 0;
             } else {

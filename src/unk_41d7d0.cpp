@@ -23,8 +23,8 @@ struct BodyTail {                      // contact bookkeeping at the end of a bo
     { \
         Vec3 va = ((CPointVel*)this)->PointVel(hit); \
         Vec3 vb = ((CPointVel*)other)->PointVel(hit); \
-        va.x = va.x + v1x; va.y = va.y + v1y; va.z = va.z + v1z; \
-        vb.x = vb.x + v2x; vb.y = vb.y + v2y; vb.z = vb.z + v2z; \
+        va.x = va.x + v1.x; va.y = va.y + v1.y; va.z = va.z + v1.z; \
+        vb.x = vb.x + v2.x; vb.y = vb.y + v2.y; vb.z = vb.z + v2.z; \
         Vec3 dv = va; dv.x = va.x - vb.x; dv.y = va.y - vb.y; dv.z = va.z - vb.z; \
         float dot = dv.z * A->n[2]; dot = dv.y * A->n[1] + dot; dot = dv.x * A->n[0] + dot; \
         if (*(unsigned int*)&dot & 0x80000000) { \
@@ -114,8 +114,8 @@ int U40A850Body::FUN_0041d7d0(U40A850Body* other, int flag)
     Vec3& row1 = *(Vec3*)&this->mat[1][0];
     Vec3& row2 = *(Vec3*)&this->mat[2][0];
     Vec3 cc;
-    Plane planes[6];
     float rad;
+    Plane planes[6];
     ScenePoint p;
     Vec3 q;
     XformT(&cc.x, bx + 7, &this->mat[0][0], this->pos);
@@ -204,18 +204,16 @@ int U40A850Body::FUN_0041d7d0(U40A850Body* other, int flag)
     DAT_00508510.Clear();
     CContact* c1 = B1(this)->contacts + B1(this)->cnt;
     CContact* c2 = B1(other)->contacts + B1(other)->cnt;
-    float v1x, v1y, v1z, v2x, v2y, v2z;
-    *(int*)&v1x = *(int*)&FL(this, 0x1cc); *(int*)&v1y = *(int*)&FL(this, 0x1d0); *(int*)&v1z = *(int*)&FL(this, 0x1d4);
-    *(int*)&v2x = *(int*)&FL(other, 0x1cc); *(int*)&v2y = *(int*)&FL(other, 0x1d0); *(int*)&v2z = *(int*)&FL(other, 0x1d4);
+    Vec3 v2, v1;
+    *(int*)&v1.x = *(int*)&FL(this, 0x1cc); *(int*)&v1.y = *(int*)&FL(this, 0x1d0); *(int*)&v1.z = *(int*)&FL(this, 0x1d4);
+    *(int*)&v2.x = *(int*)&FL(other, 0x1cc); *(int*)&v2.y = *(int*)&FL(other, 0x1d0); *(int*)&v2.z = *(int*)&FL(other, 0x1d4);
     int hits = 0;
     int gen = 1;
     float f = DAT_004e1348 / (FL(this, 0x130) + FL(other, 0x130));
     float f1 = FL(this, 0x130) * f;
     float f2 = FL(other, 0x130) * f;
     CShape shA, shB;
-    Vec3 tmp, hit;
     for (CTri* A = head; A != 0; A = A->next, gen++) {
-        Vec3 da, db;
         CTri* bt = (CTri*)tm->tris;
         float* a0 = (float*)(A->v[0] + 1);
         float* a1 = (float*)(A->v[1] + 1);
@@ -231,6 +229,7 @@ int U40A850Body::FUN_0041d7d0(U40A850Body* other, int flag)
                 float* b1 = (float*)(B->v[1] + 1);
                 float* b2 = (float*)(B->v[2] + 1);
                 if (shA.Test(b0, b1, b2, B->n, B->d)) {
+                    Vec3 tmp, hit;
                     if ((int)*B->e[0] != gen && shA.Edge(b0, b1, (float*)&hit, (float*)&tmp) < DAT_004e1348) {
                         *B->e[0] = gen;
                         RECORD(DOT2_ZYX)
