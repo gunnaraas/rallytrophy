@@ -511,13 +511,13 @@ static BOOL __stdcall ConfigureCallback(void* surface, void* context);
 
 static inline int Bal(int a) { return a + 1; }
 
-// NONMATCHING: RALLYTROPHY 0x495a60
+// FUNCTION: RALLYTROPHY 0x495a60
 // Evidence: ev_4ed365b0cbf63abb24939040c5cb657c1776ec50aa6df6154220034f281fd370 (body/pseudocode),
 // ev_a822bdd79943b37f0fead09e596472f4c18bf4a9f10be94d8f8778d0425888ee (assembly),
 // ev_b25e98ef80db0bc0a1ac0d3946b3948142dc014cb9a56c005359702275f00557 (empty initial text).
 // Candidate 1500/1568 bytes, 1160 differing; the observed append forms reduced the first candidate's 1191 differences.
 // Tried 2026-10-31: 214->43 insns: names += playerText (A out of line), names default-ctor + assign(DAT_005070b0), Bal(1) at start (inline budget), m_names = m_cursor = new (store order), padA[32] volatile store in the loop (frame +0x28 the original has for a real local). Still differs: that one dead padA store (1 insn, shifts jumps by 5 bytes); real 32-byte local not identified (unused arrays vanish; number[64]/struct forms 117 insns).
-// Tried 2026-11-04: char number[80] (no padA) gives frame 0x80, insdiff --norm 0, differs only in the resize(0) temp slot (esp+0x40 vs 0x60: one 80-byte array sorts below the 0x30 temp, original = several <48-byte loop arrays); unused/Touch()/inline-local/struct-with-inline-dtor pads all vanish.
+// Matched 2026-11-04 with char number[32] at function scope (after `names`): the frame is then 0x80 and the resize(0) temp sits at esp+0x60. Earlier: char number[80] (no padA) gives frame 0x80, insdiff --norm 0, differs only in the resize(0) temp slot (esp+0x40 vs 0x60: one 80-byte array sorts below the 0x30 temp, original = several <48-byte loop arrays); unused/Touch()/inline-local/struct-with-inline-dtor pads all vanish.
 // Tried 2026-11-01: ~27 variants of the 32-byte pad (volatile unused arrays/structs vanish; conditional uses, number[64], pad at function/loop/after-ctor positions); best is the volatile store after `total += 3` in the loop (43->37 insns differ). Still differs: that one dead padA store (+5 bytes shifts every later jump); the real 32-byte local is unidentified; permute -r 40 found nothing.
 // Creates DirectInput, names the players ("<text 0x94> <n>"), fills the
 // action format and maps each player's devices. Returns the HRESULT.
@@ -534,10 +534,10 @@ int T_56b0b4::Init(int unused, int players)
     m_players = new PlayerDevices[m_playerCount];
     std::string names;
     names = DAT_005070b0;
+    char number[32];
     int total = 0;
     int i;
     for (i = 0; i < m_playerCount;) {
-        char number[80];
         _itoa(++i, number, 10);
         const char* playerText = FUN_00405380(0x94);
         names += playerText;
