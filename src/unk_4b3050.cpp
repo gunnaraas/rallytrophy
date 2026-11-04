@@ -4,6 +4,7 @@
 static inline int FloatBits(const float& f) { return *(const int*)&f; }
 static inline float AbsF(float f) { return (float)fabs(f); }
 
+struct Pod3 { float x, y, z; Pod3& operator+=(const Vec3& o) { x += o.x; y += o.y; z += o.z; return *this; } };
 #pragma comment(linker, "/alternatename:_fun_004b3800=?TriClosest4b@@YAMPAM0000@Z")
 // NONMATCHING: RALLYTROPHY 0x4b3800
 // SYMBOL: ?TriClosest4b@@YAMPAM0000@Z
@@ -110,10 +111,11 @@ T_NEGE:
     e = t * e + dist;
 END:
     if (out) {
-        Vec3 p = *(Vec3*)origin;
-        *(Vec3*)out = p;
-        *(Vec3*)out += *(Vec3*)e1 * s;
-        *(Vec3*)out += *(Vec3*)e2 * t;
+        Pod3 p; p.x = origin[0]; out[0] = p.x; p.y = origin[1]; out[1] = p.y; p.z = origin[2]; out[2] = p.z;
+        p += *(Vec3*)e1 * s;
+        out[0] = p.x; out[1] = p.y; out[2] = p.z;
+        p += *(Vec3*)e2 * t;
+        out[0] = p.x; out[1] = p.y; out[2] = p.z;
     }
     return (float)fabs(e);
 }

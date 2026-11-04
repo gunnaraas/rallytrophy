@@ -8,6 +8,8 @@ extern float DAT_004e134c, DAT_004e138c, DAT_004e1408, DAT_004e1348;
 extern "C" char __cdecl fun_004b3ee0(float* pt, float* n, float* a, float* b, float* c); // point in triangle
 extern "C" char __cdecl fun_004b4090(float* org, float* dir, float r, float* a, float* b, float* t, float* hit); // sphere vs edge
 
+struct SphY { Vec3 c; float d; ~SphY() {} };
+struct EmptyD { ~EmptyD() {} };
 struct SphX { Vec3 c; float d; SphX(const Vec3& p, float r) : c(p) { d = r; } ~SphX() {} };
 // NONMATCHING: RALLYTROPHY 0x418b90
 // reason: first draft; original frame 0xc4 keeps all pseudocode locals (no reuse), 0x418b90 EH states for Vec3 temps differ
@@ -21,9 +23,10 @@ float SweepQuery::Cast(float r, float* org, float* dir, float* outPt, float* out
 
     Vec3 e = *(Vec3*)org; e += *(Vec3*)dir;
     Vec3 dv = *(Vec3*)dir;
+    SphY sph;
     Vec3 sm = *(Vec3*)org; sm += e;
     sm.x *= 0.5f; sm.y *= 0.5f; sm.z *= 0.5f;
-    SphX sph(sm, (float)sqrt(d2) * 0.5f + r);
+    sph.c = sm; sph.d = (float)sqrt(d2) * 0.5f + r;
     float ex = e.x, ey = e.y, ez = e.z;
     float dx = dv.x, dy = dv.y, dz = dv.z;
     CTri* first = 0;
@@ -62,8 +65,9 @@ float SweepQuery::Cast(float r, float* org, float* dir, float* outPt, float* out
     float bestT = 1.0f;
     int edge = -1;
     CTri* bestTri = 0;
-    float hitPt[3];
-    CTri* t = first;
+    Vec3 hitPtV;
+    EmptyD z7;
+    CTri* volatile t = first;
     while (t != 0) {
         float den = t->n.z * dir[2]; // chained: keeps the original's (z+y)+x association
         den = t->n.y * dir[1] + den;
@@ -88,19 +92,19 @@ float SweepQuery::Cast(float r, float* org, float* dir, float* outPt, float* out
             if (fun_004b3ee0(&q.x, &t->n.x, pa, pb, pc) == 0) {
                 if (*t->e[0] == 0) {
                     *t->e[0] = 1;
-                    if (fun_004b4090(org, dir, r, pa, pb, &bestT, hitPt)) { edge = 1; bestTri = t; }
+                    if (fun_004b4090(org, dir, r, pa, pb, &bestT, &hitPtV.x)) { edge = 1; bestTri = t; }
                 }
                 if (*t->e[1] == 0) {
                     *t->e[1] = 1;
-                    if (fun_004b4090(org, dir, r, pb, pc, &bestT, hitPt)) { edge = 2; bestTri = t; }
+                    if (fun_004b4090(org, dir, r, pb, pc, &bestT, &hitPtV.x)) { edge = 2; bestTri = t; }
                 }
                 if (*t->e[2] == 0) {
                     *t->e[2] = 1;
-                    if (fun_004b4090(org, dir, r, pc, pa, &bestT, hitPt)) { edge = 3; bestTri = t; }
+                    if (fun_004b4090(org, dir, r, pc, pa, &bestT, &hitPtV.x)) { edge = 3; bestTri = t; }
                 }
             } else {
                 edge = 0;
-                hitPt[0] = q.x; hitPt[1] = q.y; hitPt[2] = q.z;
+                hitPtV.x = q.x; hitPtV.y = q.y; hitPtV.z = q.z;
                 bestTri = t;
                 bestT = tt;
             }
@@ -109,7 +113,7 @@ float SweepQuery::Cast(float r, float* org, float* dir, float* outPt, float* out
     }
 
     if (outPt != 0) {
-        outPt[0] = hitPt[0]; outPt[1] = hitPt[1]; outPt[2] = hitPt[2];
+        outPt[0] = hitPtV.x; outPt[1] = hitPtV.y; outPt[2] = hitPtV.z;
         if (outN != 0) {
             if (edge == -1) {
                 outN[0] = 0.0f; outN[1] = 0.0f; outN[2] = 0.0f;
