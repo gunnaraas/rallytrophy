@@ -64,7 +64,7 @@ struct LL { float x, y, z; LL() {} ~LL() {} };
 ColModel::ColModel(void* meshp, int)
 {
     ColSrcMesh* mesh = (ColSrcMesh*)meshp;
-    int z; *(volatile int*)&z = 0;
+    int z = 0;
     root = (TriNode*)z;
     if (mesh->nVerts == 0 || mesh->nTris == 0) {
         throw ColLogicError(CStr("missing collision model"));
