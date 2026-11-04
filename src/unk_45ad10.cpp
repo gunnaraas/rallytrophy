@@ -1723,12 +1723,12 @@ void Car::UpdateWheelContact()
         }
         wp[0x134 / 4] = comp;
         float d;
-        if (dist < rideTop) {
-            ((int*)wp)[0x16c / 4] = 1;
-            d = hFrac * t; // the original takes the unstored product here (rounding point)
-        } else {
+        if (dist >= rideTop) {
             ((int*)wp)[0x16c / 4] = 0;
             d = rideTop;
+        } else {
+            ((int*)wp)[0x16c / 4] = 1;
+            d = hFrac * t; // the original takes the unstored product here (rounding point)
         }
         float x = d - *(float*)&rhi;
         if (x < 0.0f) {
