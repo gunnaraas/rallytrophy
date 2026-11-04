@@ -1752,6 +1752,8 @@ int GameG7::StartRace()
                 stages = tracks->GetStageCount(rally);
                 first = 1;
             }
+            savedStages = stages;
+            savedFirst = first;
             for (i = 0; i < (int)race.m_players.size(); i++) {
                 race.m_players[i]->FUN_004913e0();
                 race.m_players[i]->FUN_00491450();
@@ -1761,8 +1763,6 @@ int GameG7::StartRace()
                 Car* car = race.m_players[i]->car;
                 car->FUN_00465e90(((G7_RaceMode*)&race)->FUN_0048e800(rally, first));
             }
-            savedStages = stages;
-            savedFirst = first;
         } else {
             first = race.unk2c;
             stages = tracks->GetStageCount(rally);
@@ -1979,6 +1979,8 @@ int GameG8::FUN_00433bc0()
     ServiceMenu* menu;
     CareerData* c;
     RallyInfo* info;
+    int* fa;
+    int d, e;
     state = 0;
     carClass = 0;
     stage = 1;
@@ -2084,12 +2086,13 @@ int GameG8::FUN_00433bc0()
     trackSelect.LoadRallyData();
     while (count > 0) {
         info = &trackSelect.rally[rally - 1];
+        fa = &info->firstArcade;
         if (DAT_00501464 == 2) {
             s = stage;
             n = 1;
         } else {
-            n = info->numArcade;
-            s = info->firstArcade + 1;
+            s = *fa + 1;
+            n = fa[-1];
         }
         if (arcade) {
             for (k = 1; k < rally; k++) {
@@ -2098,7 +2101,7 @@ int GameG8::FUN_00433bc0()
                     DAT_005014b0[k] = r;
                 }
             }
-            r = s - info->firstArcade;
+            r = s - *fa;
             if (r <= 1) {
                 if (rally - 1 > DAT_0050149c) {
                     DAT_0050149c = rally - 1;
@@ -2121,7 +2124,7 @@ int GameG8::FUN_00433bc0()
         }
         n0 = n;
         s0 = s;
-        if (DAT_00501464 == 0 && s == info->firstArcade + 1) {
+        if (DAT_00501464 == 0 && s == *fa + 1) {
             ShowCountryVideo(rally);
         }
         while (n > 0) {
@@ -2161,7 +2164,9 @@ int GameG8::FUN_00433bc0()
                 mode.unk2c = s;
                 FUN_00431c50();
                 session.FUN_0048e660();
-                mode.SetUnk844(DAT_004f7c08[s - (info->firstArcade + 1) + (rally - 1) * 2]);
+                d = *fa + 1;
+                e = (rally - 1) * 2;
+                mode.SetUnk844(DAT_004f7c08[s - d + e]);
                 mode.SendGrid(0);
                 r2 = session.Run(&mode, 0, lastA, lastB);
                 session.Shutdown();
