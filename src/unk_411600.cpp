@@ -1,6 +1,10 @@
 // Stage config parser (0x411600): reads the stage ini into the Stage object, then data/stagetimes<N>.ini.
 // Field offsets are raw (the Stage class is declared elsewhere, see unk_481390.h).
+#define private public
+#define protected public
 #include <string>
+#undef private
+#undef protected
 #include <stdlib.h>
 #include <string.h>
 #include "unk_411600.h"
@@ -46,8 +50,9 @@ static __forceinline void SetSnd(std::string& d, const char* s)
     unsigned n = strlen(s);
     if (t.Grow(n, true)) {
         memcpy(t.p, s, n);
+        char* e = t.p;
         t.n = n;
-        t.p[n] = 0;
+        e[n] = 0;
     }
 }
 
@@ -62,6 +67,20 @@ static __forceinline void AppS(std::string& d, const char* s)
         t.p[t.n = n] = 0;
     }
 }
+
+// assign(const char*) with _Grow expanded but _Eos left as a call (T7-T9Sound).
+struct XS : std::string {
+    void EosX(unsigned n);
+    void Asg(const char* s)
+    {
+        unsigned n = strlen(s);
+        if (_Grow(n, true)) {
+            memcpy(_Ptr, s, n);
+            EosX(n);
+        }
+    }
+};
+#pragma comment(linker, "/alternatename:?EosX@XS@@QAEXI@Z=?_Eos@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEXI@Z")
 
 // NONMATCHING: RALLYTROPHY 0x411600
 // Tried 2026-10-31: switch(level), pointer-walk loops, name = copy of this+8 (not empty), SetSnd (out-of-line _Grow via /alternatename overlay) for R0-T6 sounds, 13 trailing discarded Bal(1) (10-15 tried; 13/14 best): 1306->680 insns. Still differs: cfg at ebp-0x20 not ebp-0x7c (frame 0x84 vs 0x70: VC6 does not share the buf/RoundF temp slots; block-scoping buf, decl order, plain/forceinline RoundF, Raw2/Raw3 tmp copies all no help), Vector2/3 copy load/store interleave.
@@ -354,9 +373,9 @@ void StageConfigLoader::LoadConfig(const char* path)
     SetSnd(FLD(std::string, 0x2458), cfg.GetString("T4Sound"));
     SetSnd(FLD(std::string, 0x2468), cfg.GetString("T5Sound"));
     SetSnd(FLD(std::string, 0x2478), cfg.GetString("T6Sound"));
-    FLD(std::string, 0x2488) = cfg.GetString("T7Sound");
-    FLD(std::string, 0x2498) = cfg.GetString("T8Sound");
-    FLD(std::string, 0x24a8) = cfg.GetString("T9Sound");
+    ((XS&)FLD(std::string, 0x2488)).Asg(cfg.GetString("T7Sound"));
+    ((XS&)FLD(std::string, 0x2498)).Asg(cfg.GetString("T8Sound"));
+    ((XS&)FLD(std::string, 0x24a8)).Asg(cfg.GetString("T9Sound"));
     cfg.Close();
     char buf[32];
     itoa(FLD(int, 4), buf, 10);
