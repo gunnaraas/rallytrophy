@@ -88,101 +88,101 @@ inline void CrossAsm(float* o, const float* a, const float* b)
 // Tried 2026-11-01 re-pass: fixed dot/pen/denominator/lp/ln/torque sums and the spd data (imp, not v) to the original's fadd order and fields, n passed as c->n; 10 more loop-1 v-copy/writeback variants (Vec3 copies, int-routed v1/v2, holder Vec3, volatile reads) stayed at 379-393 insns; still needs the whole-function Vec3 rewrite (built 1677 vs 1861 bytes).
 void U40A850Body::FUN_0041fc60(void* stage, void* unused)
 {
-    int cnt = *(int*)((char*)this + 0x23c);
+    unsigned cnt = *(unsigned*)((char*)this + 0x23c);
     if (cnt == 0) {
         return;
     }
     ImpStage* st = (ImpStage*)stage;
-    float negB = DAT_004e134c, negC = DAT_004e134c, negA = 0.0f;
-    float posA = 0.0f, posB = 0.0f, posC = 0.0f;
+    Vec3 pos, neg;
+    pos.x = 0.0f; pos.y = 0.0f; pos.z = 0.0f;
+    neg.x = 0.0f; neg.y = DAT_004e134c; neg.z = DAT_004e134c;
     float thresh = (st == 0) ? 1000.0f : F(st, 0x1080);
     ImpContact* base = *(ImpContact**)((char*)this + 0x238);
     ImpContact* c = base;
-    int i;
-    for (i = cnt; i != 0; i--, c++) {
-        float nx = c->n[0], ny = c->n[1], nz = c->n[2];
+    unsigned i;
+    for (i = 0; i < cnt; i++, c++) {
         float vx = c->v[0], vy = c->v[1], vz = c->v[2];
-        float dot = vy * ny + vz * nz + vx * nx;
+        float dot = vy * c->n[1] + vz * c->n[2] + vx * c->n[0];
         if ((BITS(dot) & 0x80000000) == 0) {
             c->active = 0;
         } else {
             c->active = 1;
-            float ix = nx * dot, iy = ny * dot, iz = nz * dot;
+            float ix = c->n[0] * dot, iy = c->n[1] * dot, iz = c->n[2] * dot;
             c->imp[0] = ix; c->imp[1] = iy; c->imp[2] = iz;
-            if ((BITS(ix) & 0x80000000) == 0) posA = posA + ix; else negA = negA + ix;
-            if ((BITS(iy) & 0x80000000) == 0) posB = posB + iy; else negB = negB + iy;
-            if ((BITS(iz) & 0x80000000) == 0) posC = posC + iz; else negC = negC + iz;
+            if ((BITS(ix) & 0x80000000) == 0) pos.x = pos.x + ix; else neg.x = neg.x + ix;
+            if ((BITS(iy) & 0x80000000) == 0) pos.y = pos.y + iy; else neg.y = neg.y + iy;
+            if ((BITS(iz) & 0x80000000) == 0) pos.z = pos.z + iz; else neg.z = neg.z + iz;
         }
     }
-    if (BITS(posA) < 0x3a83126f) posA = 0.001f;
-    if (BITS(posB) < 0x3a83126f) posB = 0.001f;
-    if (BITS(posC) < 0x3a83126f) posC = 0.001f;
-    if (DAT_004e1448 < negA) negA = -0.001f;
-    if (DAT_004e1448 < negB) negB = DAT_004e1448;
-    if (DAT_004e1448 < negC) negC = DAT_004e1448;
-    negA = DAT_004e1348 / negA;
-    negB = DAT_004e1348 / negB;
-    negC = DAT_004e1348 / negC;
-    posA = DAT_004e1348 / posA;
-    posB = DAT_004e1348 / posB;
-    posC = DAT_004e1348 / posC;
+    if (BITS(pos.x) < 0x3a83126f) pos.x = 0.001f;
+    if (BITS(pos.y) < 0x3a83126f) pos.y = 0.001f;
+    if (BITS(pos.z) < 0x3a83126f) pos.z = 0.001f;
+    if (DAT_004e1448 < neg.x) neg.x = -0.001f;
+    if (DAT_004e1448 < neg.y) neg.y = DAT_004e1448;
+    if (DAT_004e1448 < neg.z) neg.z = DAT_004e1448;
+    neg.x = DAT_004e1348 / neg.x;
+    neg.y = DAT_004e1348 / neg.y;
+    neg.z = DAT_004e1348 / neg.z;
+    pos.x = DAT_004e1348 / pos.x;
+    pos.y = DAT_004e1348 / pos.y;
+    pos.z = DAT_004e1348 / pos.z;
 
     c = base;
     for (unsigned k = 0; k < *(unsigned*)((char*)this + 0x23c); k++, c++) {
-        if (c->active == 0) continue;
-        float sx = ((BITS(c->imp[0]) & 0x80000000) != 0) ? negA : posA;
-        float sy = ((BITS(c->imp[1]) & 0x80000000) != 0) ? negB : posB;
-        float sz = ((BITS(c->imp[2]) & 0x80000000) != 0) ? negC : posC;
-        float wx = c->imp[0] * sx; wx = wx * c->imp[0];
-        float wy = c->imp[1] * sy; wy = wy * c->imp[1];
-        float wz = c->imp[2] * sz; wz = wz * c->imp[2];
-        float pen = wy * c->n[1]; pen = wx * c->n[0] + pen; pen = wz * c->n[2] + pen; pen = -pen;
-        if (!(DAT_004e134c < pen)) continue;
-        Vec3 r(c->pt[0] - F(this, 0x224), c->pt[1] - F(this, 0x228), c->pt[2] - F(this, 0x22c));
-        Vec3 rn = FUN_004203e0(r, *(Vec3*)c->n);
-        float av[3];
-        Xform(av, &rn.x, (float*)((char*)this + 0x15c));
-        CrossAsm(&rn.x, av, &r.x);
-        float cx = rn.x, cy = rn.y, cz = rn.z;
-        float inv = DAT_004e1348 / (cy * c->n[1] + cz * c->n[2] + cx * c->n[0] + F(this, 0x130));
-        float j = inv * pen + inv * pen;
-        float jx = c->n[0] * j, jy = c->n[1] * j, jz = c->n[2] * j;
-        F(this, 0x1fc) = jx + F(this, 0x1fc);
-        F(this, 0x200) = jy + F(this, 0x200);
-        F(this, 0x204) = jz + F(this, 0x204);
-        Vec3 r2(c->pt[0] - F(this, 0x224), c->pt[1] - F(this, 0x228), c->pt[2] - F(this, 0x22c));
-        Vec3 imp(jx, jy, jz);
-        Vec3 tq = FUN_004203e0(imp, r2);
-        F(this, 0x208) = tq.x + F(this, 0x208);
-        F(this, 0x20c) = tq.y + F(this, 0x20c);
-        F(this, 0x210) = tq.z + F(this, 0x210);
+        if (c->active != 0) {
+        Vec3 w(*(Vec3*)c->imp);
+        float tx = w.x * (((BITS(w.x) & 0x80000000) != 0) ? neg.x : pos.x);
+        float ty = w.y * (((BITS(w.y) & 0x80000000) != 0) ? neg.y : pos.y);
+        float tz = w.z * (((BITS(w.z) & 0x80000000) != 0) ? neg.z : pos.z);
+        w.x = tx * c->imp[0]; w.y = ty * c->imp[1]; w.z = tz * c->imp[2];
+        float pen = w.y * c->n[1]; pen = w.x * c->n[0] + pen; pen = w.z * c->n[2] + pen; pen = -pen;
+        if (pen > DAT_004e134c) {
+        Vec3 r, rn, av;
+        r.x = c->pt[0] - F(this, 0x224); r.y = c->pt[1] - F(this, 0x228); r.z = c->pt[2] - F(this, 0x22c);
+        rn = FUN_004203e0(r, *(Vec3*)c->n);
+        Xform(&av.x, &rn.x, (float*)((char*)this + 0x15c));
+        CrossAsm(&rn.x, &av.x, &r.x);
+        float inv = DAT_004e1348 / (rn.y * c->n[1] + rn.z * c->n[2] + rn.x * c->n[0] + F(this, 0x130));
+        float jj = inv * pen + inv * pen;
+        Vec3 j(c->n[0] * jj, c->n[1] * jj, c->n[2] * jj);
+        F(this, 0x1fc) = j.x + F(this, 0x1fc);
+        F(this, 0x200) = j.y + F(this, 0x200);
+        F(this, 0x204) = j.z + F(this, 0x204);
+        {
+            Vec3 r2(c->pt[0] - F(this, 0x224), c->pt[1] - F(this, 0x228), c->pt[2] - F(this, 0x22c));
+            Vec3 tq = FUN_004203e0(j, r2);
+            F(this, 0x208) = tq.x + F(this, 0x208);
+            F(this, 0x20c) = tq.y + F(this, 0x20c);
+            F(this, 0x210) = tq.z + F(this, 0x210);
+        }
         if (st != 0) {
             float spd = c->n[1] * c->imp[1]; spd = c->n[0] * c->imp[0] + spd; spd = c->n[2] * c->imp[2] + spd; spd = -spd;
             if (thresh < spd) {
-                float dx = c->pt[0] - F(this, 0x14);
-                float dy = c->pt[1] - F(this, 0x18);
-                float dz = c->pt[2] - F(this, 0x1c);
-                float lp[3], ln[3];
-                lp[0] = dz * F(this, 0x28) + dy * F(this, 0x24) + dx * F(this, 0x20);
-                lp[1] = dz * F(this, 0x38); lp[1] = dy * F(this, 0x34) + lp[1]; lp[1] = dx * F(this, 0x30) + lp[1];
-                lp[2] = dz * F(this, 0x48); lp[2] = dy * F(this, 0x44) + lp[2]; lp[2] = dx * F(this, 0x40) + lp[2];
-                ln[0] = F(this, 0x24) * c->n[1] + F(this, 0x28) * c->n[2] + c->n[0] * F(this, 0x20);
-                ln[1] = F(this, 0x34) * c->n[1]; ln[1] = F(this, 0x38) * c->n[2] + ln[1]; ln[1] = c->n[0] * F(this, 0x30) + ln[1];
-                ln[2] = F(this, 0x44) * c->n[1]; ln[2] = F(this, 0x48) * c->n[2] + ln[2]; ln[2] = c->n[0] * F(this, 0x40) + ln[2];
-                st->AddContact(lp, ln, spd);
+                Vec3 d(*(Vec3*)c->pt), lp;
+                d.x -= F(this, 0x14); d.y -= F(this, 0x18); d.z -= F(this, 0x1c);
+                lp.x = d.z * F(this, 0x28) + d.y * F(this, 0x24) + d.x * F(this, 0x20);
+                lp.y = d.z * F(this, 0x38); lp.y = d.y * F(this, 0x34) + lp.y; lp.y = d.x * F(this, 0x30) + lp.y;
+                lp.z = d.z * F(this, 0x48); lp.z = d.y * F(this, 0x44) + lp.z; lp.z = d.x * F(this, 0x40) + lp.z;
+                Vec3 ln;
+                ln.x = F(this, 0x24) * c->n[1] + F(this, 0x28) * c->n[2] + c->n[0] * F(this, 0x20);
+                ln.y = F(this, 0x34) * c->n[1]; ln.y = F(this, 0x38) * c->n[2] + ln.y; ln.y = c->n[0] * F(this, 0x30) + ln.y;
+                ln.z = F(this, 0x44) * c->n[1]; ln.z = F(this, 0x48) * c->n[2] + ln.z; ln.z = c->n[0] * F(this, 0x40) + ln.z;
+                st->AddContact(&lp.x, &ln.x, spd);
                 if (F(this, 0x240) < spd * inv) {
                     F(this, 0x25c) = c->n[0];
                     F(this, 0x260) = c->n[1];
                     F(this, 0x264) = c->n[2];
-                    F(this, 0x250) = jz * F(this, 0x28) + jy * F(this, 0x24) + jx * F(this, 0x20);
-                    float t254 = jz * F(this, 0x38); t254 = jy * F(this, 0x34) + t254; F(this, 0x254) = jx * F(this, 0x30) + t254;
-                    F(this, 0x24c) = lp[2];
-                    F(this, 0x248) = lp[1];
-                    F(this, 0x244) = lp[0];
-                    float t258 = jz * F(this, 0x48); t258 = jy * F(this, 0x44) + t258; F(this, 0x258) = jx * F(this, 0x40) + t258;
+                    F(this, 0x250) = j.z * F(this, 0x28) + j.y * F(this, 0x24) + j.x * F(this, 0x20);
+                    float t254 = j.z * F(this, 0x38); t254 = j.y * F(this, 0x34) + t254; F(this, 0x254) = j.x * F(this, 0x30) + t254;
+                    F(this, 0x24c) = lp.z;
+                    F(this, 0x248) = lp.y;
+                    F(this, 0x244) = lp.x;
+                    float t258 = j.z * F(this, 0x48); t258 = j.y * F(this, 0x44) + t258; F(this, 0x258) = j.x * F(this, 0x40) + t258;
                     F(this, 0x240) = spd * inv;
                 }
             }
+        }
+        }
         }
     }
     FUN_0041c010();
