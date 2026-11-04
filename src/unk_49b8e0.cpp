@@ -6,6 +6,10 @@
 #include "rallytrophy.h"
 #include <stdlib.h>
 #include <math.h>
+#include "unk_414330.h"
+struct PV { float x, y, z; PV operator-(const PV& o) const; };
+#pragma comment(linker, "/alternatename:??GPV@@QBE?AU0@ABU0@@Z=?Sub@S414Vec3@@QBEXPAMPBM@Z")          // POD twin of Vec3: the original's n1/n2/flat/diff carry no EH state
+static inline void SubV(const void* a, const void* b, void* out) { *(PV*)out = *(const PV*)a - *(const PV*)b; }
 
 extern int DAT_0050132c;               // difficulty class
 extern float DAT_004e1348;
@@ -288,6 +292,7 @@ extern float DAT_00500cfc;
 #define NLEN(v) ((float)sqrt(((v).x * (v).x + (v).z * (v).z) + (v).y * (v).y))
 float AIDriver::FUN_0049c130()
 {
+    Vec3 nearest;
     unk28 = 0;
     unk14c.y = 0;
     unk140.y = 0;
@@ -303,19 +308,18 @@ float AIDriver::FUN_0049c130()
 
     Vec3 A; A.x = q0->x - seg->a->x; A.y = 0; A.z = q0->z - seg->a->z;
     float len0 = (float)sqrt(A.z * A.z + A.x * A.x);
-    Vec3 nearest;
     FUN_004b3dd0(POS, (Vec3*)seg->a, &A, &nearest);
-    A = nearest - *POS;
+    SubV(&nearest, POS, &A);
     A.y = 0;
     Vec3 B; B.x = q1->x - q0->x; B.y = 0; B.z = q1->z - q0->z;
     float len1 = (float)sqrt(B.z * B.z + B.x * B.x);
     FUN_004b3dd0(POS, (Vec3*)q0, &B, &nearest);
-    B = nearest - *POS;
+    SubV(&nearest, POS, &B);
     B.y = 0;
     Vec3 C; C.x = seg->b->x - q1->x; C.y = DAT_004e134c; C.z = seg->b->z - q1->z;
     float len2 = (float)sqrt(C.z * C.z + C.x * C.x);
     FUN_004b3dd0(POS, (Vec3*)q1, &C, &nearest);
-    C = nearest - *POS;
+    SubV(&nearest, POS, &C);
     C.y = DAT_004e134c;
     Vec3 D(next->unk28[0].x - seg->b->x, DAT_004e134c, next->unk28[0].z - seg->b->z);
     float len3 = (float)sqrt(D.z * D.z + D.x * D.x);
@@ -332,7 +336,7 @@ float AIDriver::FUN_0049c130()
         A += *POS;
         A -= *(Vec3*)seg->a;
         A.y = 0;
-        nearest = *(Vec3*)q0 - *(Vec3*)seg->a;
+        SubV(q0, seg->a, &nearest);
         t = A.Length() / NLEN(nearest);
         unkc4 = (int)t;
         unk134.x = t;
@@ -367,7 +371,7 @@ float AIDriver::FUN_0049c130()
         B += *POS;
         B -= *(Vec3*)q0;
         B.y = 0;
-        nearest = *(Vec3*)q1 - *(Vec3*)q0;
+        SubV(q1, q0, &nearest);
         t = B.Length() / NLEN(nearest);
         unkc4 = (int)t;
         unk134.x = t;
@@ -402,7 +406,7 @@ float AIDriver::FUN_0049c130()
         C += *POS;
         C -= *(Vec3*)q1;
         C.y = DAT_004e134c;
-        nearest = *(Vec3*)seg->b - *(Vec3*)q1;
+        SubV(seg->b, q1, &nearest);
         t = C.Length() / NLEN(nearest);
         unkc4 = (int)t;
         unk134.x = t;
@@ -432,13 +436,13 @@ float AIDriver::FUN_0049c130()
     }
 
     // Direction from the target point to the look-ahead point, and the track width at the car.
-    *(Vec3*)&unk54 = *(Vec3*)&unk14c - *(Vec3*)&unk140;
+    SubV(&unk14c, &unk140, &unk54);
     float w = (DAT_004e1348 - unk28) * seg->a->unk24 + seg->b->unk24 * unk28;
     unk20 = w;
-    Vec3 flat(POS->x, 0, POS->z);
+    PV flat; flat.x = POS->x; flat.y = 0; flat.z = POS->z;
 
     // Distances from the car to the two edges of the track at the target point.
-    Vec3 n1(-unk54.z, 0, unk54.x);
+    PV n1; n1.x = -unk54.z; n1.y = 0; n1.z = unk54.x;
     float il1 = DAT_004e1348 / (float)sqrt(n1.z * n1.z + n1.x * n1.x);
     n1.x *= il1;
     n1.z *= il1;
@@ -453,7 +457,7 @@ float AIDriver::FUN_0049c130()
     float d1s = n1.z * n1.z; d1s = n1.x * n1.x + d1s; d1s = n1.y * n1.y + d1s;
     float d1 = (float)sqrt(d1s);
     unk18 = d1;
-    Vec3 n2(unk54.z, 0, -unk54.x);
+    PV n2; n2.x = unk54.z; n2.y = 0; n2.z = -unk54.x;
     float il2 = DAT_004e1348 / (float)sqrt(n2.x * n2.x + n2.z * n2.z);
     n2.x *= il2;
     n2.z *= il2;
@@ -480,6 +484,7 @@ float AIDriver::FUN_0049c130()
         unk1c = -d2;
     }
 
+    Vec3 P;
     // Unit sideways vector; the result is the (negated) heading component along it.
     Vec3 n3;
     n3.x = unk54.z;
@@ -496,8 +501,8 @@ float AIDriver::FUN_0049c130()
     unk3c.x = n3.x * unk7c + unk140.x;
     unk3c.z = n3.z * unk7c + unk140.z;
 
-    Vec3 P = *(Vec3*)&unk3c - *POS;
-    P = Vec3(P.x, 0, P.z);
+    SubV(&unk3c, POS, &P);
+    P.y = 0;
     Vec3 Q(unk3c.x, unk3c.y, unk3c.z);
     float lp = (float)sqrt(P.z * P.z + P.x * P.x);
     if (lp != DAT_004e134c && ((Vec3*)&unk3c)->Length() != DAT_004e134c) {
@@ -518,7 +523,8 @@ float AIDriver::FUN_0049c130()
     }
 
     if (unk88 == -1000.0f) {
-        Vec3 diff = *(Vec3*)&unk3c - *POS;
+        PV diff;
+        SubV(&unk3c, POS, &diff);
         diff.y = 0;
         float v = (rand() % 3000) * 0.00033333333f + 2.0f;
         if (unk18 < unk1c) {
@@ -1435,8 +1441,7 @@ float AIDriver::FUN_0049d970()
     }
     unk24 = seg->a->unk24;
     unkec = seg->unk14;
-    Vec3 ahead = *(Vec3*)&unk14c - *(Vec3*)&unk140;
-    *(Vec3*)&unk60 = ahead;
+    SubV(&unk14c, &unk140, &unk60);
     // perpendicular of the path direction, normalised in the plane
     lateral.z = -unk60.x;
     lateral.y = 0;
@@ -1488,11 +1493,11 @@ __forceinline static void Copy(Vec3& d, const Vec3& s) { d.x = s.x; d.y = s.y; d
 // Tried 2026-11-01 re-pass: lazy dist2 sqrt inside the && compares and 0.0f read as DAT_004e134c for v0/v1/v2/gap/unk14c .y (787->698 insns, 3502->3543 bytes vs 3592); ~30 variants (other .y sites, p.y, unk28, dist order, local pointer/declaration order) no better; still differs: original keeps player in edi/path in ebp (ours ebp/ebx) so the whole register allocation and several fst/fstp reloads of the n/v components differ.
 float AIDriver::FUN_0049e3d0()
 {
-    Vec3 p;
     Vec3 n;
     Vec3 side;
+    Vec3 p;
     Car* car = player->car;
-    AiSpline& sp = *(AiSpline*)&unk134;
+#define sp (*(AiSpline*)&unk134)
     unk28 = 0;
     AiPath* path = player->FUN_00491e10();
     int index = player->unk1a7c;
@@ -1534,28 +1539,28 @@ float AIDriver::FUN_0049e3d0()
 
     // The segment is three pieces: a -> u0, u0 -> u1, u1 -> b; find the n p on each.
     Vec3 v0;
-    Vec3 v1;
-    Vec3 v2;
     v0.x = u0->x - cur->a->x;
     v0.y = DAT_004e134c;
     v0.z = u0->z - cur->a->z;
     float len0 = (float)sqrt(v0.z * v0.z + v0.x * v0.x);
     FUN_004b3dd0(&p, (Vec3*)cur->a, &v0, &n);
-    v0 = n - p;
+    SubV(&n, &p, &v0);
     v0.y = DAT_004e134c;
+    Vec3 v1;
     v1.x = u1->x - u0->x;
     v1.y = DAT_004e134c;
     v1.z = u1->z - u0->z;
     float len1 = (float)sqrt(v1.z * v1.z + v1.x * v1.x);
     FUN_004b3dd0(&p, u0, &v1, &n);
-    v1 = n - p;
+    SubV(&n, &p, &v1);
     v1.y = DAT_004e134c;
+    Vec3 v2;
     v2.x = ((Vec3*)cur->b)->x - u1->x;
     v2.y = DAT_004e134c;
     v2.z = ((Vec3*)cur->b)->z - u1->z;
     float len2 = (float)sqrt(v2.z * v2.z + v2.x * v2.x);
     FUN_004b3dd0(&p, u1, &v2, &n);
-    v2 = n - p;
+    SubV(&n, &p, &v2);
     v2.y = DAT_004e134c;
 
     // Gap between this segment's end and the next segment's first corner.
@@ -1577,7 +1582,7 @@ float AIDriver::FUN_0049e3d0()
         v0.z = p.z + v0.z;
         v0 -= *(Vec3*)cur->a;
         v0.y = DAT_004e134c;
-        n = *u0 - *(Vec3*)cur->a;
+        SubV(u0, cur->a, &n);
         float nl = n.x * n.x + n.z * n.z;
         nl = nl + n.y * n.y;
         float t = v0.Length() / (float)sqrt(nl);
@@ -1613,7 +1618,7 @@ float AIDriver::FUN_0049e3d0()
         v1.z = p.z + v1.z;
         v1 -= *u0;
         v1.y = DAT_004e134c;
-        n = *u1 - *u0;
+        SubV(u1, u0, &n);
         float nl = n.x * n.x + n.z * n.z;
         nl = nl + n.y * n.y;
         float t = v1.Length() / (float)sqrt(nl);
@@ -1648,7 +1653,7 @@ float AIDriver::FUN_0049e3d0()
         v2.z = p.z + v2.z;
         v2 -= *u1;
         v2.y = DAT_004e134c;
-        n = *(Vec3*)cur->b - *u1;
+        SubV(cur->b, u1, &n);
         float nl = n.x * n.x + n.z * n.z;
         nl = nl + n.y * n.y;
         float t = v2.Length() / (float)sqrt(nl);
@@ -1681,7 +1686,7 @@ float AIDriver::FUN_0049e3d0()
     // Blend the node values and take the line direction.
     AI_FLOAT(0x24) = (DAT_004e1348 - AI_FLOAT(0x2c)) * cur->a->unk24 + cur->b->unk24 * AI_FLOAT(0x2c);
     *(int*)((BYTE*)this + 0xec) = cur->unk14;
-    Copy(*(Vec3*)&unk60, *(Vec3*)&unk14c - *(Vec3*)&unk140);
+    SubV(&unk14c, &unk140, &unk60);
     unk48.y = 0;
     side.x = unk60.z;
     side.z = -unk60.x;
@@ -1716,12 +1721,14 @@ float AIDriver::FUN_0049e3d0()
     unk34 = *(volatile float*)&n.y * forward.y + n.z * forward.z + n.x * forward.x; // original keeps the n.y (= 0) term
 
     pos = (Vec3*)player->car->body->unk14;
-    Copy(*(Vec3*)&unkc8, *(Vec3*)&unk3c - *pos);
+    SubV(&unk3c, pos, &unkc8);
     ((Vec3*)&unkc8)->y = 0;
-    Copy(*(Vec3*)&unkd4, *(Vec3*)&unk140 - *pos);
+    SubV(&unk140, pos, &unkd4);
     ((Vec3*)&unkd4)->y = 0;
     return DAT_004e134c;
 }
+
+#undef sp
 
 // FUNCTION: RALLYTROPHY 0x49f1e0
 void AIDriver::FUN_0049f1e0()
