@@ -5,10 +5,9 @@
 #define UNK_4137C0_H
 
 // PathString with the out-of-line assignment from a temporary string (std::string::assign, 0x4024f0).
-class FlareString {
+class FlareStringBase {
 public:
-    FlareString(const std::allocator<char>& al = std::allocator<char>()) : alloc(al) { Tidy(false); }
-    ~FlareString() { Free(true); }
+    FlareStringBase(const std::allocator<char>& al = std::allocator<char>()) : alloc(al) { Tidy(false); }
     unsigned char& Refcnt(const char* u) { return ((unsigned char*)u)[-1]; }
     void Free(bool built)              // std::string::_Tidy, expanded inline
     {
@@ -53,6 +52,15 @@ public:
     unsigned int len;
     unsigned int reserve;
     void AssignTmp(const TmpString& s, unsigned int pos, unsigned int n); // 0x4024f0
+};
+class FlareString : public FlareStringBase {
+public:
+    ~FlareString() { Tidy(true); }
+};
+// Same string, destructor expanded inline (the last local of the function).
+class FlareStringInl : public FlareStringBase {
+public:
+    ~FlareStringInl() { Free(true); }
 };
 TmpString FlarePath(const char* prefix, const FlareString& name); // 0x408fd0: operator+(const char*, string)
 

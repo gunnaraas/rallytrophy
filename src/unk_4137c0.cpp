@@ -78,6 +78,8 @@ extern char* __cdecl FUN_004c1902(int value, char* buf, int radix); // _itoa
 #define AT(T, off) (*(T*)((char*)this + (off)))
 #define ATP(p, T, off) (*(T*)((char*)(p) + (off)))
 
+struct FlareRect { int v[4]; ~FlareRect() {} };
+
 static __forceinline void SetV3(float& x, float& y, float& z, float a, float b, float c) { x = a; y = b; z = c; }
 // NONMATCHING: RALLYTROPHY 0x4137c0
 // 2942 vs 2914 bytes; frame is 0x24 larger (original shares stack slots between the ini-scope locals and the
@@ -87,8 +89,8 @@ static __forceinline void SetV3(float& x, float& y, float& z, float a, float b, 
 void SceneSetup::FUN_004137c0(const FlareString& dir)
 {
     if (AT(int, 0x218) != 0) {
-        char sizeKey[20] = "Ring00SizeSharpness";
         char mapKey[10] = "Ring00Map";
+        char sizeKey[20] = "Ring00SizeSharpness";
         char locKey[18] = "Ring00ScaleLocRot";
         FlareString path;
         path.AssignTmp(FlarePath("data/global/flares/", AT(FlareString, 0x21c)), 0, std::string::npos);
@@ -158,17 +160,19 @@ void SceneSetup::FUN_004137c0(const FlareString& dir)
     AT(int, 0x954) = 0x3f800000;
     AT(int, 0x9a8) = 0xf;
 
-    FlareString env;
+    FlareStringInl env;
     env.AssignTmp(MissingText2(dir, "CarBodyEnv"), 0, std::string::npos);
-    char num[32];
-    FUN_004c1902(AT(int, 4), num, 10);
-    env.Add(num);
+    {
+        char num[32];
+        FUN_004c1902(AT(int, 4), num, 10);
+        env.Add(num);
+    }
     env.Add(".tga");
     AT(Texture*, 0x9e4) = loader->Load(env.c_str(), 0x40);
     env.AssignTmp(AT(TmpString, 8), 0, std::string::npos);
     env.Add("textures/particles.tga");
-    int c0 = AT(int, 0x1f8), c1 = AT(int, 0x1fc), c2 = AT(int, 0x200), c3 = AT(int, 0x204);
-    (void)c3;
+    FlareRect rc = AT(FlareRect, 0x1f8);
+    int c0 = rc.v[0], c1 = rc.v[1], c2 = rc.v[2];
     Sprite* a = new Sprite;
     AT(Sprite*, 0x9dc) = a;
     ATP(a, Texture*, 0) = loader->Load(env.c_str(), 0x40);
