@@ -45,7 +45,9 @@ struct CPlane {                 // plane with empty ctor/dtor (eh vector ctor 0x
 
 struct Tri3 {                   // 0x34-byte triangle helper (0x4b5920)
     char data[0x34];
-    Tri3(const float* a, const float* b, const float* c, const float* n, float d); // 0x4b5920
+    Tri3() {}
+    ~Tri3() {}
+    void Init(const float* a, const float* b, const float* c, const float* n, float d); // 0x4b5920
     int Overlap(const float* a, const float* b, const float* c, const float* n, float d); // 0x4b59b0
     float EdgeDist(const float* a, const float* b, float* out, float* nrm);       // 0x4b6800
 };
