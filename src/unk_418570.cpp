@@ -426,6 +426,7 @@ struct Sph419 { ScenePoint c; float d; Sph419(const float* p, float r) { c.x = p
 static __forceinline bool Near419(const ScenePoint& p, const Tri* t, float r) { float q = (r + t->r) * (r + t->r); float dx = p.x - t->cx, dy = p.y - t->cy, dz = p.z - t->cz; float d2 = dx * dx + dy * dy + dz * dz; return *(int*)&d2 <= *(int*)&q; }
 
 // NONMATCHING: RALLYTROPHY 0x4193a0
+// Tried 2026-11-04: original objects = P(0, ScenePoint at +0x60, r plain float at +0x6c), lo(1), hi(2) with ONE store (2) after hi, res(3, reuses lo's dead slot, receives cp on a hit and feeds out[]), spare(4, no storage), e1/e2/cp ScenePoints (5-7, stores merged to 7). Variants with res+spare+ScenePoint cp reproduce 0->4->7 numbering but the pre-loop `mov [state],2` never appears (VC6 drops state stores until the next throwing call; only a real call between hi and the loop keeps it) and insns differ rises 175->192; not adopted.
 // Tried 2026-10-31: EH frame needs a throwing call (C++-linkage TriClosest4b via /alternatename, since extern "C" is nothrow), Sph419+Near419, plain V3p lo/hi, v>=lo compare flips, ScenePoint e1/e2 with -=; 218->175 but built 874 vs 974 bytes: original has EH states 2/4/7 (we get 0/1/3: two more function-scope dtor objects plus three in the loop), cp/out-copy layout and rr hoist still differ.
 // Tried 2026-11-01: rr reuse, ScenePoint lo/hi/cp/res with dtors (extra EH states), lo/hi built from pos+-r ctor, lo/hi order swap, extra aa/spare dtor objects (14 variants, best 969 vs 974 bytes but ~190 insns differ); lo/hi prologue schedule and loop e1/e2 copy order stay misaligned and the 2/4/7 state numbering is not reached; far from 10 so no permute.
 float TriCollector::Closest(float r, float* pos, float* out, float* nrm)
@@ -510,6 +511,7 @@ float TriCollector::Closest(float r, float* pos, float* out, float* nrm)
     } while (0)
 
 // NONMATCHING: RALLYTROPHY 0x419770
+// Tried 2026-11-04: original state 0 (ebp-0x94, zeroed x/y/z at esp+0x10..0x18) is the sum accumulator, not an empty ED: `ScenePoint ss` (+ qz dead volatile store for the 0x5c slot) gives the original 3/7/3 state stores and removes the ED::~ED call but 4th saved register (esi) is lost: 170->207 insns, not adopted.
 // Tried 2026-11-01 re-pass: 220->170 insns differ (~30 variants): rewritten Closest-style (Sph419 P, ScenePoint lo/hi with lo.x = pos[0] - r, ED empty-dtor local first, float s[3], plane test dv.x = pos[0]-a->x with dot in the asm order z,y,x, int bit-compare of d2 vs q); frame 0x88 now matches. Still differs: q/d2 stack slots (orig q at 0x64, d2 at 0x6c, P at 0x70 vs ours one slot lower), shared xor-eax zero, dv.y/z int-copied then fsub in the original but fused here, bounds checks load vertex pointers up front in the original, e1/e2 int-copied first; too far for permute.
 int TriCollector::Contact(float r, float* pos, float* a_, float* b, float* c, int* surf)
 {
@@ -566,13 +568,13 @@ int TriCollector::Contact(float r, float* pos, float* a_, float* b, float* c, in
 // NONMATCHING: RALLYTROPHY 0x419be0
 // reason: first draft; SEH/temp layout unchecked.
 // Tried 2026-10-30 night: pos copy as Sph419 (ScenePoint+r, dtor) for EH state, ScenePoint -= for plane/edge vectors, forceinline sphere test, chained sx=sy=sz=0, rr hoisted (163->136); still differs: original frame is 4 bytes bigger, e1/e2 are int-copied before the fsub (ours fuses the z fld), sphere d2 temp lives in a dead param slot, EH state numbering ends 5/1 vs ours 4/0 (v4 gets 5 with extra ScenePoint tmp but scores 141).
+// Tried 2026-11-04: ED+float s[3] -> `ScenePoint ss` as the real accumulator (state 0; ED was a guess): 73->72 insns, EH stores now 1/5/1 like the original (it keeps state value 1 in dl). Original EH objects: ss, P, then per candidate dv,e1,e2,cp.
 // Tried 2026-11-01 re-pass: 136->77 insns. Frame/slots now match (0x60 frame): sums as float s[3] plus a dead volatile store to a local q (forces the 4 extra bytes; slot order s/rr/q), empty-dtor struct ED declared first for EH states 0/1..5, int ok for setle/test. Still differs: e1/e2 and dv are fused (fld z straight into fsub) where the original int-copies all three fields first (field-wise, int-routed, volatile-view copies all scored worse), dot-product term order of dv, b/c/surf reloaded from stack vs held in ebx, and the sqrt normalisation keeps values on the FPU in the original.
 int TriCollector::ContactList(float r, float* pos, float* a_, float* b, float* c, int* surf)
 {
-    struct ED { ~ED() {} } Q0;
-    float s[3];
+    ScenePoint ss;
     float rr = r * r;
-    s[2] = s[1] = s[0] = 0.0f;
+    ss.z = ss.y = ss.x = 0.0f;
     float q;
     *(volatile float*)&q = 0.0f;
     int n = 0;
@@ -602,7 +604,7 @@ int TriCollector::ContactList(float r, float* pos, float* a_, float* b, float* c
                             if (surf != 0) { *surf = t->id; }
                         }
                         float* d = ((V3Diff*)pos)->Sub(tmp, &cp.x);
-                        s[0] += d[0]; s[1] += d[1]; s[2] += d[2];
+                        ss.x += d[0]; ss.y += d[1]; ss.z += d[2];
                         n++;
                     }
                 }
@@ -611,9 +613,9 @@ int TriCollector::ContactList(float r, float* pos, float* a_, float* b, float* c
         } while (t != 0);
     }
     if (n != 0) {
-        float k = DAT_004e1348 / (float)sqrt(s[2] * s[2] + s[0] * s[0] + s[1] * s[1]);
-        s[0] = k * s[0]; s[1] = s[1] * k; s[2] = s[2] * k;
+        float k = DAT_004e1348 / (float)sqrt(ss.z * ss.z + ss.x * ss.x + ss.y * ss.y);
+        ss.x = k * ss.x; ss.y = ss.y * k; ss.z = ss.z * k;
     }
-    a_[0] = s[0]; a_[1] = s[1]; a_[2] = s[2];
+    a_[0] = ss.x; a_[1] = ss.y; a_[2] = ss.z;
     return n;
 }
