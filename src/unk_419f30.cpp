@@ -6,6 +6,33 @@
 #include "unk_419f30.h"
 #include "unk_414330.h"
 #include "x87_cross.h"
+#include <string>
+struct CStr {
+    std::allocator<char> alloc; char* ptr; unsigned int len; unsigned int res;
+    bool Grow(unsigned int n, bool trim);
+    void Eos(unsigned int n);
+    CStr(const char* s, const std::allocator<char>& al = std::allocator<char>()) : alloc(al) {
+        ptr = 0; len = 0; res = 0;
+        unsigned int n = strlen(s);
+        if (Grow(n, true)) { memcpy(ptr, s, n); Eos(n); }
+    }
+    ~CStr() {}
+};
+#pragma comment(linker, "/alternatename:?Grow@CStr@@QAE_NI_N@Z=?_Grow@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAE_NI_N@Z")
+#pragma comment(linker, "/alternatename:?Eos@CStr@@QAEXI@Z=?_Eos@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEXI@Z")
+struct ErrStr {
+    std::allocator<char> alloc; char* ptr; unsigned int len; unsigned int res;
+    void Assign(const CStr& x, unsigned int pos, unsigned int n);
+    ErrStr(const CStr& x) : alloc(x.alloc) { ptr = 0; len = 0; res = 0; Assign(x, 0, std::string::npos); }
+    ~ErrStr();
+};
+#pragma comment(linker, "/alternatename:?Assign@ErrStr@@QAEXABUCStr@@II@Z=?assign@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@QAEAAV12@ABV12@II@Z")
+class ColLogicError : public std::exception {
+public:
+    ColLogicError(const CStr& s) : std::exception(""), str(s) {}
+    virtual ~ColLogicError();
+    ErrStr str;
+};
 
 extern "C" void fun_004bd000(void* p);
 extern float DAT_004e134c, DAT_004e1348;
@@ -22,6 +49,7 @@ struct ColTriRaw {
     void* v[3];                  // 0x28
     int e[3];                    // 0x34
 };
+struct DV3 { float v[3]; ~DV3() {} };
 struct EdgeEnt { int lo, hi, id; };
 
 // Local element types with user ctor+dtor so new[] goes through the EH vector-ctor helper.
@@ -39,7 +67,7 @@ ColModel::ColModel(void* meshp, int)
     int z; *(volatile int*)&z = 0;
     root = (TriNode*)z;
     if (mesh->nVerts == 0 || mesh->nTris == 0) {
-        throw std::logic_error("missing collision model");
+        throw ColLogicError(CStr("missing collision model"));
     }
 #define VM mesh
     int srcT = mesh->nTris;
@@ -49,8 +77,8 @@ ColModel::ColModel(void* meshp, int)
     int* remap = new int[mesh->nVerts];
     int* triOk = new int[srcT];
     int i;
-    for (i = 0; i < mesh->nVerts; i++) remap[i] = 0;
-    for (i = 0; i < srcT; i++) triOk[i] = 0;
+    memset(remap, 0, mesh->nVerts * 4);
+    memset(triOk, 0, srcT * 4);
     ColSrcTri* st = VM->tris;
     for (i = 0; i < srcT; i++) {
         if (st[i].obj->kind < 0x11) {
@@ -117,7 +145,7 @@ ColModel::ColModel(void* meshp, int)
         }
     }
     delete triOk;
-    for (i = 0; i < nVerts; i++) remap[i] = 0;
+    memset(remap, 0, nVerts * 4);
     for (i = 0; i < nTris; i++) {
         int a = ti[i * 16 + 10], b = ti[i * 16 + 11], c = ti[i * 16 + 12];
         int m1 = a;
@@ -139,7 +167,7 @@ ColModel::ColModel(void* meshp, int)
     }
     // the prefix sums stay in `remap` (original keeps the base pointer in a separate local)
     int* table = new int[total * 3];
-    for (i = 0; i < total * 3; i++) table[i] = 0;
+    memset(table, 0, total * 12);
     next = 1;
     for (i = 0; i < nTris; i++) {
         ColTriRaw* tr = &t[i];
@@ -158,10 +186,10 @@ ColModel::ColModel(void* meshp, int)
             ti[i * 16 + 7] = 0x3f800000;
             tr->n[2] = 0;
         } else {
-            float u[3], w[3];
-            ((S414Vec3*)pc)->Sub(u, pa);
+            DV3 u; float w[3];
+            ((S414Vec3*)pc)->Sub(u.v, pa);
             ((S414Vec3*)pb)->Sub(w, pa);
-            X87Cross(tr->n, w, u);
+            X87Cross(tr->n, w, u.v);
             float kk = DAT_004e1348 / (float)sqrt(tr->n[2] * tr->n[2] + tr->n[1] * tr->n[1] + tr->n[0] * tr->n[0]);
             tr->n[0] = kk * tr->n[0];
             tr->n[1] = kk * tr->n[1];

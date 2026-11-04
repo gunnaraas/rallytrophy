@@ -30,6 +30,7 @@ struct CContact {                     // 0x50-byte element of body+0x238
 };
 struct CShape {                       // 0x34-byte triangle shape helper
     char d[0x34];
+    ~CShape() {}
     void Init(float* a, float* b, float* c, float* n, float dd);     // 0x4b5920
     int Test(float* a, float* b, float* c, float* n, float dd);      // 0x4b59b0
     float Edge(float* a, float* b, float* hit, float* tmp);          // 0x4b6800

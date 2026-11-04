@@ -1,6 +1,7 @@
 // 0x41d7d0: body-vs-body collision (triangle model against triangle model). Types: include/unk_41d7d0.h.
 #include "unk_41d7d0.h"
 #include "unk_419f00.h"
+#include "scene_object.h"
 
 extern float DAT_004e1348;
 extern CPairSet DAT_00508510;
@@ -112,47 +113,46 @@ int U40A850Body::FUN_0041d7d0(U40A850Body* other, int flag)
     Vec3& row0 = *(Vec3*)&this->mat[0][0];
     Vec3& row1 = *(Vec3*)&this->mat[1][0];
     Vec3& row2 = *(Vec3*)&this->mat[2][0];
+    Vec3 cc;
     Plane planes[6];
     float rad;
-    Vec3 cc;
-    Vec3 p;
+    ScenePoint p;
     Vec3 q;
-    Vec3 q2;
     XformT(&cc.x, bx + 7, &this->mat[0][0], this->pos);
     float cx = cc.x, cy = cc.y, cz = cc.z;
     rad = bx[10];
     {
-        p = bx[3] * row2 + pos_;
+        p = *(ScenePoint*)&(bx[3] * row2) + *(ScenePoint*)&pos_;
         Vec3& N = *(Vec3*)planes[0].n;
         N = row2;
         planes[0].d = N.y * p.y + N.z * p.z + N.x * p.x;
     }
     {
-        p = bx[6] * row2 + pos_;
+        p = *(ScenePoint*)&(bx[6] * row2) + *(ScenePoint*)&pos_;
         Vec3& N = *(Vec3*)planes[1].n;
         N = -row2;
         planes[1].d = N.y * p.y + N.z * p.z + N.x * p.x;
     }
     {
-        p = bx[1] * row0 + pos_;
+        p = *(ScenePoint*)&(bx[1] * row0) + *(ScenePoint*)&pos_;
         Vec3& N = *(Vec3*)planes[2].n;
         N = row0;
         planes[2].d = N.x * p.x + N.y * p.y + N.z * p.z;
     }
     {
-        p = bx[4] * row0 + pos_;
+        p = *(ScenePoint*)&(bx[4] * row0) + *(ScenePoint*)&pos_;
         Vec3& N = *(Vec3*)planes[3].n;
         N = -row0;
         planes[3].d = N.y * p.y + N.z * p.z + N.x * p.x;
     }
     {
-        p = bx[2] * row1 + pos_;
+        p = *(ScenePoint*)&(bx[2] * row1) + *(ScenePoint*)&pos_;
         Vec3& N = *(Vec3*)planes[4].n;
         N = row1;
         planes[4].d = N.y * p.y + N.z * p.z + N.x * p.x;
     }
     {
-        p = bx[5] * row1 + pos_;
+        p = *(ScenePoint*)&(bx[5] * row1) + *(ScenePoint*)&pos_;
         Vec3& N = *(Vec3*)planes[5].n;
         N = -row1;
         planes[5].d = N.y * p.y + N.z * p.z + N.x * p.x;
@@ -215,6 +215,7 @@ int U40A850Body::FUN_0041d7d0(U40A850Body* other, int flag)
     CShape shA, shB;
     Vec3 tmp, hit;
     for (CTri* A = head; A != 0; A = A->next, gen++) {
+        Vec3 da, db;
         CTri* bt = (CTri*)tm->tris;
         float* a0 = (float*)(A->v[0] + 1);
         float* a1 = (float*)(A->v[1] + 1);
