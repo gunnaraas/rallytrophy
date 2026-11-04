@@ -704,20 +704,45 @@ struct CarTex {
     CarTex(const char* name, int flags, int zero); // 0x4a8030
     void Bind(int dev);                            // 0x4a8350
 };
-static void SetItem(UiItem* it)
+static inline void SetItem(UiItem* it)
 {
-    it->f[0x18 - 2] = it->f[0x19 - 2] = it->f[0x1a - 2] = it->f[0x1b - 2] = 0x3f800000;
-    it->f[0x10 - 2] = it->f[0x11 - 2] = it->f[0x12 - 2] = it->f[0x13 - 2] = 0x3f800000;
+    it->f[0x1b - 2] = it->f[0x1a - 2] = it->f[0x19 - 2] = it->f[0x18 - 2] = 0x3f800000;
     it->f[0x27 - 2] = 2;
     it->f[0x26 - 2] = 0xf;
-    it->f[9 - 2] = 2;
+    it->f[0x13 - 2] = it->f[0x12 - 2] = it->f[0x11 - 2] = it->f[0x10 - 2] = 0x3f800000;
     it->f[6 - 2] = 5;
     it->f[7 - 2] = 6;
+    it->f[9 - 2] = 2;
 }
 
+// Result of std::operator+(string, const char*) whose destructor is the out-of-line _Tidy(true) call.
+class StagePathTmp {
+public:
+    ~StagePathTmp() { Tidy(true); }
+    void Tidy(bool built);              // 0x402700
+    std::allocator<char> alloc;
+    char* ptr;
+    size_t len;
+    size_t reserve;
+};
 class StagePathText {
 public:
     StagePathText(const std::allocator<char>& al = std::allocator<char>()) : alloc(al) { Tidy(false); }
+    StagePathText(const char* s, const std::allocator<char>& al = std::allocator<char>()) : alloc(al)
+    {
+        Tidy(false);
+        AssignGrow(s);
+    }
+    StagePathText(const StagePathText& o, int, const std::allocator<char>& al = std::allocator<char>()) : alloc(al)
+    {
+        Tidy(false);
+        AssignString(*(const std::string*)&o, 0, std::string::npos);
+    }
+    StagePathText(const char* s, int, const std::allocator<char>& al = std::allocator<char>()) : alloc(al)
+    {
+        Tidy(false);
+        AssignChars(s, strlen(s));
+    }
     ~StagePathText() { Free(true); }
     unsigned char& Refcnt(const char* s) { return ((unsigned char*)s)[-1]; }
     void Free(bool built)
@@ -746,8 +771,46 @@ public:
             Eos(n);
         }
     }
+    void AssignString(const StagePathTmp& s, size_t pos, size_t n); // std::string::assign 0x4024f0
+    void AssignString(const StagePathText& s, size_t pos, size_t n);
+    void AssignChars(const char* s, size_t n); // std::string::assign(const char*, n) 0x402a10
     void AppendCall(const char* s) { Append(s, strlen(s)); }
     void AppendStd(const char* s) { ((std::string*)this)->append(s); }
+    void AppendInl(const char* s)
+    {
+        size_t n = strlen(s);
+        if (std::string::npos - len <= n) std::_Xlen();
+        if (0 < n) {
+            size_t tot = n + len;
+            if (Grow(tot, false)) {
+                memcpy(ptr + len, s, n);
+                Eos(tot);
+            }
+        }
+    }
+    const char* c_str() const { return ptr ? ptr : ""; }
+    std::allocator<char> alloc;
+    char* ptr;
+    size_t len;
+    size_t reserve;
+};
+
+
+StagePathTmp __cdecl PathCat(const StagePathText& a, const char* lit);
+StagePathText __cdecl PathCat2(const StagePathText& a, const char* lit); // std::operator+ 0x4141f0
+
+// Same string with the destructor left as an out-of-line _Tidy(true) call (RefreshUnits path).
+class StagePathOut {
+public:
+    StagePathOut(const StagePathText& o, int, const std::allocator<char>& al = std::allocator<char>()) : alloc(al)
+    {
+        Tidy(false);
+        ((std::string*)this)->assign(*(const std::string*)&o, 0, std::string::npos);
+    }
+    ~StagePathOut() { Tidy(true); }
+    void Tidy(bool built);              // 0x402700
+    void Append(const char* s, size_t n); // 0x403ba0
+    void AppendCall(const char* s) { Append(s, strlen(s)); }
     const char* c_str() const { return ptr ? ptr : ""; }
     std::allocator<char> alloc;
     char* ptr;
@@ -764,23 +827,21 @@ void StageScreen::LoadCars()
 {
     int n = count;
     entries = new StageEntry[n];
-    if (0 < n) {
-        for (int i = 0; i < n; i++) {
-            ((DWORD*)&entries[i])[0x28] = 0;
-            ((DWORD*)&entries[i])[0x29] = 0;
-        }
-        StageEntry* e = entries;
-        for (int j = 0; j < n; j++, e++) {
+    int i;
+    for (i = 0; i < n; i++) {
+        ((DWORD*)&entries[i])[0x28] = 0;
+        ((DWORD*)&entries[i])[0x29] = 0;
+    }
+    StageEntry* e = entries;
+        for (i = 0; i < n; i++, e++) {
             IniFile ini;
             ini.Open((const char*)&PTR_DAT_004f6078, 0xb);
             char num[32];
             char buf[256];
-            FUN_004c1902(j + 1, num, 10);
-            StagePathText dir;
-            dir.AssignGrow("data/cars/car_");
+            FUN_004c1902(i + 1, num, 10);
+            StagePathText dir("data/cars/car_");
             dir.AppendCall(num);
-            StagePathText path;
-            path.AssignString(*(std::string*)&dir, 0, std::string::npos);
+            StagePathText path(dir, 0);
             path.AppendCall("/info.ini");
             ini.Load(path.c_str(), true, false, 0);
 
@@ -816,16 +877,16 @@ void StageScreen::LoadCars()
             S(c).AppendCall(DAT_004f6480);
             FUN_004c1902(ini.Find("Weight"), buf, 10);
             S(d).AssignGrow(buf);
-            S(d).AppendCall(DAT_004f647c);
+            S(d).AppendInl(DAT_004f647c);
 #undef S
             UiItem* wire = new UiItem;
             ((DWORD*)e)[0x28] = (DWORD)wire; // +0xa0 (h0)
-            { std::string n0(*(std::string*)&dir + "/InfoPhotoWire.tga");
-            CarTex* t0 = new CarTex(n0.c_str(), 0x841, 0);
+            { path.AssignString(PathCat(dir, "/InfoPhotoWire.tga"), 0, std::string::npos);
+            CarTex* t0 = new CarTex(path.c_str(), 0x841, 0);
             wire->tex[0] = (DWORD)t0;
             t0->Bind((int)DAT_0056b0ac); }
-            { std::string n1(*(std::string*)&dir + "/InfoPhotoFull.tga");
-            CarTex* t1 = new CarTex(n1.c_str(), 0x841, 0);
+            { path.AssignString(PathCat(dir, "/InfoPhotoFull.tga"), 0, std::string::npos);
+            CarTex* t1 = new CarTex(path.c_str(), 0x841, 0);
             wire->tex[1] = (DWORD)t1;
             t1->Bind((int)DAT_0056b0ac); }
             wire->f[0x10 - 2] = wire->f[0x11 - 2] = wire->f[0x12 - 2] = wire->f[0x13 - 2] = 0x3f800000;
@@ -839,13 +900,12 @@ void StageScreen::LoadCars()
             wire->f[0x14 - 2] = wire->f[0x15 - 2] = wire->f[0x16 - 2] = wire->f[0x17 - 2] = 0;
             UiItem* book = new UiItem;
             ((DWORD*)e)[0x29] = (DWORD)book; // +0xa4 (h1)
-            { std::string n2(*(std::string*)&dir + "/carbook.tga");
-            CarTex* t2 = new CarTex(n2.c_str(), 0x841, 0);
+            { path.AssignString(PathCat2(dir, "/carbook.tga"), 0, std::string::npos);
+            CarTex* t2 = new CarTex(path.c_str(), 0x841, 0);
             book->tex[0] = (DWORD)t2;
             t2->Bind((int)DAT_0056b0ac); }
             SetItem(book);
         }
-    }
     UiItem* n0;
     CarTex* n0t;
     unk230 = (Holder1*)(n0 = new UiItem);
@@ -885,11 +945,9 @@ void StageScreen::RefreshUnits()
         IniFile ini;
         ini.Open((const char*)&PTR_DAT_004f6078, 0xb);
         FUN_004c1902(i + 1, num, 10);                         // car number i + 1
-        StagePathText dir;
-        dir.AppendCall("data/cars/car_");
+        StagePathText dir("data/cars/car_", 0);
         dir.AppendCall(num);
-        StagePathText path;
-        path.AssignString(*(std::string*)&dir, 0, std::string::npos);
+        StagePathOut path(dir, 0);
         path.AppendCall("/info.ini");
         ini.Load(path.c_str(), true, false, 0);
 #define S(f) (*(StagePathText*)&e->f)
