@@ -62,7 +62,7 @@ struct U40A850List {
     U40A850Vec items;                 // 0x04
 };
 struct U40A850Query {
-    std::vector<int> v;               // 0x00
+    PlayerVector v;                   // 0x00
     char unk10[4];
     float minX, minY, minZ;           // 0x14
     float maxX, maxY, maxZ;           // 0x20
