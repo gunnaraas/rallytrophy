@@ -15,12 +15,12 @@ _Updated 2026-11-10 by `tools/progress.py` (game code `0x401000`–`0x4bcfc6`)._
 
 | | Functions | Code bytes |
 |---|---|---|
-| Byte-exact | 1871 / 2084 (89.78%) | 369,792 / 742,276 (49.82%) |
-| Written, not yet exact | 213 | 372,484 |
+| Byte-exact | 1875 / 2084 (89.97%) | 375,335 / 742,276 (50.57%) |
+| Written, not yet exact | 209 | 366,941 |
 | Written in total | 2084 / 2084 (100.00%) | 742,276 / 742,276 (100.00%) |
 
 ```
-exact   ███████████████░░░░░░░░░░░░░░░ 49.82% of code bytes
+exact   ███████████████░░░░░░░░░░░░░░░ 50.57% of code bytes
 written ██████████████████████████████ 100.00% of code bytes
 ```
 
@@ -96,7 +96,7 @@ Progress by module (ranges in `analysis/modules.csv`):
 | Car emitter B | `0x479170`–`0x47b4c0` | 11 / 13 / 13 | 69.1% | 100.0% | `████████████` |
 | Car emitter C | `0x47b4c0`–`0x47c3d0` | 8 / 9 / 9 | 44.3% | 100.0% | `████████████` |
 | Emitter constants | `0x47c3d0`–`0x47c460` | 6 / 6 / 6 | 100.0% | 100.0% | `████████████` |
-| Car particle emitter | `0x47c460`–`0x47ef80` | 19 / 24 / 24 | 38.6% | 100.0% | `████████████` |
+| Car particle emitter | `0x47c460`–`0x47ef80` | 23 / 24 / 24 | 89.6% | 100.0% | `████████████` |
 | GameSpy SDK (third-party; out of scope) | `0x47ef80`–`0x4807d0` | 33 / 33 / 33 | 100.0% | 100.0% | `████████████` |
 | Single-player race mode | `0x4807d0`–`0x481390` | 12 / 13 / 13 | 63.2% | 100.0% | `████████████` |
 | Network race mode | `0x481390`–`0x4843e0` | 49 / 53 / 53 | 63.6% | 100.0% | `████████████` |

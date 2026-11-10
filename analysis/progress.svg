@@ -291,17 +291,9 @@
 <rect x="764.3" y="120" width="4.2" height="36" fill="#e3b341"/>
 <rect x="768.5" y="120" width="7.1" height="36" fill="#3fb950"/>
 <rect x="775.6" y="120" width="3.2" height="36" fill="#e3b341"/>
-<rect x="778.8" y="120" width="5.3" height="36" fill="#3fb950"/>
-<rect x="784.2" y="120" width="1.9" height="36" fill="#e3b341"/>
-<rect x="786.0" y="120" width="1.1" height="36" fill="#3fb950"/>
+<rect x="778.8" y="120" width="8.3" height="36" fill="#3fb950"/>
 <rect x="787.1" y="120" width="1.7" height="36" fill="#e3b341"/>
-<rect x="788.8" y="120" width="1.0" height="36" fill="#3fb950"/>
-<rect x="789.8" y="120" width="2.1" height="36" fill="#e3b341"/>
-<rect x="791.9" y="120" width="0.6" height="36" fill="#3fb950"/>
-<rect x="792.2" y="120" width="2.3" height="36" fill="#e3b341"/>
-<rect x="794.5" y="120" width="0.6" height="36" fill="#3fb950"/>
-<rect x="794.8" y="120" width="2.1" height="36" fill="#e3b341"/>
-<rect x="796.9" y="120" width="11.7" height="36" fill="#3fb950"/>
+<rect x="788.8" y="120" width="19.8" height="36" fill="#3fb950"/>
 <rect x="808.6" y="120" width="1.6" height="36" fill="#e3b341"/>
 <rect x="810.3" y="120" width="0.9" height="36" fill="#3fb950"/>
 <rect x="811.2" y="120" width="0.7" height="36" fill="#e3b341"/>
@@ -972,9 +964,9 @@
 <text x="1018" y="1878" fill="#e6edf3">100% exact / 100% written</text>
 <text x="260" y="1904" text-anchor="end" fill="#e6edf3">65. Car particle emitter</text>
 <rect x="270" y="1890" width="740" height="18" rx="2" fill="#484f58"/>
-<rect x="270" y="1890" width="285.8" height="18" fill="#3fb950"/>
-<rect x="555.8" y="1890" width="454.2" height="18" fill="#e3b341"/>
-<text x="1018" y="1904" fill="#e6edf3">39% exact / 100% written</text>
+<rect x="270" y="1890" width="663.4" height="18" fill="#3fb950"/>
+<rect x="933.4" y="1890" width="76.6" height="18" fill="#e3b341"/>
+<text x="1018" y="1904" fill="#e6edf3">90% exact / 100% written</text>
 <text x="260" y="1930" text-anchor="end" fill="#e6edf3">66. GameSpy SDK (third-party; out of scope)</text>
 <rect x="270" y="1916" width="740" height="18" rx="2" fill="#484f58"/>
 <rect x="270" y="1916" width="740.0" height="18" fill="#3fb950"/>

@@ -2,7 +2,7 @@
 <title>Rally Trophy per-function decompilation map</title>
 <rect width="1600" height="1120" rx="8" fill="#0d1117"/>
 <text x="20" y="30" font-size="18" font-weight="600" fill="#e6edf3">Every game function, sized by code bytes and branch complexity</text>
-<text x="20" y="53" fill="#8b949e">1,871 byte-exact · 213 written but not byte-exact · 0 unwritten. Tile area = bytes × (1 + log₂(1 + branch points)); hover for details.</text>
+<text x="20" y="53" fill="#8b949e">1,875 byte-exact · 209 written but not byte-exact · 0 unwritten. Tile area = bytes × (1 + log₂(1 + branch points)); hover for details.</text>
 <g transform="translate(20,72)" fill="#e6edf3">
 <rect width="12" height="12" fill="#3fb950"/><text x="18" y="11">byte-exact</text>
 <rect x="118" width="12" height="12" fill="#e3b341"/><text x="136" y="11">written, not exact</text>
@@ -1214,7 +1214,7 @@
 <rect x="242.61" y="768.00" width="29.71" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0047c5a0 · FUN_0047c5a0 · Car particle emitter · 483 code bytes · complexity 10 (9 branch points) · byte-exact</title></rect>
 <rect x="273.32" y="768.00" width="9.19" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0047c790 · jump table at 0x47c86c is part of the function · Car particle emitter · 268 code bytes · complexity 3 (2 branch points) · byte-exact</title></rect>
 <rect x="283.52" y="768.00" width="69.74" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0047c8a0 · FUN_0047c8a0 · Car particle emitter · 1,202 code bytes · complexity 8 (7 branch points) · byte-exact</title></rect>
-<rect x="354.25" y="768.00" width="82.17" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x0047cd60 · FUN_0047cd60 · Car particle emitter · 1,233 code bytes · complexity 12 (11 branch points) · written, not exact</title></rect>
+<rect x="354.25" y="768.00" width="82.17" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0047cd60 · FUN_0047cd60 · Car particle emitter · 1,233 code bytes · complexity 12 (11 branch points) · byte-exact</title></rect>
 <rect x="437.43" y="768.00" width="4.00" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0047d240 · FUN_0047d240 · Car particle emitter · 170 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>
 <rect x="442.43" y="768.00" width="4.09" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0047d2f0 · FUN_0047d2f0 · Car particle emitter · 173 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>
 <rect x="447.52" y="768.00" width="4.09" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0047d3a0 · FUN_0047d3a0 · Car particle emitter · 173 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>
@@ -1223,11 +1223,11 @@
 <rect x="533.59" y="768.00" width="7.21" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0047d970 · FUN_0047d970 · Car particle emitter · 216 code bytes · complexity 3 (2 branch points) · byte-exact</title></rect>
 <rect x="541.80" y="768.00" width="7.21" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0047da50 · FUN_0047da50 · Car particle emitter · 216 code bytes · complexity 3 (2 branch points) · byte-exact</title></rect>
 <rect x="550.02" y="768.00" width="7.29" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0047db30 · FUN_0047db30 · Car particle emitter · 218 code bytes · complexity 3 (2 branch points) · byte-exact</title></rect>
-<rect x="558.31" y="768.00" width="105.03" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x0047dc10 · FUN_0047dc10 · Car particle emitter · 1,394 code bytes · complexity 18 (17 branch points) · written, not exact</title></rect>
+<rect x="558.31" y="768.00" width="105.03" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0047dc10 · FUN_0047dc10 · Car particle emitter · 1,394 code bytes · complexity 18 (17 branch points) · byte-exact</title></rect>
 <rect x="664.34" y="768.00" width="4.15" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0047e190 · FUN_0047e190 · Car particle emitter · 175 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>
-<rect x="669.49" y="768.00" width="112.94" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x0047e240 · FUN_0047e240 · Car particle emitter · 1,498 code bytes · complexity 18 (17 branch points) · written, not exact</title></rect>
+<rect x="669.49" y="768.00" width="112.94" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0047e240 · FUN_0047e240 · Car particle emitter · 1,498 code bytes · complexity 18 (17 branch points) · byte-exact</title></rect>
 <rect x="783.43" y="768.00" width="4.71" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0047e820 · FUN_0047e820 · Car particle emitter · 194 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>
-<rect x="789.14" y="768.00" width="106.86" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x0047e8f0 · FUN_0047e8f0 · Car particle emitter · 1,418 code bytes · complexity 18 (17 branch points) · written, not exact</title></rect>
+<rect x="789.14" y="768.00" width="106.86" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0047e8f0 · FUN_0047e8f0 · Car particle emitter · 1,418 code bytes · complexity 18 (17 branch points) · byte-exact</title></rect>
 <rect x="896.99" y="768.00" width="4.71" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0047ee80 · FUN_0047ee80 · Car particle emitter · 194 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>
 <rect x="902.70" y="768.00" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0047ef50 · car particle module end: guard-bit initialiser of the STL header statics (_$E) · Car particle emitter · 25 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>
 <rect x="903.44" y="768.00" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0047ef70 · car particle module end: atexit(0x402c90) registration · Car particle emitter · 12 code bytes · complexity 1 (0 branch points) · byte-exact</title></rect>
