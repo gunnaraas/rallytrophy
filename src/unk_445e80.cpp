@@ -1338,8 +1338,10 @@ void ServiceMenu::DrawRepair()
         }
         itoa(left, buf, 10);
         text->Print(DAT_0056b0ac, DAT_0056aea8 * 985.0f - text->GetWidth(buf, 0), ry, buf, 0, 1.0f, 1.0f);
-        text->scaleX = DAT_0056aea8;
-        text->color = DAT_00508c04;
+        float titleScaleX0 = DAT_0056aea8;
+        int titleColor0 = *(volatile const int*)&DAT_00508c04;
+        text->scaleX = titleScaleX0;
+        text->color = titleColor0;
         text->scaleY = DAT_0056aeac;
     } else {
         col.value = -1;
