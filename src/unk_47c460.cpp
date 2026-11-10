@@ -547,13 +547,10 @@ void CarParticles::Kind3(float scale, float age)
     }
 }
 
-// NONMATCHING: RALLYTROPHY 0x47d500
-// 1125/1125 bytes, 4 differ. 2026-11-10: copy-constructing local from the car position (as in cores A and C) fixed
-// the PCAR-before-head load order and the push edi placement (18 -> 4). Left: the x component of
-// `p->velocity += BODY_RIGHT * lat * 0.1f` is `fld vel.x; fadd r.x` in the original and reversed here (y and z agree).
-// No gain from: 27 inline helpers with every per-component operand order (VC6 canonicalises them), AddTo, scalar
-// forms (lat*0.1f pre-multiplied, parenthesised, accumulated: 17 insns worse), named or reference temporaries (EH).
+// FUNCTION: RALLYTROPHY 0x47d500
 // Spawn core B: like core A with an integer 0..256 chance and no rate argument.
+// local is copy-constructed from the car position (as in cores A and C). The +1 on the y velocity is written
+// y = y + 1.0f rather than y += 1.0f; that alone flips the x operand order of the preceding vector add.
 Particle* CarParticles::SpawnCoreB(float rate)
 {
     static float kSlip = 1.0f / (SLIP_B_HI - SLIP_B_LO);
@@ -628,7 +625,7 @@ Particle* CarParticles::SpawnCoreB(float rate)
     p->velocity -= BODY_FORWARD * lon * 0.1f;
     float lat = PCAR->slipLat;
     p->velocity += BODY_RIGHT * lat * 0.1f;
-    p->velocity.y += 1.0f;
+    p->velocity.y = p->velocity.y + 1.0f;
     float j1 = (float)((rand() & 0x3fff) - 0x1fff) * 9.1552734375e-5f;
     Vec3 jit;
     float j2 = (float)(rand() & 0x3fff) * 9.1552734375e-5f;
