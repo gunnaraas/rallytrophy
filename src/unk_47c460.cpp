@@ -821,16 +821,10 @@ void CarParticles::Kind9(float scale, float age)
     }
 }
 
-// NONMATCHING: RALLYTROPHY 0x47e240
-// 1502 vs 1498 bytes, 17 insns differ. Prologue, guard statics, chance ramp, emit test (named float rr), __asm
-// transform and the AddTo tail match. Open: the f=sqrt(vel^2) block keeps x,y,z on the FPU stack differently
-// (original reuses the vel0 loads in place), and volatile jy (needed to spill jx to [ebp-0x1c]) costs an extra
-// store/reload of jy.
-// Tried 2026-10-30 night: sibling E shapes (rr, inverted mode branch, volatile jx -> slot [ebp+8] wrong), jx plain, volatile jy
-// (best), cast stores, sqrt term orders, bv copy/ref, f/r2-r4 moves; all worse or equal.
-// Tried 2026-10-31: spawner recipe (pool pop first already used), forceinline Len3 helper and local vz/vy/vx loads with every sum order (all identical output; original loads z,y,x and squares z in place, we load x first), permute.py -r 40 best 17 insns, no MATCH.
-// Spawn core D: decides from wheel slip and body speed whether to emit, takes a particle from the
-// pool and sets position and velocity (the kind functions fill in the rest).
+// FUNCTION: RALLYTROPHY 0x47e240
+// Spawn core D. The body speed is accumulated in f itself from three named component locals (vz, vy, vx;
+// f = vz*vz; f += vx*vx; f += vy*vy; then sqrt in place): this keeps x and y on the FPU stack across fsqrt as
+// the original does. The x/y jitter goes through a Vec3 jit local as in cores A, C and E.
 Particle* CarParticles::SpawnCoreD(float rate)
 {
     static float inv0 = 1.0f / (D_hi0 - D_lo0);
@@ -889,8 +883,11 @@ Particle* CarParticles::SpawnCoreD(float rate)
     p->velocity.x = vel0.x;
     p->velocity.y = vel0.y;
     p->velocity.z = vel0.z;
-    float fs = s_body->vel.z * s_body->vel.z; fs = s_body->vel.x * s_body->vel.x + fs; fs = s_body->vel.y * s_body->vel.y + fs;
-    float f = (float)sqrt(fs) * (1.0f / 35.0f);
+    float vz = s_body->vel.z;
+    float vy = s_body->vel.y;
+    float vx = s_body->vel.x;
+    float f = vz * vz; f += vx * vx; f += vy * vy;
+    f = (float)sqrt(f) * (1.0f / 35.0f);
     if (*(int*)&f < 0) {
         f = 0;
     } else if (*(int*)&f > 0x3f800000) {
@@ -910,10 +907,13 @@ Particle* CarParticles::SpawnCoreD(float rate)
     }
     AddTo(p->velocity, s_body->Right() * lat);
     p->velocity.y = ((float)fabs(s_car->slipB) * 0.05f + f * 1.5f) * r4 + p->velocity.y + 2.0f;
-    float jx = (float)((rand() & 0x3fff) - 0x1fff) * (1.0f / 20480.0f);
-    volatile float jy = (float)((rand() & 0x3fff) - 0x1fff) * (1.0f / 20480.0f);
-    p->velocity.x += jx;
-    p->velocity.y += jy;
+    float j1 = (float)((rand() & 0x3fff) - 0x1fff) * (1.0f / 20480.0f);
+    float j2 = (float)((rand() & 0x3fff) - 0x1fff) * (1.0f / 20480.0f);
+    Vec3 jit;
+    jit.x = j1;
+    jit.y = j2;
+    p->velocity.x += jit.x;
+    p->velocity.y += jit.y;
     p->velocity.z += (float)((rand() & 0x3fff) - 0x1fff) * (1.0f / 20480.0f);
     return p;
 }
