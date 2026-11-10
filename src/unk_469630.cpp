@@ -374,11 +374,9 @@ void Car::UpdateTyreTracks()
     }
 }
 
-// NONMATCHING: RALLYTROPHY 0x46a200
-// 1424 bytes, 11 differing bytes. Constructing Color after the second integer-to-float conversion places `or edi,-1`
-// correctly; its store still precedes `fstp fh` instead of following it. Earlier declaration-order and permute passes
-// left 24 differing bytes. 2026-11-10: adjacent constructor positions, split construction, direct/const float locals,
-// sx/sy declaration lifetime, and GetWidth/GetHeight did not improve on 11; moving Color after both scales regressed.
+// FUNCTION: RALLYTROPHY 0x46a200
+// Color is default-constructed (EH state 2) and assigned afterwards; Color color(0xffffffff) stores the
+// value before the state byte.
 void Car::FUN_0046a200()
 {
     CarGaugeView* v = (CarGaugeView*)this;
@@ -395,12 +393,13 @@ void Car::FUN_0046a200()
     int gear = TEX->gear;
     Vec2 pos[4];
     Vec2 uv[4];
+    Color color;
+    color.value = 0xffffffff;
     float sx, sy, fh, fw;
     int iw = DAT_0056b0ac->m_width;
     fw = (float)iw;
     int ih = DAT_0056b0ac->m_height;
     fh = (float)ih;
-    Color color(0xffffffff);
     sx = fw / 1024.0f;
     sy = fh / 768.0f;
     pos[0].x = pos[3].x = sx * v->x;
