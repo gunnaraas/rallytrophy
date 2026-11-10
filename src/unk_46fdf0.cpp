@@ -476,15 +476,12 @@ __declspec(naked) void BuildColourLuts(const Vec3* light)
 
 // original: FUN_004703c0
 // NONMATCHING: RALLYTROPHY 0x4703c0
-// Target evidence (ev_e2d18152e9c91241b4226ef784a2de4febf5e28195db3b37cc938a94cbefa4fb) shows a byte-offset loop
-// with stride 0x2c through 0xb000 and four caster clears. Moving the offset declaration before the pointer locals
-// reduces the 378-byte candidate from 15 to 14 differing bytes. Removing the `register` hint leaves 14 unchanged;
-// reading `m->vertices` nonvolatile shifts the frame/register allocation and grows the diff to 168 bytes, even
-// with `register Mesh* m` or volatile field stores; the retained mismatch is register/SIB selection around the
-// two vertex-base pointers. Combining the index-array assignment and volatile vertex-pointer read in one comma
-// expression shifts the whole frame/register layout (380 bytes / 181 differences), so those statements stay split.
-// Tried 2026-10-30 night: int-first address sums (offset + (int)ptr), volatile Mesh* cast reads, declaration order; all stay at 7 insns (nonvolatile ptr: 20); original loads vertices into ecx before `add esp,4` and uses eax as the SIB base, ours reloads into edx and spills -1 into edi.
-// Tried 2026-10-31 re-pass: all-int address sums (offset + (int)ptr) for every group, int-typed vertex locals, no register hint, reassigned loop init, redundant offset stores (all stay 7 insns); permute.py -r 40 best 7 (no gain). Remaining diff: original loads [edi+4] into ecx before `add esp,4` with offset in eax as SIB base and -1 in edx; ours reloads after and puts -1 in edi, ptr as base.
+// 378/378 bytes, 8 differ (1 instruction). 2026-11-10: the loop keeps ONE vertex pointer v that is reassigned from
+// mesh->vertices inside the body (the original's ecx at the loop head is the previous iteration's reload), with
+// offset-first address sums; that replaces the earlier two-pointer volatile/register form (14 bytes). The initial
+// read of m->vertices must still be volatile, otherwise VC6 forwards the just-stored value from ebp (10 other load
+// forms tried). Left: `add esp,4` after operator new sits before the indices store and vertex load instead of after
+// them (12 declaration / for-init placements do not move it).
 ParallelShadow::ParallelShadow()
 {
     sysTexture = 0;
@@ -497,17 +494,16 @@ ParallelShadow::ParallelShadow()
     m->material = &spriteA;
     m->vertices = new EffectVertex[0x400];
     m->indices = new WORD[0xc00];
-    int offset = 0;
-    EffectVertex* volatile* sourceVertices = (EffectVertex* volatile*)((BYTE*)m + 4);
-    register EffectVertex* initialVertices = *sourceVertices;
-    for (; offset < 0xb000; offset += 0x2c) {
-        *(int*)((BYTE*)initialVertices + offset + 0x18) = -1;
-        *(int*)((BYTE*)initialVertices + offset + 0x24) = 0;
-        *(int*)((BYTE*)mesh->vertices + offset + 0x28) = 0;
-        EffectVertex* vertices = mesh->vertices;
-        *(int*)((BYTE*)vertices + offset + 0x0c) = 0;
-        *(int*)((BYTE*)vertices + offset + 0x10) = 0;
-        *(int*)((BYTE*)vertices + offset + 0x14) = 0;
+    EffectVertex* v = *(EffectVertex* volatile*)&m->vertices;
+    int offset;
+    for (offset = 0; offset < 0xb000; offset += 0x2c) {
+        *(int*)(offset + (BYTE*)v + 0x18) = -1;
+        *(int*)(offset + (BYTE*)v + 0x24) = 0;
+        *(int*)(offset + (BYTE*)mesh->vertices + 0x28) = 0;
+        v = mesh->vertices;
+        *(int*)(offset + (BYTE*)v + 0x0c) = 0;
+        *(int*)(offset + (BYTE*)v + 0x10) = 0;
+        *(int*)(offset + (BYTE*)v + 0x14) = 0;
     }
     for (int i = 0; i < 4; ++i)
         casters[i] = 0;

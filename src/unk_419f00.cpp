@@ -236,32 +236,26 @@ void ColModel::BuildTree(int minTris)
     }
 }
 
-// NONMATCHING: RALLYTROPHY 0x41b7f0
-// Volatile `o` plus the local alias moves the flag store ahead of the owner load and reproduces the target's EAX/LEA
-// owner+0x124 setup (23→22 differences). Only the EH-state zero remains scheduled before, rather than after, that setup.
-// Tried 2026-10-30 night: init-list vs body flag=0, local/volatile owner, model() init, split new, At via ColMeshList*; body flag=0 puts the EH-zero correctly but sinks flag store below it, init-list/volatile keep flag first but hoist EH-zero above flag store (1 insn either way).
-// Tried 2026-10-31 re-pass (also applies to 0x41b8c0): ColPtrBase()/ColPtr() inline ctors, model() in init list, volatile/non-volatile owner and this, ColMeshList* local, volatile flag store, dummy int param copies, permute -r 40 (no MATCH, best 1 insn); EH state-0 store always lands before the flag store, original sinks it to just before the At call.
+// FUNCTION: RALLYTROPHY 0x41b7f0
+// ColHolder derives from ColPtr, whose inline constructor clears the flag: the flag store then precedes the
+// EH state-0 store (base constructed) as in the original. A ColPtr member with flag(0) in the init list cannot.
 // SYMBOL: ??0ColHolder@@QAE@PAUColOwner@@H@Z
-ColHolder::ColHolder(ColOwner* volatile o, int x) : flag(0)
+ColHolder::ColHolder(ColOwner* o, int x)
 {
-    ColOwner* owner = o;
-    ColSrc* s = (ColSrc*)owner->meshes.At(0);
-    model.p = new ColModel(s, x);
+    ColSrc* s = (ColSrc*)o->meshes.At(0);
+    p = new ColModel(s, x);
     f[0] = s->f[0]; f[1] = s->f[1]; f[2] = s->f[2]; f[3] = s->f[3];
     f[4] = s->f[4]; f[5] = s->f[5]; f[6] = s->f[6]; f[7] = s->f[7];
     f[8] = s->f[8]; f[9] = s->f[9]; f[10] = s->f[10];
     flag = s->flag;
 }
 
-// NONMATCHING: RALLYTROPHY 0x41b8c0
-// Tried 2026-10-30 night: volatile flag store in body (plain or volatile o), comma-expr flag=0 inside At arg, volatile-load-before-store, volatile local; EH zero is set at model position so any volatile store/load pins it above flag store, plain flag=0 sinks flag below EH store (1 insn each way, no scheduling barrier fixes it).
-// The volatile owner pointer plus local alias gives the same 23→22 improvement as the one-argument constructor.
+// FUNCTION: RALLYTROPHY 0x41b8c0
 // SYMBOL: ??0ColHolder@@QAE@PAUColOwner@@HH@Z
-ColHolder::ColHolder(ColOwner* volatile o, int a, int b) : flag(0)
+ColHolder::ColHolder(ColOwner* o, int a, int b)
 {
-    ColOwner* owner = o;
-    ColSrc* s = (ColSrc*)owner->meshes.At(0);
-    model.p = new ColModel(s, a, b);
+    ColSrc* s = (ColSrc*)o->meshes.At(0);
+    p = new ColModel(s, a, b);
     f[0] = s->f[0]; f[1] = s->f[1]; f[2] = s->f[2]; f[3] = s->f[3];
     f[4] = s->f[4]; f[5] = s->f[5]; f[6] = s->f[6]; f[7] = s->f[7];
     f[8] = s->f[8]; f[9] = s->f[9]; f[10] = s->f[10];

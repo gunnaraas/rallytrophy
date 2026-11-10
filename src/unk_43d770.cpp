@@ -422,8 +422,10 @@ int PlayerNameMenu::Run()
         if (DAT_0056b0ac->BeginScene()) {
             DAT_0056b0ac->vf38(0);
             game->DrawVideo(0);
-            text->scaleX = DAT_0056aea8 * 2.0f;
-            text->color = DAT_00508bfc;
+            float titleScaleX0 = DAT_0056aea8 * 2.0f;
+            int titleColor0 = *(volatile const int*)&DAT_00508bfc;
+            text->scaleX = titleScaleX0;
+            text->color = titleColor0;
             text->scaleY = DAT_0056aeac * 2.0f;
             text->Print(DAT_0056b0ac, 54.0f * DAT_0056aea8, 142.0f * DAT_0056aeac, FUN_00405380(0x39), 0, 1.0f, 1.0f);
             text->SetScale(DAT_0056aea8, DAT_0056aeac);

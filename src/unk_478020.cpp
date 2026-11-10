@@ -127,12 +127,10 @@ void ExhaustSmoke::Update(float dt)
     }
 }
 
-// NONMATCHING: RALLYTROPHY 0x478220
-// 1141 vs 1141 bytes, 4 instruction lines differ: the x term of the view depth is `fld pos.x; fmul m[2]` in the
-// original (y and z are loaded first and the same way), here `fld m[2]; fmul pos.x`; no source form changed it.
-// Tried 2026-10-30 night: ~15 variants (operand/term order, parenthesising, split statements, pp[0].x, casts); all keep `fld m[2]; fmul pos.x` (2 insns differ), reorderings that move it make it worse.
-// Tried 2026-10-31 re-pass: AddRevX-style named float temps (px/mm, t chains, 10 forms), volatile pp->x / m[2], depth chained via one local; all same or worse (7-15 insns); permute.py -r 40 best stayed (2,4) with no MATCH.
+// FUNCTION: RALLYTROPHY 0x478220
 // Draws every visible live particle as a rotated camera-facing quad.
+// The depth's y term reads through pp and the z and x terms through p->position; that mix decides whether the x term
+// is emitted as fld pos.x / fmul m[2] or the reverse.
 void ExhaustSmoke::Render(RenderDevice* device, Camera* camera)
 {
     if (texture == 0 || particles == 0) {
@@ -162,7 +160,7 @@ void ExhaustSmoke::Render(RenderDevice* device, Camera* camera)
     int farZ = camera->farBits;
     for (Particle* p = particles; p; p = p->next) {
         Vec3* pp = &p->position;
-        float depth = p->position.y * m[6] + p->position.z * m[10] + pp->x * m[2] + m[14];
+        float depth = pp->y * m[6] + p->position.z * m[10] + p->position.x * m[2] + m[14];
         if (*(int*)&depth > nearZ && *(int*)&depth < farZ) {
             Vec3 a, b;
             int idx = FloatToInt(p->rotation) & 0x3ff;

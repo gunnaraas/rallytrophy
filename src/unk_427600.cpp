@@ -219,6 +219,10 @@ int GameScreen11A4::Run(MenuGame* game)
 }
 
 // NONMATCHING: RALLYTROPHY 0x427c10
+// 2026-11-10: the 0x4267a0 title recipe (scaleX local + volatile read of the title colour) takes this from 582 to 12
+// differing bytes at 2745/2745. Left: the same esi/edi reload scheduling as 0x4267a0 (reload sits after fadd and the
+// colour load instead of between fld and fadd) and the clicked/sy stack slots swapped ([esp+0x20]/[esp+0x24]; six
+// declaration orders and four split forms do not move them).
 // 2747 vs 2745 bytes. Control flow, EH states and all calls match. Left: `clicked`/`sy` frame slots swapped (0x24/0x20
 // vs 0x20/0x24), and in the title-text switch and the item Print the scheduler picks other scratch registers for
 // the device pointer (ecx/edx/eax rotated). Tried: declaration order, case order, if-chains, locals for device/xy,
@@ -385,8 +389,10 @@ int GameScreen11A4::Frame()
         if (DAT_0056b0ac->BeginScene()) {
             DAT_0056b0ac->vf38(0);
             game->DrawVideo(0);
-            text->scaleX = DAT_0056aea8 * 2.0f;
-            text->color = DAT_00508bfc;
+            float titleScaleX = DAT_0056aea8 * 2.0f;
+            int titleColor = *(volatile const int*)&DAT_00508bfc;
+            text->scaleX = titleScaleX;
+            text->color = titleColor;
             text->scaleY = DAT_0056aeac * 2.0f;
             switch (DAT_00501464) {
             case 2:
