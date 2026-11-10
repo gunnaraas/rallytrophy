@@ -941,13 +941,10 @@ void CarParticles::Kind10(float scale, float age)
 static const float E_k256 = 256.0f, E_lo0 = 1.0f, E_hi0 = 4.0f, E_lo1 = 2.0f, E_hi1 = 25.0f, E_lo2 = 1.0f, E_hi2 = 4.0f;
 
 
-// NONMATCHING: RALLYTROPHY 0x47e8f0
-// 1412 vs 1418 bytes. Open: the x-jitter add is hoisted before the next rand() call (original spills it to
-// [ebp-0x1c] and adds after the y jitter is computed), and AddTo x loads fld [esi+0x1c]; fadd [eax] (original reversed).
-// Tried 2026-10-30 night: emit-test via a named float (rr), lat branch inversion (permuter), jx/jy/jz temps, volatile jx,
-// slot-order of r2/r3/r4, AddTo hand forms; permute -r 20 found nothing further; 6 insns left.
-// Tried 2026-10-31 re-pass: SpawnCore4/5 recipe (nx pool pop; no age/position-last analogue here) 4 insns unchanged; hand AddTo with x as p.x+rl.x or temps, jitter order/volatile variants, permute -r 40 (best 4 insns) all no better; still 4 insns (AddTo x operand order, jy spilled to [ebp+8]).
+// FUNCTION: RALLYTROPHY 0x47e8f0
 // Spawn core E (dust-like variant of D, no y damping and no second force term).
+// The x/y jitter goes through a Vec3 jit local as in cores A and C: that keeps the x jitter spilled across the
+// second rand() and also flips the AddTo x operand order to the original's.
 Particle* CarParticles::SpawnCoreE(float rate)
 {
     float v;
@@ -1025,10 +1022,13 @@ Particle* CarParticles::SpawnCoreE(float rate)
     }
     AddTo(p->velocity, s_body->Right() * lat);
     p->velocity.y = ((float)fabs(s_car->slipB) * 0.2f + f * 4.0f) * r4 + p->velocity.y + 3.0f;
-    volatile float jx = (float)((rand() & 0x3fff) - 0x1fff) * (1.0f / 32768.0f);
-    volatile float jy = (float)((rand() & 0x3fff) - 0x1fff) * (1.0f / 32768.0f);
-    p->velocity.x += jx;
-    p->velocity.y += jy;
+    float j1 = (float)((rand() & 0x3fff) - 0x1fff) * (1.0f / 32768.0f);
+    float j2 = (float)((rand() & 0x3fff) - 0x1fff) * (1.0f / 32768.0f);
+    Vec3 jit;
+    jit.x = j1;
+    jit.y = j2;
+    p->velocity.x += jit.x;
+    p->velocity.y += jit.y;
     p->velocity.z += (float)((rand() & 0x3fff) - 0x1fff) * (1.0f / 32768.0f);
     return p;
 }
