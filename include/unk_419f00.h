@@ -35,15 +35,17 @@ struct ColNode : TriNode { ColNode(); };
 
 struct ColMeshList { void* At(int i); };            // 0x4a6800
 struct ColOwner { char pad[0x124]; ColMeshList meshes; };
+// Base of ColHolder: owns the model; its constructor clears the flag, and once it has run the derived
+// constructor is in EH state 0 (unwind calls ~ColPtr 0x41b990).
 struct ColPtrBase { ~ColPtrBase() {} };
 struct ColPtr : ColPtrBase {
     ColModel* p;
-    ~ColPtr();                   // 0x41b990
-};
-struct ColHolder {               // 0x34 bytes
-    ColPtr model;
     int f[11];
     char flag;
+    ColPtr() : flag(0) {}
+    ~ColPtr();                   // 0x41b990
+};
+struct ColHolder : ColPtr {      // 0x34 bytes
     ColHolder(ColOwner* o, int);                          // 0x41b7f0
     ColHolder(ColOwner* o, int a, int b);                 // 0x41b8c0
 };
