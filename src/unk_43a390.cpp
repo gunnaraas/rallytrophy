@@ -410,11 +410,8 @@ int Screen1378::Frame()
     return r;
 }
 
-// NONMATCHING: RALLYTROPHY 0x43ad80
-// 532/532 bytes, 15 differences: second-panel coordinate stores versus material loads.
-// Draws two textured panels; the separate Layout function builds hit boxes.
-// Tried 2026-10-30 night: all 24 orders of the four second-panel pos stores, local declaration orders, inlined w/h, permute.py -r 20 (no MATCH, best stays 4); 4 insns differ: the pos[1].x/pos[2].x store pair and fld st(1) are scheduled differently after the first fst [esp+0xc].
-// Tried 2026-10-31 re-pass: volatile casts on pos[0].x/pos[3].x/pos[0].y/pos[1].x stores, int-bit copy of x2, device-pointer local, permute.py -r 40 (best stays 4); the fstp [esp+0x30]/[0x18] vs mov ecx/eax placement and fst [0x28] after push eax are scheduler-only (no per-site rect locals apply here).
+// FUNCTION: RALLYTROPHY 0x43ad80
+// w and h are accumulated (w = scale; w *= 512.0f): a single product stores the two scaled sizes in another order.
 void Screen1378::BuildRects()
 {
     HudPoint uv[4];
@@ -433,8 +430,8 @@ void Screen1378::BuildRects()
     white.value = -1;
     DAT_0056b0ac->vf35(unk24);
     ((RaceDeviceSlots*)DAT_0056b0ac)->DrawQuad((Vec2*)pos, (Vec2*)uv, white, 1.0f, 1.0f);
-    float w = DAT_0056aea8 * 512.0f;
-    float h = DAT_0056aeac * 256.0f;
+    float w = DAT_0056aea8; w *= 512.0f;
+    float h = DAT_0056aeac; h *= 256.0f;
     float x2 = DAT_0056aea8 * 432.0f;
     float y2 = DAT_0056aeac * 205.0f;
     pos[0].x = pos[3].x = x2;
