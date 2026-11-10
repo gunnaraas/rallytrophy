@@ -223,15 +223,13 @@ void Car::FUN_004658a0(PlayerSample* packet)
         if (!V->query.FUN_00419770(t + 0.01f, (float*)&world, V->hitNormal[i], V->hitDepth[i], V->hitPoint[i], &V->surface[i])) {
             w->active = 0;
         } else {
-            int idx = V->surface[i];
-            int tyre = V->stage->tyre[idx];
+            int tyre = V->stage->tyre[V->surface[i]];
             w->normal[0] = V->hitNormal[i][0];
             w->normal[1] = V->hitNormal[i][1];
             w->normal[2] = V->hitNormal[i][2];
             w->surface = V->tyre[tyre];
-            w->friction = V->stage->friction[idx];
-            w->params[0] = V->stage->normal[idx][0];
-            w->params[1] = V->stage->normal[idx][1];
+            { float fr = V->stage->friction[V->surface[i]]; w->friction = fr; }
+            { int* np = (int*)V->stage->normal[V->surface[i]]; *(int*)&w->params[0] = np[0]; *(int*)&w->params[1] = np[1]; }
         }
     }
     V->damageOut = (float)state->damage * 0.003921569f;
