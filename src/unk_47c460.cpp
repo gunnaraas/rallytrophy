@@ -716,13 +716,9 @@ void CarParticles::Kind8(float scale, float age)
     }
 }
 
-// NONMATCHING: RALLYTROPHY 0x47dc10
-// 3 insns differ (same size): `push edi` lands before `mov [head],eax` instead of after the local.x/local.z copy, and
-// `fld slipLat; fmul r2` comes out as `fld r2; fmul slipLat`.
-// Tried 2026-10-30 night: named rr emit test, one reused float for slip/speed/lat (fixed the ebp-0x10/-0x14 slot swap), inverted
-// kind branch, no volatile on j2, nx temp for the pool head (fixed AddTo order); volatile on head/local stores, operand swaps, permute -r 20; none moved push edi.
-// Spawn core C: like core A with a v-scaled upward kick and surface-dependent sideways push.
-// Tried 2026-10-31 re-pass: 19 more variants (side-product operand orders r2*lat/0.15f*lat/(lat*k)*r2, named temps, side/kind decl order, inverted kind branch, nx removed, local copy order/volatile/int-copy) and permute -r 40: all stay at 3 insns or worse; fld/fmul swap is insensitive to source order.
+// FUNCTION: RALLYTROPHY 0x47dc10
+// Spawn core C. local is copy-constructed from the car position (places the delayed push edi); side is
+// accumulated (side = slipLat; side *= r2; side *= 0.15f), which loads slipLat before r2.
 Particle* CarParticles::SpawnCoreC(float rate)
 {
     static float kSlip = 1.0f / (SLIP_C_HI - SLIP_C_LO);
@@ -764,10 +760,7 @@ Particle* CarParticles::SpawnCoreC(float rate)
     Particle* p = DAT_0056ae90.head;
     Particle* nx = p->next;
     DAT_0056ae90.head = nx;
-    Vec3 local;
-    local.x = PCAR->position.x;
-    local.y = PCAR->position.y;
-    local.z = PCAR->position.z;
+    Vec3 local = *(Vec3*)&PCAR->position;
     float h = PCAR->unk264;
     local.y -= h;
     local.x += 0.05f - (rand() & 0xff) * 0.000390625f;
@@ -795,9 +788,9 @@ Particle* CarParticles::SpawnCoreC(float rate)
     float side = 0.0f;
     int kind = PCAR->surfaceKind;
     if (!(kind == 1 || kind == 2)) {
-        if (PCAR->slipLat < 0.0f) side = PCAR->slipLat * r2 * 0.15f;
+        if (PCAR->slipLat < 0.0f) { side = PCAR->slipLat; side *= r2; side *= 0.15f; }
     } else if (PCAR->slipLat > 0.0f) {
-        side = PCAR->slipLat * r2 * 0.15f;
+        side = PCAR->slipLat; side *= r2; side *= 0.15f;
     }
     p->velocity += BODY_RIGHT * side;
     p->velocity.y = ((float)fabs(PCAR->slipLat) * 0.2f + push * 4.0f) * r3 + p->velocity.y + 3.0f;
