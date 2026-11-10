@@ -138,7 +138,7 @@ void AIDriver::FUN_0049ffa0()
         Vec3 otherFwd(((AiBody*)oc->body)->Forward());
         float along = diff.z * forward.z;
         along = *(volatile float*)&diff.y * forward.y + along;
-        along = diff.x * forward.x + along;
+        along = diff.x * forward.x; along += along;
         float ownSpeed = 0;
         if (ownBody->vx * ownBody->vx + ownBody->vy * ownBody->vy + ownBody->vz * ownBody->vz > 0.0f) {
             ownSpeed = ownFwd.y * ownBody->vy;
@@ -149,7 +149,7 @@ void AIDriver::FUN_0049ffa0()
         float otherSpeed = 0;
         if (((AiBody*)oc->body)->vx * ((AiBody*)oc->body)->vx + ((AiBody*)oc->body)->vy * ((AiBody*)oc->body)->vy + ((AiBody*)oc->body)->vz * ((AiBody*)oc->body)->vz > 0.0f) {
             otherSpeed = otherFwd.y * ((AiBody*)oc->body)->vy;
-            otherSpeed = otherFwd.z * ((AiBody*)oc->body)->vz + otherSpeed;
+            otherSpeed = otherFwd.z * ((AiBody*)oc->body)->vz; otherSpeed += otherSpeed;
             otherSpeed = otherFwd.x * ((AiBody*)oc->body)->vx + otherSpeed;
         }
         if (along > 0.0f) {
@@ -591,7 +591,7 @@ float AIDriver::FUN_004a1050(Obstacle* ob, Vec3* dir, int side)
     double ls = sqrt(f.z * f.z + f.y * f.y + f.x * f.x);
     float inv2 = (float)(DAT_004e1348 / ls);
     float x = f.x, y = f.y, z = f.z;
-    f.x = inv2 * x;
+    f.x = x; f.x *= inv2;
     f.y = inv2 * y;
     f.z = inv2 * z;
     float ez = e.z, ey = e.y;

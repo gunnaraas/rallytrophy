@@ -1465,7 +1465,7 @@ void ServiceMenu::Slot3(int skipPresent)
         overlay->Draw(DAT_0056b0ac, 0);
         text->scaleX = DAT_0056aea8 * 2.0f;
         text->color = DAT_00508bfc;
-        text->scaleY = DAT_0056aeac * 2.0f;
+        text->scaleY = DAT_0056aeac; text->scaleY *= 2.0f;
         text->Print(DAT_0056b0ac, SMI_TITLEX * DAT_0056aea8, SMI_TITLEY * DAT_0056aeac, FUN_00405380(0x75), 0, 1.0f,
                     1.0f);
         text->scaleX = DAT_0056aea8 * 3.0f;
@@ -1501,7 +1501,7 @@ void ServiceMenu::Slot3(int skipPresent)
             col.value = selected ? DAT_00508c0c : DAT_00508c04;
             text->color = col.value;
             text->Print(DAT_0056b0ac, x, y, FUN_00405380(DAT_004f9ca8[i]), 0, 1.0f, 1.0f);
-            y = DAT_0056aeac * 42.0f + y;
+            y = DAT_0056aeac * 42.0f; y += y;
         }
         switch (m_selected) {
         case 0:

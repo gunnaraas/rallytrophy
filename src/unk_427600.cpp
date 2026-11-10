@@ -385,9 +385,9 @@ int GameScreen11A4::Frame()
         if (DAT_0056b0ac->BeginScene()) {
             DAT_0056b0ac->vf38(0);
             game->DrawVideo(0);
-            text->scaleX = DAT_0056aea8 * 2.0f;
+            text->scaleX = DAT_0056aea8; text->scaleX *= 2.0f;
             text->color = DAT_00508bfc;
-            text->scaleY = DAT_0056aeac * 2.0f;
+            text->scaleY = DAT_0056aeac; text->scaleY *= 2.0f;
             switch (DAT_00501464) {
             case 2:
                 text->Print(DAT_0056b0ac, 54.0f * DAT_0056aea8, 142.0f * DAT_0056aeac, FUN_00405380(0x37), 0, 1.0f, 1.0f);

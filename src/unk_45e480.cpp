@@ -1817,7 +1817,7 @@ void Car::LoadCarIni(const char* path, unsigned int checksum)
     v->hoodAxes[2] = axisA.z;
     v->hoodAxes[4] = axisB.y;
     v->hoodAxes[5] = axisB.z;
-    float trunk = trunkAngle * kDegToRad;
+    float trunk = trunkAngle; trunk *= kDegToRad;
     axisA.y = (float)cos(trunk);
     axisA.z = (float)sin(trunk);
     axisB.y = -axisA.z;

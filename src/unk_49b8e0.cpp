@@ -1763,8 +1763,8 @@ int AIDriver::FUN_0049f1f0(Player* other)
     float speed1 = a.Length();
     float speed2 = b.Length();
     float ratio = speed1 / speed2;
-    float q1 = a.x * a.x + a.y * a.y + a.z * a.z;
-    float q2 = b.x * b.x + b.y * b.y + b.z * b.z;
+    float q1 = a.x * a.x; q1 += a.y * a.y; q1 += a.z * a.z;
+    float q2 = b.x * b.x; q2 += b.y * b.y; q2 += b.z * b.z;
     if (q1 * 2.5f > q2 || other->local && distance < 12.0f && q1 * 1.5f > q2) {
         result = 1;
     }
