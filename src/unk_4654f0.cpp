@@ -164,6 +164,12 @@ inline float ByteToUnitF(int b)
 
 // original: FUN_004658a0 (declared with PlayerSample*, the same packet seen from the player side)
 // NONMATCHING: RALLYTROPHY 0x4658a0
+// 2026-11-10: 926/926 bytes, 153 differ (was 913 bytes, 338). The contact branch re-reads V->surface[i] for each
+// use (no idx local; the original reloads it through its induction pointer three times), copies friction through a
+// float temp (fld/fstp in the original) and the two params through an int pointer; rpm is assigned before gear.
+// Left: the steerSet store sits between the handbrake and steer stores in the original; the 13 body dwords are
+// stored 14c,150,154,pos0,158,pos1,pos2,vel.. there (whole-struct Q4/V3/V6 copies: worse); register roles at the
+// second loop's setup (eax/ecx/edx rotated) and the hit-normal induction pointer base (+0x1e0c vs +0x1e04).
 // Semantics complete; 917 vs 926 bytes. Multiplying the spring length by the parenthesized normalized compression
 // byte matches the target's x87 multiply order. Open: scheduling of body copies (the original loads Car+0x24 late)
 // and the hit-array induction pointer (original: Car+0x1e0c + n*12).
@@ -177,8 +183,8 @@ void Car::FUN_004658a0(PlayerSample* packet)
     V->clutch = ByteToUnitF(state->clutch);
     V->handbrake = ByteToUnitF(state->handbrake);
     V->steer = (float)(state->steer - 128) * 0.007874016f;
-    V->gear = (signed char)state->gear;
     V->rpm = (float)state->rpm;
+    V->gear = (signed char)state->gear;
     *(volatile char*)&V->steerSet = 1;
     StateBody* b = V->body;
     b->unk14c = state->body[0];
