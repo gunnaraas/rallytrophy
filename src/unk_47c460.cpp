@@ -548,12 +548,11 @@ void CarParticles::Kind3(float scale, float age)
 }
 
 // NONMATCHING: RALLYTROPHY 0x47d500
-// Same size (1125); only 15 bytes differ: the original loads PCAR before the free-list head
-// and stores the new head after the first copied coordinate; this build pops the list first
-// and places `push edi` earlier. The `Vec3 jit` local is what makes VC6 keep the x jitter in
-// a stack temp across the second rand() call like the original.
-// Tried 2026-10-30 night: head pop moved after local.x/local.y copy, cached PCAR local, Next-first temp, and permute.py -r 20 (no MATCH); all stay at 3-5 insns differ, the PCAR-before-head load order and pop/push edi placement are not steerable from source.
-// Tried 2026-10-31 re-pass: permute.py -r 40 reached 2 insns differ (applied: nested !() on the HI tests, branch arms swapped, declarations moved); volatile head store, PCAR local, head-store position variants stay at 3; remaining diff is PCAR load before head load + push edi one slot late.
+// 1125/1125 bytes, 4 differ. 2026-11-10: copy-constructing local from the car position (as in cores A and C) fixed
+// the PCAR-before-head load order and the push edi placement (18 -> 4). Left: the x component of
+// `p->velocity += BODY_RIGHT * lat * 0.1f` is `fld vel.x; fadd r.x` in the original and reversed here (y and z agree).
+// No gain from: 27 inline helpers with every per-component operand order (VC6 canonicalises them), AddTo, scalar
+// forms (lat*0.1f pre-multiplied, parenthesised, accumulated: 17 insns worse), named or reference temporaries (EH).
 // Spawn core B: like core A with an integer 0..256 chance and no rate argument.
 Particle* CarParticles::SpawnCoreB(float rate)
 {
@@ -609,12 +608,9 @@ Particle* CarParticles::SpawnCoreB(float rate)
     if (!DAT_0056ae90.head) {
         DAT_0056ae90.Grow();
     }
-    Vec3 local;
     Particle* p = DAT_0056ae90.head;
     DAT_0056ae90.head = p->next;
-    local.x = PCAR->position.x;
-    local.y = PCAR->position.y;
-    local.z = PCAR->position.z;
+    Vec3 local = *(Vec3*)&PCAR->position;
     float h = PCAR->unk264;
     local.y -= h;
     local.x += 0.05f - (rand() & 0xff) * 0.000390625f;
