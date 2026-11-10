@@ -394,13 +394,10 @@ void CarParticles::Render(RenderDevice* device, Camera* camera)
     }
 }
 
-// NONMATCHING: RALLYTROPHY 0x47cd60
-// 1233 bytes, 52 differing bytes. Naming `randomValue` and `threshold`, then expressing the
-// failure test as `threshold <= randomValue`, reproduces the target's FXCH/FCOMPP compare pair.
-// Stack homes, compare operand/order flags, and the delayed `push edi` still differ; see the log.
-// Tried 2026-10-30 night: sibling E/D shape (named float rr, `!(rr < chance*rate)`) 26->23; chance/slip declaration order, single reused v, hoisted speed/lat, thr local, volatile j2: no gain. Still differs: chance lands in [ebp-0x10] (orig -0x14, shared temp -0x10) and push edi is early.
-// Tried 2026-10-31 re-pass: ONE shared float t (declared before chance, assigned after) for slip/speed/lat fixes stack slots and fstp/fld: 23->1 insns; only `push edi` still lands 3 insns early; nx pool pop, volatile on head/local stores, int-temp copies, permute -r 40 all no better.
+// FUNCTION: RALLYTROPHY 0x47cd60
 // Spawn core A: emits a particle with probability from the slips and speed.
+// One shared float t for slip/speed/lat fixes the stack homes; copy-constructing local from the car position
+// (not three field stores) places the delayed push edi.
 Particle* CarParticles::SpawnCoreA(float rate)
 {
     static float kSlip = 1.0f / (SLIP_A_HI - SLIP_A_LO);
@@ -441,10 +438,7 @@ Particle* CarParticles::SpawnCoreA(float rate)
     }
     Particle* p = DAT_0056ae90.head;
     DAT_0056ae90.head = p->next;
-    Vec3 local;
-    local.x = PCAR->position.x;
-    local.y = PCAR->position.y;
-    local.z = PCAR->position.z;
+    Vec3 local = *(Vec3*)&PCAR->position;
     float h = PCAR->unk264;
     local.y -= h;
     local.x += 0.05f - (rand() & 0xff) * 0.000390625f;
