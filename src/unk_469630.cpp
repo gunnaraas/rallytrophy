@@ -374,11 +374,9 @@ void Car::UpdateTyreTracks()
     }
 }
 
-// NONMATCHING: RALLYTROPHY 0x46a200
-// Moving Color construction after the dimension reads and loading needles before gear reduces the diff from 136 to 95
-// bytes at the same 1,424-byte size. Frame/register allocation remains off; target keeps -1 in edi and uses a 0x58 frame.
-// Tried 2026-10-30 night: ~20 variants of fw/fh/iw/ih/Color declaration order, uv y-stores before x (fixed the gear-uv store hunk), permute -r 20 (no MATCH); still differs: target reuses one [esp+0x1c] temp for both int->float conversions, Color sits at [esp+0x28] (extra slot at 0x24) and its -1 store follows the fild pair.
-// Tried 2026-10-31 re-pass: moving Color after the fw/fh conversions plus permute -r 40 (commutative operand swaps, ih decl after iw) gives 11->2 insns differ; still differs: original reuses one [esp+0x1c] temp for both fild and keeps Color at [esp+0x28] with `or edi,-1` after the second fild (ours 0x24, hoisted).
+// FUNCTION: RALLYTROPHY 0x46a200
+// Color is default-constructed (EH state 2) and assigned afterwards; Color color(0xffffffff) stores the
+// value before the state byte.
 void Car::FUN_0046a200()
 {
     CarGaugeView* v = (CarGaugeView*)this;
@@ -395,11 +393,12 @@ void Car::FUN_0046a200()
     int gear = TEX->gear;
     Vec2 pos[4];
     Vec2 uv[4];
+    Color color;
+    color.value = 0xffffffff;
     float sx, sy, fh, fw;
     int iw = DAT_0056b0ac->m_width;
     fw = (float)iw;
     int ih = DAT_0056b0ac->m_height;
-    Color color(0xffffffff);
     fh = (float)ih;
     sx = fw / 1024.0f;
     sy = fh / 768.0f;

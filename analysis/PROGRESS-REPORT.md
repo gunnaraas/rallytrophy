@@ -11,16 +11,16 @@ conventions are in [`NOTES.md`](NOTES.md); the work queue and log are in
 ## Progress
 
 <!-- progress:begin -->
-_Updated 2026-11-04 by `tools/progress.py` (game code `0x401000`–`0x4bcfc6`)._
+_Updated 2026-11-10 by `tools/progress.py` (game code `0x401000`–`0x4bcfc6`)._
 
 | | Functions | Code bytes |
 |---|---|---|
-| Byte-exact | 1866 / 2084 (89.54%) | 365,067 / 742,276 (49.18%) |
-| Written, not yet exact | 218 | 377,209 |
+| Byte-exact | 1868 / 2084 (89.64%) | 367,541 / 742,276 (49.52%) |
+| Written, not yet exact | 216 | 374,735 |
 | Written in total | 2084 / 2084 (100.00%) | 742,276 / 742,276 (100.00%) |
 
 ```
-exact   ███████████████░░░░░░░░░░░░░░░ 49.18% of code bytes
+exact   ███████████████░░░░░░░░░░░░░░░ 49.52% of code bytes
 written ██████████████████████████████ 100.00% of code bytes
 ```
 
@@ -74,12 +74,12 @@ Progress by module (ranges in `analysis/modules.csv`):
 | Car sounds | `0x4666a0`–`0x468720` | 9 / 11 / 11 | 22.4% | 100.0% | `████████████` |
 | Car race state | `0x468720`–`0x468c40` | 8 / 8 / 8 | 100.0% | 100.0% | `████████████` |
 | Car model parts | `0x468c40`–`0x469630` | 5 / 7 / 7 | 23.0% | 100.0% | `████████████` |
-| Car render and effects | `0x469630`–`0x46a8a0` | 10 / 13 / 13 | 36.5% | 100.0% | `████████████` |
+| Car render and effects | `0x469630`–`0x46a8a0` | 11 / 13 / 13 | 67.2% | 100.0% | `████████████` |
 | Drivetrain | `0x46a8a0`–`0x46bb90` | 23 / 23 / 23 | 100.0% | 100.0% | `████████████` |
 | Car snapshots | `0x46bb90`–`0x46c2c0` | 7 / 7 / 7 | 100.0% | 100.0% | `████████████` |
 | Wheel and tyre forces | `0x46c2c0`–`0x46d720` | 9 / 11 / 11 | 24.4% | 100.0% | `████████████` |
 | Spring follower | `0x46d720`–`0x46d830` | 5 / 5 / 5 | 100.0% | 100.0% | `████████████` |
-| Car rain | `0x46d830`–`0x46e850` | 7 / 9 / 9 | 48.4% | 100.0% | `████████████` |
+| Car rain | `0x46d830`–`0x46e850` | 8 / 9 / 9 | 74.2% | 100.0% | `████████████` |
 | Car light glows | `0x46e850`–`0x46eec0` | 12 / 13 / 13 | 28.5% | 100.0% | `████████████` |
 | City lens flares | `0x46eec0`–`0x46fa80` | 4 / 6 / 6 | 5.4% | 100.0% | `████████████` |
 | Water animator | `0x46fa80`–`0x46fdf0` | 5 / 6 / 6 | 50.1% | 100.0% | `████████████` |

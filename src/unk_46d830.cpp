@@ -178,19 +178,16 @@ inline void CarRain::Respawn(CarDrop* drop)
     }
 }
 
-// NONMATCHING: RALLYTROPHY 0x46dd80
-// 1046 vs 1050 bytes. Same flow and the same int-wise position copies; the original keeps a zero in edi for the
-// whole function (locals, vector-null tests, first GetMeshData(0), `cmp eax,edi` after new) and recomputes
-// n*12 for the memcpy, where this version keeps the zero in ecx (shared with i) and CSEs n*12 into edi.
-// Tried 2026-10-30 night: 17 variants (i declared first/after/via for-loop/while, pointer init forms and order, a named zero int, n/Vec3* temps declared up top); all fold to the same 144-insn output, VC6 still gives the zero to ecx shared with i instead of a separate edi zero with its own xor, which also lets it CSE n*12 across the new call.
-// Tried 2026-11-01 re-pass: 144->32 insns differ via a volatile-zero local z (`int z; *(volatile int*)&z = 0;`) for body/trunk/hood init, memcpy size re-read as body->vertexCount*12 (stops n*12 CSE), and the drop loop as `for (i..) { CarDrop* d = drops + i; }`; permute -r 40 found nothing; still differs: extra z store and param load/push edi order in prologue, hood/body count register order and sum order for totalCount.
+// FUNCTION: RALLYTROPHY 0x46dd80
+// totalCount is accumulated in the member itself (three += statements); a single sum expression
+// loads and adds the counts in a different order.
 void CarRain::Init(RainScene* scene)
 {
-    int z; *(volatile int*)&z = 0;
+    int z = 0;
     WindowMeshData* body = (WindowMeshData*)z;
     WindowMeshData* trunk = (WindowMeshData*)z;
     WindowMeshData* hood = (WindowMeshData*)z;
-    int i = 0;
+    int i = z;
     for (;;) {
         if (i >= (int)scene->objects.size()) {
             break;
@@ -250,10 +247,14 @@ void CarRain::Init(RainScene* scene)
         hoodVerts = new Vec3[n];
         memcpy(hoodVerts, hood->vertices, hood->vertexCount * sizeof(Vec3));
     }
-    totalCount = trunkCount + hoodCount + bodyCount;
-    int count = dropCount;
+    totalCount = bodyCount;
+    totalCount += trunkCount;
+    totalCount += hoodCount;
+    int count;
+    i = 0;
+    count = dropCount;
     if (count > 0) {
-        for (i = 0; i < count; i++) {
+        for (; i < count; i++) {
             CarDrop* d = drops + i;
             d->phase = (float)i / (float)count;
             Respawn(d);
