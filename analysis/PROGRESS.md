@@ -6,7 +6,7 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Status
 
-- Marker inventory: 1866/2084 byte-exact (89.54%; 49.18% of game-code bytes); 2084/2084 functions written (100.00%), from `tools/progress.py` (2026-11-04).
+- Marker inventory: 1868/2084 byte-exact (89.64%; 49.52% of game-code bytes); 2084/2084 functions written (100.00%), from `tools/progress.py` (2026-11-10).
 - Game code: about 1,690 functions in `0x401000`–`0x4bcfc6`
 
 ## Queue
@@ -32,6 +32,7 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Log
 
+- 2026-11-10 (Claude, finishing the Kimi partials below): MATCH 0x46dd80 `CarRain::Init` (`totalCount = bodyCount; totalCount += trunkCount; totalCount += hoodCount;`: accumulating in the member fixes the load/add order that no single sum expression gave) and 0x46a200 `Car::FUN_0046a200` (`Color color; color.value = 0xffffffff;`: the EH state byte is stored before the value, which `Color color(0xffffffff)` cannot produce). Swept the default-construct-then-assign Color form over the other 14 NONMATCHING functions with a `Color x(expr);` local: no further match. `try_variants.py` now skips the comment lines under a marker when locating the body (a quoted `{` broke it). Full matcher: 1868/1868, 216 NONMATCHING.
 - 2026-11-10 (Kimi): No new byte-exact matches; full matcher: 1866/1866 marked functions match, 218 NONMATCHING, zero DIFF or compile failures.
   Gauge `0x46a200` improved 24→11 differing bytes (1424/1424 bytes); rain `0x46dd80` retains prologue zeroing and loop-spill fixes at 8 differing bytes (1050/1050 bytes).
 - 2026-11-04 (Claude, agent wave 3; NOTES "Agent wave 3"): seven agents on 15 functions. MATCH: 0x487b50 `RaceMode::FUN_00487b50` (char buffer[4] + load order + sx/sy form). Merged partials (norm): 0x411600 2740->301 (two rounds), 0x40a850 622->352, 0x433bc0 405->372, 0x433220 697->654, 0x44deb0 227->208. Not merged: 0x4831c0 (fitted union pad only; saved in analysis/scratches/wave-2026-11-04/best_4831c0_msgpool.cpp), 0x48d7f0/0x48a070/0x48a920/0x48b080 (slot order; the original has extra real dwords the source lacks), 0x401cf0, 0x44d6a0 (`char number[4]` matches the frame but would overflow _itoa; left at [10]), 0x41ef60 (pending).
