@@ -622,13 +622,13 @@ int TriangleProjection::Contains(const float* p)
 }
 static __forceinline float EdgeDot(const float* a,const float* b){return (a[1]*b[1]+a[2]*b[2])+a[0]*b[0];}
 // FUNCTION: RALLYTROPHY 0x4b6800
-// The b-side dot reads its z term through Vec3 views (N->z*B->z) and the y/x terms through the float arrays;
-// with all three terms in one access form VC6 always emits the y product first.
+// The b-side dot reads its z term through Vec3 views (N->z*B->z) and the y/x terms through the float arrays.
+// The unused pn alias is load-bearing: without it VC6 emits the y product before the z product again.
 float Tri3::EdgeDist(const float* a,const float* b,float* out,float* endpoint)
 {
     TriangleProjection* t=(TriangleProjection*)this;
     float da=EdgeDot(a,t->n)+t->d;
-    const Vec3* N=(const Vec3*)t->n;const Vec3* B=(const Vec3*)b;
+    const Vec3* N=(const Vec3*)t->n;const float* pn=t->n;const Vec3* B=(const Vec3*)b;
     if(((N->z*B->z+t->n[1]*b[1])+t->n[0]*b[0]+t->d)*da<=0) {
         Vec3 delta=*(const Vec3*)b;delta-=*(const Vec3*)a;
         float dz=delta.z;float denom=(dz*t->n[2]+delta.y*t->n[1])+delta.x*t->n[0];
