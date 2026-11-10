@@ -394,13 +394,10 @@ void CarParticles::Render(RenderDevice* device, Camera* camera)
     }
 }
 
-// NONMATCHING: RALLYTROPHY 0x47cd60
-// 1233 bytes, 52 differing bytes. Naming `randomValue` and `threshold`, then expressing the
-// failure test as `threshold <= randomValue`, reproduces the target's FXCH/FCOMPP compare pair.
-// Stack homes, compare operand/order flags, and the delayed `push edi` still differ; see the log.
-// Tried 2026-10-30 night: sibling E/D shape (named float rr, `!(rr < chance*rate)`) 26->23; chance/slip declaration order, single reused v, hoisted speed/lat, thr local, volatile j2: no gain. Still differs: chance lands in [ebp-0x10] (orig -0x14, shared temp -0x10) and push edi is early.
-// Tried 2026-10-31 re-pass: ONE shared float t (declared before chance, assigned after) for slip/speed/lat fixes stack slots and fstp/fld: 23->1 insns; only `push edi` still lands 3 insns early; nx pool pop, volatile on head/local stores, int-temp copies, permute -r 40 all no better.
+// FUNCTION: RALLYTROPHY 0x47cd60
 // Spawn core A: emits a particle with probability from the slips and speed.
+// One shared float t for slip/speed/lat fixes the stack homes; copy-constructing local from the car position
+// (not three field stores) places the delayed push edi.
 Particle* CarParticles::SpawnCoreA(float rate)
 {
     static float kSlip = 1.0f / (SLIP_A_HI - SLIP_A_LO);
@@ -441,10 +438,7 @@ Particle* CarParticles::SpawnCoreA(float rate)
     }
     Particle* p = DAT_0056ae90.head;
     DAT_0056ae90.head = p->next;
-    Vec3 local;
-    local.x = PCAR->position.x;
-    local.y = PCAR->position.y;
-    local.z = PCAR->position.z;
+    Vec3 local = *(Vec3*)&PCAR->position;
     float h = PCAR->unk264;
     local.y -= h;
     local.x += 0.05f - (rand() & 0xff) * 0.000390625f;
@@ -554,12 +548,11 @@ void CarParticles::Kind3(float scale, float age)
 }
 
 // NONMATCHING: RALLYTROPHY 0x47d500
-// Same size (1125); only 15 bytes differ: the original loads PCAR before the free-list head
-// and stores the new head after the first copied coordinate; this build pops the list first
-// and places `push edi` earlier. The `Vec3 jit` local is what makes VC6 keep the x jitter in
-// a stack temp across the second rand() call like the original.
-// Tried 2026-10-30 night: head pop moved after local.x/local.y copy, cached PCAR local, Next-first temp, and permute.py -r 20 (no MATCH); all stay at 3-5 insns differ, the PCAR-before-head load order and pop/push edi placement are not steerable from source.
-// Tried 2026-10-31 re-pass: permute.py -r 40 reached 2 insns differ (applied: nested !() on the HI tests, branch arms swapped, declarations moved); volatile head store, PCAR local, head-store position variants stay at 3; remaining diff is PCAR load before head load + push edi one slot late.
+// 1125/1125 bytes, 4 differ. 2026-11-10: copy-constructing local from the car position (as in cores A and C) fixed
+// the PCAR-before-head load order and the push edi placement (18 -> 4). Left: the x component of
+// `p->velocity += BODY_RIGHT * lat * 0.1f` is `fld vel.x; fadd r.x` in the original and reversed here (y and z agree).
+// No gain from: 27 inline helpers with every per-component operand order (VC6 canonicalises them), AddTo, scalar
+// forms (lat*0.1f pre-multiplied, parenthesised, accumulated: 17 insns worse), named or reference temporaries (EH).
 // Spawn core B: like core A with an integer 0..256 chance and no rate argument.
 Particle* CarParticles::SpawnCoreB(float rate)
 {
@@ -615,12 +608,9 @@ Particle* CarParticles::SpawnCoreB(float rate)
     if (!DAT_0056ae90.head) {
         DAT_0056ae90.Grow();
     }
-    Vec3 local;
     Particle* p = DAT_0056ae90.head;
     DAT_0056ae90.head = p->next;
-    local.x = PCAR->position.x;
-    local.y = PCAR->position.y;
-    local.z = PCAR->position.z;
+    Vec3 local = *(Vec3*)&PCAR->position;
     float h = PCAR->unk264;
     local.y -= h;
     local.x += 0.05f - (rand() & 0xff) * 0.000390625f;
@@ -722,13 +712,9 @@ void CarParticles::Kind8(float scale, float age)
     }
 }
 
-// NONMATCHING: RALLYTROPHY 0x47dc10
-// 3 insns differ (same size): `push edi` lands before `mov [head],eax` instead of after the local.x/local.z copy, and
-// `fld slipLat; fmul r2` comes out as `fld r2; fmul slipLat`.
-// Tried 2026-10-30 night: named rr emit test, one reused float for slip/speed/lat (fixed the ebp-0x10/-0x14 slot swap), inverted
-// kind branch, no volatile on j2, nx temp for the pool head (fixed AddTo order); volatile on head/local stores, operand swaps, permute -r 20; none moved push edi.
-// Spawn core C: like core A with a v-scaled upward kick and surface-dependent sideways push.
-// Tried 2026-10-31 re-pass: 19 more variants (side-product operand orders r2*lat/0.15f*lat/(lat*k)*r2, named temps, side/kind decl order, inverted kind branch, nx removed, local copy order/volatile/int-copy) and permute -r 40: all stay at 3 insns or worse; fld/fmul swap is insensitive to source order.
+// FUNCTION: RALLYTROPHY 0x47dc10
+// Spawn core C. local is copy-constructed from the car position (places the delayed push edi); side is
+// accumulated (side = slipLat; side *= r2; side *= 0.15f), which loads slipLat before r2.
 Particle* CarParticles::SpawnCoreC(float rate)
 {
     static float kSlip = 1.0f / (SLIP_C_HI - SLIP_C_LO);
@@ -770,10 +756,7 @@ Particle* CarParticles::SpawnCoreC(float rate)
     Particle* p = DAT_0056ae90.head;
     Particle* nx = p->next;
     DAT_0056ae90.head = nx;
-    Vec3 local;
-    local.x = PCAR->position.x;
-    local.y = PCAR->position.y;
-    local.z = PCAR->position.z;
+    Vec3 local = *(Vec3*)&PCAR->position;
     float h = PCAR->unk264;
     local.y -= h;
     local.x += 0.05f - (rand() & 0xff) * 0.000390625f;
@@ -801,9 +784,9 @@ Particle* CarParticles::SpawnCoreC(float rate)
     float side = 0.0f;
     int kind = PCAR->surfaceKind;
     if (!(kind == 1 || kind == 2)) {
-        if (PCAR->slipLat < 0.0f) side = PCAR->slipLat * r2 * 0.15f;
+        if (PCAR->slipLat < 0.0f) { side = PCAR->slipLat; side *= r2; side *= 0.15f; }
     } else if (PCAR->slipLat > 0.0f) {
-        side = PCAR->slipLat * r2 * 0.15f;
+        side = PCAR->slipLat; side *= r2; side *= 0.15f;
     }
     p->velocity += BODY_RIGHT * side;
     p->velocity.y = ((float)fabs(PCAR->slipLat) * 0.2f + push * 4.0f) * r3 + p->velocity.y + 3.0f;
@@ -838,16 +821,10 @@ void CarParticles::Kind9(float scale, float age)
     }
 }
 
-// NONMATCHING: RALLYTROPHY 0x47e240
-// 1502 vs 1498 bytes, 17 insns differ. Prologue, guard statics, chance ramp, emit test (named float rr), __asm
-// transform and the AddTo tail match. Open: the f=sqrt(vel^2) block keeps x,y,z on the FPU stack differently
-// (original reuses the vel0 loads in place), and volatile jy (needed to spill jx to [ebp-0x1c]) costs an extra
-// store/reload of jy.
-// Tried 2026-10-30 night: sibling E shapes (rr, inverted mode branch, volatile jx -> slot [ebp+8] wrong), jx plain, volatile jy
-// (best), cast stores, sqrt term orders, bv copy/ref, f/r2-r4 moves; all worse or equal.
-// Tried 2026-10-31: spawner recipe (pool pop first already used), forceinline Len3 helper and local vz/vy/vx loads with every sum order (all identical output; original loads z,y,x and squares z in place, we load x first), permute.py -r 40 best 17 insns, no MATCH.
-// Spawn core D: decides from wheel slip and body speed whether to emit, takes a particle from the
-// pool and sets position and velocity (the kind functions fill in the rest).
+// FUNCTION: RALLYTROPHY 0x47e240
+// Spawn core D. The body speed is accumulated in f itself from three named component locals (vz, vy, vx;
+// f = vz*vz; f += vx*vx; f += vy*vy; then sqrt in place): this keeps x and y on the FPU stack across fsqrt as
+// the original does. The x/y jitter goes through a Vec3 jit local as in cores A, C and E.
 Particle* CarParticles::SpawnCoreD(float rate)
 {
     static float inv0 = 1.0f / (D_hi0 - D_lo0);
@@ -906,8 +883,11 @@ Particle* CarParticles::SpawnCoreD(float rate)
     p->velocity.x = vel0.x;
     p->velocity.y = vel0.y;
     p->velocity.z = vel0.z;
-    float fs = s_body->vel.z * s_body->vel.z; fs = s_body->vel.x * s_body->vel.x + fs; fs = s_body->vel.y * s_body->vel.y + fs;
-    float f = (float)sqrt(fs) * (1.0f / 35.0f);
+    float vz = s_body->vel.z;
+    float vy = s_body->vel.y;
+    float vx = s_body->vel.x;
+    float f = vz * vz; f += vx * vx; f += vy * vy;
+    f = (float)sqrt(f) * (1.0f / 35.0f);
     if (*(int*)&f < 0) {
         f = 0;
     } else if (*(int*)&f > 0x3f800000) {
@@ -927,10 +907,13 @@ Particle* CarParticles::SpawnCoreD(float rate)
     }
     AddTo(p->velocity, s_body->Right() * lat);
     p->velocity.y = ((float)fabs(s_car->slipB) * 0.05f + f * 1.5f) * r4 + p->velocity.y + 2.0f;
-    float jx = (float)((rand() & 0x3fff) - 0x1fff) * (1.0f / 20480.0f);
-    volatile float jy = (float)((rand() & 0x3fff) - 0x1fff) * (1.0f / 20480.0f);
-    p->velocity.x += jx;
-    p->velocity.y += jy;
+    float j1 = (float)((rand() & 0x3fff) - 0x1fff) * (1.0f / 20480.0f);
+    float j2 = (float)((rand() & 0x3fff) - 0x1fff) * (1.0f / 20480.0f);
+    Vec3 jit;
+    jit.x = j1;
+    jit.y = j2;
+    p->velocity.x += jit.x;
+    p->velocity.y += jit.y;
     p->velocity.z += (float)((rand() & 0x3fff) - 0x1fff) * (1.0f / 20480.0f);
     return p;
 }
@@ -958,13 +941,10 @@ void CarParticles::Kind10(float scale, float age)
 static const float E_k256 = 256.0f, E_lo0 = 1.0f, E_hi0 = 4.0f, E_lo1 = 2.0f, E_hi1 = 25.0f, E_lo2 = 1.0f, E_hi2 = 4.0f;
 
 
-// NONMATCHING: RALLYTROPHY 0x47e8f0
-// 1412 vs 1418 bytes. Open: the x-jitter add is hoisted before the next rand() call (original spills it to
-// [ebp-0x1c] and adds after the y jitter is computed), and AddTo x loads fld [esi+0x1c]; fadd [eax] (original reversed).
-// Tried 2026-10-30 night: emit-test via a named float (rr), lat branch inversion (permuter), jx/jy/jz temps, volatile jx,
-// slot-order of r2/r3/r4, AddTo hand forms; permute -r 20 found nothing further; 6 insns left.
-// Tried 2026-10-31 re-pass: SpawnCore4/5 recipe (nx pool pop; no age/position-last analogue here) 4 insns unchanged; hand AddTo with x as p.x+rl.x or temps, jitter order/volatile variants, permute -r 40 (best 4 insns) all no better; still 4 insns (AddTo x operand order, jy spilled to [ebp+8]).
+// FUNCTION: RALLYTROPHY 0x47e8f0
 // Spawn core E (dust-like variant of D, no y damping and no second force term).
+// The x/y jitter goes through a Vec3 jit local as in cores A and C: that keeps the x jitter spilled across the
+// second rand() and also flips the AddTo x operand order to the original's.
 Particle* CarParticles::SpawnCoreE(float rate)
 {
     float v;
@@ -1042,10 +1022,13 @@ Particle* CarParticles::SpawnCoreE(float rate)
     }
     AddTo(p->velocity, s_body->Right() * lat);
     p->velocity.y = ((float)fabs(s_car->slipB) * 0.2f + f * 4.0f) * r4 + p->velocity.y + 3.0f;
-    volatile float jx = (float)((rand() & 0x3fff) - 0x1fff) * (1.0f / 32768.0f);
-    volatile float jy = (float)((rand() & 0x3fff) - 0x1fff) * (1.0f / 32768.0f);
-    p->velocity.x += jx;
-    p->velocity.y += jy;
+    float j1 = (float)((rand() & 0x3fff) - 0x1fff) * (1.0f / 32768.0f);
+    float j2 = (float)((rand() & 0x3fff) - 0x1fff) * (1.0f / 32768.0f);
+    Vec3 jit;
+    jit.x = j1;
+    jit.y = j2;
+    p->velocity.x += jit.x;
+    p->velocity.y += jit.y;
     p->velocity.z += (float)((rand() & 0x3fff) - 0x1fff) * (1.0f / 32768.0f);
     return p;
 }
