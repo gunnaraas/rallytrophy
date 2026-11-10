@@ -34,7 +34,9 @@ def split_function(text, address):
     m = re.search(rf"^//[^\n]*(?:FUNCTION|NONMATCHING):\s*RALLYTROPHY\s+0x{address:x}\b.*?$", text, re.M | re.I)
     if not m:
         sys.exit(f"no marker for 0x{address:x}")
-    brace = text.index("{", m.end())
+    # skip the comment lines under the marker: they may quote code with braces
+    body = re.compile(r"(?:\n//[^\n]*)*").match(text, m.end()).end()
+    brace = text.index("{", body)
     depth, i = 0, brace
     while True:
         depth += {"{": 1, "}": -1}.get(text[i], 0)

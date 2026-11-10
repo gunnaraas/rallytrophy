@@ -178,13 +178,9 @@ inline void CarRain::Respawn(CarDrop* drop)
     }
 }
 
-// NONMATCHING: RALLYTROPHY 0x46dd80
-// 1050 vs 1050 bytes, 8 differing bytes in two scheduling/allocation hunks: the total-count load/add order
-// and the hood/body subtraction order in the inlined Respawn. 2026-11-10: a plain zero local fixes the prologue;
-// splitting count's declaration from its assignment after i = 0 fixes the loop spill order. Arithmetic tree,
-// pointer-cast, volatile-read/total, and reversed-operand forms did not improve the remaining two hunks.
-// Tried 2026-10-30 night: 17 variants (i declared first/after/via for-loop/while, pointer init forms and order, a named zero int, n/Vec3* temps declared up top); all fold to the same 144-insn output, VC6 still gives the zero to ecx shared with i instead of a separate edi zero with its own xor, which also lets it CSE n*12 across the new call.
-// Tried 2026-11-01 re-pass: 144->32 insns differ via a volatile-zero local z (`int z; *(volatile int*)&z = 0;`) for body/trunk/hood init, memcpy size re-read as body->vertexCount*12 (stops n*12 CSE), and the drop loop as `for (i..) { CarDrop* d = drops + i; }`; permute -r 40 found nothing; still differs: extra z store and param load/push edi order in prologue, hood/body count register order and sum order for totalCount.
+// FUNCTION: RALLYTROPHY 0x46dd80
+// totalCount is accumulated in the member itself (three += statements); a single sum expression
+// loads and adds the counts in a different order.
 void CarRain::Init(RainScene* scene)
 {
     int z = 0;
@@ -251,9 +247,9 @@ void CarRain::Init(RainScene* scene)
         hoodVerts = new Vec3[n];
         memcpy(hoodVerts, hood->vertices, hood->vertexCount * sizeof(Vec3));
     }
-    int total = trunkCount;
-    total += hoodCount;
-    totalCount = total + bodyCount;
+    totalCount = bodyCount;
+    totalCount += trunkCount;
+    totalCount += hoodCount;
     int count;
     i = 0;
     count = dropCount;
