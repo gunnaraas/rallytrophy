@@ -15,12 +15,12 @@ _Updated 2026-11-10 by `tools/progress.py` (game code `0x401000`–`0x4bcfc6`)._
 
 | | Functions | Code bytes |
 |---|---|---|
-| Byte-exact | 1868 / 2084 (89.64%) | 367,541 / 742,276 (49.52%) |
-| Written, not yet exact | 216 | 374,735 |
+| Byte-exact | 1871 / 2084 (89.78%) | 369,792 / 742,276 (49.82%) |
+| Written, not yet exact | 213 | 372,484 |
 | Written in total | 2084 / 2084 (100.00%) | 742,276 / 742,276 (100.00%) |
 
 ```
-exact   ███████████████░░░░░░░░░░░░░░░ 49.52% of code bytes
+exact   ███████████████░░░░░░░░░░░░░░░ 49.82% of code bytes
 written ██████████████████████████████ 100.00% of code bytes
 ```
 
@@ -35,7 +35,7 @@ Progress by module (ranges in `analysis/modules.csv`):
 | Startup helpers | `0x401000`–`0x404d50` | 60 / 65 / 65 | 71.1% | 100.0% | `████████████` |
 | Language / text table | `0x404d50`–`0x405580` | 13 / 13 / 13 | 100.0% | 100.0% | `████████████` |
 | Config files | `0x405580`–`0x409690` | 33 / 34 / 34 | 97.8% | 100.0% | `████████████` |
-| Stage scene and collision | `0x409690`–`0x420490` | 166 / 201 / 201 | 21.1% | 100.0% | `████████████` |
+| Stage scene and collision | `0x409690`–`0x420490` | 167 / 201 / 201 | 21.9% | 100.0% | `████████████` |
 | StageTable/control/credits screens | `0x420490`–`0x4266c0` | 31 / 39 / 39 | 22.1% | 100.0% | `████████████` |
 | Mode select screen | `0x4266c0`–`0x427600` | 8 / 9 / 9 | 39.8% | 100.0% | `████████████` |
 | Game settings screen | `0x427600`–`0x4295c0` | 10 / 11 / 11 | 65.8% | 100.0% | `████████████` |
@@ -90,7 +90,7 @@ Progress by module (ranges in `analysis/modules.csv`):
 | Sky | `0x4758b0`–`0x476490` | 13 / 14 / 14 | 51.1% | 100.0% | `████████████` |
 | Texture scroller and window rain | `0x476490`–`0x477370` | 17 / 19 / 19 | 49.0% | 100.0% | `████████████` |
 | Wheel spray | `0x477370`–`0x478020` | 12 / 13 / 13 | 61.0% | 100.0% | `████████████` |
-| Exhaust smoke | `0x478020`–`0x478870` | 11 / 12 / 12 | 43.8% | 100.0% | `████████████` |
+| Exhaust smoke | `0x478020`–`0x478870` | 12 / 12 / 12 | 100.0% | 100.0% | `████████████` |
 | Particle pool | `0x478870`–`0x478be0` | 6 / 6 / 6 | 100.0% | 100.0% | `████████████` |
 | Effect base and sprite tables | `0x478be0`–`0x479170` | 31 / 31 / 31 | 100.0% | 100.0% | `████████████` |
 | Car emitter B | `0x479170`–`0x47b4c0` | 11 / 13 / 13 | 69.1% | 100.0% | `████████████` |
@@ -121,7 +121,7 @@ Progress by module (ranges in `analysis/modules.csv`):
 | Scene-object base | `0x4b2830`–`0x4b3050` | 14 / 14 / 14 | 100.0% | 100.0% | `████████████` |
 | Collision geometry | `0x4b3050`–`0x4b44e0` | 5 / 6 / 6 | 71.1% | 100.0% | `████████████` |
 | Bounding-sphere geometry | `0x4b47e0`–`0x4b5110` | 11 / 11 / 11 | 100.0% | 100.0% | `████████████` |
-| Transform math and message pump | `0x4b5140`–`0x4b6ac0` | 16 / 18 / 18 | 67.6% | 100.0% | `████████████` |
+| Transform math and message pump | `0x4b5140`–`0x4b6ac0` | 17 / 18 / 18 | 74.9% | 100.0% | `████████████` |
 | Keyboard/mouse input hooks | `0x4b6ac0`–`0x4b7390` | 13 / 13 / 13 | 100.0% | 100.0% | `████████████` |
 | Timer / string / registry helpers | `0x4b7390`–`0x4b7790` | 15 / 15 / 15 | 100.0% | 100.0% | `████████████` |
 | View object | `0x4b77b0`–`0x4b7a40` | 7 / 7 / 7 | 100.0% | 100.0% | `████████████` |

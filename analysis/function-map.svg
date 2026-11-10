@@ -2,7 +2,7 @@
 <title>Rally Trophy per-function decompilation map</title>
 <rect width="1600" height="1120" rx="8" fill="#0d1117"/>
 <text x="20" y="30" font-size="18" font-weight="600" fill="#e6edf3">Every game function, sized by code bytes and branch complexity</text>
-<text x="20" y="53" fill="#8b949e">1,868 byte-exact · 216 written but not byte-exact · 0 unwritten. Tile area = bytes × (1 + log₂(1 + branch points)); hover for details.</text>
+<text x="20" y="53" fill="#8b949e">1,871 byte-exact · 213 written but not byte-exact · 0 unwritten. Tile area = bytes × (1 + log₂(1 + branch points)); hover for details.</text>
 <g transform="translate(20,72)" fill="#e6edf3">
 <rect width="12" height="12" fill="#3fb950"/><text x="18" y="11">byte-exact</text>
 <rect x="118" width="12" height="12" fill="#e3b341"/><text x="136" y="11">written, not exact</text>
@@ -148,7 +148,7 @@
 <rect x="692.17" y="141.82" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0040b4e0 · FUN_0040b4e0 · Stage scene and collision · 126 code bytes · complexity 1 (0 branch points) · byte-exact</title></rect>
 <rect x="693.42" y="141.82" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0040b560 · FUN_0040b560 · Stage scene and collision · 23 code bytes · complexity 1 (0 branch points) · byte-exact</title></rect>
 <rect x="693.65" y="141.82" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0040b580 · FUN_0040b580 · Stage scene and collision · 118 code bytes · complexity 1 (0 branch points) · byte-exact</title></rect>
-<rect x="694.83" y="141.82" width="28.50" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x0040b600 · FUN_0040b600 · Stage scene and collision · 663 code bytes · complexity 11 (10 branch points) · written, not exact</title></rect>
+<rect x="694.83" y="141.82" width="28.50" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0040b600 · FUN_0040b600 · Stage scene and collision · 663 code bytes · complexity 11 (10 branch points) · byte-exact</title></rect>
 <rect x="724.33" y="141.82" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0040b8d0 · FUN_0040b8d0 · Stage scene and collision · 86 code bytes · complexity 1 (0 branch points) · byte-exact</title></rect>
 <rect x="725.19" y="141.82" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0040b930 · FUN_0040b930 · Stage scene and collision · 124 code bytes · complexity 1 (0 branch points) · byte-exact</title></rect>
 <rect x="726.42" y="141.82" width="14.16" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0040b9b0 · FUN_0040b9b0 · Stage scene and collision · 399 code bytes · complexity 7 (6 branch points) · byte-exact</title></rect>
@@ -1138,7 +1138,7 @@
 <rect x="797.49" y="738.18" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x004780c0 · FUN_004780c0 · Exhaust smoke · 30 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>
 <rect x="798.35" y="738.18" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x004780e0 · FUN_004780e0 · Exhaust smoke · 11 code bytes · complexity 1 (0 branch points) · byte-exact</title></rect>
 <rect x="798.50" y="738.18" width="12.98" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x004780f0 · FUN_004780f0 · Exhaust smoke · 296 code bytes · complexity 5 (4 branch points) · byte-exact</title></rect>
-<rect x="812.48" y="738.18" width="60.75" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x00478220 · FUN_00478220 · Exhaust smoke · 1,141 code bytes · complexity 7 (6 branch points) · written, not exact</title></rect>
+<rect x="812.48" y="738.18" width="60.75" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00478220 · FUN_00478220 · Exhaust smoke · 1,141 code bytes · complexity 7 (6 branch points) · byte-exact</title></rect>
 <rect x="874.22" y="738.18" width="10.51" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x004786a0 · FUN_004786a0 · Exhaust smoke · 405 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>
 <rect x="885.74" y="738.18" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00478840 · exhaust smoke module end: guard-bit initialiser of the STL header statics (_$E) · Exhaust smoke · 25 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>
 <rect x="886.45" y="738.18" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00478860 · exhaust smoke module end: atexit(0x402c90) registration · Exhaust smoke · 12 code bytes · complexity 1 (0 branch points) · byte-exact</title></rect>
@@ -1983,7 +1983,7 @@
 <rect x="464.63" y="1036.36" width="83.11" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x004b6140 · FUN_004b6140 · Transform math and message pump · 926 code bytes · complexity 34 (33 branch points) · byte-exact</title></rect>
 <rect x="548.74" y="1036.36" width="7.72" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x004b64e0 · FUN_004b64e0 · Transform math and message pump · 226 code bytes · complexity 3 (2 branch points) · byte-exact</title></rect>
 <rect x="557.45" y="1036.36" width="20.21" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x004b65d0 · FUN_004b65d0 · Transform math and message pump · 550 code bytes · complexity 3 (2 branch points) · byte-exact</title></rect>
-<rect x="578.67" y="1036.36" width="24.39" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x004b6800 · FUN_004b6800 · Transform math and message pump · 447 code bytes · complexity 7 (6 branch points) · written, not exact</title></rect>
+<rect x="578.67" y="1036.36" width="24.39" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x004b6800 · FUN_004b6800 · Transform math and message pump · 447 code bytes · complexity 7 (6 branch points) · byte-exact</title></rect>
 <rect x="604.06" y="1036.36" width="7.95" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x004b69f0 · FUN_004b69f0 · Transform math and message pump · 150 code bytes · complexity 8 (7 branch points) · byte-exact</title></rect>
 <rect x="613.01" y="1036.36" width="12.43" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x004b6ac0 · FUN_004b6ac0 · Keyboard/mouse input hooks · 300 code bytes · complexity 4 (3 branch points) · byte-exact</title></rect>
 <rect x="626.44" y="1036.36" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x004b6bf0 · FUN_004b6bf0 · Keyboard/mouse input hooks · 31 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>

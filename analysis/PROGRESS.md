@@ -6,7 +6,7 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Status
 
-- Marker inventory: 1868/2084 byte-exact (89.64%; 49.52% of game-code bytes); 2084/2084 functions written (100.00%), from `tools/progress.py` (2026-11-10).
+- Marker inventory: 1871/2084 byte-exact (89.78%; 49.82% of game-code bytes); 2084/2084 functions written (100.00%), from `tools/progress.py` (2026-11-10).
 - Game code: about 1,690 functions in `0x401000`–`0x4bcfc6`
 
 ## Queue
@@ -32,6 +32,7 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Log
 
+- 2026-11-10 (Claude, access-form grids): MATCH 0x40b600 `TrailQueue::Draw` (named `cut = now - 5000` local with a `k < 4` loop), 0x478220 `ExhaustSmoke::Render` (depth y term through `pp->y`, z and x through `p->position`), 0x4b6800 `Tri3::EdgeDist` (z term of the b-side dot as `N->z*B->z` through Vec3 views, y/x through the arrays; an unused `const float* pn=t->n` alias is load-bearing). Method: generate the full cross product of access paths per operand (member vs pointer alias vs cast view) with a small script and feed it to `try_variants.py`; scheduling/operand-order near-misses that resisted statement permutation fell to this. No gain on 0x477690 (28 atlas forms) and 0x4267a0 (66 statement-order/alias forms). Full matcher: 1871/1871, 213 NONMATCHING.
 - 2026-11-10 (Claude, finishing the Kimi partials below): MATCH 0x46dd80 `CarRain::Init` (`totalCount = bodyCount; totalCount += trunkCount; totalCount += hoodCount;`: accumulating in the member fixes the load/add order that no single sum expression gave) and 0x46a200 `Car::FUN_0046a200` (`Color color; color.value = 0xffffffff;`: the EH state byte is stored before the value, which `Color color(0xffffffff)` cannot produce). Swept the default-construct-then-assign Color form over the other 14 NONMATCHING functions with a `Color x(expr);` local: no further match. `try_variants.py` now skips the comment lines under a marker when locating the body (a quoted `{` broke it). Full matcher: 1868/1868, 216 NONMATCHING.
 - 2026-11-10 (Kimi): No new byte-exact matches; full matcher: 1866/1866 marked functions match, 218 NONMATCHING, zero DIFF or compile failures.
   Gauge `0x46a200` improved 24→11 differing bytes (1424/1424 bytes); rain `0x46dd80` retains prologue zeroing and loop-spill fixes at 8 differing bytes (1050/1050 bytes).
