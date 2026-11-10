@@ -138,9 +138,9 @@ void PhysBody::FUN_0041c540()
     *(volatile float*)&V->x = V->x + dv->x; // volatile: keep the two passes unfused (original rounds each)
     *(volatile float*)&V->y = dv->y + V->y;
     *(volatile float*)&V->z = dv->z + V->z;
-    V->x = off.x; V->x += V->x;
-    V->y = off.y; V->y += V->y;
-    V->z = off.z; V->z += V->z;
+    V->x = off.x + V->x;
+    V->y = off.y + V->y;
+    V->z = off.z + V->z;
     float P = w.y * q.w + w.x * q.z - w.z * q.x;
     float t1 = w.y * q.x + w.z * q.w - w.x * q.y;
     float t2 = -(w.x * q.x) - w.y * q.y - w.z * q.z;
@@ -162,7 +162,7 @@ void PhysBody::FUN_0041c540()
     if (n < DAT_004e1438 || n > DAT_004e1430) {
         float s = DAT_004e1348 / (float)sqrt(n);
         q.x = s * q.x;
-        q.y = s; q.y *= q.y;
+        q.y = s * q.y;
         q.z = s * q.z;
         q.w = s * q.w;
     }

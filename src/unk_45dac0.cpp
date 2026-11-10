@@ -122,7 +122,7 @@ float Car::SunFactor(void* models)
                         float tx = p.x - q[-2];
                         float tz = p.z - q[0];
                         if (!(tx * tx + tz * tz > r * r)) {
-                            float h = p.z * q[-4]; h += p.y * tri->ny;
+                            float h = p.z * q[-4] + p.y * tri->ny;
                             h = h + p.x * tri->nx;
                             h = h - q[-3];
                             if (!(*(unsigned*)&h & 0x80000000)) {

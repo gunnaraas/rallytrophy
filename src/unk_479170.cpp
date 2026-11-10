@@ -374,7 +374,7 @@ float CarEmitterB::SpawnCore1(float scale, float age)
     p->velocity.y += j2;
     p->size = 0.2f;
     p->velocity.z += (float)((rand() & 0x3fff) - 0x1fff) * 9.1552734375e-5f;
-    p->gravity = 0.5f; p->gravity += (rand() & 0x3ff) * 9.765625145519e-5f;
+    p->gravity = (rand() & 0x3ff) * 9.765625145519e-5f + 0.5f;
     p->frame = (rand() & 3) | 0x110;
     p->color = 0xffffffff;
     p->alphaScale = alpha;
@@ -501,7 +501,7 @@ float CarEmitterB::SpawnCore2(float a, float b)
     p->velocity.y = yv + j2;
     p->velocity.z = (float)((rand() & 0x3fff) - 0x1fff) * C_jit + p->velocity.z;
     p->size = 0.2f;
-    p->gravity = 0.3f; p->gravity += (float)(rand() & 0x3ff) * C_spinScale;
+    p->gravity = (float)(rand() & 0x3ff) * C_spinScale + 0.3f;
     p->frame = (rand() & 3) | 0x120;
     p->color = 0xffffffff;
     p->alphaScale = mix;
