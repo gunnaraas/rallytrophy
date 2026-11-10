@@ -2,7 +2,7 @@
 <title>Rally Trophy per-function decompilation map</title>
 <rect width="1600" height="1120" rx="8" fill="#0d1117"/>
 <text x="20" y="30" font-size="18" font-weight="600" fill="#e6edf3">Every game function, sized by code bytes and branch complexity</text>
-<text x="20" y="53" fill="#8b949e">1,875 byte-exact · 209 written but not byte-exact · 0 unwritten. Tile area = bytes × (1 + log₂(1 + branch points)); hover for details.</text>
+<text x="20" y="53" fill="#8b949e">1,877 byte-exact · 207 written but not byte-exact · 0 unwritten. Tile area = bytes × (1 + log₂(1 + branch points)); hover for details.</text>
 <g transform="translate(20,72)" fill="#e6edf3">
 <rect width="12" height="12" fill="#3fb950"/><text x="18" y="11">byte-exact</text>
 <rect x="118" width="12" height="12" fill="#e3b341"/><text x="136" y="11">written, not exact</text>
@@ -295,8 +295,8 @@
 <rect x="710.76" y="231.27" width="1.75" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0041b530 · FUN_0041b530 · Stage scene and collision · 89 code bytes · complexity 3 (2 branch points) · byte-exact</title></rect>
 <rect x="713.51" y="231.27" width="23.15" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x0041b590 · FUN_0041b590 · Stage scene and collision · 412 code bytes · complexity 15 (14 branch points) · written, not exact</title></rect>
 <rect x="737.66" y="231.27" width="4.68" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0041b730 · FUN_0041b730 · Stage scene and collision · 143 code bytes · complexity 5 (4 branch points) · byte-exact</title></rect>
-<rect x="743.34" y="231.27" width="3.66" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x0041b7f0 · FUN_0041b7f0 · Stage scene and collision · 195 code bytes · complexity 2 (1 branch points) · written, not exact</title></rect>
-<rect x="748.00" y="231.27" width="3.78" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x0041b8c0 · FUN_0041b8c0 · Stage scene and collision · 200 code bytes · complexity 2 (1 branch points) · written, not exact</title></rect>
+<rect x="743.34" y="231.27" width="3.66" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0041b7f0 · FUN_0041b7f0 · Stage scene and collision · 195 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>
+<rect x="748.00" y="231.27" width="3.78" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0041b8c0 · FUN_0041b8c0 · Stage scene and collision · 200 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>
 <rect x="752.78" y="231.27" width="0.74" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0041b990 · FUN_0041b990 · Stage scene and collision · 73 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>
 <rect x="754.52" y="231.27" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0041b9e0 · FUN_0041b9e0 · Stage scene and collision · 12 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>
 <rect x="754.81" y="231.27" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0041ba30 · FUN_0041ba30 · Stage scene and collision · 10 code bytes · complexity 1 (0 branch points) · byte-exact</title></rect>
