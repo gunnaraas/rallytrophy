@@ -64,18 +64,17 @@ void TrailQueue::Push(int corner, int t)
     head = (head + 1) & 3;
 }
 
-// NONMATCHING: RALLYTROPHY 0x40b600
-// Tried 2026-10-30 night: indexed for-loop (k <= 3) with separate step local, HudPoint uv[4] (offset-0 field is the per-row
-// value, pairs 0/1 and 2/3 hold the constants), 20-round permute; 2 insns differ: original has `cmp eax,4; jl`, `k < 4`
-// builds an extra lea/mov at loop entry and `k <= 3` gives `cmp eax,3; jle`.
-// Tried 2026-10-31 re-pass: ~30 loop-shape variants (k<4, k!=4, do/while ++k<4, pointer-difference p-used<4, volatile, k+1<5 folds back to cmp 3); every k<4 form adds lea eax/mov ebx,eax at entry (15 insns), k+1<5 and k<=3 give 2 insns; permute -r 40 no MATCH (best 2).
+// FUNCTION: RALLYTROPHY 0x40b600
+// The cutoff is a named local (cut = now - 5000) and the loop is k < 4: without the local, k < 4 materialises
+// the used[] cursor through eax and only k <= 3 keeps the original's register use (with cmp 3/jle).
 void TrailQueue::Draw(int now)
 {
     int total = 0, alive = 0;
-    for (int k = 0; k <= 3; k++) {
+    int cut = now - 5000;
+    for (int k = 0; k < 4; k++) {
         if (used[k]) {
             int t = time[k];
-            if (t < now - 5000) {
+            if (t < cut) {
                 used[k] = 0;
             } else {
                 int age = now - t;
