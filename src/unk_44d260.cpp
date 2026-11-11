@@ -179,9 +179,10 @@ struct FB3_Stats {
 };
 
 // original: FUN_0044d260
-// NONMATCHING: RALLYTROPHY 0x44d260
-// Tried 2026-10-31: per-branch `RaceMode* race` locals fix the register allocation (66->14 insns). `char buf[1]` reaches 4 insns but _itoa would overflow it, so the buffer stays 4 bytes; what remains is the allocator temp / itoa buffer stack offsets.
-// Tried 2026-10-31 re-pass: ~30 variants (buf 5-16 bytes, file/magic/i/j/buf decl order and scope, named allocator, pad locals, volatile buf init) plus permute -r 40 stay at 14 insns; original puts the allocator temp/buf at esp+0x12, file/i at 0x18, magic at 0x1c (ours 0x1f, 0x10, 0x18) and no local mix reproduces that slot map.
+// FUNCTION: RALLYTROPHY 0x44d260
+// Matched 2026-11-11: the itoa buffer is `char buf[2]` at function scope (not in a nested block); that gives the
+// original slot map (buffer at esp+0x12, file at 0x18, magic at 0x1c). Per-branch `RaceMode* race` locals fix
+// the register allocation.
 void SaveGame::SaveSlot(int slot)
 {
     FillHeader();
@@ -193,11 +194,9 @@ void SaveGame::SaveSlot(int slot)
     } else {
         path.AssignCall("savegame/rally", strlen("savegame/rally"));
     }
-    {
-        char buf[4];
-        itoa(slot, buf, 10);
-        path.AppendCall(buf, strlen(buf));
-    }
+    char buf[2]; // one digit and the terminator: slots are 0..9
+    itoa(slot, buf, 10);
+    path.AppendCall(buf, strlen(buf));
     path.AppendCall(".SAV", strlen(".SAV"));
     file = new File(path.c_str(), 0x82);
     int magic = 0x8195;
@@ -272,6 +271,7 @@ void SaveGame::SaveSlot(int slot)
 // inline per exit), and the 10-dword copy loop uses edx/esi swapped.
 // Tried 2026-10-31: dropped a bogus FUN_00491130 call from the last (non-arcade AI) loop - the original has none there (146->143 insns); ~40 variants of the itoa buffer (decl order, block/for/if scope, int[3], struct, static) never move it into the low temp region (it stays at the frame top, +12 bytes, offsets of everything shift); static buffer proves that is the whole frame delta. Return-path/goto restructuring did not help.
 // Tried 2026-11-01: copying index/value into named temps (value first) before the two race->unk28/2c stores and routing the 10-dword stats copy through a named int temp improved 143->122 insns differ; ~25 more variants (buffer decl placement, direct path.Add(itoa), volatile n/remaining, tail-copy temps, id temps, loop-index/cursor hoists, magic2 inverted return) no better; still open: itoa buffer +12 frame bytes, shared _Tidy exit for magic2 failure.
+// 2026-11-11: itoa buffer as `char number[2]` at function scope (SaveSlot form) fixes the frame (2085 -> 2076 bytes, 122 -> 63 insns); the three failed checks sharing one `fail: return 0` inside the third (as the original lays it out) 2076 -> 2071, 59 insns. Left: the original fail exit calls _Tidy(true) instead of the inline destructor, and the stats copy register swap.
 int SaveGame::LoadSlot(int slot)
 {
     int magic1, magic2;
@@ -282,25 +282,20 @@ int SaveGame::LoadSlot(int slot)
     } else {
         path.Set("savegame/rally");
     }
-    {
-        char number[10];
-        itoa(slot, number, 10);
-        path.Add(number);
-    }
+    char number[2]; // as in SaveSlot (0x44d260)
+    itoa(slot, number, 10);
+    path.Add(number);
     path.Add(".SAV");
     File* file;
-    if (File::Exists(path.c_str())) {
-        file = new File(path.c_str(), 0x81);
-        file->Read(&magic1, 4);
-        if (magic1 == 0x8195) {
-            file->Read(&magic2, 4);
-            if (magic2 == 0x20011010) {
-                goto loaded;
-            }
-        }
+    if (!File::Exists(path.c_str())) goto fail;
+    file = new File(path.c_str(), 0x81);
+    file->Read(&magic1, 4);
+    if (magic1 != 0x8195) goto fail;
+    file->Read(&magic2, 4);
+    if (magic2 != 0x20011010) {
+fail:
+        return 0;
     }
-    return 0;
-loaded:
     file->Read(this, 0x6c);
     DAT_0050132c = pad2c;
     int n = kind;

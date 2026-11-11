@@ -2,7 +2,7 @@
 <title>Rally Trophy per-function decompilation map</title>
 <rect width="1600" height="1120" rx="8" fill="#0d1117"/>
 <text x="20" y="30" font-size="18" font-weight="600" fill="#e6edf3">Every game function, sized by code bytes and branch complexity</text>
-<text x="20" y="53" fill="#8b949e">1,887 byte-exact · 197 written but not byte-exact · 0 unwritten. Tile area = bytes × (1 + log₂(1 + branch points)); hover for details.</text>
+<text x="20" y="53" fill="#8b949e">1,888 byte-exact · 196 written but not byte-exact · 0 unwritten. Tile area = bytes × (1 + log₂(1 + branch points)); hover for details.</text>
 <g transform="translate(20,72)" fill="#e6edf3">
 <rect width="12" height="12" fill="#3fb950"/><text x="18" y="11">byte-exact</text>
 <rect x="118" width="12" height="12" fill="#e3b341"/><text x="136" y="11">written, not exact</text>
@@ -645,7 +645,7 @@
 <rect x="21.11" y="529.45" width="36.67" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x0044cfb0 · FUN_0044cfb0 · Replay menu · 632 code bytes · complexity 9 (8 branch points) · written, not exact</title></rect>
 <rect x="58.78" y="529.45" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0044d230 · ReplayMenu module end: guard-bit initialiser of the STL header statics (_$E) · Replay menu · 25 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>
 <rect x="59.50" y="529.45" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0044d250 · ReplayMenu module end: atexit(0x402c90) registration · Replay menu · 12 code bytes · complexity 1 (0 branch points) · byte-exact</title></rect>
-<rect x="59.67" y="529.45" width="80.09" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x0044d260 · FUN_0044d260 · Save-game files · 1,081 code bytes · complexity 19 (18 branch points) · written, not exact</title></rect>
+<rect x="59.67" y="529.45" width="80.09" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0044d260 · FUN_0044d260 · Save-game files · 1,081 code bytes · complexity 19 (18 branch points) · byte-exact</title></rect>
 <rect x="140.76" y="529.45" width="177.63" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x0044d6a0 · FUN_0044d6a0 · Save-game files · 2,053 code bytes · complexity 34 (33 branch points) · written, not exact</title></rect>
 <rect x="319.39" y="529.45" width="99.49" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x0044deb0 · FUN_0044deb0 · Save-game files · 1,321 code bytes · complexity 20 (19 branch points) · written, not exact</title></rect>
 <rect x="419.88" y="529.45" width="38.77" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x0044e3e0 · FUN_0044e3e0 · Save-game files · 624 code bytes · complexity 11 (10 branch points) · written, not exact</title></rect>
