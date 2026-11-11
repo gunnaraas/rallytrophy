@@ -3426,7 +3426,7 @@ draw:
                 FormatSessionTime(DAT_00565494[i]->FUN_00491f70() - refTime, timeText);
                 DAT_00565494[i]->unk1884[100] = DAT_00565494[i]->FUN_00491f70() - refTime;
             }
-            char rank[12];
+            char rank[32]; // 2026-11-11: sized to the original frame (was 12; 165 -> 154 insns)
             _itoa(i + 1, rank, 10);
             text->Print(DAT_0056b0ac, cx184 - text->GetWidth(rank, 0), y, rank, 0, 1.0f, 1.0f);
             text->Print(DAT_0056b0ac, cx510, y, FUN_00405380(DAT_00565494[i]->unk2c + 0x138), 0, 1.0f, 1.0f);
@@ -3551,7 +3551,7 @@ int RaceMode::FUN_0048a920(int sort)
             } else {
                 FormatSessionTime(total - best, timeText);
             }
-            char rank[12];
+            char rank[32]; // 2026-11-11: sized to the original frame (was 12; 1088 -> 605 bytes differ)
             _itoa(i + 1, rank, 10);
             text->Print(DAT_0056b0ac, x184 - text->GetWidth(rank, 0), y, rank, 0, 1.0f, 1.0f);
             text->Print(DAT_0056b0ac, x510, y, FUN_00405380(DAT_00565494[i]->unk2c + 0x138), 0, 1.0f, 1.0f);
@@ -4215,7 +4215,7 @@ int RaceMode::FUN_0048b080(int award)
         float room = xCar - xName - 10.0f;
         for (int i = 0; i < DAT_00565490; i++) {
             char points[12];
-            char rank[12];
+            char rank[28]; // 2026-11-11: sized to the original frame (was 12; +16 could equally be in points; 1398 -> 1413 of 1422 bytes)
             color.value = DAT_00565494[i] == local ? DAT_00508bf0 : 0xffffffff;
             text->color = color.value;
             _itoa(DAT_00565494[i]->unk1a54, points, 10);

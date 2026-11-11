@@ -52,7 +52,7 @@ Instruction-multiset view: 48 functions are pure register/scheduling permutation
 | 0x41d7d0 | src/unk_41d7d0.cpp | U40A850Body::FUN_0041d7d0 | size | 5700 | 6021 | 5354 | 251 | `sub    esp,0x284` | `sub    esp,0x278` | eh 0,3,4,3,5,3,6,3,7,3,8,3,9,3,0,13,15,16,18,15,19,21,15,22,24,15,25,27,15,28,30,15,31,33,13 vs 0,3,4,3,5,3,6,3,7,3,8,3,9,3,0,13,15,16,18,15,19,21,15,22,24,15,25,27,15,28,30,15,31,33,13,0 |
 | 0x41ef60 | src/unk_41ef60.cpp | RespBody::Respond | size | 3369 | 3319 | 2725 | 193 | `push   esi` | `push   ebx` |  |
 | 0x41fc60 | src/unk_41fc60.cpp | U40A850Body::FUN_0041fc60 | size | 1732 | 1861 | 1618 | 231 | `sub    esp,0xb8` | `sub    esp,0xb4` |  |
-| 0x420db0 | src/unk_420490.cpp | StageScreen::LoadCars | size | 3250 | 3273 | 2262 | 8 | `sub    esp,0x19c` | `sub    esp,0x198` |  |
+| 0x420db0 | src/unk_420490.cpp | StageScreen::LoadCars | size | 3250 | 3273 | 2259 | 8 | `mov    DWORD PTR [esp+0x58],ebx` | `mov    DWORD PTR [esp+0x40],ebx` |  |
 | 0x421e30 | src/unk_420490.cpp | StageScreen::Start | other | 364 | 364 | 39 | 11 | `mov    eax,ds:0x0` | `mov    edx,DWORD PTR ds:0x0` |  |
 | 0x421fa0 | src/unk_420490.cpp | StageScreen::Layout | size | 4272 | 4128 | 2598 | 241 | `sub    esp,0xcc` | `sub    esp,0xc8` | eh 2,4,13 vs 2,4,12 |
 | 0x422fc0 | src/unk_420490.cpp | StageScreen::LoadLayout | size | 1714 | 1700 | 324 | 4 | `mov    DWORD PTR [esp+0x24],esi` | `mov    DWORD PTR [esp+0x28],esi` |  |
@@ -155,9 +155,9 @@ Instruction-multiset view: 48 functions are pure register/scheduling permutation
 | 0x4831c0 | src/unk_481390.cpp | NetRace::ServiceNetwork | size | 1924 | 1898 | 1549 | 97 | `sub    esp,0x390` | `sub    esp,0x568` | eh 6,0,5,0,0,0,0,4 vs 0,6,0,5,0,0,4 |
 | 0x486240 | src/unk_4856e0.cpp | RaceMode::LoadOverlays | order | 848 | 848 | 74 | 0 | `push   0xd4` | `mov    DWORD PTR [esi+0x40],edi` |  |
 | 0x489300 | src/unk_4856e0.cpp | RaceMode::FUN_00489300 | size | 1640 | 1684 | 512 | 28 | `mov    DWORD PTR [esp+0x14],ebx` | `mov    DWORD PTR [esp+0x18],ebx` |  |
-| 0x48a070 | src/unk_4856e0.cpp | RaceMode::FUN_0048a070 | size | 2207 | 2203 | 1120 | 4 | `sub    esp,0xa0` | `sub    esp,0x8c` |  |
-| 0x48a920 | src/unk_4856e0.cpp | RaceMode::FUN_0048a920 | size | 1788 | 1839 | 1088 | 7 | `sub    esp,0x6c` | `sub    esp,0x58` |  |
-| 0x48b080 | src/unk_4856e0.cpp | RaceMode::FUN_0048b080 | size | 1398 | 1422 | 782 | 32 | `sub    esp,0x58` | `sub    esp,0x48` |  |
+| 0x48a070 | src/unk_4856e0.cpp | RaceMode::FUN_0048a070 | size | 2207 | 2203 | 1087 | 4 | `mov    DWORD PTR [esp+0x14],edx` | `mov    DWORD PTR [esp+0x20],edx` |  |
+| 0x48a920 | src/unk_4856e0.cpp | RaceMode::FUN_0048a920 | size | 1827 | 1839 | 605 | 7 | `xor    ebx,ebx` | `xor    edi,edi` |  |
+| 0x48b080 | src/unk_4856e0.cpp | RaceMode::FUN_0048b080 | size | 1413 | 1422 | 807 | 32 | `mov    eax,DWORD PTR [esp+0x74]` | `push   edi` |  |
 | 0x48b620 | src/unk_4856e0.cpp | RaceMode::FUN_0048b620 | size | 1764 | 1772 | 320 | 3 | `push   0x0` | `mov    edi,0x80000000` |  |
 | 0x48bd10 | src/unk_4856e0.cpp | RaceMode::NameMenu | size | 2765 | 2766 | 1628 | 27 | `mov    eax,ds:0x0` | `push   ebx` | eh 0,1,1,0 vs 0,0,1,0,0,1,1,1,0,0,1 |
 | 0x48c7e0 | src/unk_4856e0.cpp | RaceMode::FUN_0048c7e0 | other | 1205 | 1205 | 30 | 0 | `mov    eax,ds:0x0` | `xor    ebp,ebp` |  |
