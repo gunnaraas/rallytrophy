@@ -15,12 +15,12 @@ _Updated 2026-11-11 by `tools/progress.py` (game code `0x401000`–`0x4bcfc6`)._
 
 | | Functions | Code bytes |
 |---|---|---|
-| Byte-exact | 1889 / 2084 (90.64%) | 383,704 / 742,276 (51.69%) |
-| Written, not yet exact | 195 | 358,572 |
+| Byte-exact | 1892 / 2084 (90.79%) | 386,340 / 742,276 (52.05%) |
+| Written, not yet exact | 192 | 355,936 |
 | Written in total | 2084 / 2084 (100.00%) | 742,276 / 742,276 (100.00%) |
 
 ```
-exact   ████████████████░░░░░░░░░░░░░░ 51.69% of code bytes
+exact   ████████████████░░░░░░░░░░░░░░ 52.05% of code bytes
 written ██████████████████████████████ 100.00% of code bytes
 ```
 
@@ -83,10 +83,10 @@ Progress by module (ranges in `analysis/modules.csv`):
 | Car light glows | `0x46e850`–`0x46eec0` | 12 / 13 / 13 | 28.5% | 100.0% | `████████████` |
 | City lens flares | `0x46eec0`–`0x46fa80` | 4 / 6 / 6 | 5.4% | 100.0% | `████████████` |
 | Water animator | `0x46fa80`–`0x46fdf0` | 5 / 6 / 6 | 50.1% | 100.0% | `████████████` |
-| Car shadows (ParallelShadow) | `0x46fdf0`–`0x472c90` | 64 / 69 / 69 | 33.5% | 100.0% | `████████████` |
-| Rain and view-matrix inverse | `0x472c90`–`0x4741a0` | 8 / 10 / 10 | 10.9% | 100.0% | `████████████` |
+| Car shadows (ParallelShadow) | `0x46fdf0`–`0x472c90` | 65 / 69 / 69 | 36.8% | 100.0% | `████████████` |
+| Rain and view-matrix inverse | `0x472c90`–`0x4741a0` | 9 / 10 / 10 | 37.7% | 100.0% | `████████████` |
 | Skid marks | `0x4741a0`–`0x474c50` | 10 / 12 / 12 | 36.9% | 100.0% | `████████████` |
-| Snowfall | `0x474c50`–`0x4758b0` | 5 / 7 / 7 | 18.0% | 100.0% | `████████████` |
+| Snowfall | `0x474c50`–`0x4758b0` | 6 / 7 / 7 | 44.4% | 100.0% | `████████████` |
 | Sky | `0x4758b0`–`0x476490` | 13 / 14 / 14 | 51.1% | 100.0% | `████████████` |
 | Texture scroller and window rain | `0x476490`–`0x477370` | 17 / 19 / 19 | 49.0% | 100.0% | `████████████` |
 | Wheel spray | `0x477370`–`0x478020` | 12 / 13 / 13 | 61.0% | 100.0% | `████████████` |

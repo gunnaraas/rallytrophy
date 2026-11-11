@@ -58,6 +58,18 @@ struct QueryPoint {
     float x, y, z;
 };
 
+// The track-query block (0x48-0x7c of the weather effects): one member object whose constructor body sets the
+// kind, so that store lands between the vector init and the EH state of the completed member.
+struct TrackQuery {
+    TrackQuery() { queryKind = 0x11; }
+    std::vector<CollTri*> tris;        // 0x48 (plain member: a derived vector type adds EH states to the dtor; use Tris() for the out-of-line erase): triangles near the camera (allocator byte, begin 0x4c, end 0x50, cap 0x54)
+    BYTE unk58[4];
+    QueryPoint queryMin;                     // 0x5c: query box around the camera (written by Update)
+    QueryPoint queryMax;                     // 0x68
+    QuerySphere* querySphere;          // 0x74: points at a stack local of Update
+    int queryKind;                     // 0x78: 0x11 after the constructor, 0xf after Update
+};
+
 class RainEffect : public WeatherEffect {
 public:
     RainEffect(TextureLoader* loader, int drops, int splashes); // 0x472d00
@@ -80,13 +92,8 @@ public:
     float streakWidth;                 // 0x3c: width of a drop streak (0.03)
     float splashSizeOld;               // 0x40: splash half-size at age 255 (0.025)
     float splashSizeNew;               // 0x44: splash half-size at age 0 (0.085)
-    std::vector<CollTri*> tris;        // 0x48 (plain member: a derived vector type adds EH states to the dtor; use Tris() for the out-of-line erase): triangles near the camera (allocator byte, begin 0x4c, end 0x50, cap 0x54)
-    BYTE unk58[4];
-    QueryPoint queryMin;                     // 0x5c: query box around the camera (written by Update)
-    QueryPoint queryMax;                     // 0x68
-    QuerySphere* querySphere;          // 0x74: points at a stack local of Update
-    int queryKind;                     // 0x78: 0x11 after the constructor, 0xf after Update
-    TriVector* Tris() { return (TriVector*)&tris; }
+    TrackQuery query;                  // 0x48
+    TriVector* Tris() { return (TriVector*)&query.tris; }
 };
 
 #endif

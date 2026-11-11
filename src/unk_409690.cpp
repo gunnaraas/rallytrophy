@@ -354,6 +354,11 @@ extern std::vector<void*> DAT_00508298; // shared free list, reserved to 0x200 e
 // Tried: setting x/diagonal in the member ctors (splits the state stores), pos store chains, 0.0f literals.
 // Tried 2026-10-30 night: volatile barrier on each of pos.x/z/y/unk50 with all 24 orderings of those four stores (120 variants); best stays 2 insns differ, none match; volatile only moves the EH-state store earlier (right after xor edi,edi) and cannot place it after pos.y.
 // Tried 2026-10-31 re-pass: single-field volatile stores on pos.x/z/y/unk50, volatile reads of pos.x/unk4c/m00/pos.y (head and tail), 9 variants best 2 insns; permute.py -r 40 stayed at baseline (2, 28), no MATCH; the pos.x store still sinks below the EH-state store.
+// Tried 2026-11-11 (about 30 forms, measured with and without /G6 scheduling): any code between the two member
+// constructors forces a state-0 store the original lacks, and stores placed in the pos constructor change the
+// prologue (push edi before mov esi,ecx), so all stores are body statements; the body always emits the 1.0 chain,
+// then the state store, then the zero stores, whatever the written order, type (int/float/double) or helper form.
+// Closest other shape: `m(&pos)` with a constructor doing x, diagonal, z, y (exact order, but a state-0 store).
 SceneXform::SceneXform()
 {
     pos.v[0] = 0;
