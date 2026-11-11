@@ -259,3 +259,21 @@ Measured on `config.cpp` and small test files; this is what made `file_error::fi
   logger. Expect it to flip again when rallytrophy.h gains or loses a declaration.
 - Where to look for this effect elsewhere: a late (header inline or template) function whose build has an EH state
   store in front of a call that the original lacks.
+
+## Stack slot sharing between blocks (2026-11-11)
+
+Measured with small test files (VC6 /O2 /Oa /G6 /GX), frame size read from `sub esp`:
+
+- Locals of blocks whose lifetimes do not overlap can share stack space. Two sibling blocks with `char a[0x200]`
+  and `char b[0x2e8]` give a 0x2e8 frame. The same holds through loops, nested ifs, plain structs and inlined
+  functions.
+- A local reuses a dead slot only if it is at least half the slot's size. 372 and 376 bytes share a 744-byte
+  slot; 256 or 192 bytes do not (the frame grows by their size). Two 256-byte arrays in one block next to a
+  744-byte block give 744 + 512; the same 512 bytes as one struct give 744.
+- Small locals of equal size in sibling blocks share with each other (two `char[256]` blocks: 256).
+- A block that holds an object with a destructor does not share (0x300 instead of 0x200 in the first test).
+
+Use: compare the first `sub esp` with the original (insdiff). If ours is larger, look for buffers that should be
+one object, or objects with destructors inside a block; if smaller, look for locals declared once at function
+scope that the original has per block, or a buffer that is too small. Read the buffer addresses in the original
+(`lea reg,[esp+N]`) to see which locals sit in the same slot.

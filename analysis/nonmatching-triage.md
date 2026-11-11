@@ -152,7 +152,7 @@ Instruction-multiset view: 48 functions are pure register/scheduling permutation
 | 0x481390 | src/unk_481390.cpp | NetRace::NetRace | order | 491 | 491 | 17 | 0 | `mov    ebx,DWORD PTR [edi+0x4]` | `mov    DWORD PTR [esp+0x18],ebp` |  |
 | 0x481940 | src/unk_481390.cpp | NetRace::Update | size | 1244 | 1240 | 954 | 25 | `mov    eax,DWORD PTR [esi+0x87c]` | `xor    edi,edi` |  |
 | 0x482ce0 | src/unk_481390.cpp | NetRace::OnMessage | size | 740 | 739 | 513 | 11 | `push   ebx` | `mov    eax,DWORD PTR [esp+0x8]` |  |
-| 0x4831c0 | src/unk_481390.cpp | NetRace::ServiceNetwork | size | 1924 | 1898 | 1549 | 97 | `sub    esp,0x390` | `sub    esp,0x568` | eh 6,0,5,0,0,0,0,4 vs 0,6,0,5,0,0,4 |
+| 0x4831c0 | src/unk_481390.cpp | NetRace::ServiceNetwork | size | 1918 | 1898 | 1547 | 97 | `sub    esp,0x390` | `sub    esp,0x36c` | eh 6,0,5,0,0,0,0,4 vs 0,6,0,5,0,0,4 |
 | 0x486240 | src/unk_4856e0.cpp | RaceMode::LoadOverlays | order | 848 | 848 | 74 | 0 | `push   0xd4` | `mov    DWORD PTR [esi+0x40],edi` |  |
 | 0x489300 | src/unk_4856e0.cpp | RaceMode::FUN_00489300 | size | 1640 | 1684 | 512 | 28 | `mov    DWORD PTR [esp+0x14],ebx` | `mov    DWORD PTR [esp+0x18],ebx` |  |
 | 0x48a070 | src/unk_4856e0.cpp | RaceMode::FUN_0048a070 | size | 2207 | 2203 | 1087 | 4 | `mov    DWORD PTR [esp+0x14],edx` | `mov    DWORD PTR [esp+0x20],edx` |  |
