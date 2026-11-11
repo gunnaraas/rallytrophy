@@ -1411,7 +1411,10 @@ struct G3CameraView {
     __asm fstp dword ptr [eax+4]
 
 // NONMATCHING: RALLYTROPHY 0x4578c0
-// Tried 2026-10-31 re-pass: 25 variants (hoisted locals in slot order, z via int copy, d[3] array/struct, zz/xx/sum temps, sqrt/len split, volatile z); best 47->40 insns (d[3] array) with same bytes, none near 10; orig frame is 0x28 with z at -0x14, mnx at -0x20, unknown extra temps at -0x18/-0x1c, and z kept in memory with x/z squares recomputed.
+// 2026-11-11: forward/right as two float[3] locals gives the original 0x28 frame (fwd.z at -0x14, right.z at -0x20)
+// and indexing presets[v->view] directly gives the absolute table operands; 586 vs 588 bytes, 164 residual.
+// Left: the original squares z by fld/fld st(0) and keeps it on the x87 stack through the compare (ours fmul mem);
+// inline Sq/Len2 helpers, a float copy of z and a named z*z temp do not produce it. First-branch slot order also differs.
 // The eye and look-at points of the current preset around the followed car.
 void ViewManager::FUN_004578c0(float* eye, float* look)
 {
@@ -1439,28 +1442,32 @@ void ViewManager::FUN_004578c0(float* eye, float* look)
         G3_TRANSFORM(point, matrixB, look, eye);
         return;
     }
-    float z = body->vel[2];
-    float x = body->vel[0];
-    if (z * z + x * x <= 0.001f) {
+    float fwd[3];
+    float right[3];
+    fwd[0] = body->vel[0];
+    fwd[2] = body->vel[2];
+    if (fwd[2] * fwd[2] + fwd[0] * fwd[0] <= 0.001f) {
         if (*(unsigned int*)&body->vel[1] & 0x80000000) {
-            x = body->row1[0];
-            z = body->row1[2];
+            fwd[0] = body->row1[0];
+            fwd[2] = body->row1[2];
         } else {
-            x = -body->row1[0];
-            z = -body->row1[2];
+            fwd[0] = -body->row1[0];
+            fwd[2] = -body->row1[2];
         }
     }
-    float inv = 1.0f / (float)sqrt(z * z + x * x);
-    float nx = x * inv;
-    float nz = z * inv;
-    float mnx = -nx;
-    const CameraPreset* p = &CameraTable::presets[v->view];
-    eye[0] = nz * p->lookAt[0] + nx * p->lookAt[2] + body->pos[0];
-    eye[1] = p->lookAt[1] + body->pos[1];
-    eye[2] = mnx * p->lookAt[0] + nz * p->lookAt[2] + body->pos[2];
-    look[0] = nx * p->position[2] + nz * p->position[0] + body->pos[0];
-    look[1] = p->position[1] + body->pos[1];
-    look[2] = nz * p->position[2] + mnx * p->position[0] + body->pos[2];
+    float inv = 1.0f / (float)sqrt(fwd[2] * fwd[2] + fwd[0] * fwd[0]);
+    fwd[0] *= inv;
+    fwd[2] *= inv;
+    right[0] = fwd[2];
+    right[2] = -fwd[0];
+#define P CameraTable::presets[v->view]
+    eye[0] = right[0] * P.lookAt[0] + fwd[0] * P.lookAt[2] + body->pos[0];
+    eye[1] = P.lookAt[1] + body->pos[1];
+    eye[2] = right[2] * P.lookAt[0] + fwd[2] * P.lookAt[2] + body->pos[2];
+    look[0] = fwd[0] * P.position[2] + right[0] * P.position[0] + body->pos[0];
+    look[1] = P.position[1] + body->pos[1];
+    look[2] = fwd[2] * P.position[2] + right[2] * P.position[0] + body->pos[2];
+#undef P
 }
 
 // The message text of a temporary string (the original tests the pointer after loading the empty literal).
