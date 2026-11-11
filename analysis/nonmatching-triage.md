@@ -117,7 +117,7 @@ Instruction-multiset view: 51 functions are pure register/scheduling permutation
 | 0x461a40 | src/unk_45e480.cpp | ??1CarObject@@QAE@XZ | size | 2274 | 2276 | 1712 | 1 | `lea    eax,[esi+0x1bd94]` | `lea    ebp,[esi+0x1bd94]` |  |
 | 0x462350 | src/unk_45e480.cpp | Car::LoadCarIni | size | 4490 | 4484 | 2459 | 5 | `jne    0x462508` | `jne    0x46250a` |  |
 | 0x463940 | src/unk_45e480.cpp | Car::LoadTextures | size | 2936 | 2926 | 1532 | 19 | `mov    edx,DWORD PTR [ebp+0x8]` | `mov    edx,DWORD PTR [esi+0xfcc]` |  |
-| 0x4658a0 | src/unk_4654f0.cpp | Car::FUN_004658a0 | other | 926 | 926 | 153 | 5 | `fstp   DWORD PTR [esi+0x1340]` | `mov    DWORD PTR [esi+0xf8c],eax` |  |
+| 0x4658a0 | src/unk_4654f0.cpp | Car::FUN_004658a0 | other | 926 | 926 | 145 | 5 | `fstp   DWORD PTR [esi+0x1340]` | `mov    DWORD PTR [esi+0xf8c],eax` |  |
 | 0x465e90 | src/unk_465e90.cpp | Car::FUN_00465e90 | other | 1644 | 1644 | 100 | 8 | `push   ebp` | `mov    ebx,DWORD PTR [esp+0x150]` |  |
 | 0x4666a0 | src/unk_4666a0.cpp | Car::InitSounds | order | 2361 | 2361 | 162 | 0 | `mov    BYTE PTR [esi+0x1bf0e],bl` | `push   0x3dcccccd` |  |
 | 0x467440 | src/unk_4666a0.cpp | Car::FUN_00467440 | size | 4036 | 4039 | 1646 | 27 | `mov    DWORD PTR [ebp-0x24],ebx` | `mov    DWORD PTR [ebp-0x20],ebx` |  |

@@ -164,7 +164,9 @@ inline float ByteToUnitF(int b)
 
 // original: FUN_004658a0 (declared with PlayerSample*, the same packet seen from the player side)
 // NONMATCHING: RALLYTROPHY 0x4658a0
-// 2026-11-10: 926/926 bytes, 153 differ (was 913 bytes, 338). The contact branch re-reads V->surface[i] for each
+// 2026-11-10: 926/926 bytes, 145 differ (was 913 bytes, 338). The 13 body dwords are assigned in the original's
+// store order: unk14c, unk150, unk154, position[0], unk158, position[2], position[1], then vel[0..5].
+// Earlier the same day: The contact branch re-reads V->surface[i] for each
 // use (no idx local; the original reloads it through its induction pointer three times), copies friction through a
 // float temp (fld/fstp in the original) and the two params through an int pointer; rpm is assigned before gear.
 // Left: the steerSet store sits between the handbrake and steer stores in the original; the 13 body dwords are
