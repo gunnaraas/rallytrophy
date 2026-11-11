@@ -293,4 +293,9 @@ Measured on the effect constructors (`ParallelShadow` 0x4703c0, `SnowFall` 0x474
 - A store that sits between a member's field init and that member's EH state store belongs to the constructor body
   of a struct wrapping those fields (`TrackQuery` at 0x48 of `RainEffect`); neither a body statement nor a
   mem-initializer of the outer class lands there.
+- Loop counter forms (measured on 0x4ae4b0 and 0x48fb10): inside `if (n > 0) { ... }`, `for (; n; n--)` copies the
+  count with `mov reg,reg`, `while (n--)` with `lea reg,[reg]`. A loop driven by a one-based value with the
+  zero-based index written as `rank - 1` (`for (rank = 1; rank - 1 < count; rank++) a[rank - 1]`) makes the index a
+  derived induction variable: its `xor` comes after the guard and its increment after the pointer step. A separate
+  `n` counter gives the hoisted `xor` and the swapped increments instead.
 
