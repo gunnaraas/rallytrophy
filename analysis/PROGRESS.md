@@ -6,7 +6,7 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Status
 
-- Marker inventory: 1880/2084 byte-exact (90.21%; 50.91% of game-code bytes); 2084/2084 functions written (100.00%), from `tools/progress.py` (2026-11-10).
+- Marker inventory: 1881/2084 byte-exact (90.26%; 50.96% of game-code bytes); 2084/2084 functions written (100.00%), from `tools/progress.py` (2026-11-10).
 - Game code: about 1,690 functions in `0x401000`–`0x4bcfc6`
 
 ## Queue
@@ -32,6 +32,7 @@ file (queue and log), and leaves `python3 -I tools/match.py` fully passing.
 
 ## Log
 
+- 2026-11-10 (Claude, emission order): MATCH 0x409390 `file_error::file_error` (config.cpp fully matched, issue #39). Three changes, all measured (NOTES "Emission order"): C++ builds now use `/YX` (byte-neutral, 1880/1880 on a full run with a fresh PCH per file; it defers the out-of-line copies of header inline functions to the end of the object, as the original layout shows); the logger `FUN_00402c90` is an inline empty function in rallytrophy.h (emitted late in every object, so only late functions see it as non-throwing); config.cpp forces `std::string::_Tidy` ahead of the constructor with a direct reference (`g_tidy`, under `#define private public`). With `_Tidy` and the logger compiled first, VC6 drops the three EH state stores (372 -> 357 bytes). Open: the original gets `_Tidy` ahead by its own, unknown source arrangement. Side effect handled: `FUN_004a2440` flips with the number of symbols declared in rallytrophy.h; four language.cpp-private externs moved into language.cpp. 0x493650 changed size 5696 -> 5724 from the same kind of perturbation (still NONMATCHING). Full matcher: 1881/1881, 203 NONMATCHING.
 - 2026-11-10 (Claude, 0x409390 file_error ctor, not solved, but a compiler mechanism established): the out-of-line instance lacks three EH state stores the build emits: 7 and 6 before the second and third temp `_Tidy(true)` calls, and 9 before the logger call. Measured on config.cpp:
   - VC6 treats a callee as non-throwing once a body for it has been COMPILED EARLIER in the same translation unit, and drops the EH state store in front of the call. A body placed after the caller has no effect. This holds for extern, static and inline definitions alike.
   - A `throw()` declaration (or any visible empty body in the header) for the logger removes the 9 store (372 -> 367 bytes; target 357) but breaks the matched `Config::Parse*`/`Load` functions, whose inlined copies of the constructor need the may-throw form (original ParseInt stores a state before each `_Tidy` and before the logger).
