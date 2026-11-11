@@ -2,7 +2,7 @@
 <title>Rally Trophy per-function decompilation map</title>
 <rect width="1600" height="1120" rx="8" fill="#0d1117"/>
 <text x="20" y="30" font-size="18" font-weight="600" fill="#e6edf3">Every game function, sized by code bytes and branch complexity</text>
-<text x="20" y="53" fill="#8b949e">1,885 byte-exact · 199 written but not byte-exact · 0 unwritten. Tile area = bytes × (1 + log₂(1 + branch points)); hover for details.</text>
+<text x="20" y="53" fill="#8b949e">1,886 byte-exact · 198 written but not byte-exact · 0 unwritten. Tile area = bytes × (1 + log₂(1 + branch points)); hover for details.</text>
 <g transform="translate(20,72)" fill="#e6edf3">
 <rect width="12" height="12" fill="#3fb950"/><text x="18" y="11">byte-exact</text>
 <rect x="118" width="12" height="12" fill="#e3b341"/><text x="136" y="11">written, not exact</text>
@@ -887,7 +887,7 @@
 <rect x="149.58" y="678.55" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00468c10 · Race state module end: guard-bit initialiser of the STL header statics (_$E) · Car race state · 25 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>
 <rect x="150.32" y="678.55" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00468c30 · Race state module end: atexit(0x402c90) registration · Car race state · 12 code bytes · complexity 1 (0 branch points) · byte-exact</title></rect>
 <rect x="150.50" y="678.55" width="0.40" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00468c40 · FUN_00468c40 · Car model parts · 47 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>
-<rect x="151.90" y="678.55" width="154.55" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x00468c70 · FUN_00468c70 · Car model parts · 1,392 code bytes · complexity 91 (90 branch points) · written, not exact</title></rect>
+<rect x="151.90" y="678.55" width="154.55" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00468c70 · FUN_00468c70 · Car model parts · 1,392 code bytes · complexity 91 (90 branch points) · byte-exact</title></rect>
 <rect x="307.45" y="678.55" width="33.52" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x004691e0 · FUN_004691e0 · Car model parts · 442 code bytes · complexity 19 (18 branch points) · byte-exact</title></rect>
 <rect x="341.97" y="678.55" width="36.05" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x004693a0 · FUN_004693a0 · Car model parts · 543 code bytes · complexity 12 (11 branch points) · written, not exact</title></rect>
 <rect x="379.02" y="678.55" width="1.37" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x004695c0 · FUN_004695c0 · Car model parts · 53 code bytes · complexity 4 (3 branch points) · byte-exact</title></rect>
