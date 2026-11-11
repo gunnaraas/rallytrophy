@@ -2,7 +2,7 @@
 <title>Rally Trophy per-function decompilation map</title>
 <rect width="1600" height="1120" rx="8" fill="#0d1117"/>
 <text x="20" y="30" font-size="18" font-weight="600" fill="#e6edf3">Every game function, sized by code bytes and branch complexity</text>
-<text x="20" y="53" fill="#8b949e">1,888 byte-exact · 196 written but not byte-exact · 0 unwritten. Tile area = bytes × (1 + log₂(1 + branch points)); hover for details.</text>
+<text x="20" y="53" fill="#8b949e">1,889 byte-exact · 195 written but not byte-exact · 0 unwritten. Tile area = bytes × (1 + log₂(1 + branch points)); hover for details.</text>
 <g transform="translate(20,72)" fill="#e6edf3">
 <rect width="12" height="12" fill="#3fb950"/><text x="18" y="11">byte-exact</text>
 <rect x="118" width="12" height="12" fill="#e3b341"/><text x="136" y="11">written, not exact</text>
@@ -1503,7 +1503,7 @@
 <rect x="401.22" y="857.45" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0048fdf0 · GhostRace module end: guard-bit initialiser of the STL header statics (_$E) · Ghost race mode · 25 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>
 <rect x="401.74" y="857.45" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0048fe10 · GhostRace module end: atexit(0x402c90) registration · Ghost race mode · 12 code bytes · complexity 1 (0 branch points) · byte-exact</title></rect>
 <rect x="401.87" y="857.45" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0048fe20 · FUN_0048fe20 · Record table (highscores) · 19 code bytes · complexity 1 (0 branch points) · byte-exact</title></rect>
-<rect x="402.06" y="857.45" width="16.40" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x0048fe40 · FUN_0048fe40 · Record table (highscores) · 386 code bytes · complexity 10 (9 branch points) · written, not exact</title></rect>
+<rect x="402.06" y="857.45" width="16.40" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0048fe40 · FUN_0048fe40 · Record table (highscores) · 386 code bytes · complexity 10 (9 branch points) · byte-exact</title></rect>
 <rect x="419.46" y="857.45" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0048ffd0 · FUN_0048ffd0 · Record table (highscores) · 56 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>
 <rect x="420.63" y="857.45" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00490010 · FUN_00490010 · Record table (highscores) · 54 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>
 <rect x="421.75" y="857.45" width="14.86" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x00490050 · FUN_00490050 · Record table (highscores) · 341 code bytes · complexity 11 (10 branch points) · written, not exact</title></rect>
