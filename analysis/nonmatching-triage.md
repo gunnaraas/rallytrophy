@@ -114,10 +114,10 @@ Instruction-multiset view: 48 functions are pure register/scheduling permutation
 | 0x45dac0 | src/unk_45dac0.cpp | Car::SunFactor | size | 922 | 921 | 514 | 5 | `jle    0x45de40` | `jle    0x45de41` |  |
 | 0x45e480 | src/unk_45e480.cpp | ??0CarObject@@QAE@PAVCarTextureCache@@HHHHHI@Z | size | 13556 | 13705 | 9764 | 82 | `lea    eax,[ebx+0xce8]` | `push   0x34` |  |
 | 0x461a40 | src/unk_45e480.cpp | ??1CarObject@@QAE@XZ | size | 2274 | 2276 | 1712 | 1 | `lea    eax,[esi+0x1bd94]` | `lea    ebp,[esi+0x1bd94]` |  |
-| 0x462350 | src/unk_45e480.cpp | Car::LoadCarIni | size | 4490 | 4484 | 2459 | 5 | `jne    0x462508` | `jne    0x46250a` |  |
+| 0x462350 | src/unk_45e480.cpp | Car::LoadCarIni | size | 4486 | 4484 | 2777 | 1 | `jne    0x462508` | `jne    0x46250a` |  |
 | 0x463940 | src/unk_45e480.cpp | Car::LoadTextures | size | 2936 | 2926 | 1532 | 19 | `mov    edx,DWORD PTR [ebp+0x8]` | `mov    edx,DWORD PTR [esi+0xfcc]` |  |
 | 0x4658a0 | src/unk_4654f0.cpp | Car::FUN_004658a0 | other | 926 | 926 | 145 | 5 | `fstp   DWORD PTR [esi+0x1340]` | `mov    DWORD PTR [esi+0xf8c],eax` |  |
-| 0x465e90 | src/unk_465e90.cpp | Car::FUN_00465e90 | other | 1644 | 1644 | 100 | 8 | `push   ebp` | `mov    ebx,DWORD PTR [esp+0x150]` |  |
+| 0x465e90 | src/unk_465e90.cpp | Car::FUN_00465e90 | other | 1644 | 1644 | 89 | 10 | `add    esi,0x1698` | `add    esi,0x1694` |  |
 | 0x4666a0 | src/unk_4666a0.cpp | Car::InitSounds | order | 2361 | 2361 | 162 | 0 | `mov    BYTE PTR [esi+0x1bf0e],bl` | `push   0x3dcccccd` |  |
 | 0x467440 | src/unk_4666a0.cpp | Car::FUN_00467440 | size | 4036 | 4039 | 1646 | 27 | `mov    DWORD PTR [ebp-0x24],ebx` | `mov    DWORD PTR [ebp-0x20],ebx` |  |
 | 0x4693a0 | src/unk_468c40.cpp | Car::FUN_004693a0 | registers | 543 | 543 | 18 | 0 | `mov    edx,DWORD PTR [ecx+0xfac]` | `mov    esi,DWORD PTR [ecx+0xfac]` |  |
@@ -167,7 +167,7 @@ Instruction-multiset view: 48 functions are pure register/scheduling permutation
 | 0x48e4c0 | src/unk_4856e0.cpp | RaceMode::FUN_0048e4c0 | order | 364 | 364 | 44 | 0 | `mov    DWORD PTR [esp+0x1c],ecx` | `mov    DWORD PTR [esp+0x14],eax` |  |
 | 0x48eb20 | src/unk_4856e0.cpp | RaceMode::FUN_0048eb20 | order | 462 | 462 | 44 | 0 | `mov    DWORD PTR [esp+0x28],0x0` | `mov    DWORD PTR [esp+0x30],edx` |  |
 | 0x48fb10 | src/unk_48f670.cpp | GhostRace::FUN_0048fb10 | order | 471 | 471 | 14 | 0 | `test   ecx,ecx` | `xor    edx,edx` |  |
-| 0x490050 | src/unk_48fe20.cpp | RecordTable::FUN_00490050 | size | 332 | 341 | 154 | 4 | `mov    ebp,ecx` | `mov    eax,ecx` | eh 1,1 vs  |
+| 0x490050 | src/unk_48fe20.cpp | RecordTable::FUN_00490050 | size | 369 | 341 | 352 | 28 | `push   ebx` | `test   edx,edx` | eh 1,1 vs  |
 | 0x4901b0 | src/unk_48fe20.cpp | RecordTable::FUN_004901b0 | size | 328 | 341 | 150 | 10 | `mov    esi,DWORD PTR [eax+0x58]` | `mov    edi,DWORD PTR [eax+0x58]` |  |
 | 0x490310 | src/unk_48fe20.cpp | RecordTable::FUN_00490310 | size | 326 | 339 | 150 | 10 | `mov    esi,DWORD PTR [eax+0x58]` | `mov    edi,DWORD PTR [eax+0x58]` |  |
 | 0x490470 | src/unk_48fe20.cpp | RecordTable::FUN_00490470 | size | 914 | 929 | 545 | 15 | `push   ebx` | `push   ebp` | eh 1,0 vs 1,1,0,1,1,1 |

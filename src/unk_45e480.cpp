@@ -1656,7 +1656,7 @@ static inline int Bal(int a) { return a + 1; }
 
 // original: FUN_00462350
 // NONMATCHING: RALLYTROPHY 0x462350
-// 4504 built vs 4484 target bytes; 2339 bytes differ outside relocations. The 100 Config reads, five-point
+// 4486 built vs 4484 target bytes (27 diff lines; the 2-byte shift makes most bytes after 0x462440 count as differing). The 100 Config reads, five-point
 // suspension tables, static-load loop, wiper tail and Config::Close remain structurally close. Sequential Vec3 axis
 // locals restore the target's 0x88 frame and EH states 8/9, with state 9 installed after the hood cosine. Open:
 // (1) the target pushes 0x4fb77c between the scaled-angle fst and fcos; this candidate pushes 0 after fcos; (2) the
@@ -1664,6 +1664,7 @@ static inline int Bal(int a) { return a + 1; }
 // directly into esi, while this candidate routes it through eax; (3) the target keeps mass in st(0) in MomentOfInertia.
 // Tried 2026-10-30 night: Scale3 by-value/inline muls, mass declaration order, wiper-tail LOAD vs COPY forms, inline_depth(0-3), PathString/TextOf throw form (as LoadTiresIni; shifts regalloc, 81 insns). 2026-10-31: trailing Bal(1) x2 discarded calls (as LoadTiresIni; at the start they do nothing) restore the out-of-line _Tidy call 29->23; wiper angle scaling through a Vec2* 23->18; still 18 insns differ: mass reloaded from stack per Scale3 axis instead of fld st(0) (15 forms tried), esi/eax order for the message pointer (c_str/TextOf forms), EH state 7 store before the SteeringSpeeds call instead of after (steer reuse/volatile no help), push 0 vs fcos and store order around hood sin, wiper1Angle COPY2 push placement.
 // Tried 2026-10-31 re-pass: 14 more variants, none better than 18 insns: Bal count 10/12/14, Bal split start/middle/end (6+6, 4+8), mass scale as explicit per-axis *= / mass*x / float* walk / local copy / double / temp-split / volatile mass, `float mass; mass = ...` split; Scale3 forms all give the same reload-from-stack instead of fld st(0).
+// 2026-11-11: 43 -> 27 diff lines. (3) solved: mass read through a volatile cast into a float local after the GetVector3 call and before the copy gives fld mass + fld st(0) per axis. EH state 7 solved: steer copy-constructed from the call result. Left: (2) esi/eax message pointer (the 2 bytes; four more c_str spellings no change), (1) push before fcos, trunkAxes[5] store order (six statement orders, none better), wiper1Angle push placement.
 void Car::LoadCarIni(const char* path, unsigned int checksum)
 {
     CarIniView* v = (CarIniView*)this;
@@ -1708,8 +1709,13 @@ void Car::LoadCarIni(const char* path, unsigned int checksum)
     v->ffCenteringOffset = config.GetFloat("FFCenteringOffset");
     float mass = config.GetFloat("Mass");
     v->mass = mass;
-    COPY3(v->momentOfInertia, config.GetVector3("MomentOfInertia"));
-    Scale3(&v->momentOfInertia, mass);
+    {
+        // volatile read after the call and before the copy keeps mass on the x87 stack (fld st(0) per axis)
+        const ConfigVector3& r_ = config.GetVector3("MomentOfInertia");
+        float k = *(volatile float*)&mass;
+        Copy3(v->momentOfInertia, r_);
+        Scale3(&v->momentOfInertia, k);
+    }
     COPY3(v->centerOfMass, config.GetVector3("CenterOfMass"));
     COPY3(v->aeroDrag, config.GetVector3("AeroDrag"));
     COPY3(v->aeroDragLoc, config.GetVector3("AeroDragLoc"));
@@ -1733,8 +1739,7 @@ void Car::LoadCarIni(const char* path, unsigned int checksum)
     v->flare[9] = config.GetFloat("ReverseFlareRadius");
     v->flare[10] = config.GetFloat("ReverseFlareSharpness");
     v->flare[11] = config.GetFloat("ReverseFlareAlphaMin");
-    Vec2 steer;
-    LOAD2(steer, config.GetVector2("SteeringSpeeds"));
+    Vec2 steer(*(const Vec2*)&config.GetVector2("SteeringSpeeds")); // copy-constructed: EH state 7 after the call
     v->steeringSpeeds.x = steer.x;
     v->steeringSpeeds.y = steer.y;
     v->steeringLimit = config.GetFloat("SteeringLimit");
