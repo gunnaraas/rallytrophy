@@ -26,6 +26,11 @@ static inline int Bal(int a) { return a + 1; }
 // Tried 2026-10-31: AStr (out-of-line _Tidy + assign) for the first error string; 18 discarded Bal(1) calls (6 after the create message, 6 before the unlock check, 6 at the end) reproduce the original's out-of-line logic_error copies; n loaded before the vertices pointer. 157->4 insns differ: in both vertex loops VC6 emits `test n` before the EH-state store and `lea esi,[ebp+0x14]` before the guard jle where the original has the store first and the lea after the jle; volatile reads, for-init forms and permute.py -r 20 found nothing.
 // Tried 2026-11-01: declaring the vertex struct BEFORE int n / source in both vertex loops moves the EH-state store first (4->2 insns differ); remaining: VC6 puts lea esi,[ebp+0x14] (vertex addr) before test ecx,ecx, original after the jle. No effect: volatile n/vertices, pointer-before-n, if (n>0) wrappers, separate loop ptr, pv pointer local, unsigned n, volatile zero; permute.py -r 40 stayed at 2.
 // The direct first error string gives 824 differing bytes (1217-byte body) versus 852 (1169-byte body) with the custom wrapper.
+// 2026-11-11: 18 -> 2 bytes. `if (n > 0) { payload = source + 5; <loop> }` puts the lea after the guard. The loop
+// form decides the counter copy: `for (; n; n--)` gives the original `mov ebx,ecx`, `while (n--)` gives `lea ebx,[ecx]`.
+// With the for form in BOTH blocks every instruction is right but the two vertex structs swap stack slots (UV at 0x38
+// instead of 0x6c), so the second block keeps `while (n--)` (its lea is the remaining difference). Not moved by:
+// declaration orders, hoisted n/source/payload, index++ argument, outer-loop spellings, 9 other counter forms.
 void ModelCacheUpload::UploadVertices(int count, unsigned char flags, std::vector<Mesh*>* meshList)
 {
     if (count > 0) {
@@ -45,8 +50,9 @@ void ModelCacheUpload::UploadVertices(int count, unsigned char flags, std::vecto
                 ModelUploadVertexUV vertex;
                 int n = mesh->vertexCount;
                 ShadowVertex* source = (ShadowVertex*)mesh->vertices;
+                if (n > 0) {
                 int* payload = (int*)source + 5;
-                for (; n > 0; --n, ++source, payload += 11) {
+                for (; n; n--) {
                     vertex.words[0] = ((int*)source)[0];
                     vertex.words[1] = payload[-4];
                     vertex.words[2] = payload[-3];
@@ -60,13 +66,16 @@ void ModelCacheUpload::UploadVertices(int count, unsigned char flags, std::vecto
                     vertex.words[10] = payload[5];
                     buffer->SetVertices(index, &vertex, 1);
                     ++index;
+                    ++source; payload += 11;
+                }
                 }
             } else {
                 ModelUploadVertex vertex;
                 int n = mesh->vertexCount;
                 ShadowVertex* source = (ShadowVertex*)mesh->vertices;
+                if (n > 0) {
                 int* payload = (int*)source + 5;
-                for (; n > 0; --n, ++source, payload += 11) {
+                while (n--) {
                     vertex.words[0] = ((int*)source)[0];
                     vertex.words[1] = payload[-4];
                     vertex.words[2] = payload[-3];
@@ -78,6 +87,8 @@ void ModelCacheUpload::UploadVertices(int count, unsigned char flags, std::vecto
                     vertex.words[8] = payload[3];
                     buffer->SetVertices(index, &vertex, 1);
                     ++index;
+                    ++source; payload += 11;
+                }
                 }
             }
         }
