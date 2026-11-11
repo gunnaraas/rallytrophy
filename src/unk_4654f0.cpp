@@ -190,10 +190,10 @@ void Car::FUN_004658a0(PlayerSample* packet)
     b->unk14c = state->body[0];
     b->unk150 = state->body[1];
     b->unk154 = state->body[2];
-    b->unk158 = state->body[3];
     *(int*)&b->position[0] = state->body[4];
-    *(int*)&b->position[1] = state->body[5];
+    b->unk158 = state->body[3];
     *(int*)&b->position[2] = state->body[6];
+    *(int*)&b->position[1] = state->body[5];
     b->vel[0] = state->body[7];
     b->vel[1] = state->body[8];
     b->vel[2] = state->body[9];
