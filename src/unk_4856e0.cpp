@@ -315,15 +315,9 @@ void RaceMode::SendStartTimes()
 
 extern float DAT_005012f8;             // draw distance for the ghost fade
 
-// NONMATCHING: RALLYTROPHY 0x488aa0
-// Tried 2026-10-30 night: float S + range*range>S, z*z+y*y, volatile y/z reads + float sq, int expiry, store r via *(volatile float*)&r (461 bytes, 28->10 insns); still differs: d copy uses ecx/edx not edx/eax and the arg push uses eax/ecx not ecx/edx (register choice); permute -r 20 found nothing.
-// Tried 2026-10-31 re-pass: 20 variants (volatile a/expiry/view/car reads, RaceMode* volatile self, late/early d, field-wise/int-bit/block-temp d copies, ghostVisible order/volatile, aa copy of a) + permute -r 40: none beat 10 insns; the ecx/edx/eax choices for the d copy and arg pushes are unchanged.
-// Plain PE disassembly shows the target spills only d.x*d.x and recomputes y*y+z*z+temp for compare and sqrt.
-// A volatile x-square, reversed y/z sums, and an expiry snapshot reduce the baseline from 440/150 to 444/126
-// bytes/differences.
-// Volatile reads used only for sqrt prevent VC6 from sharing the range-check sum and reduce differences to 123
-// (458-byte candidate); the remaining x87, argument-register, and branch layout still differ.
+// FUNCTION: RALLYTROPHY 0x488aa0
 // Per-car setup pass; also fades the ghost car with its distance to the view.
+// Matched 2026-11-10: one FUN_00468c70 call after the if/else (VC6 duplicates it into both arms itself); writing it in each arm gave the wrong registers. The volatile reads and the volatile store of r are still needed.
 void RaceMode::DrawSetup(int a, ViewPoint* view)
 {
     for (unsigned int i = 0; i < m_players.size(); i++) {
@@ -334,11 +328,10 @@ void RaceMode::DrawSetup(int a, ViewPoint* view)
                 if (player->unk48) {
                     car->FUN_004693a0(1);
                     car->FUN_004695c0(0.25f);
-                    car->FUN_00468c70(a);
                 } else {
                     car->FUN_004693a0(0);
-                    car->FUN_00468c70(a);
                 }
+                car->FUN_00468c70(a);
             }
         }
     }
@@ -366,14 +359,8 @@ void RaceMode::DrawSetup(int a, ViewPoint* view)
     }
 }
 
-// NONMATCHING: RALLYTROPHY 0x488c70
-// Volatile x-square plus repeated y/z sums improves the candidate from 446/150 to 450/131 bytes/differences;
-// distSq, split accumulation, or reversing the range comparison leaves that candidate unchanged. Reversing y/z in
-// all three sums follows the observed x87 order and reduces the remaining differences to 127. A local expiry
-// snapshot reproduces the target comparison direction and further reduces the residual to 125; y/z is still shared.
-// Tried 2026-10-30 night: DrawSetup shape (xx/S sums, range*range>S, volatile y/z + float sq, volatile-stored call arg) 32->10 insns, size exact 467; still differs: d copy and push registers (ecx/edx vs edx/eax), same as DrawSetup; decl-order/operand-order variants and permute -r 20 found nothing.
-// Tried 2026-10-31 re-pass: 12 more variants (brace/field-wise d init, inline expiry, volatile a at one/all call sites, pos inline/reordered, redundant int copies) and permute -r 40 stayed at 10 insns; only a-push/d-copy register choice (ecx vs edx) differs.
-// DrawSetup, skipping one car.
+// FUNCTION: RALLYTROPHY 0x488c70
+// DrawSetup, skipping one car. Same form as 0x488aa0.
 void RaceMode::DrawSetupExcept(int a, ViewPoint* view, Car* skip)
 {
     for (unsigned int i = 0; i < m_players.size(); i++) {
@@ -384,11 +371,10 @@ void RaceMode::DrawSetupExcept(int a, ViewPoint* view, Car* skip)
                 if (player->unk48) {
                     car->FUN_004693a0(1);
                     car->FUN_004695c0(0.25f);
-                    car->FUN_00468c70(a);
                 } else {
                     car->FUN_004693a0(0);
-                    car->FUN_00468c70(a);
                 }
+                car->FUN_00468c70(a);
             }
         }
     }
