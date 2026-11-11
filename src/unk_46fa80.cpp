@@ -55,33 +55,36 @@ WaterAnimator::~WaterAnimator()
 }
 
 // original: FUN_0046fc10
-// NONMATCHING: RALLYTROPHY 0x46fc10
-// Evidence: ev_098aeda40f3866cc5d46de6aa9df644e5a1638f8a9cce76a6f260f691961b0eb. The 428-byte target's loop and helper calls are documented in analysis/range-46d830.md.
-// A WORD-sized loop count lowers the candidate from 424/290 to 431/229 bytes/differences, matching the target's 16-bit
-// count load. The remaining mismatch includes a larger target frame, `this` in edi, and uv2.x read from the subtraction.
-// Tried 2026-10-31 re-pass: ~25 more (const-ref temp, split/hoisted uv decls, inline scale.x/y in loop 52->50 applied, int-bit stores, while loop, store orders); still 50 insns: this=esi not edi (original pushes esi only inside the n>0 guard), uv2.x taken from the call-result pointer via fld/fst not an int copy.
-// Tried 2026-10-30 night: ~35 variants; assigned (not constructed) uv1/uv2 locals with int count and for-loop gave 65->52 insns; const-ref/pointer to the subtraction temp, if/do-while, ushort count, int-copy stores were no better; still differs in this=edi vs esi allocation, frame 0x48, and uv2 stored via fst instead of an eax-pointer reload.
+static inline void CopyV2(Vec2& d, const Vec2& o) { d.x = o.x; d.y = o.y; }
+struct ClockI { BYTE pad[0x24]; int time; };
+// FUNCTION: RALLYTROPHY 0x46fc10
+// Evidence: ev_098aeda40f3866cc5d46de6aa9df644e5a1638f8a9cce76a6f260f691961b0eb; loop and helper calls are documented in
+// analysis/range-46d830.md. What made it exact (2026-11-11):
+// - the texture goes to the material's second slot (+4), not +0 (the earlier body wrote the wrong field);
+// - the clock stamp is read as an int into a local (a float-typed copy is scheduled after the tick conversion);
+// - the frame index is masked into its own int and the texture held in a local before the store;
+// - `saved[i]` is indexed (pointer set up after the n > 0 guard, this in edi, esi pushed inside the guard) and v is
+//   stepped in the for increment (edi stepped before esi);
+// - uv2 is assigned field by field (CopyV2), so x + 0.5 is taken straight from the subtraction result.
 void WaterAnimator::Update()
 {
-    StageClock* clock = (StageClock*)DAT_0056b0ac;
-    stamp = clock->time;
+    int now = ((ClockI*)DAT_0056b0ac)->time;
+    *(int*)&stamp = now;
     float t = (float)(DAT_0056b0d0 & 0xffff);
-    int frame = FloatToInt(t * rate * 0.00048828125f);
-    mesh->material->texture = owner->textures[frame & 31];
+    int frame = FloatToInt(t * rate * 0.00048828125f) & 31;
+    Texture* tex = owner->textures[frame];
+    *(Texture**)mesh->material->unk04 = tex;
     Vec2 d1 = (velocity1 * (float)(DAT_0056b0d0 & 0xffff)) / 65536.0f;
     Vec2 d2 = (velocity2 * (float)(DAT_0056b0d0 & 0xffff)) / 65536.0f;
     EffectVertex* v = mesh->vertices;
     int n = mesh->vertexCount;
-    Vec2* s = saved;
-    for (int i = 0; i < n; i++) {
+    for (int i = 0; i < n; i++, v++) {
         Vec2 uv1;
         Vec2 uv2;
-        uv1 = (*s * scale.x) - d1;
-        uv2 = (*s * scale.y) - d2;
+        uv1 = (saved[i] * scale.x) - d1;
+        CopyV2(uv2, (saved[i] * scale.y) - d2);
         uv2.x += 0.5f; uv2.y += 0.5f;
         v->u = uv1.x; v->v = uv1.y; v->u2 = uv2.x; v->v2 = uv2.y;
-        s++;
-        v++;
     }
 }
 

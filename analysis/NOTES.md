@@ -298,4 +298,11 @@ Measured on the effect constructors (`ParallelShadow` 0x4703c0, `SnowFall` 0x474
   zero-based index written as `rank - 1` (`for (rank = 1; rank - 1 < count; rank++) a[rank - 1]`) makes the index a
   derived induction variable: its `xor` comes after the guard and its increment after the pointer step. A separate
   `n` counter gives the hoisted `xor` and the swapped increments instead.
+- Typed copies and indexing (measured on `WaterAnimator::Update` 0x46fc10): a 4-byte value copied through a float
+  lvalue is scheduled later than the same copy through an int local (`int now = clock->time; stamp = now;` keeps the
+  load at the top and reuses eax). Implicit struct assignment copies as a block (`mov` pairs, not forwarded); explicit
+  member copies (`d.x = o.x; d.y = o.y;`) let VC6 take a following `x += k` straight from the source (`fld [eax];
+  fadd; fst`). Indexing `saved[i]` instead of walking a pointer declared before the loop moves the pointer setup
+  after the guard and changes which register holds `this`. Check field offsets against the original first: this
+  function had been writing the wrong field (+0 instead of +4).
 
