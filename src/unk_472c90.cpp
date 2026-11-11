@@ -41,16 +41,13 @@ static inline void ClearVec(Vec3* p)
 }
 
 // original: FUN_00472d00
-// NONMATCHING: RALLYTROPHY 0x472d00
-// 1434 vs 1434 bytes; 82 bytes differ, 9 insns (was 711 bytes). Fixed by: volatile reads of m->indices/m->vertices into
-// idx/v (SnowFall idiom), int w = (WORD)count, and `i << 2` in the splash index loop (codegen only; i*4 and i<<2 are equal).
-// Remaining: queryKind store lands after the base [ebx]=0 store (original: right after the vector init, before dropCount);
-// add esp,4 one slot early and the m->indices load one slot early in each mesh block; vertices load before vs after cmp.
-// Tried 2026-10-31 night: volatile/temp/late queryKind, volatile dropCount/dropDrawCount, store reorders, i=0 before idx,
-// nonvolatile idx/v (much worse), cnt local before v, mesh store order; none moved the 9 insns.
+// FUNCTION: RALLYTROPHY 0x472d00
+// Codegen notes: int w = (WORD)count and `i << 2` in the splash index loop. The mesh counts and both array pointers
+// are read back through dropMesh/splashMesh (the local from new Mesh is used only for the material and array
+// stores); that gives the original reload placement without volatile. queryKind is set by the TrackQuery member
+// constructor, which puts its store between the vector init and the member's EH state.
 RainEffect::RainEffect(TextureLoader* loader, int dropCount_, int splashCount_)
 {
-    queryKind = 0x11;
     dropCount = dropCount_;
     dropDrawCount = dropCount_;
     splashCount = splashCount_;
@@ -77,11 +74,11 @@ RainEffect::RainEffect(TextureLoader* loader, int dropCount_, int splashCount_)
     m->material = material;
     m->vertices = new EffectVertex[dropCount_ * 4];
     m->indices = new WORD[dropCount_ * 6];
-    m->unk24 = 0;
+    dropMesh->unk24 = 0;
     int w = (WORD)dropCount;
-    m->primitiveCount = w * 2;
-    m->vertexCount = w * 4;
-    WORD* idx = *(WORD* volatile*)&m->indices;
+    dropMesh->primitiveCount = w * 2;
+    dropMesh->vertexCount = w * 4;
+    WORD* idx = dropMesh->indices;
     for (i = 0; i < dropCount_; i++) {
         int b = i << 2;
         *idx++ = b;
@@ -91,7 +88,7 @@ RainEffect::RainEffect(TextureLoader* loader, int dropCount_, int splashCount_)
         *idx++ = b + 2;
         *idx++ = b + 3;
     }
-    EffectVertex* v = *(EffectVertex* volatile*)&m->vertices;
+    EffectVertex* v = dropMesh->vertices;
     for (i = 0; i < dropCount_; i++) {
         v->color = -1;
         ClearVec(&v->normal);
@@ -119,11 +116,11 @@ RainEffect::RainEffect(TextureLoader* loader, int dropCount_, int splashCount_)
     splashMesh = m;
     m->vertices = new EffectVertex[splashCount_ * 4];
     m->indices = new WORD[splashCount_ * 6];
-    m->unk24 = 0;
+    splashMesh->unk24 = 0;
     w = (WORD)splashCount;
-    m->primitiveCount = w * 2;
-    m->vertexCount = w * 4;
-    idx = *(WORD* volatile*)&m->indices;
+    splashMesh->primitiveCount = w * 2;
+    splashMesh->vertexCount = w * 4;
+    idx = splashMesh->indices;
     for (i = 0; i < splashCount_; i++) {
         int b = i << 2;
         *idx++ = b;
@@ -133,7 +130,7 @@ RainEffect::RainEffect(TextureLoader* loader, int dropCount_, int splashCount_)
         *idx++ = b + 2;
         *idx++ = b + 3;
     }
-    v = *(EffectVertex* volatile*)&m->vertices;
+    v = splashMesh->vertices;
     for (i = 0; i < splashCount_; i++) {
         v->color = -1;
         ClearVec(&v->normal);
@@ -167,7 +164,7 @@ RainEffect::RainEffect(TextureLoader* loader, int dropCount_, int splashCount_)
     splashSizeOld = 0.025f;
     splashSizeNew = 0.085f;
     InitDrops();
-    tris.reserve(0x200);
+    query.tris.reserve(0x200);
 }
 
 __declspec(naked)
@@ -262,7 +259,7 @@ TriVector::iterator TriVector::Erase(iterator first, iterator last) { return era
 // NONMATCHING: RALLYTROPHY 0x473470
 // 3318 vs 3324 bytes; same calls, EH states and FPU code. Open: register assignment (original this=ebx saved to
 // [ebp-0x124], vertex/device=edi; here this=edi) and the lo/hi/sphere setup and tri-pick temporaries of the splash part.
-// Tried 2026-10-30 night: local `r=&tris` pointer (449->443), step/right/world declaration orders, late step, size/begin locals in the tri pick; whole-function reg allocation still differs (orig spills this, size in ebx; wind slot 0x14 higher).
+// Tried 2026-10-30 night: local `r=&query.tris` pointer (449->443), step/right/world declaration orders, late step, size/begin locals in the tri pick; whole-function reg allocation still differs (orig spills this, size in ebx; wind slot 0x14 higher).
 // Re-pass 2026-11-01: float sums checked against the original (same fadd association, only fld/fmul operand order differs in the splash facing test); `RainEffect* volatile self = this;` read for threshold and splashSizeOld/New brought 443->348 insns differ (3323 vs 3324 bytes); tried self for other fields, px/py/pz or int-copied camera position before WorldMatrix, decl order of step/world, no r pointer; still differs: this in ebx with automatic spill vs ours volatile self push, WorldMatrix init order after camera loads, slot offsets.
 void RainEffect::Update(RenderDevice* device, Camera* camera, int a, int b, float dt)
 {
@@ -374,16 +371,16 @@ void RainEffect::Update(RenderDevice* device, Camera* camera, int a, int b, floa
     hi.y += 20.0f;
     hi.z += 20.0f;
     Tris()->Clear();
-    queryKind = 0xf;
-    querySphere = &sphere;
-    queryMin.x = lo.x;
-    queryMin.y = lo.y;
-    queryMin.z = lo.z;
-    queryMax.x = hi.x;
-    queryMax.y = hi.y;
-    queryMax.z = hi.z;
+    query.queryKind = 0xf;
+    query.querySphere = &sphere;
+    query.queryMin.x = lo.x;
+    query.queryMin.y = lo.y;
+    query.queryMin.z = lo.z;
+    query.queryMax.x = hi.x;
+    query.queryMax.y = hi.y;
+    query.queryMax.z = hi.z;
     float eyeDot = camera->eyePosition.z * fwd->z + camera->eyePosition.y * fwd->y + camera->eyePosition.x * fwd->x;
-    std::vector<CollTri*>* r = &tris;
+    std::vector<CollTri*>* r = &query.tris;
     bool searched = false;
     bool found = false;
     int shown = 0;

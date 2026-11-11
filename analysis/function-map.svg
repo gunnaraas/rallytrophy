@@ -2,7 +2,7 @@
 <title>Rally Trophy per-function decompilation map</title>
 <rect width="1600" height="1120" rx="8" fill="#0d1117"/>
 <text x="20" y="30" font-size="18" font-weight="600" fill="#e6edf3">Every game function, sized by code bytes and branch complexity</text>
-<text x="20" y="53" fill="#8b949e">1,889 byte-exact · 195 written but not byte-exact · 0 unwritten. Tile area = bytes × (1 + log₂(1 + branch points)); hover for details.</text>
+<text x="20" y="53" fill="#8b949e">1,892 byte-exact · 192 written but not byte-exact · 0 unwritten. Tile area = bytes × (1 + log₂(1 + branch points)); hover for details.</text>
 <g transform="translate(20,72)" fill="#e6edf3">
 <rect width="12" height="12" fill="#3fb950"/><text x="18" y="11">byte-exact</text>
 <rect x="118" width="12" height="12" fill="#e3b341"/><text x="136" y="11">written, not exact</text>
@@ -1036,7 +1036,7 @@
 <rect x="397.81" y="708.36" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00470180 · FUN_00470180 · Car shadows (ParallelShadow) · 12 code bytes · complexity 1 (0 branch points) · byte-exact</title></rect>
 <rect x="397.99" y="708.36" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00470190 · static destructor of the 3-element clip plane array (vector destructor) · Car shadows (ParallelShadow) · 20 code bytes · complexity 1 (0 branch points) · byte-exact</title></rect>
 <rect x="398.29" y="708.36" width="32.05" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x004701b0 · FUN_004701b0 · Car shadows (ParallelShadow) · 514 code bytes · complexity 10 (9 branch points) · byte-exact</title></rect>
-<rect x="431.34" y="708.36" width="15.87" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x004703c0 · FUN_004703c0 · Car shadows (ParallelShadow) · 378 code bytes · complexity 4 (3 branch points) · written, not exact</title></rect>
+<rect x="431.34" y="708.36" width="15.87" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x004703c0 · FUN_004703c0 · Car shadows (ParallelShadow) · 378 code bytes · complexity 4 (3 branch points) · byte-exact</title></rect>
 <rect x="448.21" y="708.36" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00470540 · FUN_00470540 · Car shadows (ParallelShadow) · 30 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>
 <rect x="449.10" y="708.36" width="6.50" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00470560 · FUN_00470560 · Car shadows (ParallelShadow) · 168 code bytes · complexity 4 (3 branch points) · byte-exact</title></rect>
 <rect x="456.60" y="708.36" width="41.55" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x00470610 · FUN_00470610 · Car shadows (ParallelShadow) · 715 code bytes · complexity 8 (7 branch points) · written, not exact</title></rect>
@@ -1056,7 +1056,7 @@
 <rect x="1145.21" y="708.36" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00472c60 · ParallelShadow module end: guard-bit initialiser of the STL header statics (_$E) · Car shadows (ParallelShadow) · 25 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>
 <rect x="1145.95" y="708.36" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00472c80 · ParallelShadow module end: atexit(0x402c90) registration · Car shadows (ParallelShadow) · 12 code bytes · complexity 1 (0 branch points) · byte-exact</title></rect>
 <rect x="1146.13" y="708.36" width="0.50" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00472c90 · FUN_00472c90 · Rain and view-matrix inverse · 101 code bytes · complexity 1 (0 branch points) · byte-exact</title></rect>
-<rect x="1147.64" y="708.36" width="114.04" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x00472d00 · FUN_00472d00 · Rain and view-matrix inverse · 1,434 code bytes · complexity 21 (20 branch points) · written, not exact</title></rect>
+<rect x="1147.64" y="708.36" width="114.04" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00472d00 · FUN_00472d00 · Rain and view-matrix inverse · 1,434 code bytes · complexity 21 (20 branch points) · byte-exact</title></rect>
 <rect x="1262.68" y="708.36" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x004732a0 · WeatherEffect base constructor (vptr 0x4e2000; no callers) · Rain and view-matrix inverse · 7 code bytes · complexity 1 (0 branch points) · byte-exact</title></rect>
 <rect x="1262.78" y="708.36" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x004732b0 · WeatherEffect scalar deleting destructor (vtable 0x4e2000) · Rain and view-matrix inverse · 31 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>
 <rect x="1263.71" y="708.36" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x004732d0 · FUN_004732d0 · Rain and view-matrix inverse · 30 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>
@@ -1077,7 +1077,7 @@
 <rect x="92.46" y="738.18" width="19.43" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00474a80 · FUN_00474a80 · Skid marks · 401 code bytes · complexity 6 (5 branch points) · byte-exact</title></rect>
 <rect x="112.89" y="738.18" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00474c20 · skid marks module end: guard-bit initialiser of the STL header statics (_$E) · Skid marks · 25 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>
 <rect x="113.60" y="738.18" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00474c40 · skid marks module end: atexit(0x402c90) registration · Skid marks · 12 code bytes · complexity 1 (0 branch points) · byte-exact</title></rect>
-<rect x="113.77" y="738.18" width="47.84" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x00474c50 · FUN_00474c50 · Snowfall · 824 code bytes · complexity 9 (8 branch points) · written, not exact</title></rect>
+<rect x="113.77" y="738.18" width="47.84" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00474c50 · FUN_00474c50 · Snowfall · 824 code bytes · complexity 9 (8 branch points) · byte-exact</title></rect>
 <rect x="162.61" y="738.18" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00474f90 · FUN_00474f90 · Snowfall · 30 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>
 <rect x="163.46" y="738.18" width="3.59" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00474fb0 · FUN_00474fb0 · Snowfall · 125 code bytes · complexity 3 (2 branch points) · byte-exact</title></rect>
 <rect x="168.06" y="738.18" width="17.96" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00475030 · FUN_00475030 · Snowfall · 372 code bytes · complexity 6 (5 branch points) · byte-exact</title></rect>

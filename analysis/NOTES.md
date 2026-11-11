@@ -277,3 +277,20 @@ Use: compare the first `sub esp` with the original (insdiff). If ours is larger,
 one object, or objects with destructors inside a block; if smaller, look for locals declared once at function
 scope that the original has per block, or a buffer that is too small. Read the buffer addresses in the original
 (`lea reg,[esp+N]`) to see which locals sit in the same slot.
+
+## Member path vs local alias after `new` (2026-11-11)
+
+Measured on the effect constructors (`ParallelShadow` 0x4703c0, `SnowFall` 0x474c50, `RainEffect` 0x472d00):
+
+- With `/Oa`, VC6 forwards a value stored through a local pointer (`m->vertices = new ...; v = m->vertices;` gives
+  `mov ecx,ebp`). Stored or read through the member (`mesh->vertices`) it reloads the field after the next
+  `operator new`, as the original does (`mov ecx,[edi+4]`), and `add esp,4` sinks below the store and the reload.
+  The earlier `*(T* volatile*)&m->field` reloads imitate that but pin the `add esp,4` and the load one slot off.
+  Which accesses go through the member differs per function; a sweep over m/member per statement group finds it
+  (typically: material and array stores through the local, counts and the two array reads through the member).
+- `if (n > 0) { cursors...; int j = n; while (j--) { ... } }` puts the cursor setup after the guard and reloads the
+  count before `this` at the loop exit; `do { } while (--j)` and `for` forms reload them in the other order.
+- A store that sits between a member's field init and that member's EH state store belongs to the constructor body
+  of a struct wrapping those fields (`TrackQuery` at 0x48 of `RainEffect`); neither a body statement nor a
+  mem-initializer of the outer class lands there.
+

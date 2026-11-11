@@ -475,13 +475,10 @@ __declspec(naked) void BuildColourLuts(const Vec3* light)
 }
 
 // original: FUN_004703c0
-// NONMATCHING: RALLYTROPHY 0x4703c0
-// 378/378 bytes, 8 differ (1 instruction). 2026-11-10: the loop keeps ONE vertex pointer v that is reassigned from
-// mesh->vertices inside the body (the original's ecx at the loop head is the previous iteration's reload), with
-// offset-first address sums; that replaces the earlier two-pointer volatile/register form (14 bytes). The initial
-// read of m->vertices must still be volatile, otherwise VC6 forwards the just-stored value from ebp (10 other load
-// forms tried). Left: `add esp,4` after operator new sits before the indices store and vertex load instead of after
-// them (12 declaration / for-init placements do not move it).
+// FUNCTION: RALLYTROPHY 0x4703c0
+// The arrays are assigned and read through this->mesh (not the local from new Mesh): VC6 then reloads
+// mesh->vertices after the second operator new instead of forwarding the stored pointer. The loop keeps one vertex
+// pointer v that is reassigned from mesh->vertices inside the body, with offset-first address sums.
 ParallelShadow::ParallelShadow()
 {
     sysTexture = 0;
@@ -492,9 +489,9 @@ ParallelShadow::ParallelShadow()
     Mesh* m = new Mesh;
     mesh = m;
     m->material = &spriteA;
-    m->vertices = new EffectVertex[0x400];
-    m->indices = new WORD[0xc00];
-    EffectVertex* v = *(EffectVertex* volatile*)&m->vertices;
+    mesh->vertices = new EffectVertex[0x400];
+    mesh->indices = new WORD[0xc00];
+    EffectVertex* v = mesh->vertices;
     int offset;
     for (offset = 0; offset < 0xb000; offset += 0x2c) {
         *(int*)(offset + (BYTE*)v + 0x18) = -1;

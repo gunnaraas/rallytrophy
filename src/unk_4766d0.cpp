@@ -18,6 +18,9 @@ extern "C" void fun_004c1998();
 // approach the target quad layout; FPU/store scheduling still differs.
 // Tried 2026-10-30 night: ~25 variants (volatile/plain vertices+color, guard placement, store/zero-reg order, u1/v1 hoist, tail store reorder); only the tail store order helped (49->45); the quad loop interleaves FPU stores across vertices and the 8-byte size gap is unexplained.
 // Tried 2026-10-31 re-pass: cursor pointers declared reverse (v2,u2,v,u,normal,color) fixes the lea/register order; vx load hoisted above the guard (45->39); ~14 more variants (plain color, volatile u/v/u2, u1/v1 hoist, u0/v0 swap, for-loop) no better; original defers u/v fstp across vertices with pending 0x2c adds folded into disp (e.g. [edx-0x2c]).
+// 2026-11-11: counts, owner and array pointers through this->mesh (no volatile reloads) and the tail stores in the
+// original order (unk70[2] and viewCount right after the unk60 block): 357 -> 344 bytes differ; the head now matches
+// up to the quad loop, whose FPU/store interleaving is the remaining difference.
 WindowRain::WindowRain(int count)
 {
     drops = 0;
@@ -30,11 +33,11 @@ WindowRain::WindowRain(int count)
     mesh = m;
     m->vertices = new EffectVertex[count * 4];
     m->indices = new WORD[count * 6];
-    m->unk24 = 0;
-    m->triangleCount = (WORD)(dropCount * 2);
-    m->vertexCount = (WORD)(dropCount * 4);
-    *(WindowRain* volatile*)&m->owner = this;
-    WORD* ix = *((WORD* volatile*)&m->indices);
+    mesh->unk24 = 0;
+    mesh->triangleCount = (WORD)(dropCount * 2);
+    mesh->vertexCount = (WORD)(dropCount * 4);
+    mesh->owner = this;
+    WORD* ix = mesh->indices;
     int i;
     for (i = 0; i < count; i++) {
         WORD v = (WORD)(i * 4);
@@ -45,7 +48,7 @@ WindowRain::WindowRain(int count)
         *ix++ = v + 2;
         *ix++ = v + 3;
     }
-    EffectVertex* vx = *((EffectVertex* volatile*)&m->vertices);
+    EffectVertex* vx = mesh->vertices;
     i = 0;
     if (count > 0) {
         float* v2 = &vx[0].v2;
@@ -101,16 +104,16 @@ WindowRain::WindowRain(int count)
     sprite.unk60[0] = 1.0f;
     sprite.unk60[1] = 1.0f;
     sprite.unk60[3] = 1.0f;
+    sprite.unk70[2] = 0.0f;
+    viewCount = 0;
     sprite.unk98 = 0xd;
     sprite.unk9c = 2;
     sprite.unk18 = 5;
     sprite.unk1c = 6;
     sprite.unk70[0] = 0.0f;
     sprite.unk70[1] = 0.0f;
-    sprite.unk70[2] = 0.0f;
     sprite.unk70[3] = 0.0f;
     sprite.unk24 = 4;
-    viewCount = 0;
     unk8 = 0;
 }
 

@@ -23,11 +23,11 @@ static const float kPointTwo = 0.2f;
 extern "C" long __cdecl _ftol(void);
 
 // original: FUN_00474c50
-// NONMATCHING: RALLYTROPHY 0x474c50
-// 821 vs 824 bytes, 326 differing bytes. Strided field cursors model the PE-observed six per-field vertex
-// pointers (+0x2c steps), with a volatile mesh-field reload; count/array setup and tail stores remain open.
-// Tried 2026-10-30 night: volatile idx reload (helped), box.y before count_/=8 (helped), if(n>0) wrap, plain v, volatile unk24/primitiveCount; still differs: add esp/cmp placement after new WORD[] and vertex-pointer lea hoist before the test.
-// Tried 2026-10-31 re-pass: declaring the six vertex pointers in reverse order (pV2..pColor) matched the lea order, 16->10 insns; ~25 more variants (unk24 volatile/reordered, fl/nv temps, this-copy, if(n>0) wrap, field-order swaps) and permute -r 40 no gain; still differs: add esp/cmp slot after new WORD[], test/jle before the vertex lea block (guard wrap adds 14 bytes), this in ebx vs esi at the tail.
+// FUNCTION: RALLYTROPHY 0x474c50
+// Strided field cursors model the six per-field vertex pointers (+0x2c steps). What made it exact: the counts and
+// both array pointers are read back through this->mesh (no volatile reloads), and the vertex loop is
+// `if (n > 0) { ...; int j = n; while (j--) {...} }`, which puts the cursor setup after the guard and reloads n
+// before this at the loop exit.
 SnowFall::SnowFall(TextureLoader* loader, int count_)
 {
     if (DAT_00501428 == 2) {
@@ -66,11 +66,11 @@ SnowFall::SnowFall(TextureLoader* loader, int count_)
     mesh = m;
     m->vertices = new EffectVertex[n * 4];
     m->indices = new WORD[n * 6];
-    m->unk24 = 0;
+    mesh->unk24 = 0;
     int w = (WORD)count;
-    m->primitiveCount = w * 2;
-    m->vertexCount = w * 4;
-    WORD* idx = *(WORD* volatile*)&m->indices;
+    mesh->primitiveCount = w * 2;
+    mesh->vertexCount = w * 4;
+    WORD* idx = mesh->indices;
     for (int i = 0; i < n; i++) {
         int b = i << 2; // `i * 4` here made VC6 fold b to 0 (wrong index stores)
         *idx++ = b;
@@ -80,14 +80,16 @@ SnowFall::SnowFall(TextureLoader* loader, int count_)
         *idx++ = b + 2;
         *idx++ = b + 3;
     }
-    EffectVertex* v = *(EffectVertex* volatile*)&m->vertices;
+    EffectVertex* v = mesh->vertices;
+    if (n > 0) {
     float* pV2 = &v[0].v2;
     float* pU2 = &v[0].u2;
     float* pV = &v[0].v;
     float* pU = &v[0].u;
     float* pNormal = &v[0].normal.x;
     DWORD* pColor = &v[0].color;
-    for (int j = 0; j < n; j++) {
+    int j = n;
+    while (j--) {
         *pColor = -1;
         pColor += 11;
         pNormal[0] = 0;
@@ -147,6 +149,7 @@ SnowFall::SnowFall(TextureLoader* loader, int count_)
         pU2 += 11;
         *pV2 = 0;
         pV2 += 11;
+    }
     }
     flakes = (SnowFlake*)operator new(n * 32);
     threshold = 1.0f;
