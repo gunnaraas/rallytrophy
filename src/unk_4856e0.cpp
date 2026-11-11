@@ -695,31 +695,28 @@ int RaceMode::GetStageValue()
 }
 
 // NONMATCHING: RALLYTROPHY 0x48e4c0
-// 364 bytes, EH tables and arrays match. The original keeps -1 in edi (colour store
-// and push) and has a 4-byte larger frame; this build stores the immediate.
-// Draws the 32x32 quad (uv inset 0.01) of the sprite at +0x250. x is a Coord param.
-// Tried 2026-10-30 night: ~15 variants; hand-written position stores (y stored last, as in 0x48e840) improved 16 -> 14 insns; int copies of x/y (iy/ix), late Color decl and store reorders were equal or worse (33+ insns). Remaining: original keeps -1 in edi emitted after the position math and loads y into eax first; ours emits the colour first.
-// Re-pass 2026-10-31: Color declared after SetQuad improved 16 -> 14 insns; ~25 more variants (iy/ix int copies, volatile Vec2 stores, dev/tex locals, volatile -1, y-first decl, store order) 14-38, permute.py -r 40 stuck at 14. Original loads y into eax first, stores color [esp+0xc] right before the SetTexture call (after the DAT_0056b0ac/m_cursor loads, which are hoisted above the fstp); ours stores it before them.
+// Draws the 32x32 quad (uv inset 0.01) of the sprite at +0x250.
+// 2026-11-10: size exact (364), 44 bytes differ. Point view of the argument (as 0x48e840) plus a default-constructed Color assigned afterwards fixed the y-first load and the edi colour.
+// Remaining: the original stores position[0].y last (after the uv stores) and loads DAT_0056b0ac/m_cursor before them. Moving the point copy or the y store later, a tex local, copying from position[1]: all worse (10-17 insns).
+// Earlier passes (2026-10-30/31, ~40 scalar variants, permute.py) are superseded by this form.
 void RaceMode::FUN_0048e4c0(HudPoint mouse)
 {
-    float x = mouse.x; float y = mouse.y; Vec2 uv[4]; Vec2 position[4];
-    position[2].x = position[1].x = x + DAT_0056aea8 * 32.0f;
-    position[3].x = position[0].x = x;
-    position[3].y = position[2].y = y + DAT_0056aeac * 32.0f;
-    position[1].y = position[0].y = y;
+    Vec2 uv[4]; Vec2 position[4];
+    Vec2* p = (Vec2*)&mouse;
+    position[0] = *p;
+    position[1].y = p->y;
+    position[2].x = position[1].x = p->x + DAT_0056aea8 * 32.0f;
+    position[3].x = p->x;
+    position[3].y = position[2].y = p->y + DAT_0056aeac * 32.0f;
     SetQuad(uv, 0.01f, 0.01f, 0.99f, 0.99f);
-    Color color(0xffffffff);
+    Color color; color.value = 0xffffffff;
     ((RaceDeviceSlots*)DAT_0056b0ac)->SetTexture(m_cursor);
     ((RaceDeviceSlots*)DAT_0056b0ac)->DrawQuad(position, uv, color, 1.0f, 1.0f);
 }
 
-// NONMATCHING: RALLYTROPHY 0x48e840
-// 361 vs 359 bytes: only scheduling/register choice differs (the original loads y
-// before x and keeps the uv base in the FPU). Position stores written out by hand.
+// FUNCTION: RALLYTROPHY 0x48e840
 // Draws one 1/8-wide glyph cell of the HUD texture (flag selects the right half).
-// Tried 2026-10-30 night: ~35 variants; copying y as an int (iy) for both position y stores improved 13 -> 9 insns (y now goes eax -> ecx like the original); int copies of x, SetQuad forms, local copies, store reorders were equal or worse. Remaining: original issues the DAT_0056b0ac load before the second y store and stores x straight from edx twice.
-// Re-pass 2026-10-31: ~30 more (Color late, RaceMode* volatile self, volatile lap/laps/field reads, y/x2 decl order, one reused float for x/scale, nested blocks for buffer/x/scale, operand-swapped sx/sy, volatile x); none change the 45 differing insns (all stack-slot shifts from the 8-byte frame difference, plus ecx/edx swap on the m_localPlayer/DAT_0056b0c8 loads and `fld st(0); fmul K` vs `fld K; fmul st,st(1)` for sx); VC6 does not share slots across blocks here.
-// Re-pass 2026-10-31: int copies of x, early/late x stores, interleaved y stores, block-scoped y+h temp: 11-24 insns (worse than 9); permute.py -r 40 stuck at 9 (best 9/164 bytes). Same diff as 0x48e9b0: original loads DAT_0056b0ac into eax before the y copy store.
+// Matched 2026-11-10 by reading the x, y arguments as one Vec2 (struct copy into position[0]); ~100 earlier scalar-store variants did not.
 void RaceMode::FUN_0048e840(float x, float y, float w, float h, Color color, int flag)
 {
     Vec2 uv[4];
@@ -729,20 +726,18 @@ void RaceMode::FUN_0048e840(float x, float y, float w, float h, Color color, int
     uv[1].x = uv[2].x = v + 0.125f;
     uv[0].y = uv[1].y = 0.5f;
     uv[2].y = uv[3].y = 0.75f;
-    int iy = *(int*)&y;
-    *(int*)&position[0].y = iy; *(int*)&position[1].y = iy;
-    position[2].x = position[1].x = x + w;
-    position[3].x = position[0].x = x;
-    position[3].y = position[2].y = y + h;
+    Vec2* p = (Vec2*)&x; // the x, y arguments read as one point
+    position[0] = *p;
+    position[1].y = p->y;
+    position[2].x = position[1].x = p->x + w;
+    position[3].x = p->x;
+    position[3].y = position[2].y = p->y + h;
     ((RaceDeviceSlots*)DAT_0056b0ac)->SetTexture(DAT_0056b0c8->FUN_00432a00());
     ((RaceDeviceSlots*)DAT_0056b0ac)->DrawQuad(position, uv, color, 1.0f, 1.0f);
 }
 
-// NONMATCHING: RALLYTROPHY 0x48e9b0
-// 369 vs 367 bytes: same scheduling difference as 0x48e840 (this is its mirror
-// cell, uv + 0.125 (double) .. + 0.25).
-// Tried 2026-10-30 night: ~40 variants; copying y as an int (iy) for both position y stores improved 12 -> 9 insns (y now eax -> ecx like the original); int copies of x, store/decl/uv order, volatile were equal or worse. Remaining: original issues the DAT_0056b0ac load before the second y store and stores x straight from edx twice (ours copies x to eax).
-// Re-pass 2026-10-31: caching DAT_0056b0ac in a local (7 positions, plain/volatile), volatile y/position stores, swapped chain orders: all 11-47 insns (worse than 9); permute.py -r 40 stuck at 9. Original loads DAT_0056b0ac into eax before the y copy store and reloads it for DrawQuad.
+// FUNCTION: RALLYTROPHY 0x48e9b0
+// Mirror cell of 0x48e840: uv + 0.125 (double) .. + 0.25. Same point-view form.
 void RaceMode::FUN_0048e9b0(float x, float y, float w, float h, Color color, int flag)
 {
     Vec2 uv[4];
@@ -752,31 +747,34 @@ void RaceMode::FUN_0048e9b0(float x, float y, float w, float h, Color color, int
     uv[1].x = uv[2].x = v + 0.25f;
     uv[0].y = uv[1].y = 0.5f;
     uv[2].y = uv[3].y = 0.75f;
-    int iy = *(int*)&y;
-    *(int*)&position[0].y = iy; *(int*)&position[1].y = iy;
-    position[2].x = position[1].x = x + w;
-    position[3].x = position[0].x = x;
-    position[3].y = position[2].y = y + h;
+    Vec2* p = (Vec2*)&x; // the x, y arguments read as one point
+    position[0] = *p;
+    position[1].y = p->y;
+    position[2].x = position[1].x = p->x + w;
+    position[3].x = p->x;
+    position[3].y = position[2].y = p->y + h;
     ((RaceDeviceSlots*)DAT_0056b0ac)->SetTexture(DAT_0056b0c8->FUN_00432a00());
     ((RaceDeviceSlots*)DAT_0056b0ac)->DrawQuad(position, uv, color, 1.0f, 1.0f);
 }
 
 // NONMATCHING: RALLYTROPHY 0x48eb20
-// 465 vs 462 bytes: the original keeps -1 in esi and has a 4-byte larger frame
-// (same as 0x48e4c0). Draws the bar: full strip, then the part scaled by n.
-// Tried 2026-10-30 night: ~20 variants; hand-ordered position stores (x+w, int-copy y, y+h, x after the uv SetQuad) improved 20 -> 10 insns; int copy of x, Color decl moves, volatile barriers were equal or worse. Remaining: original keeps -1 (or esi) after the position stores and loads DAT_0056b0ac later; permute.py reported 'baseline did not compile or compare'.
-// Re-pass 2026-10-31: Color declared after position[3].x store (just before SetTexture) improved 14 -> 11 insns; ~20 more variants (volatile y/x stores, int copies, tex local, decl order) 11-52, permute.py -r 40 stuck at 11. Remaining: original loads DAT_0056b0ac once before the Color store (esi stored right before the call), ours reloads it; uv zero-store order.
+// Draws the bar: full strip, then the part scaled by n.
+// 2026-11-10: size exact (462), 44 bytes differ. Point view of x, y (as 0x48e840) with Color declared first and assigned after SetQuad.
+// Remaining: the original stores position[0].x and position[3].x after the uv stores; ours before. Writing those two stores after SetQuad (chained, separate, or a late struct copy) regrows the function to 464 (15-17 insns).
+// Earlier passes (2026-10-30/31, ~40 scalar variants, permute.py) are superseded by this form.
 void RaceMode::FUN_0048eb20(float x, float y, float w, float h, int n)
 {
     Vec2 uv[4];
     Vec2 position[4];
-    position[2].x = position[1].x = x + w;
-    int iy = *(int*)&y;
-    *(int*)&position[0].y = iy; *(int*)&position[1].y = iy;
-    position[3].y = position[2].y = y + h;
+    Vec2* p = (Vec2*)&x;
+    Color color;
+    position[0] = *p;
+    position[1].y = p->y;
+    position[2].x = position[1].x = p->x + w;
+    position[3].x = p->x;
+    position[3].y = position[2].y = p->y + h;
     SetQuad(uv, 0.0f, 0.0f, 1.0f, 0.25f);
-    position[3].x = position[0].x = x;
-    Color color(0xffffffff);
+    color.value = 0xffffffff;
     ((RaceDeviceSlots*)DAT_0056b0ac)->SetTexture(DAT_0056b0c8->FUN_00432a00());
     ((RaceDeviceSlots*)DAT_0056b0ac)->DrawQuad(position, uv, color, 1.0f, 1.0f);
     uv[0].y = uv[1].y = 0.25f;
