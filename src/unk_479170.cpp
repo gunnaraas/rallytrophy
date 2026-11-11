@@ -412,6 +412,10 @@ static const float C3_mixB = 0.00253906241f, C3_mixA = 0.00134765625f; // 0x4e22
 // spilled, so the j1/j2 order differs; pool-head store and final pops are scheduled differently.
 // Tried 2026-10-30 night: split mix, copy `local` before pool-pop stores, `t2 = n2 + n1` temp (57->29 insns); decl order, operand order, age/local order, yv split no better (swapping j1/j2 rand order scores 18 but changes behaviour). Still open: original pops the pool before s_car is loaded for the position copy, s_car reloaded after the rand result, esi/edi swap of total/n2 gone but jitter y/x merge differs.
 // Tried 2026-10-31 re-pass: SpawnCore3 recipe (pool pop first, int-copy of b, position copy after lifetime) 57->22 lines; volatile j1 + size store after z 9 insns; permute -r 40 best 4 but needs a reordered float multiply (not applied). Still open: yv/j1 stack slots (-0x14/-0x20) and j2 kept on FPU stack, final pop edi/esi order.
+// Tried 2026-11-11: the original spills the x jitter across the second rand() and keeps the y jitter on the x87 stack
+// (fld yv; fadd st,st(1); fstp; fstp st(0)); plain float locals let VC6 store x before the second rand(). Passing both
+// rand terms as by-value arguments of an inline helper forces the spill and fixes the function tail (5 insns, 1372
+// bytes) but evaluates the y term first; 40 helper signatures/bodies/returns did not give x-first with the spill.
 // Spawn core 2 (tyre-slip dust): emission amount from slip, speed and lateral slip, one particle.
 float CarEmitterB::SpawnCore2(float a, float b)
 {
