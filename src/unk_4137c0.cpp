@@ -86,6 +86,7 @@ static __forceinline void SetV3(float& x, float& y, float& z, float a, float b, 
 // CarBodyEnv number buffer) and the ring-key array initialisation order differs; flow, calls and strings match
 // Tried 2026-10-30 night: msg path c_str in a local, SetV3 forceinline (fld c,b,a order), re-lea loader; 342->314; still 0x24 bigger frame (num[32] not sharing slots with ini-scope arrays: block/hoist/int[8]/volatile pad all failed), key-array init order and EH-state placement differ.
 // Re-pass 2026-11-01: 13 variants (num[32] in nested block/top/mid scope, key arrays reordered/resized, skid block, Vector2/3 order, volatile sky, layer decl order): none below 314 insns differ (base); VC6 does not overlap num with the if-scope arrays, frame stays 0x24 larger; too far (724 diff lines) for permute.
+// 2026-11-10 (after /YX: built 2878 vs 2914, now 36 bytes short): ring digits via char/int locals or separate stores, path c_str hoisted/removed/hand-written, c_str as `ptr == 0 ? "" : ptr`: no real change. Original keeps the divisor 10 in edi and pushes AssignTmp's npos/0 between the two digit stores; its c_str stores "" first and overwrites when ptr is set.
 void SceneSetup::FUN_004137c0(const FlareString& dir)
 {
     if (AT(int, 0x218) != 0) {
