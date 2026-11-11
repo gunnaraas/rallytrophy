@@ -3,6 +3,12 @@
 // whitespace, ',', '{' or '}'.
 #include "rallytrophy.h"
 
+// Private to this file.
+extern int DAT_00507b6c;          /* current language */
+extern int DAT_00507e40;          /* language count */
+extern int DAT_00507e7c;          /* read position within the current statement */
+extern int DAT_00507e80;          /* length of the current statement */
+
 __declspec(naked)
 // FUNCTION: RALLYTROPHY 0x404d50
 // PE observation: language table loader; instruction bytes preserve the exact VC6 EH, string, and loop paths.

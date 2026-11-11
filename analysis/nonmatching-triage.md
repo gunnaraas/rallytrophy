@@ -20,7 +20,7 @@ Instruction-multiset view: 51 functions are pure register/scheduling permutation
 | 0x4021b0 | src/unk_4018f0.cpp | MeshSet::Interp | size | 821 | 824 | 314 | 12 | `push   edi` | `mov    esi,ecx` |  |
 | 0x403ca0 | src/unk_403270.cpp | ReplayHeader::Load | size | 1132 | 1117 | 104 | 21 | `lea    ecx,[esp+0x20]` | `lea    ecx,[esp+0x24]` |  |
 | 0x404100 | src/unk_404100.cpp | ReplayFiles::SaveReplay | size | 465 | 445 | 44 | 7 | `je     0x4042a7` | `je     0x4042bb` |  |
-| 0x409390 | src/config.cpp | ??0file_error@@QAE@ABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@0@Z | size | 372 | 357 | 112 | 3 | `call <rel>` | `mov    BYTE PTR [esp+0x50],0x7` | eh 1,2,3,5,8 vs 1,2,3,7,6,5,8,9 |
+| 0x409390 | src/config.cpp | ??0file_error@@QAE@ABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@0@Z | size | 367 | 357 | 110 | 2 | `call <rel>` | `mov    BYTE PTR [esp+0x50],0x7` | eh 1,2,3,5,8 vs 1,2,3,7,6,5,8 |
 | 0x4097a0 | src/unk_4097a0.cpp | BinkVideo::BinkVideo | size | 2276 | 2203 | 1530 | 29 | `sub    esp,0x60` | `sub    esp,0x64` |  |
 | 0x40a0f0 | src/unk_409690.cpp | BinkVideo::Render | size | 950 | 940 | 564 | 31 | `sub    esp,0x58` | `sub    esp,0x54` |  |
 | 0x40a680 | src/unk_409690.cpp | SceneXform::SceneXform | order | 300 | 300 | 28 | 0 | `mov    DWORD PTR [esi],edi` | `mov    DWORD PTR [esi+0x48],eax` |  |
@@ -185,7 +185,7 @@ Instruction-multiset view: 51 functions are pure register/scheduling permutation
 | 0x491e20 | src/unk_490950.cpp | Player::FUN_00491e20 | other | 331 | 331 | 42 | 4 | `lea    edx,[eax+0x24e4]` | `lea    edx,[eax+0x250c]` |  |
 | 0x4921d0 | src/unk_491fb0.cpp | RaceSession::Run | size | 3125 | 3171 | 1559 | 41 | `xor    ebx,ebx` | `mov    esi,0x1` |  |
 | 0x492e40 | src/unk_491fb0.cpp | RaceSession::RunAttract | size | 2036 | 2050 | 264 | 9 | `mov    eax,DWORD PTR [esi+0x2c]` | `mov    ecx,DWORD PTR [esi+0x2c]` |  |
-| 0x493650 | src/unk_491fb0.cpp | RaceSession::FUN_00493650 | size | 5696 | 5672 | 3581 | 55 | `mov    DWORD PTR ds:0x0,edx` | `xor    ebx,ebx` |  |
+| 0x493650 | src/unk_491fb0.cpp | RaceSession::FUN_00493650 | size | 5724 | 5672 | 3655 | 59 | `mov    DWORD PTR ds:0x0,edx` | `xor    ebx,ebx` |  |
 | 0x49bb80 | src/unk_49b8e0.cpp | AIDriver::Init | order | 962 | 962 | 82 | 0 | `mov    DWORD PTR [ebp+0x558],ebx` | `mov    DWORD PTR [ebp+0x190],eax` |  |
 | 0x49c130 | src/unk_49b8e0.cpp | AIDriver::FUN_0049c130 | size | 3855 | 3877 | 3226 | 86 | `mov    edi,ecx` | `mov    esi,ecx` |  |
 | 0x49d970 | src/unk_49b8e0.cpp | AIDriver::FUN_0049d970 | size | 2540 | 2631 | 2125 | 56 | `mov    DWORD PTR [esp+0xa0],ecx` | `mov    DWORD PTR [esp+0x74],ecx` |  |

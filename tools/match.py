@@ -27,7 +27,10 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TARGET_EXE = os.path.join(ROOT, "orig", "RallyTrophy.exe")
 CFLAGS = ["/nologo", "/c", "/O2", "/Oa", "/G6", "/W3", "/I", "..\\..\\include"]
-CXXFLAGS = CFLAGS + ["/GX"]
+# /YX (automatic precompiled header, the VC6 project default): byte-neutral for normal functions, but it makes
+# the compiler emit the out-of-line copies of header inline functions at the end of the object, after the
+# normal functions, as the original layout shows (see analysis/NOTES.md, "Emission order").
+CXXFLAGS = CFLAGS + ["/GX", "/YX"]
 # Extra flags for experiments, e.g. RT_EXTRA_FLAGS="/Oa" (not for normal use).
 CFLAGS += os.environ.get("RT_EXTRA_FLAGS", "").split()
 CXXFLAGS += os.environ.get("RT_EXTRA_FLAGS", "").split()
@@ -101,8 +104,13 @@ def main(argv):
         obj = os.path.join(outdir, os.path.splitext(os.path.basename(src))[0] + ".obj")
         flags = CXXFLAGS if cplusplus else CFLAGS
         rel = os.path.relpath(src, outdir).replace("/", "\\")
-        cc = subprocess.run([os.path.join(ROOT, "tools", "vc6.sh"), "cl", *flags, rel],
+        # one precompiled header per source file: a shared vc60.pch from another file's headers would be ignored
+        pch = os.path.splitext(os.path.basename(src))[0] + ".pch"
+        extra = ["/Fp" + pch] if cplusplus and "/YX" in flags else []
+        cc = subprocess.run([os.path.join(ROOT, "tools", "vc6.sh"), "cl", *flags, *extra, rel],
                             capture_output=True, text=True, cwd=outdir)
+        if extra and os.path.exists(os.path.join(outdir, pch)):
+            os.remove(os.path.join(outdir, pch))
         log = "\n".join(l for l in cc.stdout.replace("\r", "").splitlines()
                         if l.strip() and l.strip() != os.path.basename(src))
         if log:

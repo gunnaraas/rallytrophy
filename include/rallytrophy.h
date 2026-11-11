@@ -397,7 +397,9 @@ extern char DAT_0057b9f4; /* quit requested */
 int FUN_004b69f0(int wait); /* pumps window messages; 0 once the game should quit */
 
 // Exceptions the game throws (RTTI exists only for these).
-void FUN_00402c90(const char* format, ...); // empty in release; identical bodies fold
+// Empty in release; identical bodies fold to 0x402c90. Inline with a body: every object gets its own copy at the
+// end, so only header inline functions emitted after it (file_error's constructor) see it as non-throwing.
+inline void FUN_00402c90(const char* format, ...) {}
 
 // original: FUN_00405aa0 (implicit copy constructor establishes the layout).
 class file_error : public std::runtime_error {
@@ -612,16 +614,12 @@ extern unsigned short DAT_004f2c10[256];
 
 /* language.cpp: languages and the game's text table */
 extern char* DAT_005074e0[0x1a3]; /* texts of the current language */
-extern int DAT_00507b6c;          /* current language */
 extern int DAT_00507b70[20];      /* language ids (PRIMARYLANGID) */
 extern std::string DAT_00507bc0[20]; /* language initials */
 extern std::string DAT_00507d00[20]; /* language names */
 extern ConfigKey DAT_004f2598[];     /* keys of language.ini */
-extern int DAT_00507e40;          /* language count */
 extern int DAT_00507e44;          /* texts loaded */
 extern char DAT_005070e0[0x400];  /* line buffer for loading texts */
-extern int DAT_00507e7c;          /* read position within the current statement */
-extern int DAT_00507e80;          /* length of the current statement */
 extern char DAT_00507e84[];       /* current statement */
 extern int DAT_00508284;          /* parse position */
 extern int DAT_00508288;          /* parse buffer size */
