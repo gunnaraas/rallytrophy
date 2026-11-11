@@ -1411,10 +1411,12 @@ struct G3CameraView {
     __asm fstp dword ptr [eax+4]
 
 // NONMATCHING: RALLYTROPHY 0x4578c0
-// 2026-11-11: forward/right as two float[3] locals gives the original 0x28 frame (fwd.z at -0x14, right.z at -0x20)
-// and indexing presets[v->view] directly gives the absolute table operands; 586 vs 588 bytes, 164 residual.
-// Left: the original squares z by fld/fld st(0) and keeps it on the x87 stack through the compare (ours fmul mem);
-// inline Sq/Len2 helpers, a float copy of z and a named z*z temp do not produce it. First-branch slot order also differs.
+// 2026-11-11: forward/right as two float[3] locals gives the original 0x28 frame (fwd.z at -0x14, right.z at -0x20),
+// indexing presets[v->view] directly gives the absolute table operands, and volatile loads of fwd[2] give the
+// original fld/fld st(0) squares; 590 vs 588 bytes, 49 differing.
+// Left: (1) both look[] sums evaluate their terms in the opposite order (original: fwd term first; operand, factor
+// and association swaps are all canonicalised away); (2) first-branch pointer slots (original trans -4, matrix -8,
+// point -0xc; declaration order has no effect, 12 orders tried).
 // The eye and look-at points of the current preset around the followed car.
 void ViewManager::FUN_004578c0(float* eye, float* look)
 {
@@ -1446,7 +1448,8 @@ void ViewManager::FUN_004578c0(float* eye, float* look)
     float right[3];
     fwd[0] = body->vel[0];
     fwd[2] = body->vel[2];
-    if (fwd[2] * fwd[2] + fwd[0] * fwd[0] <= 0.001f) {
+    float z = *(volatile float*)&fwd[2];
+    if (z * z + fwd[0] * fwd[0] <= 0.001f) {
         if (*(unsigned int*)&body->vel[1] & 0x80000000) {
             fwd[0] = body->row1[0];
             fwd[2] = body->row1[2];
@@ -1455,7 +1458,8 @@ void ViewManager::FUN_004578c0(float* eye, float* look)
             fwd[2] = -body->row1[2];
         }
     }
-    float inv = 1.0f / (float)sqrt(fwd[2] * fwd[2] + fwd[0] * fwd[0]);
+    float z2 = *(volatile float*)&fwd[2];
+    float inv = 1.0f / (float)sqrt(z2 * z2 + fwd[0] * fwd[0]);
     fwd[0] *= inv;
     fwd[2] *= inv;
     right[0] = fwd[2];
