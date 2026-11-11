@@ -227,3 +227,53 @@ Distilled from the per-loop history; "(A: X)" means `NOTES-archive.md`, section 
 History (Config loops 13-17, sound, controllers, networking, race modes, screens): `analysis/NOTES-archive.md`, verbatim.
 
 There are no Direct3D imports. Rendering goes through a device plugin (`Device/bbdx8.dll`) that the game calls through a vtable (`DAT_0056b0ac`).
+
+## Emission order and "already compiled means non-throwing" (2026-11-10)
+
+Measured on `config.cpp` and small test files; this is what made `file_error::file_error` (0x409390) match.
+
+- **VC6 treats a callee as non-throwing once a body for it has been compiled earlier in the same object**, and then
+  drops the EH state store in front of the call. A body compiled later has no effect. It holds for extern, static
+  and inline definitions alike (bisected by moving an empty function body through config.cpp).
+- **`/YX` (automatic precompiled header) is now part of the C++ flags.** It changes no bytes in any matched function
+  (full run 1880/1880 with one fresh PCH per source file), but it changes WHEN header inline functions get their
+  out-of-line copy: without a PCH the copy is compiled right after the first function that calls it; with one it is
+  deferred to the end of the object, after all normal functions. The original layout shows the deferred form: the
+  out-of-line copies sit in a block at the end of each file's address range (config: 0x408a60-0x40968f).
+  `tools/match.py` passes `/Fp<source>.pch` and deletes it afterwards, because a PCH made from another file's
+  headers is silently ignored and the file then compiles in the non-deferred way.
+- **The release-build logger `FUN_00402c90` is an inline empty function in the header**, not an extern. Every object
+  emits its own copy late (all fold to 0x402c90), so normal functions still see it as may-throw (they keep their
+  state stores, as the original does) while header inline copies compiled after it see it as non-throwing.
+- Order inside the late block, as far as measured: first the instances that this file's own code references
+  directly (e.g. `string(const allocator&)`, the copy constructor, members whose address is taken), then
+  non-template header inline functions in header definition order, then template instances first reached through
+  inlined code (`_Tidy`, `assign`, `operator+` ...). The original has template instances ahead of
+  `file_error`'s constructor, so its order is not fully reproduced; config.cpp forces `_Tidy` forward with a direct
+  reference (`g_tidy`, needs `#define private public`). What the original source did instead is unknown.
+- Three further copies of non-template inline functions (`runtime_error`/`logic_error` members, implicit copy
+  constructors) are still emitted immediately in our build but late in the original.
+- `FUN_004a2440` (setup dialog, winmain.cpp) flips between two register allocations when the number of symbols
+  declared in rallytrophy.h changes by one (any declaration or typedef; comments do not count). Its match is tied to
+  that count; four `language.cpp`-private externs were moved out of the header to keep it matching with the inline
+  logger. Expect it to flip again when rallytrophy.h gains or loses a declaration.
+- Where to look for this effect elsewhere: a late (header inline or template) function whose build has an EH state
+  store in front of a call that the original lacks.
+
+## Stack slot sharing between blocks (2026-11-11)
+
+Measured with small test files (VC6 /O2 /Oa /G6 /GX), frame size read from `sub esp`:
+
+- Locals of blocks whose lifetimes do not overlap can share stack space. Two sibling blocks with `char a[0x200]`
+  and `char b[0x2e8]` give a 0x2e8 frame. The same holds through loops, nested ifs, plain structs and inlined
+  functions.
+- A local reuses a dead slot only if it is at least half the slot's size. 372 and 376 bytes share a 744-byte
+  slot; 256 or 192 bytes do not (the frame grows by their size). Two 256-byte arrays in one block next to a
+  744-byte block give 744 + 512; the same 512 bytes as one struct give 744.
+- Small locals of equal size in sibling blocks share with each other (two `char[256]` blocks: 256).
+- A block that holds an object with a destructor does not share (0x300 instead of 0x200 in the first test).
+
+Use: compare the first `sub esp` with the original (insdiff). If ours is larger, look for buffers that should be
+one object, or objects with destructors inside a block; if smaller, look for locals declared once at function
+scope that the original has per block, or a buffer that is too small. Read the buffer addresses in the original
+(`lea reg,[esp+N]`) to see which locals sit in the same slot.

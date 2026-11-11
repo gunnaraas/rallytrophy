@@ -291,6 +291,11 @@ static inline int Bal(int a) { return a + 1; }
 // calls 0x402700).
 // Tried 2026-10-31 (second pass, 87->35 insns, size now 1644 = original): 6 trailing discarded Bal(1) keep the runtime_error _Tidy out of line (4 do nothing, 6-12 same); int tens/ones + (char)(t+'0') puts the digits in al; a float* cp induction (zStiffness.v[2], cp += 16) gives the original +0x18 bias. Still differs: value lands in ebx instead of ebp when cp exists (any cp placement, volatile reads of value tried), and the fld/fmul operand order of the vec3 scales (expression form, temp k, volatile all leave it). Earlier: byte-cursor induction (sibling 0x45e480 idiom) for all or only the first four stores moves the bias only to +0x14 or breaks ebp allocation; remaining diffs are EH/string setup, digit regs (cl/dl vs al) and fld/fmul operand order of the vec3 scale.
 // Tried 2026-10-31 night (third pass, 35->32): per-scale `{ float c_ = cp[k]; cp[k] = scale->f * c_; }` is the best of ~45 variants (named s/c temps, interleaved store/scale order, flips, value/cp/scale/i placement and k-copies, volatile all worse or equal); still differs: value in ebx not ebp (inline PathString strlen temp takes ebp), movs/mov-esi scheduling, and fld/fmul operand order of the vec3 scales which VC6 will not flip.
+// 2026-11-11: the record and cp are now derived from surface[i] inside the loop body (no hand-walked pointer) and the
+// four scalars are stored through the record: value is back in ebp and the string setup matches (100 -> 89 bytes).
+// Left: the stepped pointer sits at record+0x14 (original +0x18) and the x scale of each vector is fld scale/fmul
+// value in the original; `*=` and `scale * cp[k]` forms (115), cp shifted by 1-2 floats, and all 7 mixes of
+// cp/record destinations for the first vector copy leave the offset at +0x14 or +0x10.
 void Car::FUN_00465e90(int value)
 {
     CarSetupView* v = (CarSetupView*)this;
@@ -315,7 +320,6 @@ void Car::FUN_00465e90(int value)
     char zFriction[] = "Dyn00ZFriction";
     char xFriction[] = "Dyn00XFriction";
     const TyreSurface* scale = &v->tyreScale[value];
-    float* cp = &v->surface[0].zStiffness.v[2];
     for (int i = 0; i < 30; i++) {
         int tens = i / 10;
         int ones = i % 10;
@@ -337,10 +341,12 @@ void Car::FUN_00465e90(int value)
         cStiffness[4] = (char)(ones + '0');
         zFriction[4] = (char)(ones + '0');
         xFriction[4] = (char)(ones + '0');
-        cp[-6] = config.GetFloat(rollingResistance) * scale->rollingResistance;
-        cp[-5] = config.GetFloat(inducedDrag) * scale->inducedDrag;
-        cp[-4] = config.GetFloat(pneumaticTrail) * scale->pneumaticTrail;
-        cp[-3] = config.GetFloat(pneumaticOffset) * scale->pneumaticOffset;
+        TyreSurface* s_ = &v->surface[i];
+        float* cp = &s_->zStiffness.v[2];
+        s_->rollingResistance = config.GetFloat(rollingResistance) * scale->rollingResistance;
+        s_->inducedDrag = config.GetFloat(inducedDrag) * scale->inducedDrag;
+        s_->pneumaticTrail = config.GetFloat(pneumaticTrail) * scale->pneumaticTrail;
+        s_->pneumaticOffset = config.GetFloat(pneumaticOffset) * scale->pneumaticOffset;
         {
             const TyreF3& r = *(const TyreF3*)&config.GetVector3(zStiffness);
             *(int*)&cp[-2] = r.i[0];
@@ -380,7 +386,6 @@ void Car::FUN_00465e90(int value)
         }
         { float c_ = cp[8]; cp[8] = scale->xFriction.v[0] * c_; }
         { float c_ = cp[9]; cp[9] = scale->xFriction.v[1] * c_; }
-        cp += 16;
     }
     Bal(1); Bal(1); Bal(1); Bal(1); Bal(1); Bal(1);
 }

@@ -1,5 +1,8 @@
 // Key/value configuration files (.ini style), e.g. data/language/language.ini.
+// private -> public only so that the block at the end of this file can name std::string::_Tidy (see there).
+#define private public
 #include "rallytrophy.h"
+#undef private
 
 // FUNCTION: RALLYTROPHY 0x405580
 Config::Config()
@@ -2157,10 +2160,13 @@ typedef void Inst_409130();
 // operator+(const string&, const string&)
 typedef void Inst_409260();
 
-// NONMATCHING: RALLYTROPHY 0x409390
-// Header-inline candidate: 372 bytes vs. the 357-byte target; its temporary cleanup EH-state stores differ.
-// Tried 2026-10-30 night: reparenthesised/std::string-wrapped/append-chain variants of the header base-init "File error: "+message+" "+filename (all equal or worse); original omits EH-state stores 7/6/9 around the three operator+ temp dtors and never stores them, built emits them (6 insns differ).
-// Tried 2026-10-31 re-pass: header-ctor variants (member init swap, body assign, right-assoc/left-paren concat, std::string wrap, NRV Msg() helper, dropping the FUN_00402c90 call) all equal or worse (9 diff lines baseline); permute.py -r 40 best stays 6 insns (EH stores 7/6/9 still emitted, 8 placed late).
+// FUNCTION: RALLYTROPHY 0x409390
+// Header-inline constructor, out-of-line copy. It matches only when two callees already have compiled bodies
+// in this object by the time it is compiled, because VC6 then treats them as non-throwing and drops the EH
+// state stores in front of the calls: the empty logger (an inline function in rallytrophy.h, emitted just
+// before this constructor) and std::string::_Tidy (forced ahead by g_tidy at the end of this file). The
+// inlined copies in Parse*/Load are compiled earlier and keep the stores, as in the original. Needs /YX,
+// which moves this copy to the end of the object. Measurements: analysis/NOTES.md, "Emission order".
 // SYMBOL: ??0file_error@@QAE@ABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@0@Z
 // file_error::file_error(filename, message)
 typedef void Inst_409390();
@@ -2190,6 +2196,10 @@ void UseStringMembers(std::string& s, const char* c)
 // Address-taking forces the out-of-line members that other code calls.
 std::string& (std::string::*const g_append)(size_t, char) = &std::string::append;
 std::string& (std::string::*const g_erase)(size_t, size_t) = &std::string::erase;
+// _Tidy must be compiled before file_error's constructor (see 0x409390). A direct reference from this file's own
+// code puts it in the first group of late instances; the references that inlined string code makes do not.
+// What the original source did to get the same order is unknown.
+void (std::string::*const g_tidy)(bool) = &std::string::_Tidy;
 
 // FUNCTION: RALLYTROPHY 0x405aa0
 // SYMBOL: ??0file_error@@QAE@ABV0@@Z

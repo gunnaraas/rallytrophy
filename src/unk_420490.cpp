@@ -835,7 +835,7 @@ void StageScreen::LoadCars()
         for (i = 0; i < n; i++, e++) {
             IniFile ini;
             ini.Open((const char*)&PTR_DAT_004f6078, 0xb);
-            char num[32];
+            char num[36]; // 2026-11-11: sized to the original frame (was 32; +4 could equally be in buf; 198 -> 165 insns)
             char buf[256];
             FUN_004c1902(i + 1, num, 10);
             StagePathText dir("data/cars/car_");

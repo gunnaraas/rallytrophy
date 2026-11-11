@@ -11,16 +11,16 @@ conventions are in [`NOTES.md`](NOTES.md); the work queue and log are in
 ## Progress
 
 <!-- progress:begin -->
-_Updated 2026-11-10 by `tools/progress.py` (game code `0x401000`–`0x4bcfc6`)._
+_Updated 2026-11-11 by `tools/progress.py` (game code `0x401000`–`0x4bcfc6`)._
 
 | | Functions | Code bytes |
 |---|---|---|
-| Byte-exact | 1880 / 2084 (90.21%) | 377,871 / 742,276 (50.91%) |
-| Written, not yet exact | 204 | 364,405 |
+| Byte-exact | 1889 / 2084 (90.64%) | 383,704 / 742,276 (51.69%) |
+| Written, not yet exact | 195 | 358,572 |
 | Written in total | 2084 / 2084 (100.00%) | 742,276 / 742,276 (100.00%) |
 
 ```
-exact   ███████████████░░░░░░░░░░░░░░░ 50.91% of code bytes
+exact   ████████████████░░░░░░░░░░░░░░ 51.69% of code bytes
 written ██████████████████████████████ 100.00% of code bytes
 ```
 
@@ -34,7 +34,7 @@ Progress by module (ranges in `analysis/modules.csv`):
 |---|---|---|---|---|---|
 | Startup helpers | `0x401000`–`0x404d50` | 60 / 65 / 65 | 71.1% | 100.0% | `████████████` |
 | Language / text table | `0x404d50`–`0x405580` | 13 / 13 / 13 | 100.0% | 100.0% | `████████████` |
-| Config files | `0x405580`–`0x409690` | 33 / 34 / 34 | 97.8% | 100.0% | `████████████` |
+| Config files | `0x405580`–`0x409690` | 34 / 34 / 34 | 100.0% | 100.0% | `████████████` |
 | Stage scene and collision | `0x409690`–`0x420490` | 169 / 201 / 201 | 22.3% | 100.0% | `████████████` |
 | StageTable/control/credits screens | `0x420490`–`0x4266c0` | 31 / 39 / 39 | 22.1% | 100.0% | `████████████` |
 | Mode select screen | `0x4266c0`–`0x427600` | 8 / 9 / 9 | 39.8% | 100.0% | `████████████` |
@@ -53,7 +53,7 @@ Progress by module (ranges in `analysis/modules.csv`):
 | Track-selection screen | `0x441370`–`0x445e80` | 23 / 25 / 25 | 47.6% | 100.0% | `████████████` |
 | Service-area screen | `0x445e80`–`0x44b930` | 16 / 22 / 22 | 44.0% | 100.0% | `████████████` |
 | Replay menu | `0x44b930`–`0x44d260` | 10 / 12 / 12 | 49.8% | 100.0% | `████████████` |
-| Save-game files | `0x44d260`–`0x44ea60` | 5 / 9 / 9 | 16.5% | 100.0% | `████████████` |
+| Save-game files | `0x44d260`–`0x44ea60` | 6 / 9 / 9 | 34.2% | 100.0% | `████████████` |
 | Slot menu | `0x44ea60`–`0x450ee0` | 11 / 13 / 13 | 55.8% | 100.0% | `████████████` |
 | Sound menu | `0x450ee0`–`0x452380` | 8 / 9 / 9 | 63.0% | 100.0% | `████████████` |
 | Bonus unlocks | `0x452380`–`0x452530` | 5 / 5 / 5 | 100.0% | 100.0% | `████████████` |
@@ -73,7 +73,7 @@ Progress by module (ranges in `analysis/modules.csv`):
 | Car setup | `0x465e90`–`0x4666a0` | 6 / 7 / 7 | 18.6% | 100.0% | `████████████` |
 | Car sounds | `0x4666a0`–`0x468720` | 9 / 11 / 11 | 22.4% | 100.0% | `████████████` |
 | Car race state | `0x468720`–`0x468c40` | 8 / 8 / 8 | 100.0% | 100.0% | `████████████` |
-| Car model parts | `0x468c40`–`0x469630` | 5 / 7 / 7 | 23.0% | 100.0% | `████████████` |
+| Car model parts | `0x468c40`–`0x469630` | 6 / 7 / 7 | 78.4% | 100.0% | `████████████` |
 | Car render and effects | `0x469630`–`0x46a8a0` | 11 / 13 / 13 | 67.2% | 100.0% | `████████████` |
 | Drivetrain | `0x46a8a0`–`0x46bb90` | 23 / 23 / 23 | 100.0% | 100.0% | `████████████` |
 | Car snapshots | `0x46bb90`–`0x46c2c0` | 7 / 7 / 7 | 100.0% | 100.0% | `████████████` |
@@ -101,10 +101,10 @@ Progress by module (ranges in `analysis/modules.csv`):
 | Single-player race mode | `0x4807d0`–`0x481390` | 12 / 13 / 13 | 63.2% | 100.0% | `████████████` |
 | Network race mode | `0x481390`–`0x4843e0` | 49 / 53 / 53 | 63.6% | 100.0% | `████████████` |
 | Networking / DirectPlay | `0x4843e0`–`0x4856e0` | 19 / 19 / 19 | 100.0% | 100.0% | `████████████` |
-| Race-mode base class | `0x4856e0`–`0x48f130` | 107 / 124 / 124 | 46.5% | 100.0% | `████████████` |
+| Race-mode base class | `0x4856e0`–`0x48f130` | 111 / 124 / 124 | 50.8% | 100.0% | `████████████` |
 | Replay race mode | `0x48f130`–`0x48f670` | 11 / 11 / 11 | 100.0% | 100.0% | `████████████` |
 | Ghost race mode | `0x48f670`–`0x48fe20` | 17 / 18 / 18 | 74.3% | 100.0% | `████████████` |
-| Record table (highscores) | `0x48fe20`–`0x490950` | 6 / 11 / 11 | 15.1% | 100.0% | `████████████` |
+| Record table (highscores) | `0x48fe20`–`0x490950` | 7 / 11 / 11 | 29.1% | 100.0% | `████████████` |
 | Player | `0x490950`–`0x491fb0` | 28 / 32 / 32 | 72.3% | 100.0% | `████████████` |
 | Race session | `0x491fb0`–`0x4952e0` | 11 / 14 / 14 | 16.2% | 100.0% | `████████████` |
 | Game controllers / DirectInput | `0x4952e0`–`0x498360` | 51 / 51 / 51 | 100.0% | 100.0% | `████████████` |
@@ -117,7 +117,7 @@ Progress by module (ranges in `analysis/modules.csv`):
 | Static-initialiser-only files | `0x4a16a0`–`0x4a1760` | 8 / 8 / 8 | 100.0% | 100.0% | `████████████` |
 | WinMain / setup | `0x4a1760`–`0x4a4b10` | 45 / 45 / 45 | 100.0% | 100.0% | `████████████` |
 | File / archive I/O | `0x4a4b10`–`0x4a6600` | 28 / 28 / 28 | 100.0% | 100.0% | `████████████` |
-| Engine image/font/model files | `0x4a9b60`–`0x4b2830` | 58 / 73 / 73 | 38.0% | 100.0% | `████████████` |
+| Engine image/font/model files | `0x4a9b60`–`0x4b2830` | 59 / 73 / 73 | 41.0% | 100.0% | `████████████` |
 | Scene-object base | `0x4b2830`–`0x4b3050` | 14 / 14 / 14 | 100.0% | 100.0% | `████████████` |
 | Collision geometry | `0x4b3050`–`0x4b44e0` | 5 / 6 / 6 | 71.1% | 100.0% | `████████████` |
 | Bounding-sphere geometry | `0x4b47e0`–`0x4b5110` | 11 / 11 / 11 | 100.0% | 100.0% | `████████████` |

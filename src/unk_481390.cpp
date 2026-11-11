@@ -2141,11 +2141,13 @@ int NetRace::GetUnk844()
 // temps. Tried inline_depth, auto_inline, local references: no effect.
 // Tried 2026-10-30 night: !x/else restructure of the Close arm, volatile/plain/dead-store zero locals (VC6 folds them, original caches xor ebp,ebp), self volatile, peer uncached, loop forms, union overlay of ansi/wide with message arrays (frame 0x368, 320 insns); all stay ~323 because this stays in ebp.
 // Tried 2026-11-01 re-pass: 9 variants of a volatile/plain/pointer-read zero local `z` (function top, before UpdateMessages, before the chat block, before the host loop) used for the unk858/860/85c compares and stores, SendTo/DestroyPeer zero args, plus self volatile; all 323-346 insns differ (323 best), `this` stays in ebp, so no improvement.
+// 2026-11-11: frame 0x568 -> 0x36c (original 0x390) and 1924 -> 1918 bytes by following the stack-slot sharing
+// rule (NOTES "Stack slot sharing"): ansi/wide as one 0x200-byte struct (shares the 0x2e8 player-info slot, as
+// the original's addresses esp+0xa0 / esp+0x1a0 show), MsgState messages[8] (the original keeps it at the chat
+// line's 0x50 slot), and a BufferDesc/handle per sending block. Still 0x24 short, and `this` is in ebp, not ebx.
 void NetRace::ServiceNetwork()
 {
     unsigned int i;
-    BufferDesc buffer;
-    DWORD handle;
     if (DAT_0056b0b8) {
         DAT_0056b0b8->FUN_00485610();
     }
@@ -2178,6 +2180,7 @@ void NetRace::ServiceNetwork()
     }
     if (unk858 && m_hostPlayer && m_localPlayer) {
         MsgChatLine message;
+        BufferDesc buffer; DWORD handle;
         message.type = 0;
         message.sub = 6;
         Lock();
@@ -2197,6 +2200,7 @@ void NetRace::ServiceNetwork()
             int flags = player->unk182c;
             if (!(flags & 1)) {
                 MsgName message;
+                BufferDesc buffer; DWORD handle;
                 message.type = 0;
                 message.sub = 5;
                 int* name = (int*)RandomName(8);
@@ -2218,16 +2222,15 @@ void NetRace::ServiceNetwork()
                 DWORD count = 0;
                 DWORD size;
                 DWORD type;
-                char ansi[0x100];
-                WCHAR wide[0x80];
+                struct { char ansi[0x100]; WCHAR wide[0x80]; } text;
                 player->unk182c = 7;
                 size = 0x100;
-                wide[0] = 0;
-                ansi[0] = 0;
+                text.wide[0] = 0;
+                text.ansi[0] = 0;
                 if (!player->local || !player->unk34) {
                     if (peer->GetPeerAddress(player->id, &address, 0) >= 0 && address) {
-                        address->GetComponentByName(L"hostname", wide, &size, &type);
-                        FUN_004b7730(ansi, wide, -1);
+                        address->GetComponentByName(L"hostname", text.wide, &size, &type);
+                        FUN_004b7730(text.ansi, text.wide, -1);
                         address->Release();
                     }
                 } else {
@@ -2236,8 +2239,8 @@ void NetRace::ServiceNetwork()
                         addresses = new IDirectPlay8Address*[count];
                         if (peer->GetLocalHostAddresses(addresses, &count, 0) >= 0) {
                             address = addresses[0];
-                            address->GetComponentByName(L"hostname", wide, &size, &type);
-                            FUN_004b7730(ansi, wide, -1);
+                            address->GetComponentByName(L"hostname", text.wide, &size, &type);
+                            FUN_004b7730(text.ansi, text.wide, -1);
                             for (DWORD j = 0; j < count; j++) {
                                 addresses[j]->Release();
                             }
@@ -2246,7 +2249,7 @@ void NetRace::ServiceNetwork()
                         addresses = 0;
                     }
                 }
-                unsigned long address_ = inet_addr(ansi);
+                unsigned long address_ = inet_addr(text.ansi);
                 FUN_0047f1c0(player->id, address_, &player->unk1830, player->unk1839, ServiceCallback, player);
             } else if (flags & 8) {
                 IDirectPlay8Peer* peer = DAT_0056b0b8->m_peer;
@@ -2265,6 +2268,7 @@ void NetRace::ServiceNetwork()
         IDirectPlay8Peer* peer = DAT_0056b0b8->m_peer;
         if (unk860) {
             MsgPlayerInfo messages[19];
+            BufferDesc buffer; DWORD handle;
             MsgPlayerInfo* out = messages;
             Lock();
             unk860 = 0;
@@ -2286,7 +2290,8 @@ void NetRace::ServiceNetwork()
             peer->SendTo(0, &buffer, 1, 0, 0, &handle, 0x28);
         }
         if (unk85c) {
-            MsgState messages[19];
+            MsgState messages[8];
+            BufferDesc buffer; DWORD handle;
             MsgState* out = messages;
             Lock();
             unk85c = 0;
@@ -2312,6 +2317,7 @@ void NetRace::ServiceNetwork()
             }
             sum >>= 3;
             MsgClock message;
+            BufferDesc buffer; DWORD handle;
             message.type = 0;
             message.sub = 4;
             buffer.size = sizeof(message);

@@ -65,10 +65,11 @@ void ModelFile::ReadBatch(File* file, ModelOut* out)
     out->batches.push_back(mesh);
 }
 
-// NONMATCHING: RALLYTROPHY 0x4b1ec0 (inlined std::string/throw construction differs from original)
-// Tried 2026-10-31: record temp sized to the record (TmpN<9>) fixed the frame (0xcc->0xc4, size now equal 963); vertex store through `unsigned int* d = (uint*)v + 5` with d[-5]..d[5] gives the original's esi+0x14 base; ~25 variants (tri-loop volatile/block-temp stores, d init placement, tail volatile mesh). Still differs: lea of d lands before the n<=0 guard, r[7]/r[8] register rotation, tri-loop load/store interleave, tail mesh-field reloads.
-// Tried 2026-11-01 re-pass: ntris-as-counter / pn volatile forms (ReadBatch's 91->67 transfer: 55 insns but 964 bytes) no better; vertex word 6 via a named temp (`unsigned c = r[6]|0xff000000; q[1] = c;`) 57->6 and volatile-cast first two tri stores 6->4 (exact size 963); still differs: `mov ecx,esi / lea esi,[ecx+0x14]` and the idx reload land before the n<=0 jle, third `add esi,2` one slot early (tried q/p init placement, volatile v/idx reloads, *p++, p++ in for-increment: no effect).
-// Tried 2026-11-10: explicit `if (n > 0)` guards on both loops (VC6 then sets the vertex cursor and loads p after the jle, as the original does): 41->13 differing bytes. Left: the tri loop's `i = 0` store lands after the jle (original: before), and the third `add esi,2` sinks below the bound checks (original: between `and edx` and `cmp`). Separate counter, do/while, indexed stores (strength-reduced, 442), early `p = idx` (606) and a 15-round permute gave nothing closer.
+// FUNCTION: RALLYTROPHY 0x4b1ec0
+// Matched 2026-11-11. What it took: record temp sized to the record (TmpN<9>), vertex cursor based at word 5,
+// explicit `if (n > 0)` guards on both loops, all three index stores volatile with p++ after the first two, and
+// the first index read into an unsigned short before the third p++ (the other two compared through volatile
+// int reads). The volatile casts only steer scheduling; the original source form is unknown.
 void ModelFile::ReadBatchSmall(File* file, ModelOut* out)
 {
     int mat = FUN_004af230(file);
@@ -88,8 +89,9 @@ void ModelFile::ReadBatchSmall(File* file, ModelOut* out)
     i = 0; if (ntris > 0) for (p = idx; i < ntris; i++) {
         unsigned short t[4];
         file->Read(t, 6);
-        *(volatile unsigned short*)p = t[0]; p++; *(volatile unsigned short*)p = t[1]; p++; *p = t[2]; p++;
-        if ((*(volatile int*)&t[0] & 0xffff) >= nverts || (*(volatile int*)&t[1] & 0xffff) >= nverts || (*(volatile int*)&t[2] & 0xffff) >= nverts)
+        *(volatile unsigned short*)p = t[0]; p++; *(volatile unsigned short*)p = t[1]; p++; *(volatile unsigned short*)p = t[2];
+        unsigned short a = t[0]; p++;
+        if (a >= nverts || (*(volatile int*)&t[1] & 0xffff) >= nverts || (*(volatile int*)&t[2] & 0xffff) >= nverts)
             throw file_error(FName(file), *(std::string*)&BStr("BMF batch chunk failed due to illegal vertex index"));
     }
     *(short*)((char*)mesh + 0xe) = ntris;

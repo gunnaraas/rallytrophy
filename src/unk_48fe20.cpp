@@ -30,11 +30,9 @@ RecordTable::RecordTable()
     FUN_0048fe40();
 }
 
-// NONMATCHING: RALLYTROPHY 0x48fe40
-// 382 vs 386 bytes. Same loops and stores; the original strength-reduces the loop pointer to &record->unk1f (edx) and
-// keeps the record base in ebp for the name/time/unk5c accesses, this build uses the record itself.
-// Tried 2026-10-30 night: walk a char* at &unk1f with record = p-0x1f (49->16 insns); ebp/edx roles still swapped (p in ebp, record in edx), unk5c store placed before the add; ~14 variants and permute.py -r 20 stayed at 16.
-// Tried 2026-10-31 re-pass: p as char* at &unk1f, record declared outside and re-derived in the for-increment (16->4 insns); remaining: lea ebp,[edx-0x1f] sits at loop bottom instead of loop top (in-loop recompute flips ebp/edx roles); ~30 variants + permute.py -r 40 stayed at 4.
+// FUNCTION: RALLYTROPHY 0x48fe40
+// Plain indexing; the byte pointer at unk1f declared before the memset anchors the strength-reduced loop pointer
+// at +0x1f (with record->unk1e/unk1f stores it anchors at +0x1e).
 void RecordTable::FUN_0048fe40()
 {
     SYSTEMTIME now;
@@ -54,16 +52,16 @@ void RecordTable::FUN_0048fe40()
                 if (!k) {
                     car = 1;
                 }
-                char* p = (char*)records + (((base + h) * 23 + k) * 10) * sizeof(ScoreRecord) + 0x1f;
-                ScoreRecord* record = (ScoreRecord*)(p - 0x1f);
-                for (int e = 0; e < 10; e++, p += sizeof(ScoreRecord), record = (ScoreRecord*)(p - 0x1f)) {
+                for (int e = 0; e < 10; e++) {
+                    ScoreRecord* record = (ScoreRecord*)records + ((base + h) * 23 + k) * 10 + e;
+                    char* p = &record->unk1f;
                     memset(record, 0, sizeof(ScoreRecord));
                     strcpy(record->name, DAT_005070b0);
-                    *(SYSTEMTIME*)(p + 1) = now;
+                    record->date = now;
                     p[-1] = 0;
                     p[0] = car;
                     int t = 0x8ca0;
-                    int* split = (int*)(p + 0x11);
+                    int* split = record->splits;
                     for (; t < 0x60ae0; t += 0x8ca0) {
                         *split++ = t;
                     }

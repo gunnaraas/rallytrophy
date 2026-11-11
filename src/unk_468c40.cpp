@@ -25,11 +25,13 @@ void Car::FUN_00468c40(int a)
     }
 }
 
-// NONMATCHING: RALLYTROPHY 0x468c70
-// Tried 2026-10-30 night: local ModelPart* p, hoisted visible/p decls, direct flag ops, permute.py -r 20; part1f18 ptr still lands in ebp and visible in edi (original: edi/ebp swapped), 8 insns differ.
-// Tried 2026-10-31 re-pass: 17 variants (visible/ptr decl order and function-scope hoist, local pp, BYTE/char/volatile visible, volatile flags load/store, ternary flags, extra locals) all stay 8 insns; permute.py -r 40 best stayed 8 (no MATCH). Only the edi/ebp swap of the part1f18 ptr vs visible remains.
-// 1392-byte candidate/target; 8 differing bytes remain in the EBP/EDI allocation around the visibility test.
-// The inverted `visible = 1` branch matches the target's `jne X; jmp end`, and direct list->data expressions
+// Shows (clears flag bit 0) or hides a model part.
+static inline void SetVisible(ModelPart* part, int visible) { if (visible) part->flags &= 0xfe; else part->flags |= 1; }
+
+// FUNCTION: RALLYTROPHY 0x468c70
+// Matched 2026-11-11: the visibility write goes through the inline SetVisible above; written out in place
+// (with or without a BYTE temp) the part pointer and `visible` swap edi/ebp.
+// The inverted `visible = 1` branch gives the target's `jne X; jmp end`, and direct list->data expressions
 // place the old-buffer argument after the rep movs.
 void Car::FUN_00468c70(int a)
 {
@@ -74,12 +76,7 @@ void Car::FUN_00468c70(int a)
             }
             if (!DAT_00501450->GetStageValue())
                 visible = 0;
-            BYTE f = v->part1f18->flags;
-            if (visible)
-                f &= 0xfe;
-            else
-                f |= 1;
-            v->part1f18->flags = f;
+            SetVisible(v->part1f18, visible);
         }
         if (v->part20ec) v->part20ec->flags &= 0xfe;
         for (int i = 0; i < 3; i++) {
