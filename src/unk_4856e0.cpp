@@ -4264,6 +4264,9 @@ int RaceMode::FUN_0048b080(int award)
 // Replay control bar: seven buttons below the picture (hit-tested against the mouse, moved with the
 // left/right keys) and the driver's name, time and position. Sets unk23c to the chosen action (0-4);
 // returns -1 for "leave", 1 for "continue". With `reset` set the selection is cleared first.
+// 2026-11-12: exact size (1772) with the 1.5625 and the last text scale written as two member stores and the other two
+// through the inline SetScale; the original's Printf block shows the separate stores. 410 bytes still differ (was
+// 320 at 1764): the device pointer for Printf is loaded early here. Colour-setter forms change nothing.
 int RaceMode::FUN_0048b620(int reset)
 {
     TextRenderer* text = DAT_0056b0c8->text;
@@ -4350,7 +4353,8 @@ int RaceMode::FUN_0048b620(int reset)
         Player* player = car->player;
         text->color = color.value;
         if (DAT_00501464 != 3) {
-            text->SetScale(DAT_0056aea8 * 1.5625f, DAT_0056aeac * 1.5625f);
+            text->scaleX = DAT_0056aea8 * 1.5625f;
+            text->scaleY = DAT_0056aeac * 1.5625f;
             text->Printf(DAT_0056b0ac, DAT_0056aea8 * 8.0f, DAT_0056aeac * 710.0f, "%i.", player->unk1a58);
         }
         char buffer[16];
@@ -4365,7 +4369,8 @@ int RaceMode::FUN_0048b620(int reset)
             text->Print(DAT_0056b0ac, DAT_0056aea8 * 558.0f, DAT_0056aeac * 738.0f, buffer, 0, 1.0f, 1.0f);
         }
         DAT_0056b0c8->FUN_004360c0(DAT_0056aea8 * 84.0f, DAT_0056aeac * 716.0f, 32.0f, 16.0f, player->unk20);
-        text->SetScale(DAT_0056aea8, DAT_0056aeac);
+        text->scaleX = DAT_0056aea8;
+        text->scaleY = DAT_0056aeac;
     }
     color.value = 0xffffffff;
     Vec2 uv[4];

@@ -501,7 +501,8 @@ int PlayerNameMenu::Run()
         memcpy((char*)DAT_00501300 + 0x38 + i * 30, name[i].c_str(), strlen(name[i].c_str()) + 1);
         DAT_00501300[0x3b + i] = icon[i];
     }
-    nameText->SetScale(DAT_0056aea8, DAT_0056aeac);
+    nameText->scaleX = DAT_0056aea8;
+    nameText->scaleY = DAT_0056aeac;
     if (done || DAT_0057b9f4) {
         r = -1;
         m_game->Play(2);

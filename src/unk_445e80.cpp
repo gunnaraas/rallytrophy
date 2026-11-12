@@ -1154,7 +1154,8 @@ void ServiceMenu::DrawTune()
             x = x - bigText->GetWidth(right, 0);
             bigText->Print(DAT_0056b0ac, x, y, right, 0, 1.0f, 1.0f);
         }
-        lil->SetScale(DAT_0056aea8 * 0.75f, DAT_0056aeac * 0.75f);
+        lil->scaleX = DAT_0056aea8 * 0.75f;
+        lil->scaleY = DAT_0056aeac * 0.75f;
         lil->SetColorObj(Color(DAT_00508c04));
         x = DAT_0056aea8 * 804.0f;
         y = DAT_0056aeac * 192.0f;
