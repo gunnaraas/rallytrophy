@@ -20,6 +20,7 @@ structural difference. The notes column flags `ret N` and cleanup-state
 sequence mismatches.
 
 usage: triage.py [--md FILE] [FILE.cpp...]   (default: every file under src/)
+  A full run (no FILE.cpp) rewrites analysis/nonmatching-triage.md unless --md names another file.
 """
 import csv
 import glob
@@ -29,7 +30,7 @@ import sys
 from collections import Counter
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from match import marked_functions  # noqa: E402
+from match import TARGET_EXE, marked_functions  # noqa: E402
 from objcmp import IMAGE_BASE, PE, aligned_relocation_table, coff_function, disassemble, relocations  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -56,6 +57,17 @@ def sizes_table():
         for r in csv.DictReader(open(os.path.join(ROOT, "analysis", name))):
             sizes[int(r["entry"], 16)] = int(r["size"])
     return sizes
+
+
+def original_size(obj, symbol, address, pe=None, original_relocs=None):
+    """Size of the original function as the matcher compares it: the inventory size, extended over trailing data
+    (jump tables) when the built function is longer, bounded by the next inventory entry."""
+    sizes = sizes_table()
+    later = [e for e in sizes if e > address]
+    limit = min(later) - address if later else None
+    pe = pe or PE(TARGET_EXE)
+    original_relocs = original_relocs if original_relocs is not None else relocations(pe)
+    return compare(obj, symbol, pe, original_relocs, address, sizes[address], limit)[4]
 
 
 def compare(obj, symbol, pe, original_relocs, address, size, limit):
@@ -127,6 +139,8 @@ def main(argv):
     if "--md" in argv:
         md = argv[argv.index("--md") + 1]
         argv = [a for a in argv if a not in ("--md", md)]
+    if md is None and not argv:
+        md = os.path.join(ROOT, "analysis", "nonmatching-triage.md")
     files = argv or sorted(glob.glob(os.path.join(ROOT, "src", "**", "*.c*"), recursive=True))
     sizes = sizes_table()
     entries = sorted(sizes)
