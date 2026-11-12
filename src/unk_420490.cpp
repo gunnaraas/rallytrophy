@@ -968,6 +968,7 @@ void StageScreen::RefreshUnits()
 
 extern float DAT_004e1480; // 25.0, added at run time to 575/798 in the original (not folded)
 // NONMATCHING: RALLYTROPHY 0x421fa0
+// 2026-11-12: every text->color = X as text->SetColorObj(Color(X)): 677 -> 578 insns differ (built 4272 -> 4036 bytes; orig 4128); SetScale(x, y) for the adjacent scale pairs is neutral (+-2 insns); notFirst/first-late/wait-first zero-register variants worse or neutral.
 // Tried 2026-10-31: rewrote from the disassembly (local sx/sy, DrawPhoto/DrawBook(entry, avail), second text renderer at game+0x1390bc, per-iteration std::string, k-switch for the entry fields, avail0 colour/0x71 block) 842->683 insns; tried ~35 variants (decl order of scalars has no effect, bool/int selected, volatile/addressed first/avail0, m_game vs cached game, float vs int scale copies); still differs: original keeps 0 in esi/ebx as one shared constant register and the frame is 0xc bytes smaller (locals sx 0x1c, sy 0x28, y 0x18, x tmp 0x14), register allocation drifts the whole body.
 // Tried 2026-11-01 re-pass: 11 more variants (shared volatile zero for exitFlag/done/wait, zero arg to Print, volatile first, done/text decl order, per-iteration std::string s, y/r4/sa/sb/ia/ib placement, sx/sy split decl); none below 683 insns differ (best equal to base; built 4320 vs orig 4128 bytes, frame 0xd8 vs 0xcc); still differs: whole-body regalloc drift (orig keeps 0 in esi, ours edi/ebx) and 0xc bytes extra frame, not within permuter range.
 int StageScreen::Layout()
@@ -1112,7 +1113,7 @@ int StageScreen::Layout()
             m_game->Update();
             m_game->DrawVideo(0);
             text->scaleX = DAT_0056aea8 + DAT_0056aea8;
-            text->color = DAT_00508bfc;
+            text->SetColorObj(Color(DAT_00508bfc));
             text->scaleY = DAT_0056aeac + DAT_0056aeac;
             text->Print(DAT_0056b0ac, 54.0f * DAT_0056aea8, 142.0f * DAT_0056aeac, FUN_00405380(0x65), 0, 1.0f, 1.0f);
             text->scaleX = DAT_0056aea8;
@@ -1123,7 +1124,7 @@ int StageScreen::Layout()
             float y = 262.0f * sy;
             for (int r4 = 0; r4 < 4; r4++) {
                 bool selected = (m_selected == r4);
-                text->color = selected ? DAT_00508c0c : DAT_00508c04;
+                text->SetColorObj(Color(selected ? DAT_00508c0c : DAT_00508c04));
                 std::string s;
                 switch (r4) {
                 case 0: {
@@ -1141,7 +1142,7 @@ int StageScreen::Layout()
                 }
                 case 1:
                     if (!avail) {
-                        text->color = DAT_00508c08;
+                        text->SetColorObj(Color(DAT_00508c08));
                     }
                     text->Print(DAT_0056b0ac, 54.0f * sx, y, strC.ptr ? strC.ptr : "", 0, 1.0f, 1.0f);
                     if (!avail) {
@@ -1153,11 +1154,11 @@ int StageScreen::Layout()
                     break;
                 case 2:
                     if (!avail) {
-                        text->color = DAT_00508c08;
+                        text->SetColorObj(Color(DAT_00508c08));
                     }
                     y = 42.0f * *(volatile float*)&sy + y;
                     text->Print(DAT_0056b0ac, 54.0f * sx, y, strA.ptr ? strA.ptr : "", 0, 1.0f, 1.0f);
-                    text->color = selected ? DAT_00508c0c : DAT_00508c04;
+                    text->SetColorObj(Color(selected ? DAT_00508c0c : DAT_00508c04));
                     break;
                 case 3:
                     y = 610.0f * sy;
@@ -1167,8 +1168,8 @@ int StageScreen::Layout()
                 y = 42.0f * *(volatile float*)&sy + y;
             }
             int ia = *(int*)&text->scaleX;
-            text->color = DAT_0050892c;
-            text2->color = DAT_0050892c;
+            text->SetColorObj(Color(DAT_0050892c));
+            text2->SetColorObj(Color(DAT_0050892c));
             int ib = *(int*)&text->scaleY;
             text->scaleX = *(float*)&ia * 0.85f;
             text->scaleY = *(float*)&ib * 0.85f;
@@ -1208,7 +1209,7 @@ int StageScreen::Layout()
             if (DAT_00501334 > 1) {
                 text->scaleX = DAT_0056aea8 * 0.75f;
                 text->scaleY = DAT_0056aeac * 0.75f;
-                text->color = 0x99000000;
+                text->SetColorObj(Color(0x99000000));
                 text->Printf(DAT_0056b0ac, DAT_0056aea8 * 58.0f, DAT_0056aeac * 184.0f, "%s %i: %s", FUN_00405380(0x94),
                              unk238 + 1, (char*)DAT_00501300 + 0x38 + unk238 * 30);
                 text->scaleX = DAT_0056aea8;
