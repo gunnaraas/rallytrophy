@@ -1337,6 +1337,7 @@ static __forceinline void StageInsert(LLVec* v, int* P, unsigned int M, const in
 // NONMATCHING: RALLYTROPHY 0x422fc0
 // original: FUN_00422fc0. Loads the 8 hit-test rectangles from data/menu/carmenu.ini.
 // Tried 2026-10-30 night: three UIRect* locals (sites 5 and 6 use their own, as in the original) cut 158->62 insns; still differs: the 8th push_back is an inlined insert(end(),1,x) whose end() load is scheduled before the rect spill in the original, ours after (std::vector inline expansion; insert/end()/volatile/temp variants did not help).
+// 2026-11-12: 8th site grow arm hand-expanded in the function body, end stored before last (62 -> 3 insns differ, 1700 bytes; only an eax/ecx swap around the end store remains).
 // Tried 2026-10-31: one or two discarded Bal(1) at every statement position (no change at 5..19, worse 78/155 after the last site; only the 8th push_back inlines in both, so the count is already right); 8th site as block temp / push_back(ra = new) / own rb or rc local all worse (62 -> 70..84).
 void StageScreen::LoadLayout()
 {
@@ -1356,7 +1357,26 @@ void StageScreen::LoadLayout()
     C_ADDR(ra, "TransmissionSelectionArrow1_UpperLeft", "TransmissionSelectionArrow1_LowerRight");
     ra = (UIRect*)new C_Rect(*(const C_Point*)&config.GetVector2("TransmissionSelectionArrow2_UpperLeft"), *(const HudPoint*)&config.GetVector2("TransmissionSelectionArrow2_LowerRight"));
     LLVec* sv = (LLVec*)&m_items;
-    StageInsert(sv, sv->last, 1, (int&)ra);
+    if ((unsigned int)(sv->end - sv->last) < 1u) {
+        int* P = sv->last;
+        int* f0 = sv->first;
+        unsigned int n = sv->Size() + (1u < sv->Size() ? sv->Size() : 1u);
+        int* s = sv->allocator.allocate(n, (void*)0);
+        int* q = s;
+        for (int* f = f0; f != P; ++f, ++q)
+            StageConstruct(q, *f);
+        StageConstruct(q, (int&)ra);
+        ++q;
+        sv->Ucopy(P, sv->last, q);
+        sv->Destroy(sv->first, sv->last);
+        StageFree(sv->first);
+        int* e = s + n;
+        sv->end = e;
+        sv->last = s + sv->SizeCall() + 1;
+        sv->first = s;
+    } else {
+        StageInsert(sv, sv->last, 1, (int&)ra);
+    }
 }
 
 // A colour built from four float channels (each converted to a byte), with an empty destructor.
