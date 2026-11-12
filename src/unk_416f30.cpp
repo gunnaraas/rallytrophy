@@ -483,6 +483,10 @@ static inline void CopyProp(StageProp* d, const StageProp* src)
 // operator= inlined at two sites and called at the third (true with 6-7 copy statements, e.g. one 3- or 4-float
 // sub-struct plus single floats; 9 single copies give two calls, two sub-structs none) and the element anchored at
 // +0x14 (4-float sub-struct first). Best layouts still swap M and last (esi/edi), the same residual as this body.
+// Follow-up: the original calls operator= only at the last of its three sites (calls N C C C D F C C C =). Nine single
+// copies (the layout its _Construct/operator= helpers show) give calls at both fill sites here; {3-float, 2-float
+// sub-structs + singles} gives the original's pattern but different copy code. Not moved by: how the instance is
+// forced (address-of, push_back, insert, resize), earlier fill/copy_backward/operator= uses, ten operator= shapes.
 void PropVec::Ins(StageProp* P, unsigned int M, const StageProp& X)
 {
     if ((unsigned int)(end - last) < M) {
