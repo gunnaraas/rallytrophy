@@ -4266,7 +4266,8 @@ int RaceMode::FUN_0048b080(int award)
 // returns -1 for "leave", 1 for "continue". With `reset` set the selection is cleared first.
 // 2026-11-12: exact size (1772) with the 1.5625 and the last text scale written as two member stores and the other two
 // through the inline SetScale; the original's Printf block shows the separate stores. 410 bytes still differ (was
-// 320 at 1764): the device pointer for Printf is loaded early here. Colour-setter forms change nothing.
+// 320 at 1764): the device pointer for Printf is loaded early here. Colour-setter forms change nothing. A default-
+// constructed Color assigned 0x80000000 puts its store after the array-ctor pushes as in the original (410 -> 390).
 int RaceMode::FUN_0048b620(int reset)
 {
     TextRenderer* text = DAT_0056b0c8->text;
@@ -4339,7 +4340,8 @@ int RaceMode::FUN_0048b620(int reset)
             break;
         }
     }
-    Color color(0x80000000);
+    Color color;
+    color.value = 0x80000000;
     Vec2 position[4];
     position[1].x = position[2].x = DAT_0056aea8 * 1024.0f;
     position[0].y = position[1].y = DAT_0056aeac * 704.0f;

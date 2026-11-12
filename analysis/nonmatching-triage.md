@@ -140,7 +140,7 @@ Instruction-multiset view: 34 functions are pure register/scheduling permutation
 | 0x48a070 | src/unk_4856e0.cpp | RaceMode::FUN_0048a070 | size | 2207 | 2203 | 1087 | 4 | `mov    DWORD PTR [esp+0x14],edx` | `mov    DWORD PTR [esp+0x20],edx` |  |
 | 0x48a920 | src/unk_4856e0.cpp | RaceMode::FUN_0048a920 | size | 1827 | 1839 | 605 | 7 | `xor    ebx,ebx` | `xor    edi,edi` |  |
 | 0x48b080 | src/unk_4856e0.cpp | RaceMode::FUN_0048b080 | size | 1413 | 1422 | 807 | 32 | `mov    eax,DWORD PTR [esp+0x74]` | `push   edi` |  |
-| 0x48b620 | src/unk_4856e0.cpp | RaceMode::FUN_0048b620 | other | 1772 | 1772 | 410 | 9 | `push   0x0` | `mov    edi,0x80000000` |  |
+| 0x48b620 | src/unk_4856e0.cpp | RaceMode::FUN_0048b620 | other | 1772 | 1772 | 390 | 9 | `je     0x48bb45` | `je     0x48bb44` |  |
 | 0x48bd10 | src/unk_4856e0.cpp | RaceMode::NameMenu | size | 2765 | 2766 | 1628 | 27 | `mov    eax,ds:0x0` | `push   ebx` | eh 0,1,1,0 vs 0,0,1,0,0,1,1,1,0,0,1 |
 | 0x48cf80 | src/unk_4856e0.cpp | RaceMode::PauseMenu | size | 2134 | 2145 | 1260 | 9 | `mov    cl,BYTE PTR [esp+0x5c]` | `mov    cl,BYTE PTR [esp+0x58]` |  |
 | 0x48e4c0 | src/unk_4856e0.cpp | RaceMode::FUN_0048e4c0 | order | 364 | 364 | 44 | 0 | `mov    DWORD PTR [esp+0x1c],ecx` | `mov    DWORD PTR [esp+0x14],eax` |  |
