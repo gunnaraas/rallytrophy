@@ -202,16 +202,12 @@ int MenuManager::Run(MenuGame* game, NetRace* session)
 
 // Item scale of MenuManager::Frame: assigned in both arms of the selected test (see the function's notes).
 struct M3_Sc { float x, y; M3_Sc() {} ~M3_Sc() {} };
-// NONMATCHING: RALLYTROPHY 0x43cc50
-// 1362/1362 bytes, 1 byte differs (2026-11-11): `fadd st(0),st` and the title colour load are swapped (the original
-// loads the colour between `fld` and `fadd`; same residual as 0x4267a0 and 0x427c10).
-// What fixed the rest: (1) the item scale is an empty-ctor object assigned (1, 1) in BOTH arms of the selected
-// test. VC6 merges the arms, but the object then has four references instead of two, so it takes the slot below
-// the GetScale copy (slots are ordered by reference count, see NOTES) and its stores land between the c_str null
-// test and its jne. (2) the 0x4267a0 title recipe: scaleX in a local, volatile int read of the title colour.
-// Earlier: `!= 0` in the second Contains loop keeps zero in ebp. ~100 variants of declaration order, volatile
-// barriers, copy forms of the scale and temporaries for the unit object did not move the slots.
-// Tried for the last pair: w local then *2 / +w / *=, 2.0f*x, x+x, double, plain or int colour store, colour first.
+// FUNCTION: RALLYTROPHY 0x43cc50
+// Matched 2026-11-11. Three things: (1) the item scale is an empty-ctor object assigned (1, 1) in BOTH arms of
+// the selected test; VC6 merges the arms but the object then has four references, which puts its slot below the
+// GetScale copy (slots are ordered by reference count, see NOTES) and its stores between the c_str null test and
+// its jne. (2) the title colour goes through an inline setter taking a Color temporary (SetColorObj); a plain
+// store or a volatile read misplaces the colour load or hands ebp to -1. (3) `!= 0` in the second Contains loop.
 // original: FUN_0043cc50 (thiscall; MenuManager::Frame)
 int MenuManager::Frame()
 {
@@ -293,11 +289,9 @@ int MenuManager::Frame()
             DAT_0056b0ac->vf38(0);
             game->FUN_00432a40();
             game->DrawVideo(1);
-            float titleScaleX = DAT_0056aea8 * 2.0f;
-            int titleColor = *(volatile const int*)&DAT_00508bfc;
-            text->scaleX = titleScaleX;
+            text->SetColorObj(Color(DAT_00508bfc));
+            text->scaleX = DAT_0056aea8 * 2.0f;
             text->scaleY = DAT_0056aeac * 2.0f;
-            *(int*)&text->color = titleColor;
             text->Print(DAT_0056b0ac, M3_titleX * DAT_0056aea8, M3_titleY * DAT_0056aeac, FUN_00405380(0x2c), 0, 1.0f, 1.0f);
             text->SetScale(DAT_0056aea8, DAT_0056aeac);
             for (int i = 0; i < 6; i++) {

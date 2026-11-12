@@ -359,3 +359,11 @@ Found with standalone compiles and add/remove-one-reference probes on 0x427c10 a
 - A variable whose first value is used once and then reassigned under an `if` is one stored variable with a high
   count. If the original has it above another local, the first value was its own variable:
   `float y0 = ...; Print(y0); float y = y2;` (0x48cca0, y/y2 slots).
+
+## Menu frame title block: inline colour setter (2026-11-11)
+
+Five menu `Frame` functions (0x4267a0, 0x427c10, 0x424960, 0x42a330, 0x43cc50) were stuck on the title block
+(`fld scale; <load>; fadd st,st`). The title colour is set through an inline setter that takes a `Color` object:
+`text->SetColorObj(Color(DAT_00508bfc))` (TextRenderer, `void SetColorObj(const Color& c) { color = c.value; }`).
+A plain `text->color = DAT` schedules the load correctly but hands ebp to -1 instead of 0 later in the function;
+a volatile read keeps ebp but pins the load after `fadd`. Try this form in any remaining screen with a title block.

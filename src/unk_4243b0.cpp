@@ -165,12 +165,10 @@ struct LoopScl { float x, y; LoopScl(float a, float b) { x = a; y = b; } ~LoopSc
 struct LoopSclV { float x, y; LoopSclV(float a, float b) { *(volatile float*)&x = a; *(volatile float*)&y = b; } ~LoopSclV() {} };
 struct LoopCol0 { int v; LoopCol0() {} ~LoopCol0() {} };
 struct LoopSclQ { float x, y; LoopSclQ() {} ~LoopSclQ() {} };
-// NONMATCHING: RALLYTROPHY 0x424960
-// original: FUN_00424960 (fastcall, SEH). Draft: logic ported from the pseudocode, not yet compared byte for byte.
-// Tried 2026-10-30 night: per-call GetPosition() args, C_Warp/C_Pt EH temps (EH states of the centre block now match), m_selected >= 6;
-// Tried 2026-11-01 (b): LoopSclV (volatile ctor stores) + LoopCol0 (empty ctor, separate col.v assign) -> 10 insns differ; sc declared earlier (function top, before scale, before BeginScene, empty-ctor LoopSc0 with volatile stores in loop, plain float[2]) and ctor-early reference all worse (11-123); permute -r 40 best 10; still sc slot 0x48 vs 0x38 and 0x11 store after jne.
-// Tried 2026-11-01 (c): ported LoopSclQ + volatile x,y stores BEFORE c_str (10->8; 0x11 EH store now matches, the 1.0 stores land 2 insns early, before mov eax,[edi]; test). SLOT ORDER RULE (measured with diagnostic variants): VC6 orders these 8-byte EH objects by the number of memory references that are actually emitted, most-referenced lowest (nearest esp); loop depth, scope, declaration order and dtor kind do not matter; ties go to the object whose first use comes earlier in the code. warp temp = 3 refs (fstp,fstp,lea), scale copy = 2, sc = 2 (tie with scale, scale used first) -> warp<scale<sc. One extra emitted ref on sc ties warp (still loses), two put sc at 0x38 with warp/scale exactly at 0x40/0x48. References the optimizer folds away (reads of sc.x/y forwarded to push 0x3f800000, dead plain stores, refs through pointers, references or forceinline helpers) do not count. So the original needs >=4 counted refs on sc with only 2 surviving: passing sc BY VALUE to Print (struct param mapped to TextRenderer::Print via /alternatename) does give the exact slots but emits the 2 copy loads instead of push 0x3f800000. Open: a source form whose 2 extra refs are counted and then folded after slot assignment. Same rule applies to MenuScreen2A8. permute -r 20 best 8.
-// Tried 2026-11-01: loop-body LoopCol/LoopScl objects (empty-dtor, inline ctor) give the 0x11 EH state, the colour/1.0f slots and frame 0x70; DAT_004e150c for 400.0f; scaleX=/volatile colour read/scaleY=/color= split in the first draw block (114->12 insns differ); still differs: LoopScl lands at 0x48 (declaration order after warp/scale temps) instead of 0x38, so the C_Warp/HudPoint temps sit 8 low; EH state 0x11 store and col spill placed after the jne; tried function-scope volatile float slots, LoopSt 16-byte object, early sc placement - all worse.
+// FUNCTION: RALLYTROPHY 0x424960
+// Matched 2026-11-11: title colour through the inline SetColorObj(Color(...)) setter; where the item loop has a
+// (1, 1) scale object it is assigned in both arms of the selected test (reference-count slot rule, see NOTES).
+// original: FUN_00424960 (fastcall, SEH).
 int MenuScreen8DC::Frame()
 {
     int done = 0;
@@ -291,11 +289,9 @@ int MenuScreen8DC::Frame()
         if (DAT_0056b0ac->BeginScene()) {
             DAT_0056b0ac->vf38(0);
             game->DrawVideo(0);
-            float s2 = DAT_0056aea8 * 2.0f;
-            int c0 = *(volatile int*)&DAT_00508bfc;
-            text->scaleX = s2;
+            text->SetColorObj(Color(DAT_00508bfc));
+            text->scaleX = DAT_0056aea8 * 2.0f;
             text->scaleY = DAT_0056aeac * 2.0f;
-            text->color = c0;
             text->Print(DAT_0056b0ac, 54.0f * DAT_0056aea8, 142.0f * DAT_0056aeac, FUN_00405380(0x3e), 0, 1.0f, 1.0f);
             text->SetScale(DAT_0056aea8, DAT_0056aeac);
             game->FUN_00435de0(517.0f, 243.0f);
