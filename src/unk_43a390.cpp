@@ -533,7 +533,8 @@ void Screen1378::Slot3(int noPresent)
         text->Print(DAT_0056b0ac, 54.0f * DAT_0056aea8, 142.0f * DAT_0056aeac, FUN_00405380(0x12d), 0, 1.0f, 1.0f);
         text->SetScale(DAT_0056aea8, DAT_0056aeac);
         BuildRects();
-        Color white(0xffffffff);
+        Color white;
+        white.value = 0xffffffff;
         text->color = white.value;
         text->Print(DAT_0056b0ac, colA, rowTop, FUN_00405380(0x94), 0, 1.0f, 1.0f);
         text->Print(DAT_0056b0ac, colB, rowTop, FUN_00405380(0x61), 0, 1.0f, 1.0f);
