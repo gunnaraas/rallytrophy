@@ -139,16 +139,20 @@ int RecordTable::FUN_00490050(ScoreRecord* record, int a, int b)
 // Same structure and size as the original; register allocation differs (key/record/first end up in other registers).
 // Tried 2026-10-31: i declared after list (i gets ebx-like early zero not reproduced) took 70->61; i before/after result, chained init, indexed first[i].time, block-scoped time, key/first order did not help; original keeps i in ebx, key in esi, first in edi, ours puts i in eax (330 vs 341 bytes).
 // Tried 2026-10-31 re-pass: char* p = records + list*230*0x60 + 0x58 stepped by 0x60 (61->43), then second store as first[i] = *record (43->35); ~30 variants (decl orders, ternary forms, volatile p/this, result placement, first derived from p) stayed at 35; still ours puts key in edi and this/record swapped vs original (this in ebp, key esi, first edi).
+// 2026-11-11 (permute.py with the new mutations): `int i = 0` before `list += b + 3` and `i = 0` before the class
+// list expression give the original's first half (this in ebp); 35 -> 13 insns. The original recomputes the last
+// store from list and i (exact size with that form, but then this/record swap registers throughout); 128 ordering
+// combinations, all 720 declaration orders and eight zero-first forms did not combine the two.
 int RecordTable::FUN_004901b0(ScoreRecord* record, int a, int b)
 {
     int result = 0;
-    int list = !a ? 0 : a * 11 + 2;
-    list += b + 3;
+    int list = !a ? 0 : 11 * a + 2;
     int i = 0;
+    list += b + 3;
     int key = record->time;
     ScoreRecord* first = (ScoreRecord*)records + list * 230;
     char* p = (char*)records + list * 230 * 0x60 + 0x58;
-    for (; i < 10; i++, p += 0x60) {
+    for (; 10 > i; ++i, p += 0x60) {
         if (key < *(int*)p) {
             dirty = 1;
             if (!i) result = 1;
@@ -157,11 +161,11 @@ int RecordTable::FUN_004901b0(ScoreRecord* record, int a, int b)
             break;
         }
     }
-    list = list * 23 + record->unk1f;
     i = 0;
+    list = list * 23 + record->unk1f;
     p = (char*)records + list * 10 * 0x60 + 0x58;
     first = (ScoreRecord*)records + list * 10;
-    for (; i < 10; i++, p += 0x60) {
+    for (; i < 10; ++i, p += 0x60) {
         if (key < *(int*)p) {
             dirty = 1;
             for (int j = 9; j > i; j--) first[j] = first[j - 1];
@@ -177,25 +181,29 @@ int RecordTable::FUN_004901b0(ScoreRecord* record, int a, int b)
 // Same structure and size as the original; register allocation differs (key/record/first end up in other registers).
 // Tried 2026-10-31 night: i first + result = i, (!a ? 0 : X) + b gave 70->68; a?X:0, if-form, indexed first[i].time, record-pointer loop, base alias, key/first predeclared, volatile key did not help; original keeps i in ebx, key in esi, first in edi, time in ecx (ours: i eax, key edi, time esi).
 // Tried 2026-10-31 re-pass: char* p = records + list*230*0x60 + 0x58 stepped by 0x60, second store as first[i] = *record (70->35); ~30 variants (decl orders, p from first/&first->time, key/first order, volatile key, ternary forms) stayed at 35; ours puts key in edi and first in esi where the original has key esi, first edi (326 vs 339 bytes).
+// 2026-11-11 (permute.py with the new mutations): `int i = 0` before `list += b + 3` and `i = 0` before the class
+// list expression give the original's first half (this in ebp); 35 -> 13 insns. The original recomputes the last
+// store from list and i (exact size with that form, but then this/record swap registers throughout); 128 ordering
+// combinations, all 720 declaration orders and eight zero-first forms did not combine the two.
 int RecordTable::FUN_00490310(ScoreRecord* record, int a, int b)
 {
     int result = 0;
-    int list = (!a ? 0 : a * 11 + 2) + b;
+    int list = (!a ? 0 : 11 * a + 2) + b;
     int i = 0;
     int key = record->time;
     ScoreRecord* first = (ScoreRecord*)records + list * 230;
     char* p = (char*)records + list * 230 * 0x60 + 0x58;
-    for (; i < 10; i++, p += 0x60) {
+    for (; 10 > i; ++i, p += 0x60) {
         if (key < *(int*)p) {
             dirty = 1;
             if (!i) result = 1;
-            for (int j = 9; j > i; j--) first[j] = first[j - 1];
+            for (int j = 9; i < j; j--) first[j] = first[j - 1];
             ((ScoreRecord*)records)[list * 230 + i] = *record;
             break;
         }
     }
-    list = list * 23 + record->unk1f;
     i = 0;
+    list = list * 23 + record->unk1f;
     p = (char*)records + list * 10 * 0x60 + 0x58;
     first = (ScoreRecord*)records + list * 10;
     for (; i < 10; i++, p += 0x60) {

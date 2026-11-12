@@ -2,7 +2,8 @@
 """Random source permuter for one marked function (hill climbing over try_variants.py).
 
 Each round mutates the current best body N ways (statement swaps, commuted
-comparisons, temporaries inlined/hoisted, if/else flips, loop forms), scores every
+comparisons, temporaries inlined/hoisted, if/else flips, loop forms, counted-loop
+rewrites, int-typed copies, split declarations, expanded compound assignments, ternaries), scores every
 variant with try_variants.py and keeps the best. A byte-exact match validates
 itself, so mutations only need to compile; nothing here edits SOURCE. Mutations may reorder
 dependent statements, so only a MATCH is safe to apply; a closer non-matching best.cpp is a hint,
@@ -136,7 +137,122 @@ def loop_form(lines, rng):
     return lines
 
 
-MUTATORS = [swap_adjacent, swap_adjacent, move_decl, commute, flip_if, inline_temp, loop_form]
+def _block_close(lines, i):
+    """Index of the line holding the `}` that closes the block opened on line i (or None)."""
+    depth = 0
+    for j in range(i, len(lines)):
+        depth += lines[j].count("{") - lines[j].count("}")
+        if depth == 0 and j > i:
+            return j
+        if depth == 0 and "{" in lines[j] and "}" in lines[j]:
+            return None
+    return None
+
+
+FOR_COUNT = re.compile(r"^(\s*)for \((?:(?:unsigned )?int )?(\w+) = 0; \2 < ([^;]+); (?:\2\+\+|\+\+\2)\) \{\s*$")
+
+
+def counter_loop(lines, rng):
+    """Rewrite a counted for loop whose index is unused in the body (measured lever, NOTES "Loop counter forms")."""
+    cand = []
+    for i, l in enumerate(lines):
+        m = FOR_COUNT.match(l)
+        if not m:
+            continue
+        end = _block_close(lines, i)
+        if end is None or any(re.search(rf"\b{m.group(2)}\b", k) for k in lines[i + 1:end]):
+            continue
+        cand.append((i, end, m))
+    if not cand:
+        return None
+    i, end, m = rng.choice(cand)
+    ind, n = m.group(1), m.group(3)
+    form = rng.randrange(5)
+    if form == 0:
+        lines[i] = f"{ind}{{ int cnt__ = {n}; while (cnt__--) {{"
+        lines[end] = lines[end] + " }"
+    elif form == 1:
+        lines[i] = f"{ind}for (int cnt__ = {n}; cnt__; cnt__--) {{"
+    elif form == 2:
+        lines[i] = f"{ind}if ({n} > 0) {{ int cnt__ = {n}; while (cnt__--) {{"
+        lines[end] = lines[end] + " }"
+    elif form == 3:
+        lines[i] = f"{ind}if ({n} > 0) {{ int cnt__ = {n}; do {{"
+        lines[end] = lines[end].replace("}", "} while (--cnt__); }", 1)
+    else:
+        lines[i] = f"{ind}if ({n} > 0) for (int cnt__ = {n}; cnt__; cnt__--) {{"
+    return lines
+
+
+ASSIGN = re.compile(r"^(\s*)([A-Za-z_][\w\.\->\[\]]*) = ([A-Za-z_][\w\.\->\[\]]*);\s*$")
+
+
+def typed_copy(lines, rng):
+    """Copy a 4-byte value through an int local (NOTES "Typed copies and indexing"); wrong sizes cannot MATCH."""
+    cand = [i for i, l in enumerate(lines) if ASSIGN.match(l)]
+    if not cand:
+        return None
+    i = rng.choice(cand)
+    ind, dst, src = ASSIGN.match(lines[i]).groups()
+    k = rng.randrange(10 ** 6)
+    lines[i:i + 1] = [f"{ind}int cp{k}__ = *(int*)&({src});", f"{ind}*(int*)&({dst}) = cp{k}__;"]
+    return lines
+
+
+DECL_INIT = re.compile(r"^(\s*)((?:const |unsigned )?[A-Za-z_][\w:]*(?:\s*\*+\s*|\s+))([A-Za-z_]\w*) = ([^;]+);\s*$")
+
+
+def split_decl(lines, rng):
+    """`T x = e;` -> `T x;` + `x = e;` (changes where the slot/register is claimed)."""
+    cand = [i for i, l in enumerate(lines) if DECL_INIT.match(l) and "const " not in l and "&" not in DECL_INIT.match(l).group(2)]
+    if not cand:
+        return None
+    i = rng.choice(cand)
+    ind, ty, name, expr = DECL_INIT.match(lines[i]).groups()
+    lines[i:i + 1] = [f"{ind}{ty}{name};", f"{ind}{name} = {expr};"]
+    return lines
+
+
+COMPOUND = re.compile(r"^(\s*)([A-Za-z_][\w\.\->\[\]]*) ([-+*])= ([^;]+);\s*$")
+
+
+def expand_compound(lines, rng):
+    """`a += b;` -> `a = a + b;` or `a = b + a;`."""
+    cand = [i for i, l in enumerate(lines) if COMPOUND.match(l)]
+    if not cand:
+        return None
+    i = rng.choice(cand)
+    ind, a, op, b = COMPOUND.match(lines[i]).groups()
+    if op == "-" or rng.random() < 0.5:
+        lines[i] = f"{ind}{a} = {a} {op} ({b});"
+    else:
+        lines[i] = f"{ind}{a} = ({b}) {op} {a};"
+    return lines
+
+
+IF_ASSIGN = re.compile(r"^(\s*)if \(([^;{}]+)\) ([A-Za-z_][\w\.\->\[\]]*) = ([^;]+);\s*$")
+
+
+def ternary_sub(lines, rng):
+    """`x = a; if (c) x = b;` on two lines -> `x = c ? b : a;` (and the `x -= c ? d : 0` family via expand first)."""
+    cand = []
+    for i in range(1, len(lines)):
+        m = IF_ASSIGN.match(lines[i])
+        p = ASSIGN.match(lines[i - 1]) or DECL_INIT.match(lines[i - 1])
+        if m and p and p.groups()[-2].split()[-1].lstrip("*") == m.group(3):
+            cand.append(i)
+    if not cand:
+        return None
+    i = rng.choice(cand)
+    m = IF_ASSIGN.match(lines[i])
+    prev = lines[i - 1].rstrip()
+    head, a = prev[:-1].rsplit(" = ", 1)
+    lines[i - 1:i + 1] = [f"{head} = ({m.group(2)}) ? ({m.group(4)}) : ({a});"]
+    return lines
+
+
+MUTATORS = [swap_adjacent, swap_adjacent, move_decl, commute, flip_if, inline_temp, loop_form,
+            counter_loop, counter_loop, typed_copy, split_decl, expand_compound, ternary_sub]
 
 
 def mutate(body, rng, steps):

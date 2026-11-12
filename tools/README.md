@@ -20,7 +20,8 @@ They expect locally supplied game files and toolchain components; see
   scratch directory so parallel runs do not collide.
 - [`permute.py`](permute.py): random hill-climbing permuter over
   `try_variants.py` (statement swaps, commuted operands, if/else flips,
-  inlined temporaries); never edits the source, writes the best body to
+  inlined temporaries, counted-loop rewrites, int-typed copies, split declarations,
+  expanded compound assignments, ternaries); never edits the source, writes the best body to
   `build/permute/<addr>/best.cpp`, ranking by aligned instructions first.
   Apply it only on MATCH: mutations can
   reorder dependent statements.

@@ -137,7 +137,7 @@ Instruction-multiset view: 43 functions are pure register/scheduling permutation
 | 0x4751b0 | src/unk_474c50.cpp | SnowFall::Update | size | 1745 | 1741 | 726 | 6 | `je     0x47586c` | `je     0x475870` |  |
 | 0x475eb0 | src/unk_4758b0.cpp | Sky::Update | size | 1431 | 1441 | 558 | 9 | `push   esi` | `mov    ebx,DWORD PTR [ebp+0xc]` |  |
 | 0x4766d0 | src/unk_4766d0.cpp | WindowRain::WindowRain | size | 916 | 924 | 344 | 15 | `jle    0x4769e5` | `jle    0x4769dd` |  |
-| 0x476be0 | src/unk_4766d0.cpp | WindowRain::Init | other | 955 | 955 | 75 | 2 | `mov    eax,DWORD PTR [esi]` | `mov    edx,DWORD PTR [esi]` |  |
+| 0x476be0 | src/unk_4766d0.cpp | WindowRain::Init | other | 955 | 955 | 45 | 2 | `cmp    ebp,edi` | `mov    esi,DWORD PTR [esi+0x48]` |  |
 | 0x477690 | src/unk_477370.cpp | WheelSpray::Render | order | 1227 | 1227 | 4 | 0 | `fadd   DWORD PTR [ebp-0x6c]` | `mov    eax,DWORD PTR [ebp-0x2c]` |  |
 | 0x4799f0 | src/unk_479170.cpp | CarEmitterB::SpawnCore1 | size | 1371 | 1382 | 313 | 10 | `fst    DWORD PTR [ebp-0x10]` | `fst    DWORD PTR [ebp-0x14]` |  |
 | 0x479f60 | src/unk_479170.cpp | CarEmitterB::SpawnCore2 | size | 1369 | 1376 | 213 | 7 | `fst    DWORD PTR [ebp-0x14]` | `fst    DWORD PTR [ebp-0x20]` |  |
@@ -161,8 +161,8 @@ Instruction-multiset view: 43 functions are pure register/scheduling permutation
 | 0x48e4c0 | src/unk_4856e0.cpp | RaceMode::FUN_0048e4c0 | order | 364 | 364 | 44 | 0 | `mov    DWORD PTR [esp+0x1c],ecx` | `mov    DWORD PTR [esp+0x14],eax` |  |
 | 0x48eb20 | src/unk_4856e0.cpp | RaceMode::FUN_0048eb20 | order | 462 | 462 | 44 | 0 | `mov    DWORD PTR [esp+0x28],0x0` | `mov    DWORD PTR [esp+0x30],edx` |  |
 | 0x490050 | src/unk_48fe20.cpp | RecordTable::FUN_00490050 | size | 332 | 341 | 154 | 4 | `mov    ebp,ecx` | `mov    eax,ecx` | eh 1,1 vs  |
-| 0x4901b0 | src/unk_48fe20.cpp | RecordTable::FUN_004901b0 | size | 328 | 341 | 150 | 10 | `mov    esi,DWORD PTR [eax+0x58]` | `mov    edi,DWORD PTR [eax+0x58]` |  |
-| 0x490310 | src/unk_48fe20.cpp | RecordTable::FUN_00490310 | size | 326 | 339 | 150 | 10 | `mov    esi,DWORD PTR [eax+0x58]` | `mov    edi,DWORD PTR [eax+0x58]` |  |
+| 0x4901b0 | src/unk_48fe20.cpp | RecordTable::FUN_004901b0 | size | 328 | 341 | 139 | 8 | `lea    edx,[edi+ecx*1]` | `add    ecx,edi` |  |
+| 0x490310 | src/unk_48fe20.cpp | RecordTable::FUN_00490310 | size | 326 | 339 | 139 | 8 | `lea    edx,[edi+ecx*1]` | `add    ecx,edi` |  |
 | 0x490470 | src/unk_48fe20.cpp | RecordTable::FUN_00490470 | size | 914 | 929 | 545 | 15 | `push   ebx` | `push   ebp` | eh 1,0 vs 1,1,0,1,1,1 |
 | 0x491130 | src/unk_490950.cpp | Player::FUN_00491130 | other | 354 | 354 | 43 | 0 | `mov    ebx,DWORD PTR ds:0x0` | `push   ebp` |  |
 | 0x491490 | src/unk_490950.cpp | Player::FUN_00491490 | size | 384 | 388 | 165 | 4 | `ja     0x4915f7` | `ja     0x4915f3` |  |
