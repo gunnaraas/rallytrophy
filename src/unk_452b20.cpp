@@ -116,6 +116,9 @@ struct F_CarView {
 // Re-pass 2026-11-01: sums rewritten in the asm's fadd order (chained temps in H_Normalize/H_Normalize1/lenSq, loc.* dot as z,y,x chain written into loc directly), H_AddPos as fld o; fadd p via a temp, one function-scope H_V3 dir puts the float temps in the original's -0x34 slot (insdiff 362->237 lines); still differs: dir/A/B Vec copy order at the part2020/2024 blocks, normalise tail (fld st(0); fmul mem vs fld mem; fmul st,st(1)), lea/pointer-setup order in H_Cross sites, EH-state init order at 0xd8/0xc8.
 // volatile expression + volatile y/z adds (23->17); the original delays the y/z fstp past the argument setup, which no form reproduces.
 // Tried 2026-10-31 re-pass: ~50 more variants (plain/two-temp/int-copy/volatile y,z; forceinline Add helpers; x as volatile expr or two-temp); none beat 17 insns, permute -r 40 found nothing; the original interleaves the F_STORE copy loads with fld/fadd and delays fstp p.x/y/z, which no source form reproduces.
+// Tried 2026-11-11: the plain form (copy x, y, z; then += x, y, z; no volatile) has the original's instruction set
+// at the exact size but starts the x87 chain three integer moves early (21 insns vs 17 with the volatile form kept
+// here); the result copy as a struct assignment, int copies or int temporaries does not move it.
 void Car::FUN_00452b20()
 {
     F_CarView* c = (F_CarView*)this;
