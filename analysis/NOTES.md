@@ -394,3 +394,9 @@ Do not add such a constructor to the shared HudPoint class: it changes SnowFall:
 - Quad helpers: `SetQuad(uv, ...)` called before the position stores, colour assigned last (0x48e4c0, 0x48eb20).
 - Reusing an existing float local as the FPU temporary (`x = ...; pos[0].x = pos[3].x = x;`) fixed an `fld st(1)` schedule (0x449860 229 -> 63).
 - The inline-setter lever did nothing for register-swap-only near misses (0x44c580, 0x43a6e0, 0x450be0, 0x436250).
+- slotmap.py survey over all 172 NONMATCHING functions (2026-11-12): in the 17 where the frames anchor at >= 90%,
+  no local sits in a different slot. Slot flags appear only where anchoring is weak, i.e. where the code itself
+  differs (e.g. 0x49d970 is 91 bytes short). Slot order is not the main remaining cause; fix structure
+  (calls.py, size) first and use slotmap.py once a function is the right size.
+- TrackSelectMenu::Run 0x443790: the original copies name/description of the by-value RallyInfo inline (_Tidy +
+  assign); ours calls the copy ctor out of line. An inline/__forceinline subclass copy ctor does not inline.
