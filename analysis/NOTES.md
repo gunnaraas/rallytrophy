@@ -353,8 +353,9 @@ Found with standalone compiles and add/remove-one-reference probes on 0x427c10 a
   written as two ifs with the same body, which VC6 merges back (0x427c10: clicked/sy slots, 12 -> 3 bytes).
 - Probe to confirm before searching: replace one read of the lower variable by another variable; if the slots flip
   to the original's, hunt for the missing/extra reference.
-- 8-byte objects with destructors obey the same rule (extra stores to the (1,1) object in 0x43cc50 flip it below the
-  scale copy), but no behaviour-neutral source of the extra reference has been found there yet.
+- 8-byte objects with destructors obey the same rule. In 0x43cc50 the per-item (1, 1) scale is an empty-ctor
+  object assigned in both arms of `if (selected) {...} else {...}`; the arms merge, the count doubles, and the stores
+  land where the original has them (25 -> 1 insn). Look for an if/else or `||` whose arms could have repeated a store.
 - A variable whose first value is used once and then reassigned under an `if` is one stored variable with a high
   count. If the original has it above another local, the first value was its own variable:
   `float y0 = ...; Print(y0); float y = y2;` (0x48cca0, y/y2 slots).

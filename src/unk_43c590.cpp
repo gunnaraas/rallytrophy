@@ -200,17 +200,18 @@ int MenuManager::Run(MenuGame* game, NetRace* session)
     }
 }
 
+// Item scale of MenuManager::Frame: assigned in both arms of the selected test (see the function's notes).
+struct M3_Sc { float x, y; M3_Sc() {} ~M3_Sc() {} };
 // NONMATCHING: RALLYTROPHY 0x43cc50
-// 1365 vs 1362 bytes, 361 differing. Remaining: the original keeps the zero constant in ebp for the whole body
-// (`cmp eax,ebp` after the second Contains loop, `push ebp` args, imm -1 EH stores) while mine puts -1 in ebp after the
-// Up/Down block; the (1, 1) object and the GetScale copy sit in swapped frame slots (0x34/0x3c); the
-// title Print's device load is now early, but uses a different register.
-// Tried 2026-10-30 night: `!= 0` for the second Contains loop (was `!= first`; 28->25 insns, ebp now holds zero); moving M3_Unit/HudPoint decls, dropping titleDevice, hoisting title args all worse or equal; still differs: (1,1) object and GetScale copy in swapped slots (0x34/0x3c), title Print device load early in esi.
-// Tried 2026-10-31 re-pass (25 insns differ now): ~25 variants (one/scale decl placement top/loop/scope, volatile device/color/scaleX/Y barriers, title arg locals, operand order); best 24 (volatile text->color store, not applied); still differs: scale copy at 0x34 vs original 0x3c with the (1,1) object at 0x34, and title Print device loaded early into esi instead of after the string.
-// Tried 2026-11-11: slot order follows reference counts (see NOTES). Probes: two extra stores to the (1,1) object or
-// one store fewer in the scale copy give the original's 0x34/0x3c order; one extra store does not. No neutral form
-// found in ~35 variants: reads of one.x/one.y fold before counting, scale as two-arg/init-list/pointer/array/memcpy/
-// __int64 copy, struct assign, reference-bound or default-argument temporaries, unit declared after the colour store.
+// 1362/1362 bytes, 1 byte differs (2026-11-11): `fadd st(0),st` and the title colour load are swapped (the original
+// loads the colour between `fld` and `fadd`; same residual as 0x4267a0 and 0x427c10).
+// What fixed the rest: (1) the item scale is an empty-ctor object assigned (1, 1) in BOTH arms of the selected
+// test. VC6 merges the arms, but the object then has four references instead of two, so it takes the slot below
+// the GetScale copy (slots are ordered by reference count, see NOTES) and its stores land between the c_str null
+// test and its jne. (2) the 0x4267a0 title recipe: scaleX in a local, volatile int read of the title colour.
+// Earlier: `!= 0` in the second Contains loop keeps zero in ebp. ~100 variants of declaration order, volatile
+// barriers, copy forms of the scale and temporaries for the unit object did not move the slots.
+// Tried for the last pair: w local then *2 / +w / *=, 2.0f*x, x+x, double, plain or int colour store, colour first.
 // original: FUN_0043cc50 (thiscall; MenuManager::Frame)
 int MenuManager::Frame()
 {
@@ -292,19 +293,21 @@ int MenuManager::Frame()
             DAT_0056b0ac->vf38(0);
             game->FUN_00432a40();
             game->DrawVideo(1);
-            text->color = DAT_00508bfc;
-            text->scaleX = DAT_0056aea8 * 2.0f;
+            float titleScaleX = DAT_0056aea8 * 2.0f;
+            int titleColor = *(volatile const int*)&DAT_00508bfc;
+            text->scaleX = titleScaleX;
             text->scaleY = DAT_0056aeac * 2.0f;
-            RenderDevice* titleDevice = DAT_0056b0ac;
-            text->Print(titleDevice, M3_titleX * DAT_0056aea8, M3_titleY * DAT_0056aeac, FUN_00405380(0x2c), 0, 1.0f, 1.0f);
+            *(int*)&text->color = titleColor;
+            text->Print(DAT_0056b0ac, M3_titleX * DAT_0056aea8, M3_titleY * DAT_0056aeac, FUN_00405380(0x2c), 0, 1.0f, 1.0f);
             text->SetScale(DAT_0056aea8, DAT_0056aeac);
             for (int i = 0; i < 6; i++) {
                 int selected = (i == m_selected);
                 Color col;
-                M3_Unit one;
-                col.value = selected ? DAT_00508c0c : DAT_00508c04;
+                M3_Sc one;
+                if (selected) { col.value = DAT_00508c0c; one.x = 1.0f; one.y = 1.0f; }
+                else { col.value = DAT_00508c04; one.x = 1.0f; one.y = 1.0f; }
                 text->color = col.value;
-                text->Print(DAT_0056b0ac, items[i].x, items[i].y, items[i].text.c_str(), 0, 1.0f, 1.0f);
+                text->Print(DAT_0056b0ac, items[i].x, items[i].y, items[i].text.c_str(), 0, one.x, one.y);
             }
             ((MenuGame*)DAT_0056b0c8)->FUN_00435b60(1, 5, 1, 1, 1, -1.0f);
             DrawCursor(*((MouseInput*)DAT_0056b0c0)->GetPosition());
