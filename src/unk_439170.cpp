@@ -147,11 +147,9 @@ int MenuScreenA48::Run(MenuGame* game, NetRace* session)
     return -1;
 }
 
-// NONMATCHING: RALLYTROPHY 0x4398e0
-// Same size (1948 bytes with tables), 218 bytes differ. Loading row text before explicit volatile HudPoint stores improves
-// the 224-byte candidate; GetScale and (1,1) still use swapped slots (0x44/0x4c vs target 0x4c/0x44), with case scheduling open.
-// Tried 2026-10-30 night: reordering switch cases, moving/declaring scale/one elsewhere, volatile/hoisted title temps; a local `RenderDevice* d = DAT_0056b0ac` for the title Print improves 44->33 insns (fixes the switch-case layout), still differs in text/device register choice (ebp vs ebx), the late device load, and swapped scale/one slots (0x44/0x4c).
-// Tried 2026-10-31 re-pass: one/scale declared early/late/function-scope, local LP/LD point classes for scale and one, float[2] one (frame shrinks, worse), volatile/early/late d, title string/xy temps; slots scale 0x44/one 0x4c stay swapped (34 insns differ, unchanged) since one's EH state follows its declaration point.
+// FUNCTION: RALLYTROPHY 0x4398e0
+// Matched 2026-11-11: title colour through the inline SetColorObj(Color(...)) setter; the item (1, 1) scale object is
+// assigned in both arms of the selected test (reference-count slot rule, see NOTES).
 // original: FUN_004398e0 (thiscall; MenuScreenA48::Frame)
 int MenuScreenA48::Frame()
 {
@@ -266,11 +264,10 @@ int MenuScreenA48::Frame()
         if (DAT_0056b0ac->BeginScene()) {
             DAT_0056b0ac->vf38(0);
             game->DrawVideo(0);
-            text->color = DAT_00508bfc;
+            text->SetColorObj(Color(DAT_00508bfc));
             text->scaleX = DAT_0056aea8 * 2.0f;
             text->scaleY = DAT_0056aeac * 2.0f;
-            RenderDevice* d = DAT_0056b0ac;
-            text->Print(d, B2_titleX * DAT_0056aea8, B2_titleY * DAT_0056aeac, FUN_00405380(0x3f), 0, 1.0f, 1.0f);
+            text->Print(DAT_0056b0ac, B2_titleX * DAT_0056aea8, B2_titleY * DAT_0056aeac, FUN_00405380(0x3f), 0, 1.0f, 1.0f);
             text->SetScale(DAT_0056aea8, DAT_0056aeac);
             game->FUN_00435de0(517.0f, 243.0f);
             HudPoint scale = *game->GetScale();
@@ -278,12 +275,10 @@ int MenuScreenA48::Frame()
                 int selected = (i == m_selected);
                 Color col;
                 HudPoint one;
-                col.value = selected ? DAT_00508c0c : DAT_00508c04;
+                if (selected) { col.value = DAT_00508c0c; one.x = 1.0f; one.y = 1.0f; }
+                else { col.value = DAT_00508c04; one.x = 1.0f; one.y = 1.0f; }
                 text->color = col.value;
-                const char* labelText = items[i].text.c_str();
-                *(volatile float*)&one.x = 1.0f;
-                *(volatile float*)&one.y = 1.0f;
-                text->Print(DAT_0056b0ac, items[i].x, items[i].y, labelText, 0, 1.0f, 1.0f);
+                text->Print(DAT_0056b0ac, items[i].x, items[i].y, items[i].text.c_str(), 0, one.x, one.y);
                 HudPoint pos;
                 pos.x = 520.0f * DAT_0056aea8;
                 pos.y = items[i].y;

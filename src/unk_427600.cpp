@@ -218,17 +218,11 @@ int GameScreen11A4::Run(MenuGame* game)
     return result;
 }
 
-// NONMATCHING: RALLYTROPHY 0x427c10
-// 2026-11-10: the 0x4267a0 title recipe (scaleX local + volatile read of the title colour) takes this from 582 to 12
-// differing bytes at 2745/2745. Left: the same esi/edi reload scheduling as 0x4267a0 (reload sits after fadd and the
-// colour load instead of between fld and fadd) and the clicked/sy stack slots swapped ([esp+0x20]/[esp+0x24]; six
-// declaration orders and four split forms do not move them).
-// 2747 vs 2745 bytes. Control flow, EH states and all calls match. Left: `clicked`/`sy` frame slots swapped (0x24/0x20
-// vs 0x20/0x24), and in the title-text switch and the item Print the scheduler picks other scratch registers for
-// the device pointer (ecx/edx/eax rotated). Tried: declaration order, case order, if-chains, locals for device/xy,
-// a FrameTemps struct (626 differences), volatile clicked (1,548), and volatile sy (584); all reverted.
-// Tried 2026-10-30 night: volatile stores on scaleX/color/scaleY, color temp, clicked/sy/wait/first declaration orders, deferred sy init, device local (before switch or before scaleX: tail-merges the three Print cases, 2644 bytes); none beat 134 insns differ; clicked/sy slots still swapped and device/colour scratch registers still rotated.
-// Tried 2026-11-01 re-pass: text pointer declared late (before/after first draw call: 255 insns), sy/clicked/wait/first/sx declaration orders (sy slot stays 0x20, clicked 0x24; original 0x24/0x20), sy set after init, sy as reference, !(done||clicked), clicked=done, clicked reset in loop; none beat 134 insns differ.
+// FUNCTION: RALLYTROPHY 0x427c10
+// Matched 2026-11-11: title colour through the inline SetColorObj(Color(...)) setter; where the item loop has a
+// (1, 1) scale object it is assigned in both arms of the selected test (reference-count slot rule, see NOTES).
+// The mouse test is two ifs, each with its own `clicked = 1` (VC6 merges them); that extra reference orders the
+// clicked/sy slots.
 // original: FUN_00427c10 (thiscall; one frame loop of the screen)
 int GameScreen11A4::Frame()
 {
@@ -346,8 +340,12 @@ int GameScreen11A4::Frame()
                 done = 1;
                 continue;
             }
-            if ((m_items[3]->Contains(*((MouseInput*)DAT_0056b0c0)->GetPosition()) && m_items[3]->enabled) ||
-                m_items[4]->Contains(*((MouseInput*)DAT_0056b0c0)->GetPosition())) {
+            if (m_items[3]->Contains(*((MouseInput*)DAT_0056b0c0)->GetPosition()) && m_items[3]->enabled) {
+                m_game->Play(1);
+                clicked = 1;
+                continue;
+            }
+            if (m_items[4]->Contains(*((MouseInput*)DAT_0056b0c0)->GetPosition())) {
                 m_game->Play(1);
                 clicked = 1;
                 continue;
@@ -389,10 +387,8 @@ int GameScreen11A4::Frame()
         if (DAT_0056b0ac->BeginScene()) {
             DAT_0056b0ac->vf38(0);
             game->DrawVideo(0);
-            float titleScaleX = DAT_0056aea8 * 2.0f;
-            int titleColor = *(volatile const int*)&DAT_00508bfc;
-            text->scaleX = titleScaleX;
-            text->color = titleColor;
+            text->SetColorObj(Color(DAT_00508bfc));
+            text->scaleX = DAT_0056aea8 * 2.0f;
             text->scaleY = DAT_0056aeac * 2.0f;
             switch (DAT_00501464) {
             case 2:

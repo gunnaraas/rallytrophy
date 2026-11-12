@@ -538,8 +538,8 @@ float AIDriver::FUN_004a1050(Obstacle* ob, Vec3* dir, int side)
         c.x = own->boxMax[0];
         c.z = own->boxMax[2];
         c.y = own->boxMin[1];
-        const float* matrix = ((AiBody*)player->car->body)->matrix;
         Vec3* point = &c;
+        const float* matrix = ((AiBody*)player->car->body)->matrix;
         TRANSFORM_IN_PLACE();
         Vec3* pos = &((AiBody*)player->car->body)->position;
         c.x = c.x + pos->x;

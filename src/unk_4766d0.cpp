@@ -161,19 +161,21 @@ void WindowRain::Init(RainScene* scene)
         if (i >= (int)scene->objects.size()) {
             return;
         }
-        obj = scene->objects[i];
+        int objBits = *(int*)&scene->objects[i]; // int-typed copies (found by permute.py): 36 -> 8 insns
+        *(int*)&obj = objBits;
         if (obj->type == 1) {
             const char* name = obj->name ? obj->name : "";
             if (_stricmp(name, "rain_window") == 0) {
                 break;
             }
         }
-        i++;
+        ++i;
     }
     int a = obj->unk14;
     int c = obj->unk1c;
     memcpy(matrix, obj->matrix, sizeof(matrix));
-    unk18 = obj->unk18;
+    int unk18Bits = *(int*)&obj->unk18;
+    *(int*)&unk18 = unk18Bits;
     unk14 = a;
     unk1c = c;
     WindowMeshData* md = obj->source.GetMeshData(0);
@@ -239,7 +241,7 @@ void WindowRain::Init(RainScene* scene)
         }
     }
     RainDrop* dr;
-    for (j = 0; j < dropCount; j++) {
+    for (j = 0; j < dropCount; ++j) {
         dr = &drops[j];
         dr->age = (float)j / (float)dropCount;
         dr->spot = &spots[rand() % n];

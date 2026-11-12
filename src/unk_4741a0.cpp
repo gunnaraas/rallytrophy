@@ -69,6 +69,11 @@ struct SkStr {
 // VC6 currently emits one cleanup call and merges the return paths.
 // Tried 2026-10-31: SkStr overlay with _Grow(n,true) expanded inline (hand-written, early returns in ctor or helper, bool Grow, return *this, store order, memcpy); body now matches structurally (57->43 insns) but VC6 merges the three return paths into one shared epilogue (jmp) where the original duplicates the epilogue per return.
 // Tried 2026-10-31 re-pass: 17 more variants (volatile on res/len/ptr/st/char stores per arm, per-arm store-order changes, goto-out, volatile read before return, member Assign); all stay 43 insns / 635 bytes, return paths still merge into one epilogue (jmp 0x474406) regardless of per-arm tail differences; SnowFall strided-cursor idioms do not apply (string tail, not mesh loop).
+// Tried 2026-11-11: the real std::string assignment (operator=, assign(s), assign(s, n)) gives 594-600 bytes: VC6
+// then calls _Tidy(true) in the n == 0 arm where the original has it inline, and jumps to one epilogue where the
+// original clones it three times. inline_depth 2-255, inline_recursion, auto_inline, optimize pragmas and /Ob, /Ox
+// flag sets do not change that (inline_depth(4): 640 bytes, other shape). 0x404100 shows the reverse (original
+// jumps, this build clones), also with the real std::string, so the difference is not in the string emulations.
 SkidMarks::SkidMarks()
 {
     int q = DAT_00501428;

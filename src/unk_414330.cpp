@@ -182,82 +182,10 @@ void S414List::RemoveNode(S414Node* n)
 #pragma comment(linker, "/alternatename:?Eos@StMsg@@QAEXI@Z=?_Eos@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEXI@Z")
 #pragma comment(linker, "/alternatename:?Copy@StMsg@@QAEXI@Z=?_Copy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEXI@Z")
 
-// NONMATCHING: RALLYTROPHY 0x414550
-// Tried 2026-10-31: a replace-style rewrite (zero-fill after the grow) scored 105 insns but its copy path was not verified; the original has both a rep stos zero-fill of the inserted gap and a final rep movs copy from the source. Existing code kept. The original also reuses the `first`/`arg` parameter slots for pos/newLen.
-// Tried 2026-11-01 re-pass: 14 variants (asm-faithful middle, param-slot reuse of arg/first, one-read len-pos, VC6 _Grow-shaped tail with Copy unconditional when shared, pos/sourceLen order, non-volatile pos): 111-130 insns differ vs 112 baseline, size 515-532 vs 505; still differs: original body is replace() with memmove only when N<N0 before Grow, then after Grow `N0<N ? memmove(ptr+pos+N,ptr+pos+N0,Nm) : memset(ptr+pos,0,N)` (current body zero-fills a different range - asm shows the zero fill is N bytes at ptr+pos), newLen/len-N0 live in the arg param slot, tail reads len again and shares Copy on refcounted path; register allocation (edx/ecx/esi/ebx) diverges from the prologue so not within permuter range.
-// BEHAVIOUR: verified against the asm 2026-11-01 (after Grow: memmove only when eraseLen<sourceLen, then ALWAYS memset sourceLen bytes at ptr+pos; guard sourceLen>0||eraseLen>0; tail re-reads len, unshared n==0 calls _Eos(0)). Body now equals the original semantically; still NONMATCHING (about 129 vs 141 differing insns).
-// The Stage caller uses this as a thiscall member on its string-layout message object.
-StMsg& StMsg::Format(char* first, char* last, const char* fmt, const char* arg)
-{
-    if (ptr != 0 && ((unsigned char*)ptr)[-1] != 0 &&
-        ((unsigned char*)ptr)[-1] != 0xff) {
-        Grow(len, false);
-    }
-    char* oldPtr = ptr;
-    if (oldPtr != 0)
-        oldPtr[-1] = (char)0xff;
-
-    // Keep the iterator offset in its stack slot, as in the target body.
-    volatile unsigned int pos;
-    if (first == 0)
-        pos = (unsigned int)first;
-    else
-        pos = (unsigned int)(first - ptr);
-    unsigned int sourceLen = (unsigned int)(arg - fmt);
-    unsigned int eraseLen = last == 0 ? 0 : (unsigned int)(last - first);
-    if (len < pos)
-        std::_Xran();
-    if (len - pos < eraseLen)
-        eraseLen = len - pos;
-    if (std::string::npos - sourceLen <= len - eraseLen)
-        std::_Xlen();
-
-    if (oldPtr != 0 && ((unsigned char*)oldPtr)[-1] != 0 &&
-        ((unsigned char*)oldPtr)[-1] != 0xff) {
-        Tidy(true);
-        AssignCall(oldPtr, (unsigned int)strlen(oldPtr));
-    }
-
-    unsigned int baseLen = len - eraseLen;
-    unsigned int suffixLen = baseLen - pos;
-    if (sourceLen < eraseLen) {
-        memmove(ptr + pos + sourceLen, ptr + pos + eraseLen,
-                suffixLen);
-    }
-    unsigned int newLen = baseLen + sourceLen;
-    if (sourceLen > 0 || eraseLen > 0) {
-        if (Grow(newLen, false)) {
-            if (eraseLen < sourceLen) {
-                memmove(ptr + pos + sourceLen, ptr + pos + eraseLen,
-                        suffixLen);
-            }
-            memset(ptr + pos, 0, sourceLen);
-            len = newLen;
-            ptr[newLen] = 0;
-        }
-    }
-    if (ptr != 0 && ptr[-1] != 0 && ptr[-1] != (char)0xff) {
-        unsigned int n = len;
-        if (MaxSize() < n)
-            std::_Xlen();
-        if (ptr != 0 && ptr[-1] != 0 && ptr[-1] != (char)0xff) {
-            if (n == 0) {
-                ptr[-1]--;
-                Tidy(false);
-            } else {
-                Copy(n);
-            }
-        } else if (n == 0) {
-            if (ptr != 0)
-                Eos(0);
-        } else if (res < n) {
-            Copy(n);
-        }
-    }
-    if (ptr != 0)
-        ptr[-1] = (char)0xff;
-    char* d = ptr + pos;
-    if (sourceLen > 0)
-        memcpy(d, fmt, sourceLen);
-    return *this;
-}
+// FUNCTION: RALLYTROPHY 0x414550
+// SYMBOL: ?replace@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@QAEAAV12@PAD0PBD1@Z
+// string::replace(iterator, iterator, const char*, const char*)
+typedef void Inst_414550();
+// The address-of forces the out-of-line instance (a direct call is inlined).
+typedef std::string& (std::string::*StringReplaceRange)(char*, char*, const char*, const char*);
+StringReplaceRange g_stringReplaceRange_414550 = &std::string::replace;

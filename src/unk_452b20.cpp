@@ -116,6 +116,9 @@ struct F_CarView {
 // Re-pass 2026-11-01: sums rewritten in the asm's fadd order (chained temps in H_Normalize/H_Normalize1/lenSq, loc.* dot as z,y,x chain written into loc directly), H_AddPos as fld o; fadd p via a temp, one function-scope H_V3 dir puts the float temps in the original's -0x34 slot (insdiff 362->237 lines); still differs: dir/A/B Vec copy order at the part2020/2024 blocks, normalise tail (fld st(0); fmul mem vs fld mem; fmul st,st(1)), lea/pointer-setup order in H_Cross sites, EH-state init order at 0xd8/0xc8.
 // volatile expression + volatile y/z adds (23->17); the original delays the y/z fstp past the argument setup, which no form reproduces.
 // Tried 2026-10-31 re-pass: ~50 more variants (plain/two-temp/int-copy/volatile y,z; forceinline Add helpers; x as volatile expr or two-temp); none beat 17 insns, permute -r 40 found nothing; the original interleaves the F_STORE copy loads with fld/fadd and delays fstp p.x/y/z, which no source form reproduces.
+// Tried 2026-11-11: the plain form (copy x, y, z; then += x, y, z; no volatile) has the original's instruction set
+// at the exact size but starts the x87 chain three integer moves early (21 insns vs 17 with the volatile form kept
+// here); the result copy as a struct assignment, int copies or int temporaries does not move it.
 void Car::FUN_00452b20()
 {
     F_CarView* c = (F_CarView*)this;
@@ -143,9 +146,9 @@ struct G_Body {
     BYTE unk0[0x14];
     float pos[3];                      // 0x14
     float mat[16];                     // 0x20: rotation rows 0x20/0x30/0x40, translation 0x50
-    BYTE unk60[0x88 - 0x60];
-    float unk88;                       // 0x88
-    BYTE unk8c[0xb4 - 0x8c];
+    BYTE unk60[0xa8 - 0x60];
+    float unka8;                       // 0xa8 (the second spring point's z; this was read from 0x88 until 2026-11-11)
+    BYTE unkac[0xb4 - 0xac];
     float unkb4;                       // 0xb4
     BYTE unkb8[0x1cc - 0xb8];
     Vec3 velocity;                     // 0x1cc
@@ -291,6 +294,7 @@ static inline void G_Set(Vec3& v, float x, float y, float z) { v.x = x; v.y = y;
 // Re-pass 2026-11-01: G_AddRev for ctrl7/ctrl11 fixed their fadd order (51->46 insns); ~13 more variants (plain struct assign, int/block-temp copies, volatile gain/factor, in-order reshuffles) for ctrl5/6 call-result copy interleave were worse; still differs: that copy (original loads x,y then z after stores), hoisted mov eax,[esi+0x24], call-arg lea/push order.
 extern float DAT_004e1ae8; // 0.0100000007 (the next float above 0.01f), read from .rdata
 // Body-frame accelerations of the four spring points and the two SpringFollower updates.
+// 2026-11-11: the second spring point reads body+0xa8 (was body+0x88, a wrong field): 1899 -> 200 bytes, size exact.
 void Car::FUN_00452eb0(float dt)
 {
     Vec3 p;
@@ -308,8 +312,8 @@ void Car::FUN_00452eb0(float dt)
     {
         G_Set(p, 0.0f, 0.0f, V->body->unkb4);
         const float* trans = V->body->pos;
-        const float* in = (const float*)&p;
         const float* mat = V->body->mat;
+        const float* in = (const float*)&p;
         float* out = (float*)&world;
         G_TRANSFORM_ADD();
         G_Copy(V->ctrl4, V->body->FUN_004204f0(world) - V->ctrl4);
@@ -317,10 +321,10 @@ void Car::FUN_00452eb0(float dt)
         G_AddRev(V->ctrl4, V->ctrl2);
     }
     {
-        G_Set(p, 0.0f, 0.0f, V->body->unk88);
+        G_Set(p, 0.0f, 0.0f, V->body->unka8);
         const float* trans = V->body->pos;
-        const float* in = (const float*)&p;
         const float* mat = V->body->mat;
+        const float* in = (const float*)&p;
         float* out = (float*)&world;
         G_TRANSFORM_ADD();
         G_Copy(V->ctrl3, V->body->FUN_004204f0(world) - V->ctrl3);
@@ -331,8 +335,8 @@ void Car::FUN_00452eb0(float dt)
         G_Copy3(p, V->vec20d0);
         p += V->vec1018;
         const float* trans = V->body->pos;
-        const float* in = (const float*)&p;
         const float* mat = V->body->mat;
+        const float* in = (const float*)&p;
         float* out = (float*)&world;
         G_TRANSFORM_ADD();
         G_Copy(V->ctrl5, V->body->FUN_004204f0(world) - V->ctrl5);
@@ -344,8 +348,8 @@ void Car::FUN_00452eb0(float dt)
         G_Copy3(p, V->vec203c);
         p += V->vec1024;
         const float* trans = V->body->pos;
-        const float* in = (const float*)&p;
         const float* mat = V->body->mat;
+        const float* in = (const float*)&p;
         float* out = (float*)&world;
         G_TRANSFORM_ADD();
         G_Copy(V->ctrl6, V->body->FUN_004204f0(world) - V->ctrl6);

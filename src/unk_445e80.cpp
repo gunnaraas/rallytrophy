@@ -344,6 +344,9 @@ void ServiceMenu::UnloadTextures()
 // double d / float f temporaries (original -0x1c/-0x14 above the 5-byte text array at -0x24, mine 8 bytes lower).
 // Tried 2026-10-30 night: ~30 variants (decl order of d/f/text/whole/tenth, function-scope vs loop-scope, text[6]/[8], struct text, hoisting text init); slot order never moved (mine d,f,text low-to-high vs original text,d,f) and the eax-vs-esi stageNo+1 prologue is untouched.
 // Tried 2026-10-31 re-pass: 17 more variants (text declared first/function-top/nested block, d/f function-scope/nested/no named d/volatile d, 8-byte text holder struct); layout of d,f,text is invariant (the named d is folded to a temp, p.cpp == base) so slots stay 8 low, 40 insns differ; permute skipped (>10 insns).
+// Tried 2026-11-12: an inline FloatToInt-style helper for the two roundings moves d/f/text and whole/tenth (177 bytes,
+// worse); text declared first with a late int/struct/memcpy init: unchanged. Probes: extra stores to text do not move
+// it, one reference fewer on d moves d above f. So the original has fewer counted references on d and f than ours.
 // original: FUN_004470a0 (thiscall, ret 0xc; info.ini loader: per-stage strings)
 void ServiceMenu::Init(int rallyNo, int stageNo, int count)
 {
@@ -1151,8 +1154,9 @@ void ServiceMenu::DrawTune()
             x = x - bigText->GetWidth(right, 0);
             bigText->Print(DAT_0056b0ac, x, y, right, 0, 1.0f, 1.0f);
         }
-        lil->SetScale(DAT_0056aea8 * 0.75f, DAT_0056aeac * 0.75f);
-        lil->color = DAT_00508c04;
+        lil->scaleX = DAT_0056aea8 * 0.75f;
+        lil->scaleY = DAT_0056aeac * 0.75f;
+        lil->SetColorObj(Color(DAT_00508c04));
         x = DAT_0056aea8 * 804.0f;
         y = DAT_0056aeac * 192.0f;
         lil->Print(DAT_0056b0ac, x, y, FUN_00405380(0x73), 0, 1.0f, 1.0f);
@@ -1172,7 +1176,7 @@ void ServiceMenu::DrawTune()
         if (timeLeft < cost && tune[row] == tuneOrig[row]) {
             lil->SetColor(ColorArg(0xFFD14A4F));
         } else {
-            lil->color = DAT_00508c04;
+            lil->SetColorObj(Color(DAT_00508c04));
         }
         lil->Print(DAT_0056b0ac, x, y, buf, 0, 1.0f, 1.0f);
         lil->SetScale(DAT_0056aea8, DAT_0056aeac);
@@ -1324,8 +1328,7 @@ void ServiceMenu::DrawRepair()
         text->Print(DAT_0056b0ac, DAT_0056aea8 * 804.0f, hy, FUN_00405380(0x73), 0, 1.0f, 1.0f);
         text->Print(DAT_0056b0ac, DAT_0056aea8 * 604.0f, hy, FUN_00405380(0x76), 0, 1.0f, 1.0f);
         text->color = DAT_00508c04;
-        text->scaleX = DAT_0056aea8 * 1.5f;
-        text->scaleY = DAT_0056aeac * 1.5f;
+        text->SetScale(DAT_0056aea8 * 1.5f, DAT_0056aeac * 1.5f);
         int cost = repairTime[unk2c];
         itoa(cost, buf, 10);
         float ry = DAT_0056aeac * 200.0f;
@@ -1451,12 +1454,10 @@ void ServiceMenu::BuildRects()
     }
 }
 
-// NONMATCHING: RALLYTROPHY 0x44b510
-// 1016 vs 983 bytes / 417 differing bytes (improved from 1008/427): splitting the per-flag tab guards follows the
-// target's separate tests, but the function remains NONMATCHING. The original loads colour globals into eax where
-// mine picks edx. The status registers now match roles (DAT_00501464 in eax / DAT_00501454 in ecx), but the target
-// loads them in the opposite order and earlier relative to the scale-field stores.
-// Tried 2026-10-30 night: ~30 variants (store orders, locals for title args, volatile colour, guard blocks reordered/merged); best is guard order D458, D454, D464 (65->63 insns); still differs: color/device register choice in the title+rally block and prologue load order of D464/D454 (target eax then ecx), 1016 vs 983 bytes.
+// FUNCTION: RALLYTROPHY 0x44b510
+// Matched 2026-11-12: inline SetColorObj(Color(...)) for both title colours, `rally + 0xb5` written twice, inline
+// SetScale for the 0.75 block, and ONE x variable for the rally title and the item list (its lifetime decides
+// which stack slot the title temporaries share; see NOTES on slot order).
 // Tried 2026-10-31 re-pass: the three tab guards merged into the original's `if (D464 || D454) {i==3; D454&&i==2&&!D45c; D464==2|3&&i==2}` shape and D464 read once at loop top (`int f464 = DAT_00501464;`) so eax=D464/ecx=D454 as in the original: 65->57 insns, loop guards now match; ~45 variants more (colour/scale store order, rid/width locals, x/y decl order, print arg locals) fail to fix: title block picks edx for the colour and the rally-title width/rid load order, 1008 vs 983 bytes.
 // original: FUN_0044b510 (vtable slot 3, Draw; the jump table 0x44b8e8 is its switch)
 void ServiceMenu::Slot3(int skipPresent)
@@ -1466,18 +1467,17 @@ void ServiceMenu::Slot3(int skipPresent)
         DAT_0056b0ac->vf38(0);
         overlay->Draw(DAT_0056b0ac, 0);
         text->scaleX = DAT_0056aea8 * 2.0f;
-        text->color = DAT_00508bfc;
+        text->SetColorObj(Color(DAT_00508bfc));
         text->scaleY = DAT_0056aeac * 2.0f;
         text->Print(DAT_0056b0ac, SMI_TITLEX * DAT_0056aea8, SMI_TITLEY * DAT_0056aeac, FUN_00405380(0x75), 0, 1.0f,
                     1.0f);
         text->scaleX = DAT_0056aea8 * 3.0f;
-        text->color = DAT_00508bfc;
+        text->SetColorObj(Color(DAT_00508bfc));
         text->scaleY = DAT_0056aeac * 3.0f;
-        int rid = rally + 0xb5;
-        float rx = DAT_0056b0ac->GetWidth() * 0.5f - text->GetWidth(FUN_00405380(rid), 0) * 0.5f;
-        text->Print(DAT_0056b0ac, rx, SMI_RALLYY * DAT_0056aeac, FUN_00405380(rid), 0, 1.0f, 1.0f);
+        float x = DAT_0056b0ac->GetWidth() * 0.5f - text->GetWidth(FUN_00405380(rally + 0xb5), 0) * 0.5f;
+        text->Print(DAT_0056b0ac, x, SMI_RALLYY * DAT_0056aeac, FUN_00405380(rally + 0xb5), 0, 1.0f, 1.0f);
         text->SetScale(DAT_0056aea8, DAT_0056aeac);
-        float x = DAT_0056aea8 * 54.0f;
+        x = DAT_0056aea8 * 54.0f;
         float y = DAT_0056aeac * 262.0f;
         for (int i = 0; i < 6; i++) {
             int f464 = DAT_00501464;
@@ -1523,8 +1523,7 @@ void ServiceMenu::Slot3(int skipPresent)
             break;
         }
         if (DAT_00501334 > 1) {
-            text->scaleX = DAT_0056aea8 * 0.75f;
-            text->scaleY = DAT_0056aeac * 0.75f;
+            text->SetScale(DAT_0056aea8 * 0.75f, DAT_0056aeac * 0.75f);
             text->color = 0x99000000;
             text->Printf(DAT_0056b0ac, DAT_0056aea8 * 58.0f, DAT_0056aeac * 184.0f, "%s %i: %s", FUN_00405380(0x94),
                          unk30 + 1, DAT_00501338[unk30].text);

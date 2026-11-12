@@ -242,11 +242,9 @@ int RaceOptionsMenu::Run(MenuGame* game, NetRace* net_)
 
 // Module end: guard-bit initialiser of the STL header statics and its atexit registration.
 
-// NONMATCHING: RALLYTROPHY 0x43ffd0
-// Same size (2240 with tables), 219 bytes differ. Volatile writes to a local HudPoint plus an early row-text pointer
-// improve the prior 226-byte diff; target (1,1) slots and DrawToggle registers still differ. Input and jump tables match.
-// Tried 2026-10-30 night: ~20 variants (move/hoist the dummy HudPoint one, scale split-init, one-store volatile placement, pos.x/y order, early labelText); none beat 41 insns, hoisting "one" breaks EH state numbering; still differs: one/scale stack slots swapped (0x44/0x4c), DrawToggle arg-push register choice, and lea ebp*9 placement.
-// Tried 2026-10-31 re-pass: ~35 more variants (one hoisted to 7 scopes, volatile/plain/brace one stores, scale via split/int copies, no-op volatile scale.x/y, pos order, inline labelText); all stay at 41 insns (219 bytes) or break the frame; no-op volatile scale.x gives 26 insns but 461 bytes (worse, scale.x goes via fld/fstp), so not applied.
+// FUNCTION: RALLYTROPHY 0x43ffd0
+// Matched 2026-11-11: title colour through the inline SetColorObj(Color(...)) setter; the item (1, 1) scale object is
+// assigned in both arms of the selected test (reference-count slot rule, see NOTES).
 int RaceOptionsMenu::Frame()
 {
     int done = 0;
@@ -366,7 +364,7 @@ int RaceOptionsMenu::Frame()
         if (DAT_0056b0ac->BeginScene()) {
             DAT_0056b0ac->vf38(0);
             game->DrawVideo(0);
-            text->color = DAT_00508bfc;
+            text->SetColorObj(Color(DAT_00508bfc));
             text->scaleX = DAT_0056aea8 * 2.0f;
             text->scaleY = DAT_0056aeac * 2.0f;
             text->Print(DAT_0056b0ac, 54.0f * DAT_0056aea8, 142.0f * DAT_0056aeac, FUN_00405380(0x3b), 0, 1.0f, 1.0f);
@@ -377,12 +375,10 @@ int RaceOptionsMenu::Frame()
                 int selected = (i == m_selected);
                 Color col;
                 HudPoint one;
-                col.value = selected ? DAT_00508c0c : DAT_00508c04;
+                if (selected) { col.value = DAT_00508c0c; one.x = 1.0f; one.y = 1.0f; }
+                else { col.value = DAT_00508c04; one.x = 1.0f; one.y = 1.0f; }
                 text->color = col.value;
-                const char* labelText = items[i].text.c_str();
-                *(volatile float*)&one.x = 1.0f;
-                *(volatile float*)&one.y = 1.0f;
-                text->Print(DAT_0056b0ac, items[i].x, items[i].y, labelText, 0, 1.0f, 1.0f);
+                text->Print(DAT_0056b0ac, items[i].x, items[i].y, items[i].text.c_str(), 0, one.x, one.y);
                 HudPoint pos;
                 pos.x = 520.0f * DAT_0056aea8;
                 pos.y = items[i].y;

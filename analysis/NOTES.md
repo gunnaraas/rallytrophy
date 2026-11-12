@@ -305,4 +305,84 @@ Measured on the effect constructors (`ParallelShadow` 0x4703c0, `SnowFall` 0x474
   fadd; fst`). Indexing `saved[i]` instead of walking a pointer declared before the loop moves the pointer setup
   after the guard and changes which register holds `this`. Check field offsets against the original first: this
   function had been writing the wrong field (+0 instead of +4).
+- Check the numbers first (`tools/numdiff.py`, 2026-11-11): an instruction that differs from the original only in a
+  displacement or immediate usually means the source is wrong, not the codegen. Found this way: the wrong texture
+  slot in 0x46fc10, the wrong body field in 0x452eb0 (0x88 for 0xa8) and `sizeof(ShadowObject)` 0x17c for 0x178.
+  Empty-destructor members used to reproduce EH states must sit at the offsets the unwind funclets name
+  (`lea ecx,[this+N]`), not be appended as padding.
+- `std::vector::operator[]` used twice on the same element loads it twice (0x45dac0); a raw pointer array is CSE'd.
+- A ternary over a bool-returning inline keeps the byte-wide test: `Odd(c) ? A+1 : A` gives `and al,1 / neg al /
+  sbb eax,eax / neg eax / add eax,A`; arithmetic forms fold to `and eax,1`.
+- `memset(p, 0, 12)` emits a local `xor reg,reg` + three stores and keeps other literal zeros from being pooled
+  into a callee-saved zero register.
 
+## Hand-written STL instances: use the real template (2026-11-11)
+
+Some NONMATCHING functions are out-of-line instances of VC6 library templates that the source re-implemented by
+hand (`StMsg::Format` = `std::string::replace(iterator, iterator, const char*, const char*)`, `S10Vec::Insert` =
+`std::vector<T>::insert(iterator, size_type, const T&)`). Instantiating the real template gives the original bytes.
+
+- Force the out-of-line instance by taking the member's address through a typed pointer-to-member
+  (`typedef void (V::*Ins)(T*, unsigned, const T&); Ins g = &V::insert;`); a direct call is inlined. Mark it with
+  `// FUNCTION` + `// SYMBOL: <mangled name>` + a `typedef void Inst_xxx();` like the other instances.
+- The element type decides the bytes. Read it off the original's `_Construct` and `operator=` helpers:
+  which fields are copied one by one and which as a block; an out-of-line destructor gives the per-element call to
+  the empty function. A float field is re-read inside a fill loop where an int field is hoisted out of it.
+- How often VC6 inlines `operator=` inside `insert` depends on the number of copy statements (9 single copies: two
+  out-of-line calls of three; 6-7: one; two sub-struct copies: none).
+- Real `std::string` in `SaveReplay` compiles to the same bytes as the `H6Str` emulation, so those emulations are
+  faithful; the cloned-epilogue difference there is not caused by them. Thirty flag sets did not remove it either.
+- Locals read by inline asm (measured on 0x4578c0, 2026-11-11): stack slots follow declaration order within a block
+  (first declared at the highest address), and a local that is assigned twice sorts apart from the single-assigned
+  ones. Two asm blocks that each need their own pointers want two inner `{ }` blocks with their own declarations,
+  not one set of pointers reassigned between them. Names and split/unsplit declarations do not matter.
+- Term order of a float sum: a product held in a named temporary (`float fz = a * b; x = fz + c * d + e;`) is the
+  first term loaded; reordering or parenthesising the written sum does not change the emitted order.
+
+
+## Stack slots of plain locals follow reference counts (2026-11-11)
+
+Found with standalone compiles and add/remove-one-reference probes on 0x427c10 and 0x43cc50:
+
+- VC6 orders the stack slots of non-register locals by **reference count, highest count at the lowest offset**;
+  references inside a loop weigh more than ones outside; ties keep declaration order. Declaration order, names,
+  types and initialiser form do not move a slot otherwise (30+ such variants on 0x427c10 changed nothing).
+- The count is taken after constant folding (reads of a known constant member do not count) but before tail
+  merging. So when two locals sit in swapped slots with otherwise identical code, the original has one more (or one
+  fewer) *source* reference that folds to the same instructions. The natural case: `if (a || b) { v = 1; }` was
+  written as two ifs with the same body, which VC6 merges back (0x427c10: clicked/sy slots, 12 -> 3 bytes).
+- Probe to confirm before searching: replace one read of the lower variable by another variable; if the slots flip
+  to the original's, hunt for the missing/extra reference.
+- 8-byte objects with destructors obey the same rule. In 0x43cc50 the per-item (1, 1) scale is an empty-ctor
+  object assigned in both arms of `if (selected) {...} else {...}`; the arms merge, the count doubles, and the stores
+  land where the original has them (25 -> 1 insn). Look for an if/else or `||` whose arms could have repeated a store.
+- Slot sharing follows source variables: a temporary shares the slot of a variable whose lifetime it does not
+  overlap. If a temporary sits one slot off, try merging or splitting variables around it. 0x44b510: the rally
+  title's x and the item list's x are ONE variable (`float x = ...; Print(x); ... x = k;`); with a separate `rx`
+  the title temporaries shared y's slot instead.
+- A variable whose first value is used once and then reassigned under an `if` is one stored variable with a high
+  count. If the original has it above another local, the first value was its own variable:
+  `float y0 = ...; Print(y0); float y = y2;` (0x48cca0, y/y2 slots).
+
+## Menu frame title block: inline colour setter (2026-11-11)
+
+Five menu `Frame` functions (0x4267a0, 0x427c10, 0x424960, 0x42a330, 0x43cc50) were stuck on the title block
+(`fld scale; <load>; fadd st,st`). The title colour is set through an inline setter that takes a `Color` object:
+`text->SetColorObj(Color(DAT_00508bfc))` (TextRenderer, `void SetColorObj(const Color& c) { color = c.value; }`).
+A plain `text->color = DAT` schedules the load correctly but hands ebp to -1 instead of 0 later in the function;
+a volatile read keeps ebp but pins the load after `fadd`. Try this form in any remaining screen with a title block.
+
+## Hand-written member stores vs inline member functions (2026-11-12)
+
+When a run of member stores next to a call schedules differently from the original no matter how the statements are
+ordered, the original probably called small inline members. 0x4b7c80: `solids.Clear(); normals.Clear();
+specials.Clear();` with `void Clear() { m_end = m_data; m_count = 0; }` matched after ~700 orders of the six
+hand-written stores had not. Same family: `SetColorObj(Color(x))` for the menu title colour.
+
+## Frame too large by 4-8 bytes: constructed temporaries (2026-11-12)
+
+0x48d7f0: when the only differences are stack offsets and the frame is a few bytes too large, an object the
+original built as a temporary is a named local here. `SetPosition(&Pt(x * sx, y * sy))` with an inline two-argument
+constructor stores straight into the temporary, sets the EH state after both stores, and lets the temporary share
+the slots of floats that die in its arguments. A named `HudPoint position; position.x = ...` does not share.
+Do not add such a constructor to the shared HudPoint class: it changes SnowFall::SnowFall; use a local subclass.

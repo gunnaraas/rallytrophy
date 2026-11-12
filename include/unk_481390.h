@@ -695,6 +695,8 @@ public:
     void Printf(class RenderDevice* device, float x, float y, const char* format, ...); // 0x4a9740 (cdecl)
     void Print(class RenderDevice* device, float x, float y, const char* text, int flags, float sx, float sy); // 0x4a97a0
     void SetColor(ColorArg color);     // 0x4243b0: stores the argb at +0x120 (ret 4)
+    // Inline colour setter taking a Color temporary; the menu frames' title blocks need this form (0x43cc50).
+    void SetColorObj(const Color& c) { color = c.value; }
     BYTE unk0[0x1c];
     float scaleX;                      // 0x1c
     float scaleY;                      // 0x20

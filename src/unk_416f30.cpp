@@ -479,6 +479,14 @@ static inline void CopyProp(StageProp* d, const StageProp* src)
 // and a derived operator= twin did not change that.
 // Tried 2026-10-30 night: cached last/M locals, M-first compares, int-typed/reordered/by-reference CopyProp bodies, P+M hoist, else-without-guard; none moved M/last registers or the +0x14 element base (int copies and reversed order made it worse); 3rd-loop lea base still differs.
 // Tried 2026-11-01 re-pass (baseline 132 insns differ): S10Vec volatile first, self-pointer last, volatile M/X, sz local, M-first cmp, raw/ref/local-src/hoisted-flag/reversed/indexed copy loops, *F=X in last loop; best 99-103 only by changing byte count or structure (rejected); register swap M/last and the +0x14 copy base unchanged.
+// Tried 2026-11-11: the real std::vector<T>::insert instance (as for 0x416a40) with a twin element type. It needs
+// operator= inlined at two sites and called at the third (true with 6-7 copy statements, e.g. one 3- or 4-float
+// sub-struct plus single floats; 9 single copies give two calls, two sub-structs none) and the element anchored at
+// +0x14 (4-float sub-struct first). Best layouts still swap M and last (esi/edi), the same residual as this body.
+// Follow-up: the original calls operator= only at the last of its three sites (calls N C C C D F C C C =). Nine single
+// copies (the layout its _Construct/operator= helpers show) give calls at both fill sites here; {3-float, 2-float
+// sub-structs + singles} gives the original's pattern but different copy code. Not moved by: how the instance is
+// forced (address-of, push_back, insert, resize), earlier fill/copy_backward/operator= uses, ten operator= shapes.
 void PropVec::Ins(StageProp* P, unsigned int M, const StageProp& X)
 {
     if ((unsigned int)(end - last) < M) {

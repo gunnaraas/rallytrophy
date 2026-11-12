@@ -373,17 +373,11 @@ struct LoopCol0 { int v; LoopCol0() {} ~LoopCol0() {} };
 static float MS2A8_COLW = 400.0f; // value column width (non-const so the original fld K; fmul sx order is kept)
 
 struct LoopSclQ { float x, y; LoopSclQ() {} ~LoopSclQ() {} };
-// NONMATCHING: RALLYTROPHY 0x42a330
-// 2976 vs 2988 bytes; 783 differing bytes. Combining rows 6/7 matches the original shared case tail; remaining open items:
+// FUNCTION: RALLYTROPHY 0x42a330
+// Matched 2026-11-11: title colour through the inline SetColorObj(Color(...)) setter; where the item loop has a
+// (1, 1) scale object it is assigned in both arms of the selected test (reference-count slot rule, see NOTES).
 // Frame of the 9-row options screen (rows 0-7 sliders/selectors, row 8 Back; 16 arrow rects at m_items[9..24]).
-// Control flow, calls, jump tables and EH states match. Open: (1) the original keeps the zero constant in ebp and the
-// -1 / `dir` register in ebx, mine swaps them (also seen in 0x43cc50); (2) mine hoists nothing but gives `fld mem; fmul
-// 400.0` for the width instead of `fld 400.0; fmul sx`; (3) the original tail-merges draw cases 7 and 6 (shared `fld`
-// tail, pushes of value/4/0 in the head); (4) (1, 1) object and scale copy sit in swapped frame slots.
-// Tried 2026-10-30 night: 30 variants (dir/zero/loop-var decl order, volatile zero, split dir, one/scale slot order, per-site point); only a plain static float for 400.0 helped (222->218 insns); ebx/ebp swap (zero vs dir) and the 6/7 tail-merge still differ, allocator priority not found.
-// Tried 2026-11-01: separate draw cases 7 and 6 (not merged via 9-i) fixed the ebx/ebp swap (218->36); file-scope LoopCol0/LoopSclV empty-dtor loop locals and scaleX=/volatile colour read/scaleY=/color= split (->7 insns differ); still differs: the loop (1,1) scale slot sits at 0x4c/0x50 vs scale copy at 0x44/0x48 swapped, and its immediate stores are scheduled earlier than the original (after c_str null test); text-pointer reload before fadd in the first draw block. ~50 variants plus permute (best 9).
-// Tried 2026-11-01 (2): sc as empty-ctor object with its volatile 1.0 stores written AFTER `const char* s = c_str()` moves the stores past the null test (7->6), but VC6 then puts them after the join, not between test and jne. Slot swap is immovable: sc declared before/after scale, at while/BeginScene/function scope, as float[2], as HudPoint member, as a temp, extra refs to either - scale copy always 0x44, sc 0x4c (not first-use/declaration order; likely VC6's per-scope packing puts the outer-scope EH object lower). Text reload: local copy of text, x+x, split s2 - no change. ~30 variants plus permute (best 6).
-// Tried 2026-11-01 (3), ref-count rule from 0x424960: emitted refs are scale copy 2 (mov,mov) and sc 2 (the two 1.0 stores; reads forwarded to push 0x3f800000) in BOTH builds, so the tie goes to scale (used first) in ours while the original puts sc lower. Confirmed the rule here: a volatile third ref on sc (volatile read for Print or a third store) does move sc to 0x44/0x48 but emits the extra load/store (22-27 insns). Plain (non-volatile) stores/ctor init are hoisted out of the loop next to scale (7); dead extra stores are not removed (size grows); __int64 copy/store of scale or sc, default-ctor+assign scale, sc declared before GetScale with a pre-store - all worse. Blocker: need 2 extra counted refs on sc that VC6 folds after slot assignment (same open item as 0x424960). Text reload: c0 read before s2, volatile reload of text, s2+s2 - no change.
+// Draw cases 7 and 6 are separate in source (VC6 tail-merges them); 400.0 is a plain static float.
 int MenuScreen2A8::Frame()
 {
     int done = 0;
@@ -552,11 +546,9 @@ int MenuScreen2A8::Frame()
         if (DAT_0056b0ac->BeginScene()) {
             DAT_0056b0ac->vf38(0);
             game->DrawVideo(0);
-            float s2 = DAT_0056aea8 * 2.0f;
-            int c0 = *(volatile int*)&DAT_00508bfc;
-            text->scaleX = s2;
+            text->SetColorObj(Color(DAT_00508bfc));
+            text->scaleX = DAT_0056aea8 * 2.0f;
             text->scaleY = DAT_0056aeac * 2.0f;
-            text->color = c0;
             text->Print(DAT_0056b0ac, 54.0f * DAT_0056aea8, 142.0f * DAT_0056aeac, FUN_00405380(0x3c), 0, 1.0f, 1.0f);
             text->SetScale(DAT_0056aea8, DAT_0056aeac);
             game->FUN_00435de0(517.0f, 243.0f);
@@ -565,11 +557,10 @@ int MenuScreen2A8::Frame()
                 int selected = (i == m_selected);
                 LoopSclQ sc;
                 LoopCol0 col;
-                col.v = selected ? DAT_00508c0c : DAT_00508c04;
+                if (selected) { col.v = DAT_00508c0c; sc.x = 1.0f; sc.y = 1.0f; }
+                else { col.v = DAT_00508c04; sc.x = 1.0f; sc.y = 1.0f; }
                 text->color = col.v;
-                const char* s = items[i].text.c_str();
-                *(volatile float*)&sc.y = 1.0f; *(volatile float*)&sc.x = 1.0f;
-                text->Print(DAT_0056b0ac, items[i].x, items[i].y, s, 0, sc.x, sc.y);
+                text->Print(DAT_0056b0ac, items[i].x, items[i].y, items[i].text.c_str(), 0, sc.x, sc.y);
                 HudPoint pos;
                 pos.x = 520.0f * DAT_0056aea8;
                 pos.y = items[i].y;

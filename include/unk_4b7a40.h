@@ -51,6 +51,7 @@ public:
         m_count++;
         m_end++;
     }
+    void Clear() { m_end = m_data; m_count = 0; } // inline; CullViews (0x4b7c80) needs this form
     T* m_data;      // 0x0
     T* m_end;       // 0x4
     int m_count;    // 0x8

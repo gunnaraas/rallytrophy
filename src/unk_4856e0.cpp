@@ -34,6 +34,13 @@ ScreenPoint DAT_00565458(512.0f, 179.0f);
 ScreenPoint DAT_00565450(0.0f, 0.0f);
 ScreenPoint DAT_00565448(1024.0f, 768.0f);
 
+// Cursor position temporary of the race options menu: HudPoint with an inline (x, y) constructor. Kept local to
+// this file: adding the constructor to HudPoint itself changes SnowFall::SnowFall (0x474c50) by 4 bytes.
+class RM_Pt : public HudPoint {
+public:
+    RM_Pt(float a, float b) { x = a; y = b; }
+};
+
 // FUNCTION: RALLYTROPHY 0x485f60
 // Adds a player to the race; a local player is also entered in the local list.
 void RaceMode::AddPlayer(Player* player)
@@ -3749,31 +3756,33 @@ void TextRenderer::SetColor(ColorArg c)
 }
 #pragma auto_inline(on)
 
-// NONMATCHING: RALLYTROPHY 0x48cca0
-// 713 vs 723 bytes. Frame, ebx = 0, the by-value colour temporary (ColorArg: copy ctor + empty dtor, with a
-// visible nothrow SetColor) all match. Left: instruction scheduling of the hoisted y/step multiplies, and the
-// original builds id = 0x161 + 1 via `and al,1 / neg al / sbb / neg` (byte-wide test) where this folds to `and eax,1`.
-// Tried 2026-10-30 night: `pressed = byte ? 1 : 0` fixed the tail (104 -> 99 insns); ~30 variants of the id test (char/BYTE/bool casts, ==1, >0, ?:, %2) never give the byte-wide `and al,1/neg al/sbb/neg` (==1 gives `dec al/neg/sbb`, >0 gives setg); permuting y/y2/step order, declaration order, volatile colour/y stores did not move the early color-store/width-load scheduling.
-// Tried 2026-10-31 re-pass (99 -> 23 insns): declaring `text` after the Draw call, y inline for the last Print (no y local), id as `(unsigned char)variant & 1) == 1` (drops the extra neg/add fold; still dec al/sbb not the original neg/sbb/neg); text at top, direct y2, volatile colour/self/variant, decl-order permutations of y/y2/step all worse. Left: original loads text before the Draw call and stores colour between the two multiplies; step/y2 stack slots swapped.
-// Draws a titled message screen over the in-game image and returns 1 (and
-// clears the key states) once Return or the mouse button was pressed.
+#pragma warning(disable: 4800)
+// bool-returning inline: its ternary gives the original's byte-wide `and al,1 / neg al / sbb / neg`.
+static inline bool OddVariant(char c) { return c & 1; }
+// FUNCTION: RALLYTROPHY 0x48cca0
+// Draws a titled message screen over the in-game image and returns 1 (and clears the key states) once Return or
+// the mouse button was pressed.
+// Matched 2026-11-11: (1) the id is a ternary over a bool-returning inline (OddVariant) -> `and al,1 / neg al / sbb /
+// neg`; (2) the first Print's y is its own variable (y0) with `float y = y2;` declared after it (slot order by
+// reference count, see NOTES); (3) text is loaded before Draw; (4) the colour goes through the inline
+// SetColorObj(Color(...)) setter.
 int RaceMode::FUN_0048cca0(int unused, int variant)
 {
 
-    m_image->Draw(DAT_0056b0ac, 0);
     TextRenderer* text = DAT_0056b0c8->text;
-    float y = DAT_0056aeac * 90.0f;
-    text->color = DAT_00508bf0;
+    m_image->Draw(DAT_0056b0ac, 0);
+    text->SetColorObj(Color(DAT_00508bf0));
+    float y0 = DAT_0056aeac * 90.0f;
     float y2 = DAT_0056aeac * 240.0f;
     int result = 0;
     float step = DAT_0056aeac * 64.0f;
     text->SetScale(DAT_0056aea8 * 1.2f, DAT_0056aeac * 1.2f);
-    text->Print(DAT_0056b0ac, DAT_0056b0ac->GetWidth() * 0.5f - text->GetWidth(FUN_00405380(0x166), 0) * 0.5f, y, FUN_00405380(0x166), 0, 1.0f, 1.0f);
-    y = y2;
+    text->Print(DAT_0056b0ac, DAT_0056b0ac->GetWidth() * 0.5f - text->GetWidth(FUN_00405380(0x166), 0) * 0.5f, y0, FUN_00405380(0x166), 0, 1.0f, 1.0f);
+    float y = y2;
     text->SetColor(ColorArg(0xffffffff));
     text->SetScale(DAT_0056aea8, DAT_0056aeac);
     if (variant) {
-        int id = 0x161 + (int)(((unsigned char)variant & 1) == 1);
+        int id = OddVariant((char)variant) ? 0x162 : 0x161;
         text->Print(DAT_0056b0ac, DAT_0056b0ac->GetWidth() * 0.5f - text->GetWidth(FUN_00405380(id), 0) * 0.5f, y, FUN_00405380(id), 0, 1.0f, 1.0f);
         y += step;
     }
@@ -3803,17 +3812,12 @@ extern float DAT_0057ba00;
 // A sound object inside the game object (offset from DAT_0056b0c8).
 #define SOUND_AT(offset) ((GameSound*)((BYTE*)DAT_0056b0c8 + (offset)))
 
-// NONMATCHING: RALLYTROPHY 0x48d7f0
-// Same size and register assignment through the init loop, EH states and jump tables; the original frame is
-// 4 bytes smaller (0x3c): its scale temporaries (width/height * 1/1024, 1/768) share slots with the HudPoint
-// objects of later scopes (dir block position, loop scale), and keeps -1 in ebp (`or ebp,-1` in both arms of
-// the ESC test). Named floats / inline expressions / a minusOne local did not reproduce either.
-// Tried 2026-10-30 night: reordering scaleX/scaleY declarations (93), HudPoint declared at top reusing scaleX as position.x (179, worse); original shows position.x reusing the scaleX slot [0x1c] while scaleY stays at [0x24], not reproducible; no QWORD operands seen in the diff (all constants are DWORD).
-// Tried 2026-10-31 second pass (~30 variants, best 89 insns): the original shares slots (scaleX/dir position at [0x1c], scaleY/loop position at [0x24], loop scale back at [0x1c]) and writes position.x/y before its EH state 5; px/py temps (kept, 90->89), 120 declaration-order permutations, position at top aliased by scaleX, float sc[3], 8-byte POD holders, HudPoint-typed scales, volatile self/z/minusOne/scale copies and literal -1 were no better; y already lands in the dead init slot; frame stays 4 bytes larger.
-// Tried 2026-10-31 third pass (~20 variants): Color/scale/position loop-local declaration orders (no change), function-scope HudPoint A,B holding scaleX/scaleY (110, EH entry states), dead int/float/volatile locals between scaleX and scaleY (elided, 89), float sc[4] (91); POD `struct P2{float x,y;} A,B` holding scales and cast to HudPoint* for SetPosition gets the 0x3c frame but slots land at 0x28-0x34 not 0x1c/0x24 and loses EH state 5 (78 aligned but 12 bytes short, not a real gain). Original slots A=[0x1c..0x20) (scaleX, dir position, loop scale), B=[0x24..0x2c) (scaleY, loop position), [0x20] otherwise unused.
-// The race options menu: five entries (four volume sliders with +/- arrows,
-// and "back"), driven by the keyboard and the mouse. `init` re-selects the entry
-// under the mouse. Returns -1 when the menu is closed, otherwise 1.
+// FUNCTION: RALLYTROPHY 0x48d7f0
+// The race options menu: five entries (four volume sliders with +/- arrows, and "back"), driven by the keyboard
+// and the mouse. `init` re-selects the entry under the mouse. Returns -1 when the menu is closed, otherwise 1.
+// Matched 2026-11-12: (1) title colour through the inline SetColorObj(Color(...)); (2) the item (1, 1) scale is
+// assigned in both arms of the selected test; (3) the cursor position is an RM_Pt(x, y) temporary passed to
+// SetPosition, which lets it share the scale floats' stack slots (the frame was 4-8 bytes too large before).
 int RaceMode::FUN_0048d7f0(bool init)
 {
     float scaleX = DAT_0056b0ac->GetWidth() * 0.0009765625f;
@@ -3858,12 +3862,7 @@ int RaceMode::FUN_0048d7f0(bool init)
         }
         int x = (int)(m_ui[unk24c]->GetTopLeft().x + (m_ui[unk24c]->GetBottomRight().x - m_ui[unk24c]->GetTopLeft().x) * 0.5f);
         int y = (int)(m_ui[unk24c]->GetTopLeft().y + (m_ui[unk24c]->GetBottomRight().y - m_ui[unk24c]->GetTopLeft().y) * 0.5f);
-        float px = x * scaleX;
-        float py = y * scaleY;
-        HudPoint position;
-        position.y = py;
-        position.x = px;
-        ((MouseHud*)DAT_0056b0c0)->SetPosition(&position);
+        ((MouseHud*)DAT_0056b0c0)->SetPosition(&RM_Pt(x * scaleX, y * scaleY));
     }
     for (i = 0; i < 5; i++) {
         if (unk24c != i) {
@@ -3910,13 +3909,13 @@ int RaceMode::FUN_0048d7f0(bool init)
     }
     m_image->Draw(DAT_0056b0ac, 0);
     text->SetScale(DAT_0056aea8, DAT_0056aeac);
-    text->color = DAT_00508bfc;
+    text->SetColorObj(Color(DAT_00508bfc));
     for (i = 0; i < 5; i++) {
         int selected = i == unk24c;
-        Color color(selected ? DAT_00508c0c : DAT_00508c04);
+        Color color;
         HudPoint scale;
-        scale.x = 1.0f;
-        scale.y = 1.0f;
+        if (selected) { color.value = DAT_00508c0c; scale.x = 1.0f; scale.y = 1.0f; }
+        else { color.value = DAT_00508c04; scale.x = 1.0f; scale.y = 1.0f; }
         text->color = color.value;
         HudPoint position;
         position.x = DAT_0056aea8 * 600.0f;
@@ -3924,22 +3923,22 @@ int RaceMode::FUN_0048d7f0(bool init)
         switch (i) {
         case 0:
             FUN_0048ecf0(position.x, position.y, DAT_00501438[0], selected);
-            text->Print(DAT_0056b0ac, DAT_0056aea8 * 127.0f, position.y, FUN_00405380(0x5c), 0, 1.0f, 1.0f);
+            text->Print(DAT_0056b0ac, DAT_0056aea8 * 127.0f, position.y, FUN_00405380(0x5c), 0, scale.x, scale.y);
             break;
         case 1:
             FUN_0048ecf0(position.x, position.y, DAT_00501438[1], selected);
-            text->Print(DAT_0056b0ac, DAT_0056aea8 * 127.0f, position.y, FUN_00405380(0x5d), 0, 1.0f, 1.0f);
+            text->Print(DAT_0056b0ac, DAT_0056aea8 * 127.0f, position.y, FUN_00405380(0x5d), 0, scale.x, scale.y);
             break;
         case 2:
             FUN_0048ecf0(position.x, position.y, DAT_00501438[2], selected);
-            text->Print(DAT_0056b0ac, DAT_0056aea8 * 127.0f, position.y, FUN_00405380(0x5e), 0, 1.0f, 1.0f);
+            text->Print(DAT_0056b0ac, DAT_0056aea8 * 127.0f, position.y, FUN_00405380(0x5e), 0, scale.x, scale.y);
             break;
         case 3:
             FUN_0048ecf0(position.x, position.y, DAT_00501438[3], selected);
-            text->Print(DAT_0056b0ac, DAT_0056aea8 * 127.0f, position.y, FUN_00405380(0x5f), 0, 1.0f, 1.0f);
+            text->Print(DAT_0056b0ac, DAT_0056aea8 * 127.0f, position.y, FUN_00405380(0x5f), 0, scale.x, scale.y);
             break;
         case 4:
-            text->Print(DAT_0056b0ac, DAT_0056aea8 * 127.0f, DAT_0056aeac * 627.0f, FUN_00405380(0x18), 0, 1.0f, 1.0f);
+            text->Print(DAT_0056b0ac, DAT_0056aea8 * 127.0f, DAT_0056aeac * 627.0f, FUN_00405380(0x18), 0, scale.x, scale.y);
             break;
         }
     }
@@ -3966,6 +3965,8 @@ extern DWORD DAT_0056543c;             // pause-menu entry colour
 // options screen (0x48d7f0) and a quit confirmation (GameView::FUN_00437220)
 // as sub-states in unk244/unk240. `reset` selects the first entry and moves
 // the mouse onto it. Returns 1 to resume, -1 to restart, -2 to quit, else 0.
+// Tried 2026-11-12 (size 1640 vs 1684): the three cursor-position sites as RM_Pt temporaries / block-local objects in
+// all 12 combinations give 1628..1708 bytes, never 1684, and more differing bytes; setter title is worse too.
 int RaceMode::FUN_00489300(int reset)
 {
     TextRenderer* big = DAT_0056b0c8->bigText;
@@ -4263,6 +4264,10 @@ int RaceMode::FUN_0048b080(int award)
 // Replay control bar: seven buttons below the picture (hit-tested against the mouse, moved with the
 // left/right keys) and the driver's name, time and position. Sets unk23c to the chosen action (0-4);
 // returns -1 for "leave", 1 for "continue". With `reset` set the selection is cleared first.
+// 2026-11-12: exact size (1772) with the 1.5625 and the last text scale written as two member stores and the other two
+// through the inline SetScale; the original's Printf block shows the separate stores. 410 bytes still differ (was
+// 320 at 1764): the device pointer for Printf is loaded early here. Colour-setter forms change nothing. A default-
+// constructed Color assigned 0x80000000 puts its store after the array-ctor pushes as in the original (410 -> 390).
 int RaceMode::FUN_0048b620(int reset)
 {
     TextRenderer* text = DAT_0056b0c8->text;
@@ -4335,7 +4340,8 @@ int RaceMode::FUN_0048b620(int reset)
             break;
         }
     }
-    Color color(0x80000000);
+    Color color;
+    color.value = 0x80000000;
     Vec2 position[4];
     position[1].x = position[2].x = DAT_0056aea8 * 1024.0f;
     position[0].y = position[1].y = DAT_0056aeac * 704.0f;
@@ -4349,7 +4355,8 @@ int RaceMode::FUN_0048b620(int reset)
         Player* player = car->player;
         text->color = color.value;
         if (DAT_00501464 != 3) {
-            text->SetScale(DAT_0056aea8 * 1.5625f, DAT_0056aeac * 1.5625f);
+            text->scaleX = DAT_0056aea8 * 1.5625f;
+            text->scaleY = DAT_0056aeac * 1.5625f;
             text->Printf(DAT_0056b0ac, DAT_0056aea8 * 8.0f, DAT_0056aeac * 710.0f, "%i.", player->unk1a58);
         }
         char buffer[16];
@@ -4364,7 +4371,8 @@ int RaceMode::FUN_0048b620(int reset)
             text->Print(DAT_0056b0ac, DAT_0056aea8 * 558.0f, DAT_0056aeac * 738.0f, buffer, 0, 1.0f, 1.0f);
         }
         DAT_0056b0c8->FUN_004360c0(DAT_0056aea8 * 84.0f, DAT_0056aeac * 716.0f, 32.0f, 16.0f, player->unk20);
-        text->SetScale(DAT_0056aea8, DAT_0056aeac);
+        text->scaleX = DAT_0056aea8;
+        text->scaleY = DAT_0056aeac;
     }
     color.value = 0xffffffff;
     Vec2 uv[4];
@@ -4392,26 +4400,26 @@ int RaceMode::FUN_0048b620(int reset)
     text->Print(DAT_0056b0ac, DAT_0056b0ac->GetWidth() * 0.5f - text->GetWidth(FUN_00405380(index), 0) * 0.5f, y, \
                 FUN_00405380(index), 0, 1.0f, 1.0f)
 
-// NONMATCHING: RALLYTROPHY 0x48c7e0
-// 1205 bytes (size matches), 11 insns differ. Tried 2026-11-01 re-pass: a volatile int read of the colour plus a plain int store (`int col = *(volatile int*)&DAT_00508bf0; *(int*)&text->color = col;`) before the y0/step locals fixed the size (128->11 insns). Still differs: the first Print's prologue schedule (original loads colour+device, pushes the two 1.0f and interleaves y0/step fmul/fstp; ours batches the fld/fmul first) and `fld y; fadd step` (ours `fld step; fadd y`) at the two y += step sites. ~35 variants (split scaleX/color/scaleY, local order, early dw width, two-temp adds, volatile reads) and permute -r 40 did not change it.
-// Help screen of the replay/race menu: a title, then lines chosen by `flags` (1/2/4/8 = one of four
-// texts, 0x10 = extra line, 0x20, 0x40 = more lines) and the "press a key" footer. Returns 1 when
-// a key or the mouse button was pressed.
+// FUNCTION: RALLYTROPHY 0x48c7e0
+// Help screen of the replay/race menu: a title, then lines chosen by `flags` (1/2/4/8 = one of four texts,
+// 0x10 = extra line, 0x20, 0x40 = more lines) and the "press a key" footer. Returns 1 when a key or the mouse
+// button was pressed.
+// Matched 2026-11-11: own variable for the title's y (yt) with `float y = y0;` after it, and the colour through the
+// inline SetColorObj(Color(...)) setter.
 int RaceMode::FUN_0048c7e0(int unused, BYTE flags)
 {
     TextRenderer* text = DAT_0056b0c8->text;
     m_image->Draw(DAT_0056b0ac, 0);
-    float y = DAT_0056aeac * 90.0f;
-    int result = 0;
-    int col = *(volatile int*)&DAT_00508bf0;
-    *(int*)&text->color = col;
+    text->SetColorObj(Color(DAT_00508bf0));
+    float yt = DAT_0056aeac * 90.0f;
     float y0 = DAT_0056aeac * 240.0f;
+    int result = 0;
     float step = DAT_0056aeac * 64.0f;
     text->SetScale(DAT_0056aea8 * 1.2f, DAT_0056aeac * 1.2f);
-    CENTER_TEXT(0x158, y);
+    CENTER_TEXT(0x158, yt);
     text->SetColor(ColorArg(0xffffffff));
     text->SetScale(DAT_0056aea8, DAT_0056aeac);
-    y = y0;
+    float y = y0;
     if (flags & 0x10) {
         int index = 0;
         if (flags & 1) {

@@ -20,14 +20,19 @@ They expect locally supplied game files and toolchain components; see
   scratch directory so parallel runs do not collide.
 - [`permute.py`](permute.py): random hill-climbing permuter over
   `try_variants.py` (statement swaps, commuted operands, if/else flips,
-  inlined temporaries); never edits the source, writes the best body to
+  inlined temporaries, counted-loop rewrites, int-typed copies, split declarations,
+  expanded compound assignments, ternaries); never edits the source, writes the best body to
   `build/permute/<addr>/best.cpp`, ranking by aligned instructions first.
   Apply it only on MATCH: mutations can
   reorder dependent statements.
+- [`declorder.py`](declorder.py): permute groups of local declarations that sit directly above an inline-asm
+  transform macro (their stack slots follow declaration order) and keep the best order per group.
 - [`flag_sweep.py`](flag_sweep.py): score every NONMATCHING function in the
   given files under alternative compiler flags.
 - [`asm_helpers.py`](asm_helpers.py): list NONMATCHING functions whose
   original contains inlined x87 `__asm` helpers the build lacks.
+- [`numdiff.py`](numdiff.py): list instruction pairs of NONMATCHING functions that differ only in one number;
+  finds wrong field offsets, struct sizes and constants in the source (many hits are only a different pointer anchor).
 - [`x87check.py`](x87check.py): list x87 arithmetic chunks that differ between
   the original and the build (real operands), to spot wrong sum order, dropped
   terms or wrong fields; `--all --quiet` summarises every NONMATCHING function.

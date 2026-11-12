@@ -325,13 +325,8 @@ void GameScreen1E9C::Run(MenuGame* game)
     Frame();
 }
 
-// NONMATCHING: RALLYTROPHY 0x42c8e0
-// One instruction off: in the title Print the original loads the device pointer into eax right after pushing the text
-// (before the y product), mine into ecx after the x product (1 byte longer). Tried an inline Print wrapper and reordering.
-// A title-only device pointer local (including register storage) changes text/device register allocation; a reference is neutral.
-// Explicit x/device/y locals shift the surrounding frame; a volatile device read in the first argument is emitted after y.
-// Tried 2026-10-30 night: title/device locals (call hoisted above the 1.0f pushes), volatile y/device/sx operands, swapped product operand order, permute.py -r 20 (no match); still differs only by device load eax-vs-ecx after the FUN_00405380 call (1 byte, shifts all later jump targets).
-// Tried 2026-10-31 re-pass: 24 more variants (title text/x/y/device locals in every order and scope, device local hoisted before text->color, volatile device, const device); none beat baseline, local-device forms are worse; permute.py -r 40 (best 42 insns, no MATCH).
+// FUNCTION: RALLYTROPHY 0x42c8e0
+// Matched 2026-11-11: the title colour goes through the inline SetColorObj(Color(...)) setter (see NOTES).
 // original: Frame (thiscall; GameScreen1E9C::Frame)
 int GameScreen1E9C::Frame()
 {
@@ -471,7 +466,7 @@ int GameScreen1E9C::Frame()
         if (DAT_0056b0ac->BeginScene()) {
             DAT_0056b0ac->vf38(0);
             game->DrawVideo(0);
-            text->color = DAT_00508bfc;
+            text->SetColorObj(Color(DAT_00508bfc));
             text->scaleX = DAT_0056aea8 * 2.0f;
             text->scaleY = DAT_0056aeac * 2.0f;
             text->Print(DAT_0056b0ac, H4b_titleX * DAT_0056aea8, H4b_titleY * DAT_0056aeac, FUN_00405380(0x2d), 0,

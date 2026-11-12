@@ -422,10 +422,8 @@ int PlayerNameMenu::Run()
         if (DAT_0056b0ac->BeginScene()) {
             DAT_0056b0ac->vf38(0);
             game->DrawVideo(0);
-            float titleScaleX0 = DAT_0056aea8 * 2.0f;
-            int titleColor0 = *(volatile const int*)&DAT_00508bfc;
-            text->scaleX = titleScaleX0;
-            text->color = titleColor0;
+            text->SetColorObj(Color(DAT_00508bfc));
+            text->scaleX = DAT_0056aea8 * 2.0f;
             text->scaleY = DAT_0056aeac * 2.0f;
             text->Print(DAT_0056b0ac, 54.0f * DAT_0056aea8, 142.0f * DAT_0056aeac, FUN_00405380(0x39), 0, 1.0f, 1.0f);
             text->SetScale(DAT_0056aea8, DAT_0056aeac);
@@ -503,7 +501,8 @@ int PlayerNameMenu::Run()
         memcpy((char*)DAT_00501300 + 0x38 + i * 30, name[i].c_str(), strlen(name[i].c_str()) + 1);
         DAT_00501300[0x3b + i] = icon[i];
     }
-    nameText->SetScale(DAT_0056aea8, DAT_0056aeac);
+    nameText->scaleX = DAT_0056aea8;
+    nameText->scaleY = DAT_0056aeac;
     if (done || DAT_0057b9f4) {
         r = -1;
         m_game->Play(2);

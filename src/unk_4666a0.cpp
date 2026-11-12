@@ -520,10 +520,10 @@ void Car::FUN_00467440(int dt)
     if (v->cockpit)
         *(int*)&exhaustLoc.x = *(int*)&engineLoc.x = v->viewOffset;
     {
+        float* result = (float*)&enginePos;
         const float* trans = (const float*)&v->body->position;
         const float* matrix = &v->body->matrix[0][0];
         const float* point = (const float*)&engineLoc;
-        float* result = (float*)&enginePos;
         TRANSFORM_ADD();
     }
     {

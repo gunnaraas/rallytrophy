@@ -184,12 +184,10 @@ int GameScreen2DD4::Run(MenuGame* game)
 
 // Module end: guard-bit initialiser of the STL header statics and its atexit registration.
 
-// NONMATCHING: RALLYTROPHY 0x4267a0
-// original: FUN_004267a0. A scaleX local plus a volatile read of the title color global reduces the mismatch 54→3 bytes.
-// The remaining 3-byte scheduling difference is before the scaleX store: target loads `esi` between `fld scaleX`
-// and `fadd`; VC6 emits `fadd`, loads the color global into eax, then loads `esi`. Plain PE disassembly observation.
-// Tried 2026-10-30 night: 10 variants (inline scaleX/color, reordered color read, +/* forms, volatile text ptr/cast, extra alias local); none beat the current 1 insn differ, esi load stays after fadd.
-// Tried 2026-10-31 re-pass: ~25 more variants (volatile text ptr/cast per store, DAT+DAT vs *2, double mul, float&/float* aliases, reordered color read, tt alias, int-bit copy); best stays 1 insn (esi reload sits after fadd/eax load); permute.py -r 40 found nothing better than (1,3).
+// FUNCTION: RALLYTROPHY 0x4267a0
+// Matched 2026-11-11: title colour through the inline SetColorObj(Color(...)) setter; where the item loop has a
+// (1, 1) scale object it is assigned in both arms of the selected test (reference-count slot rule, see NOTES).
+// original: FUN_004267a0.
 int GameScreen2DD4::Frame()
 {
     int done = 0;
@@ -320,10 +318,8 @@ int GameScreen2DD4::Frame()
             DAT_0056b0ac->vf38(0);
             game->FUN_00432a40();
             game->DrawVideo(1);
-            float titleScaleX = DAT_0056aea8 * 2.0f;
-            int titleColor = *(volatile const int*)&DAT_00508bfc;
-            text->scaleX = titleScaleX;
-            text->color = titleColor;
+            text->SetColorObj(Color(DAT_00508bfc));
+            text->scaleX = DAT_0056aea8 * 2.0f;
             text->scaleY = DAT_0056aeac * 2.0f;
             if (DAT_00501458 == 0) {
                 text->Print(DAT_0056b0ac, H1b_titleX * DAT_0056aea8, H1b_titleY * DAT_0056aeac, FUN_00405380(0x32), 0, 1.0f, 1.0f);
