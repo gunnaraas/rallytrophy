@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Aligned instruction diff of one NONMATCHING function: original vs build/obj (run match.py on SOURCE first).
 
-usage: insdiff.py [--norm] SOURCE ADDRESS
+usage: insdiff.py [--norm] [SOURCE] ADDRESS   (SOURCE defaults to the triage table entry)
   --norm  mask stack offsets, jump targets and immediates first, so a frame-size
           shift does not count every [esp+X] operand as a difference
 """
@@ -38,4 +38,7 @@ def main(source, address, normalise=False):
 
 if __name__ == "__main__":
     args = [a for a in sys.argv[1:] if a != "--norm"]
+    if len(args) == 1:  # address only: find the source from the triage table
+        args = [next(l.split("|")[2].strip() for l in open(os.path.join(ROOT, "analysis", "nonmatching-triage.md"))
+                     if l.startswith(f"| 0x{int(args[0], 16):x} ")), args[0]]
     main(*args[:2], normalise="--norm" in sys.argv)

@@ -57,6 +57,10 @@ They expect locally supplied game files and toolchain components; see
 - [`mkws.sh`](mkws.sh): make a scratch workspace (tracked files from HEAD plus
   links to `orig/`, `toolchain/`, `extracted/` and a private `build/`) so
   parallel agents never share `build/obj`.
+- [`slotmap.py`](slotmap.py): stack-slot map of one function. Labels each of the original's
+  `[esp+X]` slots with the source local that lands there in our build (from a `/FAs` listing),
+  with reference counts on both sides, and flags locals in a different slot. Use it on
+  "frame/slot order differs" near misses together with the reference-count rule in NOTES.md.
 - [`structural.py`](structural.py): cluster NONMATCHING functions by stack
   frame, EH-state and call-count differences from the original (`--rows` for
   per-function detail).
