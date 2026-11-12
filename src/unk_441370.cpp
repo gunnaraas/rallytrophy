@@ -3793,6 +3793,9 @@ public:
 // Inlining depth 1 (std::string helpers stay out of line as in the original; 437 -> 432 differing instructions).
 #pragma inline_depth(1)
 // NONMATCHING: RALLYTROPHY 0x443790
+// 2026-11-12 (sizegap.py): item colour and (1, 1) scale assigned in both arms of `if (selected)` (plain bool),
+// colour stored, then `std::string buf` declared: 387 -> 95 insns differ. Whole remaining size gap (-45 bytes) is the
+// DrawRally copy below.
 // 2026-11-12 (calls.py): the real gap is the by-value DrawRally copy. The original expands the name and description
 // copies inline (_Tidy + assign each) and calls the out-of-line copy ctor for the seven arrays; ours calls the copy
 // ctor out of line for all nine. A std::string subclass with an inline (even __forceinline) assign-copy ctor stays out
@@ -4006,14 +4009,13 @@ int TrackSelectMenu::Run()
                     continue;
                 }
                 float x = TSE_LISTX * sx;
-                volatile bool selected = (m_selected == i);
+                bool selected = (m_selected == i);
                 Color col;
                 HudPoint one;
-                std::string buf;
-                col.value = selected ? DAT_00508c0c : DAT_00508c04;
+                if (selected) { col.value = DAT_00508c0c; one.x = 1.0f; one.y = 1.0f; }
+                else { col.value = DAT_00508c04; one.x = 1.0f; one.y = 1.0f; }
                 text->color = col.value;
-                one.x = 1.0f;
-                one.y = 1.0f;
+                std::string buf;
                 char number[32];
                 switch (i) {
                 case 0:

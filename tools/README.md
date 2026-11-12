@@ -57,6 +57,9 @@ They expect locally supplied game files and toolchain components; see
 - [`mkws.sh`](mkws.sh): make a scratch workspace (tracked files from HEAD plus
   links to `orig/`, `toolchain/`, `extracted/` and a private `build/`) so
   parallel agents never share `build/obj`.
+- [`sizegap.py`](sizegap.py): where a NONMATCHING function's size difference comes from. Aligns both
+  instruction streams by shape, ranks the differing hunks by byte delta and labels each with our
+  source lines (from a `/FAs` listing); `-v` shows the instructions. Start here for "size" functions.
 - [`slotmap.py`](slotmap.py): stack-slot map of one function. Labels each of the original's
   `[esp+X]` slots with the source local that lands there in our build (from a `/FAs` listing),
   with reference counts on both sides, and flags locals in a different slot. Use it on
