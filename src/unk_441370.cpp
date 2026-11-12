@@ -3793,6 +3793,10 @@ public:
 // Inlining depth 1 (std::string helpers stay out of line as in the original; 437 -> 432 differing instructions).
 #pragma inline_depth(1)
 // NONMATCHING: RALLYTROPHY 0x443790
+// 2026-11-12 (calls.py): the real gap is the by-value DrawRally copy. The original expands the name and description
+// copies inline (_Tidy + assign each) and calls the out-of-line copy ctor for the seven arrays; ours calls the copy
+// ctor out of line for all nine. A std::string subclass with an inline (even __forceinline) assign-copy ctor stays out
+// of line, so the inline budget is spent; sx/sy slot order (slotmap.py) is unaffected by declaration or reference probes.
 // Tried 2026-10-30 night: 17 declaration-order/placement variants of text/sx/sy/hi/lo/first/wait/picked, volatile text, dead volatile pad local; none changed the 432 differing insns (text/tmp slots 0x38/0x3c stay swapped, frame 4 bytes short); cause still unfound.
 // Tried 2026-11-01: 20 more variants (selected as volatile bool: 432->410 insns, kept since the original spills it as a byte via sete; no change from address-taken/byte-store forms, `one` at function/loop scope or before the for, named int iw/ih, text declared earlier/later/volatile); `one` still lands at 0xd4 not 0x74, slots 0x38/0x3c and frame 0x100 vs 0x104 still differ, so everything after shifts.
 // Same instruction sequence in all parts (5268 vs 5277 bytes) except register/frame-slot choices: the original keeps
