@@ -28,6 +28,8 @@ They expect locally supplied game files and toolchain components; see
   given files under alternative compiler flags.
 - [`asm_helpers.py`](asm_helpers.py): list NONMATCHING functions whose
   original contains inlined x87 `__asm` helpers the build lacks.
+- [`numdiff.py`](numdiff.py): list instruction pairs of NONMATCHING functions that differ only in one number;
+  finds wrong field offsets, struct sizes and constants in the source (many hits are only a different pointer anchor).
 - [`x87check.py`](x87check.py): list x87 arithmetic chunks that differ between
   the original and the build (real operands), to spot wrong sum order, dropped
   terms or wrong fields; `--all --quiet` summarises every NONMATCHING function.

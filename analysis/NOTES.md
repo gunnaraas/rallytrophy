@@ -305,4 +305,14 @@ Measured on the effect constructors (`ParallelShadow` 0x4703c0, `SnowFall` 0x474
   fadd; fst`). Indexing `saved[i]` instead of walking a pointer declared before the loop moves the pointer setup
   after the guard and changes which register holds `this`. Check field offsets against the original first: this
   function had been writing the wrong field (+0 instead of +4).
+- Check the numbers first (`tools/numdiff.py`, 2026-11-11): an instruction that differs from the original only in a
+  displacement or immediate usually means the source is wrong, not the codegen. Found this way: the wrong texture
+  slot in 0x46fc10, the wrong body field in 0x452eb0 (0x88 for 0xa8) and `sizeof(ShadowObject)` 0x17c for 0x178.
+  Empty-destructor members used to reproduce EH states must sit at the offsets the unwind funclets name
+  (`lea ecx,[this+N]`), not be appended as padding.
+- `std::vector::operator[]` used twice on the same element loads it twice (0x45dac0); a raw pointer array is CSE'd.
+- A ternary over a bool-returning inline keeps the byte-wide test: `Odd(c) ? A+1 : A` gives `and al,1 / neg al /
+  sbb eax,eax / neg eax / add eax,A`; arithmetic forms fold to `and eax,1`.
+- `memset(p, 0, 12)` emits a local `xor reg,reg` + three stores and keeps other literal zeros from being pooled
+  into a callee-saved zero register.
 

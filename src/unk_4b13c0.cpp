@@ -56,6 +56,10 @@ SceneEntry* ModelLoader::ReadMesh(File* file, unsigned int size)
 // reason: store/load scheduling of the record copies differs (592 vs 613 bytes)
 // Tried 2026-10-30 night: float locals for v (fld/fstp stores), ScenePoint struct copy for position, store reorders, flag branch flip, 14 variants (49->38 insns); still differs: new size 0x17c vs 0x178 (ShadowObject empty-dtor members pad sizeof by 4 in unk_4ba440.h) and VC6 keeps a 0 in esi instead of immediates.
 // Tried 2026-10-31 re-pass: placement new(operator new(0x178)) fixes the push size but adds a stray temp store (45 insns); volatile zero stores/Assign arg, z-local, float vs direct v.x/y/z, store reorders (38->35 with volatile w[0x16]=0, kept); still differs: VC6 keeps 0 in esi (cmp edi,esi / push esi) where the original uses test edi,edi + immediates + xor eax for 3 stores, and the ShadowObject size 0x17c vs 0x178.
+// 2026-11-11: sizeof(ShadowObject) fixed to 0x178 (its three empty-destructor members now sit at 0x128/0x138/0x148
+// as in the unwind table instead of padding the class), and the three position words are cleared with memset, which
+// keeps the other zeros immediate as in the original: 251 -> 159 bytes, 614 vs 613. Left: the original clears them as
+// xor eax,eax + three direct stores (0x58, 0x54, 0x50) and schedules the record copies differently.
 void ModelLoader::ReadLight(File* file)
 {
     ModelPartRecord* rec = FUN_004af730(file);
@@ -92,9 +96,7 @@ void ModelLoader::ReadLight(File* file)
         w[0x56] = 0x461c4000;
     ((ModelRecordString*)&w[0x45])->Assign(*(std::string*)rec, 0, std::string::npos);
     o->position = *(ScenePoint*)((char*)rec + 0x54);
-    *(volatile int*)&w[0x16] = 0;
-    w[0x15] = 0;
-    w[0x14] = 0;
+    memset(&w[0x14], 0, 12);
     w[0x2e] = RAW(rec, 0x54);
     w[0x2f] = RAW(rec, 0x58);
     w[0x28] = RAW(rec, 0x80);

@@ -4,20 +4,19 @@
 #include "scene_object.h"
 
 // ShadowCaster hierarchy (SceneNode + 0x54 bytes, vtables 0x4e2a28 / 0x4e2a4c / 0x4e2a70).
-struct ShadowDt0 { ~ShadowDt0() {} };
-struct ShadowDt1 { ~ShadowDt1() {} };
-struct ShadowDt2 { ~ShadowDt2() {} };
+// Three members with empty destructors (unwind states 1-3 of the ctor: this+0x128, +0x138, +0x148).
+struct ShadowVec4 { float a, b, c, d; ~ShadowVec4() {} };
+struct ShadowArr4 { float v[4]; float& operator[](int i) { return v[i]; } ~ShadowArr4() {} };
 class ShadowObject : public SceneNode {
 public:
     ShadowObject();                    // original: FUN_004ba440
     void Reset();                      // original: FUN_004ba4a0
     virtual ~ShadowObject();           // original: FUN_004ba5f0 (deleting dtor 0x4ba600)
     int kind;                          // 0x124
-    float f128, f12c, f130, f134;
-    float f138[4];                     // 0x138
-    float f148[4];                     // 0x148
+    ShadowVec4 q128;                   // 0x128
+    ShadowArr4 f138;                   // 0x138
+    ShadowArr4 f148;                   // 0x148
     float f158, f15c, f160, f164, f168, f16c, f170, f174;
-    ShadowDt0 d0; ShadowDt1 d1; ShadowDt2 d2;   // empty-destructor members: reproduce the original EH state 3
 };
 class ShadowObjectB : public ShadowObject {
 public:

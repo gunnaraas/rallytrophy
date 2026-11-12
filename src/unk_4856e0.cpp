@@ -3749,6 +3749,9 @@ void TextRenderer::SetColor(ColorArg c)
 }
 #pragma auto_inline(on)
 
+#pragma warning(disable: 4800)
+// bool-returning inline: its ternary gives the original's byte-wide `and al,1 / neg al / sbb / neg`.
+static inline bool OddVariant(char c) { return c & 1; }
 // NONMATCHING: RALLYTROPHY 0x48cca0
 // 713 vs 723 bytes. Frame, ebx = 0, the by-value colour temporary (ColorArg: copy ctor + empty dtor, with a
 // visible nothrow SetColor) all match. Left: instruction scheduling of the hoisted y/step multiplies, and the
@@ -3757,6 +3760,9 @@ void TextRenderer::SetColor(ColorArg c)
 // Tried 2026-10-31 re-pass (99 -> 23 insns): declaring `text` after the Draw call, y inline for the last Print (no y local), id as `(unsigned char)variant & 1) == 1` (drops the extra neg/add fold; still dec al/sbb not the original neg/sbb/neg); text at top, direct y2, volatile colour/self/variant, decl-order permutations of y/y2/step all worse. Left: original loads text before the Draw call and stores colour between the two multiplies; step/y2 stack slots swapped.
 // Draws a titled message screen over the in-game image and returns 1 (and
 // clears the key states) once Return or the mouse button was pressed.
+// 2026-11-11: the id comes from a ternary over a bool-returning inline (OddVariant), which gives the original's
+// `and al,1 / neg al / sbb / neg / add 0x161`; 23 -> 21 insns. Left: text is loaded before the Draw call in the original
+// (doing so here costs 58 insns) and the y/y2 slots are swapped; 480 declaration orders did not move either.
 int RaceMode::FUN_0048cca0(int unused, int variant)
 {
 
@@ -3773,7 +3779,7 @@ int RaceMode::FUN_0048cca0(int unused, int variant)
     text->SetColor(ColorArg(0xffffffff));
     text->SetScale(DAT_0056aea8, DAT_0056aeac);
     if (variant) {
-        int id = 0x161 + (int)(((unsigned char)variant & 1) == 1);
+        int id = OddVariant((char)variant) ? 0x162 : 0x161;
         text->Print(DAT_0056b0ac, DAT_0056b0ac->GetWidth() * 0.5f - text->GetWidth(FUN_00405380(id), 0) * 0.5f, y, FUN_00405380(id), 0, 1.0f, 1.0f);
         y += step;
     }

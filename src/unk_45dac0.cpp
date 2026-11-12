@@ -57,6 +57,7 @@ void BarycentricWeights(const SunVertex* a, const SunVertex* b, const SunVertex*
     __asm fstp dword ptr [eax+8] \
     __asm fstp dword ptr [eax+4]
 
+struct SunMeshV { BYTE unk0[0x30]; std::vector<SunPart*> parts; };
 // NONMATCHING: RALLYTROPHY 0x45dac0
 // One advancing triangle-record cursor for plane fields and nx, alongside the separately advancing tri pointer,
 // cuts the differing-byte count from 468 to 403. A volatile WORD read assigned to int preserves the target's later
@@ -66,6 +67,11 @@ void BarycentricWeights(const SunVertex* a, const SunVertex* b, const SunVertex*
 // vertex-index call setup still differ from the target.
 // Tried 2026-10-30 night: nx via tri->nx and ny via tri->ny (not q[]) plus part/verts/tri/count load order took 101->52 insns; ~20 variants (all-tri fields, unsigned/nonvolatile count, decl order) no better; still differs in count/idx spill order and tri/cursor registers.
 // Tried 2026-10-31: ny via q[-5] (original reads [edx-0x14]) and parts[i] re-read per field (original loads it twice) 52->50; ~25 more variants (field load order, nx via q[-6] wrong, split h terms, cand store order, unsigned/WORD count) no better; ~50 insns apart, permuter skipped.
+// 2026-11-11: 514 -> 106 bytes, size now exact (921). mesh->parts is a std::vector (SunMeshV view): its operator[]
+// gives the original's two consecutive loads of parts[i]; count as a plain int (no volatile WORD read); statement
+// order count, vertices, indices, tri. Left (44 insns): the original keeps i in ebx through the inner loop and the
+// record cursor in edx, here the cursor takes ebx. No gain: const/non-const operator[], rec[k]/idx[k*3] indexing
+// (125 insns), all fields through tri (907 bytes), h forms, count types, declaration placement.
 float Car::SunFactor(void* models)
 {
     SunModels* list = (SunModels*)models;
@@ -106,10 +112,10 @@ float Car::SunFactor(void* models)
             continue;
         }
         for (unsigned i = 0; i < tris->size(); i++) {
+            int n = ((SunMeshV*)mesh)->parts[i]->count;
+            SunVertex* verts = ((SunMeshV*)mesh)->parts[i]->vertices;
+            const unsigned short* idx = ((SunMeshV*)mesh)->parts[i]->indices;
             SunTri* tri = (*tris)[i];
-            SunVertex* verts = mesh->parts[i]->vertices;
-            int n = *(volatile unsigned short*)&mesh->parts[i]->count;
-            const unsigned short* idx = mesh->parts[i]->indices;
             if (!n) {
                 continue;
             }

@@ -143,9 +143,9 @@ struct G_Body {
     BYTE unk0[0x14];
     float pos[3];                      // 0x14
     float mat[16];                     // 0x20: rotation rows 0x20/0x30/0x40, translation 0x50
-    BYTE unk60[0x88 - 0x60];
-    float unk88;                       // 0x88
-    BYTE unk8c[0xb4 - 0x8c];
+    BYTE unk60[0xa8 - 0x60];
+    float unka8;                       // 0xa8 (the second spring point's z; this was read from 0x88 until 2026-11-11)
+    BYTE unkac[0xb4 - 0xac];
     float unkb4;                       // 0xb4
     BYTE unkb8[0x1cc - 0xb8];
     Vec3 velocity;                     // 0x1cc
@@ -291,6 +291,7 @@ static inline void G_Set(Vec3& v, float x, float y, float z) { v.x = x; v.y = y;
 // Re-pass 2026-11-01: G_AddRev for ctrl7/ctrl11 fixed their fadd order (51->46 insns); ~13 more variants (plain struct assign, int/block-temp copies, volatile gain/factor, in-order reshuffles) for ctrl5/6 call-result copy interleave were worse; still differs: that copy (original loads x,y then z after stores), hoisted mov eax,[esi+0x24], call-arg lea/push order.
 extern float DAT_004e1ae8; // 0.0100000007 (the next float above 0.01f), read from .rdata
 // Body-frame accelerations of the four spring points and the two SpringFollower updates.
+// 2026-11-11: the second spring point reads body+0xa8 (was body+0x88, a wrong field): 1899 -> 200 bytes, size exact.
 void Car::FUN_00452eb0(float dt)
 {
     Vec3 p;
@@ -317,7 +318,7 @@ void Car::FUN_00452eb0(float dt)
         G_AddRev(V->ctrl4, V->ctrl2);
     }
     {
-        G_Set(p, 0.0f, 0.0f, V->body->unk88);
+        G_Set(p, 0.0f, 0.0f, V->body->unka8);
         const float* trans = V->body->pos;
         const float* in = (const float*)&p;
         const float* mat = V->body->mat;
