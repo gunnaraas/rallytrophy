@@ -127,8 +127,7 @@
 <rect x="249.4" y="120" width="1.5" height="36" fill="#3fb950"/>
 <rect x="250.9" y="120" width="5.9" height="36" fill="#3fb950"/>
 <rect x="256.9" y="120" width="21.8" height="36" fill="#3fb950"/>
-<rect x="278.7" y="120" width="10.0" height="36" fill="#3fb950"/>
-<rect x="288.8" y="120" width="5.4" height="36" fill="#e3b341"/>
+<rect x="278.7" y="120" width="15.4" height="36" fill="#3fb950"/>
 <rect x="294.2" y="120" width="2.6" height="36" fill="#e3b341"/>
 <rect x="296.8" y="120" width="13.9" height="36" fill="#3fb950"/>
 <rect x="311.4" y="120" width="2.3" height="36" fill="#3fb950"/>
@@ -154,8 +153,7 @@
 <rect x="386.1" y="120" width="2.6" height="36" fill="#3fb950"/>
 <rect x="388.8" y="120" width="7.4" height="36" fill="#3fb950"/>
 <rect x="396.2" y="120" width="5.7" height="36" fill="#e3b341"/>
-<rect x="402.0" y="120" width="6.7" height="36" fill="#3fb950"/>
-<rect x="408.7" y="120" width="3.3" height="36" fill="#e3b341"/>
+<rect x="402.0" y="120" width="10.0" height="36" fill="#3fb950"/>
 <rect x="412.1" y="120" width="6.3" height="36" fill="#3fb950"/>
 <rect x="418.3" y="120" width="7.1" height="36" fill="#e3b341"/>
 <rect x="425.4" y="120" width="4.8" height="36" fill="#3fb950"/>
@@ -180,8 +178,7 @@
 <rect x="500.4" y="120" width="5.1" height="36" fill="#e3b341"/>
 <rect x="505.5" y="120" width="6.6" height="36" fill="#3fb950"/>
 <rect x="512.1" y="120" width="1.1" height="36" fill="#e3b341"/>
-<rect x="513.1" y="120" width="2.2" height="36" fill="#3fb950"/>
-<rect x="515.3" y="120" width="2.9" height="36" fill="#e3b341"/>
+<rect x="513.1" y="120" width="5.1" height="36" fill="#3fb950"/>
 <rect x="518.3" y="120" width="5.8" height="36" fill="#3fb950"/>
 <rect x="524.1" y="120" width="13.0" height="36" fill="#e3b341"/>
 <rect x="537.2" y="120" width="0.6" height="36" fill="#3fb950"/>
@@ -662,9 +659,9 @@
 <text x="1018" y="422" fill="#e6edf3">100% exact / 100% written</text>
 <text x="260" y="448" text-anchor="end" fill="#e6edf3">9. High score screen</text>
 <rect x="270" y="434" width="740" height="18" rx="2" fill="#484f58"/>
-<rect x="270" y="434" width="338.2" height="18" fill="#3fb950"/>
-<rect x="608.2" y="434" width="401.8" height="18" fill="#e3b341"/>
-<text x="1018" y="448" fill="#e6edf3">46% exact / 100% written</text>
+<rect x="270" y="434" width="610.8" height="18" fill="#3fb950"/>
+<rect x="880.8" y="434" width="129.2" height="18" fill="#e3b341"/>
+<text x="1018" y="448" fill="#e6edf3">83% exact / 100% written</text>
 <text x="260" y="474" text-anchor="end" fill="#e6edf3">10. Load game screen</text>
 <rect x="270" y="460" width="740" height="18" rx="2" fill="#484f58"/>
 <rect x="270" y="460" width="740.0" height="18" fill="#3fb950"/>
@@ -703,9 +700,8 @@
 <text x="1018" y="656" fill="#e6edf3">56% exact / 100% written</text>
 <text x="260" y="682" text-anchor="end" fill="#e6edf3">18. Race options screen</text>
 <rect x="270" y="668" width="740" height="18" rx="2" fill="#484f58"/>
-<rect x="270" y="668" width="486.3" height="18" fill="#3fb950"/>
-<rect x="756.3" y="668" width="253.7" height="18" fill="#e3b341"/>
-<text x="1018" y="682" fill="#e6edf3">66% exact / 100% written</text>
+<rect x="270" y="668" width="740.0" height="18" fill="#3fb950"/>
+<text x="1018" y="682" fill="#e6edf3">100% exact / 100% written</text>
 <text x="260" y="708" text-anchor="end" fill="#e6edf3">19. Track-selection screen</text>
 <rect x="270" y="694" width="740" height="18" rx="2" fill="#484f58"/>
 <rect x="270" y="694" width="352.5" height="18" fill="#3fb950"/>
@@ -733,9 +729,8 @@
 <text x="1018" y="812" fill="#e6edf3">56% exact / 100% written</text>
 <text x="260" y="838" text-anchor="end" fill="#e6edf3">24. Sound menu</text>
 <rect x="270" y="824" width="740" height="18" rx="2" fill="#484f58"/>
-<rect x="270" y="824" width="466.5" height="18" fill="#3fb950"/>
-<rect x="736.5" y="824" width="273.5" height="18" fill="#e3b341"/>
-<text x="1018" y="838" fill="#e6edf3">63% exact / 100% written</text>
+<rect x="270" y="824" width="740.0" height="18" fill="#3fb950"/>
+<text x="1018" y="838" fill="#e6edf3">100% exact / 100% written</text>
 <text x="260" y="864" text-anchor="end" fill="#e6edf3">25. Bonus unlocks</text>
 <rect x="270" y="850" width="740" height="18" rx="2" fill="#484f58"/>
 <rect x="270" y="850" width="740.0" height="18" fill="#3fb950"/>

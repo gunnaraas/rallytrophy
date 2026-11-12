@@ -2,7 +2,7 @@
 <title>Rally Trophy per-function decompilation map</title>
 <rect width="1600" height="1120" rx="8" fill="#0d1117"/>
 <text x="20" y="30" font-size="18" font-weight="600" fill="#e6edf3">Every game function, sized by code bytes and branch complexity</text>
-<text x="20" y="53" fill="#8b949e">1,902 byte-exact · 182 written but not byte-exact · 0 unwritten. Tile area = bytes × (1 + log₂(1 + branch points)); hover for details.</text>
+<text x="20" y="53" fill="#8b949e">1,905 byte-exact · 179 written but not byte-exact · 0 unwritten. Tile area = bytes × (1 + log₂(1 + branch points)); hover for details.</text>
 <g transform="translate(20,72)" fill="#e6edf3">
 <rect width="12" height="12" fill="#3fb950"/><text x="18" y="11">byte-exact</text>
 <rect x="118" width="12" height="12" fill="#e3b341"/><text x="136" y="11">written, not exact</text>
@@ -398,7 +398,7 @@
 <rect x="1179.31" y="320.73" width="61.65" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0042c400 · GameScreen1E9C::Setup (vtable 0x4e1630 slot 1) · High score screen · 1,120 code bytes · complexity 12 (11 branch points) · byte-exact</title></rect>
 <rect x="1241.97" y="320.73" width="2.53" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0042c860 · FUN_0042c860 · High score screen · 87 code bytes · complexity 5 (4 branch points) · byte-exact</title></rect>
 <rect x="1245.49" y="320.73" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0042c8c0 · FUN_0042c8c0 · High score screen · 26 code bytes · complexity 1 (0 branch points) · byte-exact</title></rect>
-<rect x="1245.81" y="320.73" width="333.19" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x0042c8e0 · FUN_0042c8e0 · High score screen · 3,597 code bytes · complexity 98 (97 branch points) · written, not exact</title></rect>
+<rect x="1245.81" y="320.73" width="333.19" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0042c8e0 · FUN_0042c8e0 · High score screen · 3,597 code bytes · complexity 98 (97 branch points) · byte-exact</title></rect>
 <rect x="20.00" y="350.55" width="126.03" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x0042d710 · FUN_0042d710 · High score screen · 1,704 code bytes · complexity 20 (19 branch points) · written, not exact</title></rect>
 <rect x="147.03" y="350.55" width="207.62" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0042ddc0 · FUN_0042ddc0 · High score screen · 2,464 code bytes · complexity 33 (32 branch points) · byte-exact</title></rect>
 <rect x="355.65" y="350.55" width="4.62" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0042e760 · FUN_0042e760 · High score screen · 401 code bytes · complexity 1 (0 branch points) · byte-exact</title></rect>
@@ -582,7 +582,7 @@
 <rect x="646.09" y="440.00" width="57.68" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0043fba0 · RaceOptionsMenu::Setup (vtable slot 1) · Race options screen · 989 code bytes · complexity 13 (12 branch points) · byte-exact</title></rect>
 <rect x="704.77" y="440.00" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0043ff80 · FUN_0043ff80 · Race options screen · 21 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>
 <rect x="705.30" y="440.00" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0043ffa0 · FUN_0043ffa0 · Race options screen · 41 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>
-<rect x="706.34" y="440.00" width="178.79" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x0043ffd0 · FUN_0043ffd0 · Race options screen · 2,205 code bytes · complexity 44 (43 branch points) · written, not exact</title></rect>
+<rect x="706.34" y="440.00" width="178.79" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x0043ffd0 · FUN_0043ffd0 · Race options screen · 2,205 code bytes · complexity 44 (43 branch points) · byte-exact</title></rect>
 <rect x="886.12" y="440.00" width="224.21" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00440890 · FUN_00440890 · Race options screen · 2,722 code bytes · complexity 47 (46 branch points) · byte-exact</title></rect>
 <rect x="1111.33" y="440.00" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00441340 · RaceOptionsMenu module end: guard-bit initialiser of the STL header statics (_$E) · Race options screen · 25 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>
 <rect x="1111.96" y="440.00" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00441360 · RaceOptionsMenu module end: atexit(0x402c90) registration · Race options screen · 12 code bytes · complexity 1 (0 branch points) · byte-exact</title></rect>
@@ -672,7 +672,7 @@
 <rect x="1333.25" y="529.45" width="6.50" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00450f90 · FUN_00450f90 · Sound menu · 175 code bytes · complexity 4 (3 branch points) · byte-exact</title></rect>
 <rect x="1340.76" y="529.45" width="66.05" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00451040 · SoundMenu::Setup (vtable slot 1 of 0x4e1a7c; missing from functions.csv; ten following NOPs are alignment padding) · Sound menu · 998 code bytes · complexity 13 (12 branch points) · byte-exact</title></rect>
 <rect x="1407.81" y="529.45" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00451430 · FUN_00451430 · Sound menu · 41 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>
-<rect x="1408.98" y="529.45" width="170.02" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x00451460 · FUN_00451460 · Sound menu · 1,915 code bytes · complexity 38 (37 branch points) · written, not exact</title></rect>
+<rect x="1408.98" y="529.45" width="170.02" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00451460 · FUN_00451460 · Sound menu · 1,915 code bytes · complexity 38 (37 branch points) · byte-exact</title></rect>
 <rect x="20.00" y="559.27" width="163.16" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00451c10 · FUN_00451c10 · Sound menu · 1,848 code bytes · complexity 31 (30 branch points) · byte-exact</title></rect>
 <rect x="184.16" y="559.27" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00452350 · SoundMenu module end: guard-bit initialiser of the STL header statics (_$E) · Sound menu · 25 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>
 <rect x="184.91" y="559.27" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00452370 · SoundMenu module end: atexit(0x402c90) registration · Sound menu · 12 code bytes · complexity 1 (0 branch points) · byte-exact</title></rect>

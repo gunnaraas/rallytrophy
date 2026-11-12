@@ -1466,12 +1466,12 @@ void ServiceMenu::Slot3(int skipPresent)
         DAT_0056b0ac->vf38(0);
         overlay->Draw(DAT_0056b0ac, 0);
         text->scaleX = DAT_0056aea8 * 2.0f;
-        text->color = DAT_00508bfc;
+        text->SetColorObj(Color(DAT_00508bfc));
         text->scaleY = DAT_0056aeac * 2.0f;
         text->Print(DAT_0056b0ac, SMI_TITLEX * DAT_0056aea8, SMI_TITLEY * DAT_0056aeac, FUN_00405380(0x75), 0, 1.0f,
                     1.0f);
         text->scaleX = DAT_0056aea8 * 3.0f;
-        text->color = DAT_00508bfc;
+        text->SetColorObj(Color(DAT_00508bfc));
         text->scaleY = DAT_0056aeac * 3.0f;
         int rid = rally + 0xb5;
         float rx = DAT_0056b0ac->GetWidth() * 0.5f - text->GetWidth(FUN_00405380(rid), 0) * 0.5f;

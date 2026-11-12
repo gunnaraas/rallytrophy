@@ -209,13 +209,11 @@ int SoundMenu::Run(MenuGame* game, NetRace* net_)
     return r;
 }
 
-// NONMATCHING: RALLYTROPHY 0x451460
-// Everything but the draw loop matches (prologue, input handling, cursor placement, tail). In the loop VC6 hoists the
-// (1, 1) object's stores out of the loop (the original keeps them inside), puts it and the GetScale copy in swapped
-// frame slots (0x44/0x4c), and the scaled constants come out `fld mem; fmul const` instead of `fld const; fmul mem`.
-// Bounded objcmp: 1968-byte COFF span vs 1915-byte inventory, 402 differences. Probes: docs/analysis/sound-menu-frame.md.
-// Tried 2026-10-30 night: 25 variants (function-scope/early HudPoint one, float[2]/int[2]/double/volatile one, partial volatile stores, one.y-first, scale const-ref/split/volatile, title arg order/temps); int[2] one gave 42 insns but only by const-folding a store (different structure), rest 59+; still differs: scale/one stack slots swapped, unit stores hoisted out of loop, fld/fmul operand order.
-// Tried 2026-10-31 re-pass: 16 more (if/else for col/selected, title const char* temp, pos before selected, one as int[2], scale via single GetScale ptr with volatile/int-copy loads, text scale temps); best valid 58 insns (int-copy scale), none move the one/scale slots or unit-store hoist; 39 only by calling GetScale twice (invalid).
+extern float DAT_004e1a74; // 400.0f, a plain float in the original (loaded first in `DAT * sx`)
+// FUNCTION: RALLYTROPHY 0x451460
+// Matched 2026-11-11: title colour through the inline SetColorObj(Color(...)) setter; the item (1, 1) scale object is
+// assigned in both arms of the selected test (reference-count slot rule, see NOTES).
+// 400.0f is the plain float DAT_004e1a74; `selected` is declared before the colour and scale objects.
 int SoundMenu::Frame()
 {
     int done = 0;
@@ -336,7 +334,7 @@ int SoundMenu::Frame()
         if (DAT_0056b0ac->BeginScene()) {
             DAT_0056b0ac->vf38(0);
             game->DrawVideo(0);
-            text->color = DAT_00508bfc;
+            text->SetColorObj(Color(DAT_00508bfc));
             text->scaleX = DAT_0056aea8 * 2.0f;
             text->scaleY = DAT_0056aeac * 2.0f;
             text->Print(DAT_0056b0ac, 42.0f * DAT_0056aea8, 142.0f * DAT_0056aeac, FUN_00405380(0x3d), 0, 1.0f, 1.0f);
@@ -344,15 +342,13 @@ int SoundMenu::Frame()
             game->FUN_00435de0(517.0f, 243.0f);
             HudPoint scale = *game->GetScale();
             for (int i = 0; i < 7; i++) {
+                int selected = (i == m_selected);
                 Color col;
                 HudPoint one;
-                int selected = (i == m_selected);
-                col.value = selected ? DAT_00508c0c : DAT_00508c04;
+                if (selected) { col.value = DAT_00508c0c; one.x = 1.0f; one.y = 1.0f; }
+                else { col.value = DAT_00508c04; one.x = 1.0f; one.y = 1.0f; }
                 text->color = col.value;
-                const char* labelText = items[i].text.c_str();
-                *(volatile float*)&one.x = 1.0f;
-                *(volatile float*)&one.y = 1.0f;
-                text->Print(DAT_0056b0ac, items[i].x, items[i].y, labelText, 0, one.x, one.y);
+                text->Print(DAT_0056b0ac, items[i].x, items[i].y, items[i].text.c_str(), 0, one.x, one.y);
                 HudPoint pos;
                 pos.x = 520.0f * DAT_0056aea8;
                 pos.y = items[i].y;
@@ -373,7 +369,7 @@ int SoundMenu::Frame()
                     DrawSlider(pos.x, pos.y, DAT_00501438[4], selected);
                     break;
                 case 5:
-                    DrawToggle(text, labels, pos.x, pos.y, 400.0f * sx, selected, DAT_0050147c, 0, 1);
+                    DrawToggle(text, labels, pos.x, pos.y, DAT_004e1a74 * sx, selected, DAT_0050147c, 0, 1);
                     break;
                 }
             }
