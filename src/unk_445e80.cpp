@@ -1452,11 +1452,10 @@ void ServiceMenu::BuildRects()
 }
 
 // NONMATCHING: RALLYTROPHY 0x44b510
-// 1016 vs 983 bytes / 417 differing bytes (improved from 1008/427): splitting the per-flag tab guards follows the
-// target's separate tests, but the function remains NONMATCHING. The original loads colour globals into eax where
-// mine picks edx. The status registers now match roles (DAT_00501464 in eax / DAT_00501454 in ecx), but the target
-// loads them in the opposite order and earlier relative to the scale-field stores.
-// Tried 2026-10-30 night: ~30 variants (store orders, locals for title args, volatile colour, guard blocks reordered/merged); best is guard order D458, D454, D464 (65->63 insns); still differs: color/device register choice in the title+rally block and prologue load order of D464/D454 (target eax then ecx), 1016 vs 983 bytes.
+// 2026-11-11: 1004/1004, 6 bytes differ (was 427, 25 bytes long). Fixes: inline SetColorObj(Color(...)) for both title
+// colours, `rally + 0xb5` written twice (no rid local), inline SetScale for the 0.75 block. Left: the rally-x temp
+// lives in slot 0x14 (shared with the x/col temps) in the original, ours shares y's slot 0x10. Tried: y initialised
+// early (function/block top, before rx), y or x,y computed before rx, rx scoped or inline, two-arm colour forms.
 // Tried 2026-10-31 re-pass: the three tab guards merged into the original's `if (D464 || D454) {i==3; D454&&i==2&&!D45c; D464==2|3&&i==2}` shape and D464 read once at loop top (`int f464 = DAT_00501464;`) so eax=D464/ecx=D454 as in the original: 65->57 insns, loop guards now match; ~45 variants more (colour/scale store order, rid/width locals, x/y decl order, print arg locals) fail to fix: title block picks edx for the colour and the rally-title width/rid load order, 1008 vs 983 bytes.
 // original: FUN_0044b510 (vtable slot 3, Draw; the jump table 0x44b8e8 is its switch)
 void ServiceMenu::Slot3(int skipPresent)
@@ -1473,9 +1472,8 @@ void ServiceMenu::Slot3(int skipPresent)
         text->scaleX = DAT_0056aea8 * 3.0f;
         text->SetColorObj(Color(DAT_00508bfc));
         text->scaleY = DAT_0056aeac * 3.0f;
-        int rid = rally + 0xb5;
-        float rx = DAT_0056b0ac->GetWidth() * 0.5f - text->GetWidth(FUN_00405380(rid), 0) * 0.5f;
-        text->Print(DAT_0056b0ac, rx, SMI_RALLYY * DAT_0056aeac, FUN_00405380(rid), 0, 1.0f, 1.0f);
+        float rx = DAT_0056b0ac->GetWidth() * 0.5f - text->GetWidth(FUN_00405380(rally + 0xb5), 0) * 0.5f;
+        text->Print(DAT_0056b0ac, rx, SMI_RALLYY * DAT_0056aeac, FUN_00405380(rally + 0xb5), 0, 1.0f, 1.0f);
         text->SetScale(DAT_0056aea8, DAT_0056aeac);
         float x = DAT_0056aea8 * 54.0f;
         float y = DAT_0056aeac * 262.0f;
@@ -1523,8 +1521,7 @@ void ServiceMenu::Slot3(int skipPresent)
             break;
         }
         if (DAT_00501334 > 1) {
-            text->scaleX = DAT_0056aea8 * 0.75f;
-            text->scaleY = DAT_0056aeac * 0.75f;
+            text->SetScale(DAT_0056aea8 * 0.75f, DAT_0056aeac * 0.75f);
             text->color = 0x99000000;
             text->Printf(DAT_0056b0ac, DAT_0056aea8 * 58.0f, DAT_0056aeac * 184.0f, "%s %i: %s", FUN_00405380(0x94),
                          unk30 + 1, DAT_00501338[unk30].text);

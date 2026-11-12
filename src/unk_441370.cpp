@@ -3987,10 +3987,8 @@ int TrackSelectMenu::Run()
         if (DAT_0056b0ac->BeginScene()) {
             DAT_0056b0ac->vf38(0);
             m_game->DrawVideo(0);
-            float titleScaleX0 = DAT_0056aea8 * 2.0f;
-            int titleColor0 = *(volatile const int*)&DAT_00508bfc;
-            text->scaleX = titleScaleX0;
-            text->color = titleColor0;
+            text->SetColorObj(Color(DAT_00508bfc));
+            text->scaleX = DAT_0056aea8 * 2.0f;
             text->scaleY = DAT_0056aeac * 2.0f;
             text->Print(DAT_0056b0ac, TSE_TITLEX * DAT_0056aea8, TSE_TITLEY * DAT_0056aeac, FUN_00405380(0x101), 0, 1.0f,
                         1.0f);

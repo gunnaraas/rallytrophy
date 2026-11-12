@@ -141,8 +141,7 @@
 <rect x="347.9" y="120" width="2.4" height="36" fill="#e3b341"/>
 <rect x="350.4" y="120" width="3.6" height="36" fill="#3fb950"/>
 <rect x="354.0" y="120" width="4.1" height="36" fill="#e3b341"/>
-<rect x="358.1" y="120" width="10.8" height="36" fill="#3fb950"/>
-<rect x="369.0" y="120" width="2.9" height="36" fill="#e3b341"/>
+<rect x="358.1" y="120" width="13.7" height="36" fill="#3fb950"/>
 <rect x="371.9" y="120" width="1.2" height="36" fill="#3fb950"/>
 <rect x="373.2" y="120" width="0.6" height="36" fill="#3fb950"/>
 <rect x="373.5" y="120" width="0.7" height="36" fill="#e3b341"/>
@@ -681,9 +680,8 @@
 <text x="1018" y="552" fill="#e6edf3">100% exact / 100% written</text>
 <text x="260" y="578" text-anchor="end" fill="#e6edf3">14. MenuScreenA48</text>
 <rect x="270" y="564" width="740" height="18" rx="2" fill="#484f58"/>
-<rect x="270" y="564" width="428.4" height="18" fill="#3fb950"/>
-<rect x="698.4" y="564" width="311.6" height="18" fill="#e3b341"/>
-<text x="1018" y="578" fill="#e6edf3">58% exact / 100% written</text>
+<rect x="270" y="564" width="740.0" height="18" fill="#3fb950"/>
+<text x="1018" y="578" fill="#e6edf3">100% exact / 100% written</text>
 <text x="260" y="604" text-anchor="end" fill="#e6edf3">15. Lobby screen</text>
 <rect x="270" y="590" width="740" height="18" rx="2" fill="#484f58"/>
 <rect x="270" y="590" width="127.0" height="18" fill="#3fb950"/>

@@ -30,12 +30,6 @@ extern "C" int __stdcall FUN_0042a210(int);
 
 
 // ---- from group draft Y3 ----
-class M3_Unit {
-public:
-    M3_Unit() { x = 1.0f; y = 1.0f; }
-    ~M3_Unit() {}
-    volatile float x, y;
-};
 static float M3_titleX = 54.0f;    // 0x4e17bc (plain static: the original multiplies const * scale)
 static float M3_titleY = 142.0f;   // 0x4e17c0
 
