@@ -409,3 +409,21 @@ Do not add such a constructor to the shared HudPoint class: it changes SnowFall:
 - 0x46c2c0 Wheel::Wheel: the original reloads `this` into ecx and discards it between Reset() and the normal stores,
   hinting at an inline call with a discarded result there.
 - slotmap.py gives 0 aligned hits on 0x480ce0 (bug to fix); sizegap's "original size" is wrong for some variants of 0x489300.
+
+## VC6 inline budget, measured (2026-11-12)
+
+Standalone probes (`build/inl`, project flags /O2 /Oa /G6 /GX) with K `{ std::string s(p); use(s.c_str()); }` scopes
+followed by M calls to an inline function:
+- Every function has a fixed budget of inline EXPANSIONS (call sites), not bytes: a one-line inline and one with a
+  loop cost the same. Pragmas do not move it (inline_depth 1-4, auto_inline(off): no change).
+- The budget is spent from the LAST statement backwards. With K=4, M=0 the last two string scopes expand their
+  destructor inline (delete) and all four expand the ctor's assign (_Grow); each extra trailing inline call
+  (M=1..8) turns one more step, walking backwards, into a call: dtor -> _Tidy(true) call, ctor -> assign call.
+  K=2 inlines everything; from K=4 the earliest sites are calls.
+- Consequence for a mismatch at site S: if the original CALLS a helper at S that we expand, our code after S spends
+  fewer expansions than the original's (look for something the original inlined later that we call or hand-model);
+  if the original EXPANDS at S and we call, we spend more after S. Hand-modelled twins (FB2_Path, TSE_Str16,
+  TSE_Str::Grow) bypass the budget entirely: their inline/call choice is whatever we wrote, so for them fix the
+  twin at that site instead of searching for budget.
+- 0x44d6a0: every call after the fail exit is identical (calls.py); the fail-exit difference is FB2_Path's hand-
+  inlined destructor, i.e. a twin modelling choice, not budget.
