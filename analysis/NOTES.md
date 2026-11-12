@@ -378,3 +378,11 @@ When a run of member stores next to a call schedules differently from the origin
 ordered, the original probably called small inline members. 0x4b7c80: `solids.Clear(); normals.Clear();
 specials.Clear();` with `void Clear() { m_end = m_data; m_count = 0; }` matched after ~700 orders of the six
 hand-written stores had not. Same family: `SetColorObj(Color(x))` for the menu title colour.
+
+## Frame too large by 4-8 bytes: constructed temporaries (2026-11-12)
+
+0x48d7f0: when the only differences are stack offsets and the frame is a few bytes too large, an object the
+original built as a temporary is a named local here. `SetPosition(&Pt(x * sx, y * sy))` with an inline two-argument
+constructor stores straight into the temporary, sets the EH state after both stores, and lets the temporary share
+the slots of floats that die in its arguments. A named `HudPoint position; position.x = ...` does not share.
+Do not add such a constructor to the shared HudPoint class: it changes SnowFall::SnowFall; use a local subclass.

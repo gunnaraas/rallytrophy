@@ -3805,17 +3805,18 @@ extern float DAT_0057ba00;
 // A sound object inside the game object (offset from DAT_0056b0c8).
 #define SOUND_AT(offset) ((GameSound*)((BYTE*)DAT_0056b0c8 + (offset)))
 
-// NONMATCHING: RALLYTROPHY 0x48d7f0
-// Same size and register assignment through the init loop, EH states and jump tables; the original frame is
-// 4 bytes smaller (0x3c): its scale temporaries (width/height * 1/1024, 1/768) share slots with the HudPoint
-// objects of later scopes (dir block position, loop scale), and keeps -1 in ebp (`or ebp,-1` in both arms of
-// the ESC test). Named floats / inline expressions / a minusOne local did not reproduce either.
-// Tried 2026-10-30 night: reordering scaleX/scaleY declarations (93), HudPoint declared at top reusing scaleX as position.x (179, worse); original shows position.x reusing the scaleX slot [0x1c] while scaleY stays at [0x24], not reproducible; no QWORD operands seen in the diff (all constants are DWORD).
-// Tried 2026-10-31 second pass (~30 variants, best 89 insns): the original shares slots (scaleX/dir position at [0x1c], scaleY/loop position at [0x24], loop scale back at [0x1c]) and writes position.x/y before its EH state 5; px/py temps (kept, 90->89), 120 declaration-order permutations, position at top aliased by scaleX, float sc[3], 8-byte POD holders, HudPoint-typed scales, volatile self/z/minusOne/scale copies and literal -1 were no better; y already lands in the dead init slot; frame stays 4 bytes larger.
-// Tried 2026-10-31 third pass (~20 variants): Color/scale/position loop-local declaration orders (no change), function-scope HudPoint A,B holding scaleX/scaleY (110, EH entry states), dead int/float/volatile locals between scaleX and scaleY (elided, 89), float sc[4] (91); POD `struct P2{float x,y;} A,B` holding scales and cast to HudPoint* for SetPosition gets the 0x3c frame but slots land at 0x28-0x34 not 0x1c/0x24 and loses EH state 5 (78 aligned but 12 bytes short, not a real gain). Original slots A=[0x1c..0x20) (scaleX, dir position, loop scale), B=[0x24..0x2c) (scaleY, loop position), [0x20] otherwise unused.
-// The race options menu: five entries (four volume sliders with +/- arrows,
-// and "back"), driven by the keyboard and the mouse. `init` re-selects the entry
-// under the mouse. Returns -1 when the menu is closed, otherwise 1.
+// Cursor position temporary of the race options menu: HudPoint with an inline (x, y) constructor. Kept local to
+// this file: adding the constructor to HudPoint itself changes SnowFall::SnowFall (0x474c50) by 4 bytes.
+class RM_Pt : public HudPoint {
+public:
+    RM_Pt(float a, float b) { x = a; y = b; }
+};
+// FUNCTION: RALLYTROPHY 0x48d7f0
+// The race options menu: five entries (four volume sliders with +/- arrows, and "back"), driven by the keyboard
+// and the mouse. `init` re-selects the entry under the mouse. Returns -1 when the menu is closed, otherwise 1.
+// Matched 2026-11-12: (1) title colour through the inline SetColorObj(Color(...)); (2) the item (1, 1) scale is
+// assigned in both arms of the selected test; (3) the cursor position is an RM_Pt(x, y) temporary passed to
+// SetPosition, which lets it share the scale floats' stack slots (the frame was 4-8 bytes too large before).
 int RaceMode::FUN_0048d7f0(bool init)
 {
     float scaleX = DAT_0056b0ac->GetWidth() * 0.0009765625f;
@@ -3860,12 +3861,7 @@ int RaceMode::FUN_0048d7f0(bool init)
         }
         int x = (int)(m_ui[unk24c]->GetTopLeft().x + (m_ui[unk24c]->GetBottomRight().x - m_ui[unk24c]->GetTopLeft().x) * 0.5f);
         int y = (int)(m_ui[unk24c]->GetTopLeft().y + (m_ui[unk24c]->GetBottomRight().y - m_ui[unk24c]->GetTopLeft().y) * 0.5f);
-        float px = x * scaleX;
-        float py = y * scaleY;
-        HudPoint position;
-        position.y = py;
-        position.x = px;
-        ((MouseHud*)DAT_0056b0c0)->SetPosition(&position);
+        ((MouseHud*)DAT_0056b0c0)->SetPosition(&RM_Pt(x * scaleX, y * scaleY));
     }
     for (i = 0; i < 5; i++) {
         if (unk24c != i) {
@@ -3912,13 +3908,13 @@ int RaceMode::FUN_0048d7f0(bool init)
     }
     m_image->Draw(DAT_0056b0ac, 0);
     text->SetScale(DAT_0056aea8, DAT_0056aeac);
-    text->color = DAT_00508bfc;
+    text->SetColorObj(Color(DAT_00508bfc));
     for (i = 0; i < 5; i++) {
         int selected = i == unk24c;
-        Color color(selected ? DAT_00508c0c : DAT_00508c04);
+        Color color;
         HudPoint scale;
-        scale.x = 1.0f;
-        scale.y = 1.0f;
+        if (selected) { color.value = DAT_00508c0c; scale.x = 1.0f; scale.y = 1.0f; }
+        else { color.value = DAT_00508c04; scale.x = 1.0f; scale.y = 1.0f; }
         text->color = color.value;
         HudPoint position;
         position.x = DAT_0056aea8 * 600.0f;
@@ -3926,22 +3922,22 @@ int RaceMode::FUN_0048d7f0(bool init)
         switch (i) {
         case 0:
             FUN_0048ecf0(position.x, position.y, DAT_00501438[0], selected);
-            text->Print(DAT_0056b0ac, DAT_0056aea8 * 127.0f, position.y, FUN_00405380(0x5c), 0, 1.0f, 1.0f);
+            text->Print(DAT_0056b0ac, DAT_0056aea8 * 127.0f, position.y, FUN_00405380(0x5c), 0, scale.x, scale.y);
             break;
         case 1:
             FUN_0048ecf0(position.x, position.y, DAT_00501438[1], selected);
-            text->Print(DAT_0056b0ac, DAT_0056aea8 * 127.0f, position.y, FUN_00405380(0x5d), 0, 1.0f, 1.0f);
+            text->Print(DAT_0056b0ac, DAT_0056aea8 * 127.0f, position.y, FUN_00405380(0x5d), 0, scale.x, scale.y);
             break;
         case 2:
             FUN_0048ecf0(position.x, position.y, DAT_00501438[2], selected);
-            text->Print(DAT_0056b0ac, DAT_0056aea8 * 127.0f, position.y, FUN_00405380(0x5e), 0, 1.0f, 1.0f);
+            text->Print(DAT_0056b0ac, DAT_0056aea8 * 127.0f, position.y, FUN_00405380(0x5e), 0, scale.x, scale.y);
             break;
         case 3:
             FUN_0048ecf0(position.x, position.y, DAT_00501438[3], selected);
-            text->Print(DAT_0056b0ac, DAT_0056aea8 * 127.0f, position.y, FUN_00405380(0x5f), 0, 1.0f, 1.0f);
+            text->Print(DAT_0056b0ac, DAT_0056aea8 * 127.0f, position.y, FUN_00405380(0x5f), 0, scale.x, scale.y);
             break;
         case 4:
-            text->Print(DAT_0056b0ac, DAT_0056aea8 * 127.0f, DAT_0056aeac * 627.0f, FUN_00405380(0x18), 0, 1.0f, 1.0f);
+            text->Print(DAT_0056b0ac, DAT_0056aea8 * 127.0f, DAT_0056aeac * 627.0f, FUN_00405380(0x18), 0, scale.x, scale.y);
             break;
         }
     }
