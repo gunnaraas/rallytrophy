@@ -61,6 +61,9 @@ SceneEntry* ModelLoader::ReadMesh(File* file, unsigned int size)
 // keeps the other zeros immediate as in the original: 251 -> 159 bytes. 2026-11-12: a three-step loop instead of
 // memset gives the original's local xor + direct stores and the exact size (613/613, 143 bytes). Left: the original
 // stores them 0x58, 0x54, 0x50 (ours ascending) and schedules the record copies differently.
+// The copies are now loops too (position pair, two vectors at 0xa0/0xac): 143 -> 112 bytes, 613/613. The original
+// unrolls the position pair and interleaves it with the other copies; ours keeps that pair as a real loop.
+// 1680 orders of explicit pairs + loops were worse (29 insns).
 void ModelLoader::ReadLight(File* file)
 {
     ModelPartRecord* rec = FUN_004af730(file);
@@ -98,19 +101,11 @@ void ModelLoader::ReadLight(File* file)
     ((ModelRecordString*)&w[0x45])->Assign(*(std::string*)rec, 0, std::string::npos);
     o->position = *(ScenePoint*)((char*)rec + 0x54);
     { for (int i = 0; i < 3; i++) w[0x14 + i] = 0; }
-    w[0x2e] = RAW(rec, 0x54);
-    w[0x2f] = RAW(rec, 0x58);
-    w[0x28] = RAW(rec, 0x80);
-    w[6] = RAW(rec, 0x58);
+    { for (int i = 0; i < 3; i++) w[0x2e + i] = w[5 + i] = RAW(rec, 0x54 + i * 4); }
     memcpy(&w[8], (char*)rec + 0x14, 0x40);
-    w[0x30] = RAW(rec, 0x5c);
-    w[0x29] = RAW(rec, 0x84);
-    w[7] = RAW(rec, 0x5c);
-    w[0x2b] = RAW(rec, 0x8c);
-    w[0x2a] = RAW(rec, 0x88);
-    w[0x2c] = RAW(rec, 0x90);
+    { for (int i = 0; i < 3; i++) w[0x28 + i] = RAW(rec, 0x80 + i * 4); }
+    { for (int i = 0; i < 3; i++) w[0x2b + i] = RAW(rec, 0x8c + i * 4); }
     w[0x31] = RAW(rec, 0x7c);
-    w[0x2d] = RAW(rec, 0x94);
     *(unsigned char*)&w[0x33] &= 0xfc;
     Attach(o, rec->value);
 }
