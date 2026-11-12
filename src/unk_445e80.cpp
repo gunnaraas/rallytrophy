@@ -1450,11 +1450,10 @@ void ServiceMenu::BuildRects()
     }
 }
 
-// NONMATCHING: RALLYTROPHY 0x44b510
-// 2026-11-11: 1004/1004, 6 bytes differ (was 427, 25 bytes long). Fixes: inline SetColorObj(Color(...)) for both title
-// colours, `rally + 0xb5` written twice (no rid local), inline SetScale for the 0.75 block. Left: the rally-x temp
-// lives in slot 0x14 (shared with the x/col temps) in the original, ours shares y's slot 0x10. Tried: y initialised
-// early (function/block top, before rx), y or x,y computed before rx, rx scoped or inline, two-arm colour forms.
+// FUNCTION: RALLYTROPHY 0x44b510
+// Matched 2026-11-12: inline SetColorObj(Color(...)) for both title colours, `rally + 0xb5` written twice, inline
+// SetScale for the 0.75 block, and ONE x variable for the rally title and the item list (its lifetime decides
+// which stack slot the title temporaries share; see NOTES on slot order).
 // Tried 2026-10-31 re-pass: the three tab guards merged into the original's `if (D464 || D454) {i==3; D454&&i==2&&!D45c; D464==2|3&&i==2}` shape and D464 read once at loop top (`int f464 = DAT_00501464;`) so eax=D464/ecx=D454 as in the original: 65->57 insns, loop guards now match; ~45 variants more (colour/scale store order, rid/width locals, x/y decl order, print arg locals) fail to fix: title block picks edx for the colour and the rally-title width/rid load order, 1008 vs 983 bytes.
 // original: FUN_0044b510 (vtable slot 3, Draw; the jump table 0x44b8e8 is its switch)
 void ServiceMenu::Slot3(int skipPresent)
@@ -1471,10 +1470,10 @@ void ServiceMenu::Slot3(int skipPresent)
         text->scaleX = DAT_0056aea8 * 3.0f;
         text->SetColorObj(Color(DAT_00508bfc));
         text->scaleY = DAT_0056aeac * 3.0f;
-        float rx = DAT_0056b0ac->GetWidth() * 0.5f - text->GetWidth(FUN_00405380(rally + 0xb5), 0) * 0.5f;
-        text->Print(DAT_0056b0ac, rx, SMI_RALLYY * DAT_0056aeac, FUN_00405380(rally + 0xb5), 0, 1.0f, 1.0f);
+        float x = DAT_0056b0ac->GetWidth() * 0.5f - text->GetWidth(FUN_00405380(rally + 0xb5), 0) * 0.5f;
+        text->Print(DAT_0056b0ac, x, SMI_RALLYY * DAT_0056aeac, FUN_00405380(rally + 0xb5), 0, 1.0f, 1.0f);
         text->SetScale(DAT_0056aea8, DAT_0056aeac);
-        float x = DAT_0056aea8 * 54.0f;
+        x = DAT_0056aea8 * 54.0f;
         float y = DAT_0056aeac * 262.0f;
         for (int i = 0; i < 6; i++) {
             int f464 = DAT_00501464;

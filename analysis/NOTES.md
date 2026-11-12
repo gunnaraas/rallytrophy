@@ -356,6 +356,10 @@ Found with standalone compiles and add/remove-one-reference probes on 0x427c10 a
 - 8-byte objects with destructors obey the same rule. In 0x43cc50 the per-item (1, 1) scale is an empty-ctor
   object assigned in both arms of `if (selected) {...} else {...}`; the arms merge, the count doubles, and the stores
   land where the original has them (25 -> 1 insn). Look for an if/else or `||` whose arms could have repeated a store.
+- Slot sharing follows source variables: a temporary shares the slot of a variable whose lifetime it does not
+  overlap. If a temporary sits one slot off, try merging or splitting variables around it. 0x44b510: the rally
+  title's x and the item list's x are ONE variable (`float x = ...; Print(x); ... x = k;`); with a separate `rx`
+  the title temporaries shared y's slot instead.
 - A variable whose first value is used once and then reassigned under an `if` is one stored variable with a high
   count. If the original has it above another local, the first value was its own variable:
   `float y0 = ...; Print(y0); float y = y2;` (0x48cca0, y/y2 slots).
