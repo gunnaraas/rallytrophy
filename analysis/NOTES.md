@@ -427,3 +427,8 @@ followed by M calls to an inline function:
   twin at that site instead of searching for budget.
 - 0x44d6a0: every call after the fail exit is identical (calls.py); the fail-exit difference is FB2_Path's hand-
   inlined destructor, i.e. a twin modelling choice, not budget.
+- Limit found the same day: in 0x44d6a0, an FB2_Path destructor written as `~FB2_Path() { Free(true); }` (inline
+  member, so the budget could choose) stays inline at BOTH exits even with 16 extra value-returning inline calls
+  added before the final return (empty inline calls are not counted at all). So the standalone rule does not by
+  itself explain why the original calls _Tidy(true) at the fail exit; something else (exit kind, EH state, or the
+  order the compiler visits exits) decides there. Unresolved.
