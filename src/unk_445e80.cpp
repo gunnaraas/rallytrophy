@@ -1061,8 +1061,8 @@ void ServiceMenu::DrawTune()
         ((RaceDeviceSlots*)DAT_0056b0ac)->DrawQuad((Vec2*)pos, (Vec2*)uv, color, 1.0f, 1.0f);
         for (i = 0; i < 5; i++) {
             bool selected = unk28 == i;
+            lil->SetColorObj(Color(color.value));
             color.value = selected ? DAT_00508c0c : DAT_00508c04;
-            lil->color = color.value;
             lil->Print(DAT_0056b0ac, x, y, FUN_00405380(G_names[i]), 0, 1.0f, 1.0f);
             y = DAT_0056aeac * 42.0f + y;
         }
@@ -1176,7 +1176,7 @@ void ServiceMenu::DrawTune()
         }
         lil->Print(DAT_0056b0ac, x, y, buf, 0, 1.0f, 1.0f);
         lil->SetScale(DAT_0056aea8, DAT_0056aeac);
-        lil->color = DAT_00508c04;
+        lil->SetColorObj(Color(DAT_00508c04));
         *(BYTE*)((BYTE*)bigText + 0x130) = 1;
         x = DAT_0056aea8 * 608.0f;
         y = DAT_0056aeac * 606.0f;
@@ -1238,8 +1238,8 @@ void ServiceMenu::DrawRepair()
         ((RaceDeviceSlots*)DAT_0056b0ac)->DrawQuad((Vec2*)pos, (Vec2*)uv, col, 1.0f, 1.0f);
         for (i = 0; i < 7; i++) {
             bool selected = (unk2c == i);
+            text->SetColorObj(Color(col.value));
             col.value = selected ? DAT_00508c0c : DAT_00508c04;
-            text->color = col.value;
             text->Print(DAT_0056b0ac, x, y, FUN_00405380(SMH_PartText[i]), 0, 1.0f, 1.0f);
             y = DAT_0056aeac * 42.0f + y;
         }
@@ -1310,16 +1310,16 @@ void ServiceMenu::DrawRepair()
         DAT_0056b0ac->vf66(pos, uv, col.value, 1.0f, 1.0f);
         TextRenderer* text2 = SMH_FONT2(m_game);
         float ty = DAT_0056aeac * 580.0f;
+        text2->SetColorObj(Color(col.value));
         col.value = 0xff000000;
-        text2->color = col.value;
         text2->Print(DAT_0056b0ac, DAT_0056aea8 * 607.0f, ty, "0%", 0, 1.0f, 1.0f);
         float tx = DAT_0056aea8 * 995.0f - text2->GetWidth("100%", 0);
         text2->Print(DAT_0056b0ac, tx, ty, "100%", 0, 1.0f, 1.0f);
+        text->SetColorObj(Color(DAT_00508c04));
         tx = DAT_0056aea8 * 801.0f - text2->GetWidth(FUN_00405380(0x74), 0) * 0.5f;
         text2->Print(DAT_0056b0ac, tx, ty, FUN_00405380(0x74), 0, 1.0f, 1.0f);
         text->scaleX = DAT_0056aea8 * 0.75f;
         text->scaleY = DAT_0056aeac * 0.75f;
-        text->color = DAT_00508c04;
         float hy = DAT_0056aeac * 192.0f;
         text->Print(DAT_0056b0ac, DAT_0056aea8 * 804.0f, hy, FUN_00405380(0x73), 0, 1.0f, 1.0f);
         text->Print(DAT_0056b0ac, DAT_0056aea8 * 604.0f, hy, FUN_00405380(0x76), 0, 1.0f, 1.0f);

@@ -449,8 +449,8 @@ void ReplayMenu::Slot3(int skipPresent)
         for (int i = 0; i < 10; i++) {
             Color col;
             int selected = (i == m_selected);
+            text->SetColorObj(Color(col.value));
             col.value = selected ? DAT_00508c0c : DAT_00508c04;
-            text->color = col.value;
             if (i < 2) {
                 text->Print(DAT_0056b0ac, labels[i].x, labels[i].y, labels[i].text.c_str(), 0, 1.0f, 1.0f);
             } else {
