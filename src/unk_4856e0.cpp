@@ -687,22 +687,20 @@ int RaceMode::GetStageValue()
     return DAT_004ff130[unk28 * 10 + unk2c];
 }
 
-// NONMATCHING: RALLYTROPHY 0x48e4c0
+// FUNCTION: RALLYTROPHY 0x48e4c0
 // Draws the 32x32 quad (uv inset 0.01) of the sprite at +0x250.
-// 2026-11-10: size exact (364), 44 bytes differ. Point view of the argument (as 0x48e840) plus a default-constructed Color assigned afterwards fixed the y-first load and the edi colour.
-// Remaining: the original stores position[0].y last (after the uv stores) and loads DAT_0056b0ac/m_cursor before them. Moving the point copy or the y store later, a tex local, copying from position[1]: all worse (10-17 insns).
-// Earlier passes (2026-10-30/31, ~40 scalar variants, permute.py) are superseded by this form.
+// Matched 2026-11-12: SetQuad first, then the point-view position block, colour last (as 0x48eb20).
 void RaceMode::FUN_0048e4c0(HudPoint mouse)
 {
-    Vec2 uv[4]; Vec2 position[4];
+    Vec2 uv[4]; Vec2 position[4]; Color color;
     Vec2* p = (Vec2*)&mouse;
+    SetQuad(uv, 0.01f, 0.01f, 0.99f, 0.99f);
     position[0] = *p;
     position[1].y = p->y;
     position[2].x = position[1].x = p->x + DAT_0056aea8 * 32.0f;
-    position[3].x = p->x;
     position[3].y = position[2].y = p->y + DAT_0056aeac * 32.0f;
-    SetQuad(uv, 0.01f, 0.01f, 0.99f, 0.99f);
-    Color color; color.value = 0xffffffff;
+    position[3].x = p->x;
+    color.value = 0xffffffff;
     ((RaceDeviceSlots*)DAT_0056b0ac)->SetTexture(m_cursor);
     ((RaceDeviceSlots*)DAT_0056b0ac)->DrawQuad(position, uv, color, 1.0f, 1.0f);
 }
@@ -750,23 +748,19 @@ void RaceMode::FUN_0048e9b0(float x, float y, float w, float h, Color color, int
     ((RaceDeviceSlots*)DAT_0056b0ac)->DrawQuad(position, uv, color, 1.0f, 1.0f);
 }
 
-// NONMATCHING: RALLYTROPHY 0x48eb20
+// FUNCTION: RALLYTROPHY 0x48eb20
+// Matched 2026-11-12: SetQuad first, then the point-view position block (struct copy of x, y), colour last.
 // Draws the bar: full strip, then the part scaled by n.
-// 2026-11-10: size exact (462), 44 bytes differ. Point view of x, y (as 0x48e840) with Color declared first and assigned after SetQuad.
-// Remaining: the original stores position[0].x and position[3].x after the uv stores; ours before. Writing those two stores after SetQuad (chained, separate, or a late struct copy) regrows the function to 464 (15-17 insns).
-// Earlier passes (2026-10-30/31, ~40 scalar variants, permute.py) are superseded by this form.
 void RaceMode::FUN_0048eb20(float x, float y, float w, float h, int n)
 {
-    Vec2 uv[4];
-    Vec2 position[4];
+    Vec2 uv[4]; Vec2 position[4]; Color color;
     Vec2* p = (Vec2*)&x;
-    Color color;
+    SetQuad(uv, 0.0f, 0.0f, 1.0f, 0.25f);
     position[0] = *p;
     position[1].y = p->y;
     position[2].x = position[1].x = p->x + w;
-    position[3].x = p->x;
     position[3].y = position[2].y = p->y + h;
-    SetQuad(uv, 0.0f, 0.0f, 1.0f, 0.25f);
+    position[3].x = p->x;
     color.value = 0xffffffff;
     ((RaceDeviceSlots*)DAT_0056b0ac)->SetTexture(DAT_0056b0c8->FUN_00432a00());
     ((RaceDeviceSlots*)DAT_0056b0ac)->DrawQuad(position, uv, color, 1.0f, 1.0f);
@@ -4268,6 +4262,7 @@ int RaceMode::FUN_0048b080(int award)
 // through the inline SetScale; the original's Printf block shows the separate stores. 410 bytes still differ (was
 // 320 at 1764): the device pointer for Printf is loaded early here. Colour-setter forms change nothing. A default-
 // constructed Color assigned 0x80000000 puts its store after the array-ctor pushes as in the original (410 -> 390).
+// 2026-11-12: tried SetScale for the 1.5625 pair, SetColorObj, colour store after the if, rank in a local: 390 -> 389 at best, no gain.
 int RaceMode::FUN_0048b620(int reset)
 {
     TextRenderer* text = DAT_0056b0c8->text;
