@@ -304,11 +304,10 @@ int MenuScreen8DC::Frame()
                 int selected = (i == m_selected);
                 LoopSclQ sc;
                 LoopCol0 col;
-                col.v = selected ? DAT_00508c0c : DAT_00508c04;
+                if (selected) { col.v = DAT_00508c0c; sc.x = 1.0f; sc.y = 1.0f; }
+                else { col.v = DAT_00508c04; sc.x = 1.0f; sc.y = 1.0f; }
                 text->color = col.v;
-                *(volatile float*)&sc.x = 1.0f; *(volatile float*)&sc.y = 1.0f;
-const char* s = six[i].text.c_str();
- text->Print(DAT_0056b0ac, six[i].x, six[i].y, s, 0, sc.x, sc.y);
+                text->Print(DAT_0056b0ac, six[i].x, six[i].y, six[i].text.c_str(), 0, sc.x, sc.y);
                 float x = 520.0f * DAT_0056aea8;   // 0x4e1500
                 float y = six[i].y;
                 switch (i) {

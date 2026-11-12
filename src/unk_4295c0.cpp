@@ -565,11 +565,10 @@ int MenuScreen2A8::Frame()
                 int selected = (i == m_selected);
                 LoopSclQ sc;
                 LoopCol0 col;
-                col.v = selected ? DAT_00508c0c : DAT_00508c04;
+                if (selected) { col.v = DAT_00508c0c; sc.x = 1.0f; sc.y = 1.0f; }
+                else { col.v = DAT_00508c04; sc.x = 1.0f; sc.y = 1.0f; }
                 text->color = col.v;
-                const char* s = items[i].text.c_str();
-                *(volatile float*)&sc.y = 1.0f; *(volatile float*)&sc.x = 1.0f;
-                text->Print(DAT_0056b0ac, items[i].x, items[i].y, s, 0, sc.x, sc.y);
+                text->Print(DAT_0056b0ac, items[i].x, items[i].y, items[i].text.c_str(), 0, sc.x, sc.y);
                 HudPoint pos;
                 pos.x = 520.0f * DAT_0056aea8;
                 pos.y = items[i].y;
