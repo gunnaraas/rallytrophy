@@ -316,3 +316,20 @@ Measured on the effect constructors (`ParallelShadow` 0x4703c0, `SnowFall` 0x474
 - `memset(p, 0, 12)` emits a local `xor reg,reg` + three stores and keeps other literal zeros from being pooled
   into a callee-saved zero register.
 
+## Hand-written STL instances: use the real template (2026-11-11)
+
+Some NONMATCHING functions are out-of-line instances of VC6 library templates that the source re-implemented by
+hand (`StMsg::Format` = `std::string::replace(iterator, iterator, const char*, const char*)`, `S10Vec::Insert` =
+`std::vector<T>::insert(iterator, size_type, const T&)`). Instantiating the real template gives the original bytes.
+
+- Force the out-of-line instance by taking the member's address through a typed pointer-to-member
+  (`typedef void (V::*Ins)(T*, unsigned, const T&); Ins g = &V::insert;`); a direct call is inlined. Mark it with
+  `// FUNCTION` + `// SYMBOL: <mangled name>` + a `typedef void Inst_xxx();` like the other instances.
+- The element type decides the bytes. Read it off the original's `_Construct` and `operator=` helpers:
+  which fields are copied one by one and which as a block; an out-of-line destructor gives the per-element call to
+  the empty function. A float field is re-read inside a fill loop where an int field is hoisted out of it.
+- How often VC6 inlines `operator=` inside `insert` depends on the number of copy statements (9 single copies: two
+  out-of-line calls of three; 6-7: one; two sub-struct copies: none).
+- Real `std::string` in `SaveReplay` compiles to the same bytes as the `H6Str` emulation, so those emulations are
+  faithful; the cloned-epilogue difference there is not caused by them. Thirty flag sets did not remove it either.
+
