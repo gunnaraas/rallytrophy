@@ -367,3 +367,10 @@ Five menu `Frame` functions (0x4267a0, 0x427c10, 0x424960, 0x42a330, 0x43cc50) w
 `text->SetColorObj(Color(DAT_00508bfc))` (TextRenderer, `void SetColorObj(const Color& c) { color = c.value; }`).
 A plain `text->color = DAT` schedules the load correctly but hands ebp to -1 instead of 0 later in the function;
 a volatile read keeps ebp but pins the load after `fadd`. Try this form in any remaining screen with a title block.
+
+## Hand-written member stores vs inline member functions (2026-11-12)
+
+When a run of member stores next to a call schedules differently from the original no matter how the statements are
+ordered, the original probably called small inline members. 0x4b7c80: `solids.Clear(); normals.Clear();
+specials.Clear();` with `void Clear() { m_end = m_data; m_count = 0; }` matched after ~700 orders of the six
+hand-written stores had not. Same family: `SetColorObj(Color(x))` for the menu title colour.
