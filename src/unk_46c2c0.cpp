@@ -187,6 +187,7 @@ static float Pacejka(float x, float B, float C, float D, float E);
     __asm fstp dword ptr [eax+8]
 
 // NONMATCHING: RALLYTROPHY 0x46c2c0
+// 2026-11-12: the early ecx reload is the epilogue's fs:0 restore load; the original schedules it before the x/z stores and the y=1 store after pop edi. Whole-vector forms (inline Set helper, Vec3(0,1,0) temporary or named copy, static const, x/y/z orders) are 2 insns or worse (temporaries add a 16-byte stack copy).
 // Same size (317). Making only normal.y volatile reduces the mismatch from 66 to 27 bytes, but the target reloads ecx
 // before the three stores and pops edi between z and y; this build reloads ecx and pops edi afterward. Volatile x or z
 // individually, with y volatile, leaves the 27-byte diff unchanged. Plain objcmp.
