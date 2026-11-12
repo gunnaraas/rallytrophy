@@ -15,12 +15,12 @@ _Updated 2026-11-12 by `tools/progress.py` (game code `0x401000`–`0x4bcfc6`)._
 
 | | Functions | Code bytes |
 |---|---|---|
-| Byte-exact | 1912 / 2084 (91.75%) | 417,220 / 742,276 (56.21%) |
-| Written, not yet exact | 172 | 325,056 |
+| Byte-exact | 1915 / 2084 (91.89%) | 420,307 / 742,276 (56.62%) |
+| Written, not yet exact | 169 | 321,969 |
 | Written in total | 2084 / 2084 (100.00%) | 742,276 / 742,276 (100.00%) |
 
 ```
-exact   █████████████████░░░░░░░░░░░░░ 56.21% of code bytes
+exact   █████████████████░░░░░░░░░░░░░ 56.62% of code bytes
 written ██████████████████████████████ 100.00% of code bytes
 ```
 
@@ -51,7 +51,7 @@ Progress by module (ranges in `analysis/modules.csv`):
 | Player-name screen | `0x43d770`–`0x43f9e0` | 15 / 16 / 16 | 56.3% | 100.0% | `████████████` |
 | Race options screen | `0x43f9e0`–`0x441370` | 10 / 10 / 10 | 100.0% | 100.0% | `████████████` |
 | Track-selection screen | `0x441370`–`0x445e80` | 23 / 25 / 25 | 47.6% | 100.0% | `████████████` |
-| Service-area screen | `0x445e80`–`0x44b930` | 17 / 22 / 22 | 48.3% | 100.0% | `████████████` |
+| Service-area screen | `0x445e80`–`0x44b930` | 18 / 22 / 22 | 58.1% | 100.0% | `████████████` |
 | Replay menu | `0x44b930`–`0x44d260` | 10 / 12 / 12 | 49.8% | 100.0% | `████████████` |
 | Save-game files | `0x44d260`–`0x44ea60` | 6 / 9 / 9 | 34.2% | 100.0% | `████████████` |
 | Slot menu | `0x44ea60`–`0x450ee0` | 11 / 13 / 13 | 55.8% | 100.0% | `████████████` |
@@ -101,7 +101,7 @@ Progress by module (ranges in `analysis/modules.csv`):
 | Single-player race mode | `0x4807d0`–`0x481390` | 12 / 13 / 13 | 63.2% | 100.0% | `████████████` |
 | Network race mode | `0x481390`–`0x4843e0` | 49 / 53 / 53 | 63.6% | 100.0% | `████████████` |
 | Networking / DirectPlay | `0x4843e0`–`0x4856e0` | 19 / 19 / 19 | 100.0% | 100.0% | `████████████` |
-| Race-mode base class | `0x4856e0`–`0x48f130` | 114 / 124 / 124 | 59.7% | 100.0% | `████████████` |
+| Race-mode base class | `0x4856e0`–`0x48f130` | 116 / 124 / 124 | 61.8% | 100.0% | `████████████` |
 | Replay race mode | `0x48f130`–`0x48f670` | 11 / 11 / 11 | 100.0% | 100.0% | `████████████` |
 | Ghost race mode | `0x48f670`–`0x48fe20` | 18 / 18 / 18 | 100.0% | 100.0% | `████████████` |
 | Record table (highscores) | `0x48fe20`–`0x490950` | 7 / 11 / 11 | 29.1% | 100.0% | `████████████` |

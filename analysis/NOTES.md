@@ -386,3 +386,49 @@ original built as a temporary is a named local here. `SetPosition(&Pt(x * sx, y 
 constructor stores straight into the temporary, sets the EH state after both stores, and lets the temporary share
 the slots of floats that die in its arguments. A named `HudPoint position; position.x = ...` does not share.
 Do not add such a constructor to the shared HudPoint class: it changes SnowFall::SnowFall; use a local subclass.
+
+## Wave 2026-11-12 (inline-member lever, six Sonnet agents)
+
+- Constant folded into a computed offset (`[eax+ebp+0x39a8]` vs ours `lea` with the constant): the original indexed a
+  real struct array, `((Rally*)(base + 0x39a4))[r].a[s]`, not `off = r*1512 + s*16 + 0x39a4` (0x448f80 matched).
+- Quad helpers: `SetQuad(uv, ...)` called before the position stores, colour assigned last (0x48e4c0, 0x48eb20).
+- Reusing an existing float local as the FPU temporary (`x = ...; pos[0].x = pos[3].x = x;`) fixed an `fld st(1)` schedule (0x449860 229 -> 63).
+- The inline-setter lever did nothing for register-swap-only near misses (0x44c580, 0x43a6e0, 0x450be0, 0x436250).
+- slotmap.py survey over all 172 NONMATCHING functions (2026-11-12): in the 17 where the frames anchor at >= 90%,
+  no local sits in a different slot. Slot flags appear only where anchoring is weak, i.e. where the code itself
+  differs (e.g. 0x49d970 is 91 bytes short). Slot order is not the main remaining cause; fix structure
+  (calls.py, size) first and use slotmap.py once a function is the right size.
+- TrackSelectMenu::Run 0x443790: the original copies name/description of the by-value RallyInfo inline (_Tidy +
+  assign); ours calls the copy ctor out of line. An inline/__forceinline subclass copy ctor does not inline.
+- Sizegap wave (2026-11-12, six Sonnet agents, 25 functions with 1-4 hunks + six RaceMode menus): 0 matches, gains on
+  0x443790 (387 -> 95, two-arm colour/scale before `std::string buf`), 0x422fc0 (62 -> 3, insert grow arm expanded with
+  end stored before last), 0x4721b0 (34 -> 30, light-direction y/z read into locals first), 0x479f60 (9 -> 3, volatile
+  j2 write like j1). Recurring blocker in 4 functions (0x443790, 0x44d6a0, 0x403ca0, 0x48bd10): where VC6 stops inlining
+  std::string helpers in a function (inline vs call to _Tidy / copy ctor / resize). `#pragma inline_depth` 1-4 and
+  `auto_inline(off)` change nothing; `inline_depth(0)` disables all inlining. Needs its own investigation.
+- 0x46c2c0 Wheel::Wheel: the original reloads `this` into ecx and discards it between Reset() and the normal stores,
+  hinting at an inline call with a discarded result there.
+- slotmap.py gives 0 aligned hits on 0x480ce0 (bug to fix); sizegap's "original size" is wrong for some variants of 0x489300.
+
+## VC6 inline budget, measured (2026-11-12)
+
+Standalone probes (`build/inl`, project flags /O2 /Oa /G6 /GX) with K `{ std::string s(p); use(s.c_str()); }` scopes
+followed by M calls to an inline function:
+- Every function has a fixed budget of inline EXPANSIONS (call sites), not bytes: a one-line inline and one with a
+  loop cost the same. Pragmas do not move it (inline_depth 1-4, auto_inline(off): no change).
+- The budget is spent from the LAST statement backwards. With K=4, M=0 the last two string scopes expand their
+  destructor inline (delete) and all four expand the ctor's assign (_Grow); each extra trailing inline call
+  (M=1..8) turns one more step, walking backwards, into a call: dtor -> _Tidy(true) call, ctor -> assign call.
+  K=2 inlines everything; from K=4 the earliest sites are calls.
+- Consequence for a mismatch at site S: if the original CALLS a helper at S that we expand, our code after S spends
+  fewer expansions than the original's (look for something the original inlined later that we call or hand-model);
+  if the original EXPANDS at S and we call, we spend more after S. Hand-modelled twins (FB2_Path, TSE_Str16,
+  TSE_Str::Grow) bypass the budget entirely: their inline/call choice is whatever we wrote, so for them fix the
+  twin at that site instead of searching for budget.
+- 0x44d6a0: every call after the fail exit is identical (calls.py); the fail-exit difference is FB2_Path's hand-
+  inlined destructor, i.e. a twin modelling choice, not budget.
+- Limit found the same day: in 0x44d6a0, an FB2_Path destructor written as `~FB2_Path() { Free(true); }` (inline
+  member, so the budget could choose) stays inline at BOTH exits even with 16 extra value-returning inline calls
+  added before the final return (empty inline calls are not counted at all). So the standalone rule does not by
+  itself explain why the original calls _Tidy(true) at the fail exit; something else (exit kind, EH state, or the
+  order the compiler visits exits) decides there. Unresolved.

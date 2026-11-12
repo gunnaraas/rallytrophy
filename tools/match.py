@@ -47,7 +47,10 @@ def marked_functions(path):
         if not m:
             continue
         symbol = None
-        for follow in lines[i + 1:i + 16]:  # skip the comment block after the marker
+        j = i + 1
+        while j < len(lines) and lines[j].lstrip().startswith("//"):  # comment block of any length
+            j += 1
+        for follow in lines[i + 1:j + 15]:
             override = re.match(r"\s*//\s*SYMBOL:\s*(\S+)\s*$", follow)
             if override:
                 symbol = override.group(1)

@@ -142,10 +142,10 @@ struct SMF_Str {
     ~SMF_Str()
     {
         if (ptr) {
-            BYTE ref = ((BYTE*)ptr)[-1];
-            if (ref == 0 || ref == 0xff) {
+            if (((BYTE*)ptr)[-1] == 0 || ((BYTE*)ptr)[-1] == 0xff) {
                 delete[] (ptr - 1);
             } else {
+                BYTE ref = ((BYTE*)ptr)[-1];
                 ((BYTE*)ptr)[-1] = ref - 1;
             }
         }
@@ -347,6 +347,7 @@ void ServiceMenu::UnloadTextures()
 // Tried 2026-11-12: an inline FloatToInt-style helper for the two roundings moves d/f/text and whole/tenth (177 bytes,
 // worse); text declared first with a late int/struct/memcpy init: unchanged. Probes: extra stores to text do not move
 // it, one reference fewer on d moves d above f. So the original has fewer counted references on d and f than ours.
+// 2026-11-12: 15 more variants (separate f/g, double fr via qword asm, no d, text first/last with explicit stores, stage1 local, loop-counter forms): unchanged 40 insns.
 // original: FUN_004470a0 (thiscall, ret 0xc; info.ini loader: per-stage strings)
 void ServiceMenu::Init(int rallyNo, int stageNo, int count)
 {
@@ -921,15 +922,10 @@ int ServiceMenu::Frame()
     return r;
 }
 
-// NONMATCHING: RALLYTROPHY 0x448f80
-// Same instruction count (586) and nearly the same code; differs only in register allocation and frame slot order:
-// VC6 hoists the constant 0 into ebp from the function entry (merged with the loop index i = 0), where the original
-// materialises it only at the loop; the original also spills the sprite pointer and keeps -1 in ebx. Unsolved after
-// ~20 variants (loop forms, bool selected, Color ctor). original: FUN_00448f80 (page 0 of ServiceMenu::Slot3)
-// Tried 2026-10-30 night: single-expression `x = K - GetWidth(..)` (fixes the x temp slot and sel slot) and folding 0x39a4 into `off`
-// (moves the DAT_0056b0c8 load after the offset math) took 80->20 insns; still differs: original keeps the constant out of the lea
-// ([eax+ebp+0x39a8], 1 byte shorter) and the EH-dtor tail picks eax/cl instead of ecx/al. Declaration moves, helper structs, operand swaps did nothing.
-// Tried 2026-10-31 re-pass: off without 0x39a4 + constant in each SMF_STR use, padded-struct field access, BYTE* row/gb base pointers, s0[24]/s0[12] string walk, operand-swapped macro, volatile off, split rally base: all 45-90 insns (DAT load hoisted above the offset math, regs swap); only the 20-insn form (constant folded into off) keeps the original order, so the lea-constant and ecx/al tail diffs stay.
+struct SMF_Rally { std::string a[12]; std::string b[12]; std::string c[12]; BYTE gap[0x24f-0x240]; BYTE flag[1512-0x24f]; };
+// FUNCTION: RALLYTROPHY 0x448f80
+// Matched 2026-11-12: string table reached as ((Rally*)(game + 0x39a4))[rally1].a[stage1] (keeps 0x39a4 out of the lea); SMF_Str dtor re-reads ptr[-1] per use.
+// original: FUN_00448f80 (page 0 of ServiceMenu::Slot3)
 void ServiceMenu::DrawInfo()
 {
     SMF_Str unused;
@@ -996,15 +992,15 @@ void ServiceMenu::DrawInfo()
         int stage1 = stage + sel + 1;
         text->Print(DAT_0056b0ac, x, y, FUN_00405380(0xff), 0, 1.0f, 1.0f);
         y = DAT_0056aeac * 15.0f + y;
-        int off = rally1 * 1512 + stage1 * 16 + 0x39a4;
+        
         x = DAT_0056aea8 * 32.0f + x;
-        text->Print(DAT_0056b0ac, x, y, SMF_STR(off).c_str(), 0, 1.0f, 1.0f);
+        text->Print(DAT_0056b0ac, x, y, ((SMF_Rally*)((BYTE*)DAT_0056b0c8 + 0x39a4))[rally1].a[stage1].c_str(), 0, 1.0f, 1.0f);
         y = DAT_0056aeac * 15.0f + y;
-        text->Print(DAT_0056b0ac, x, y, SMF_STR(off + 0x180).c_str(), 0, 1.0f, 1.0f);
+        text->Print(DAT_0056b0ac, x, y, ((SMF_Rally*)((BYTE*)DAT_0056b0c8 + 0x39a4))[rally1].c[stage1].c_str(), 0, 1.0f, 1.0f);
         y = DAT_0056aeac * 15.0f + y;
         text->Print(DAT_0056b0ac, x, y, FUN_00405380(0x138 + *((BYTE*)DAT_0056b0c8 + rally1 * 1512 + stage1 + 0x3bf3)),
                     0, 1.0f, 1.0f);
-        std::string& extra = SMF_STR(off + 0xc0);
+        std::string& extra = ((SMF_Rally*)((BYTE*)DAT_0056b0c8 + 0x39a4))[rally1].b[stage1];
         if (extra.size() > 0) {
             y = DAT_0056aeac * 30.0f + y;
             x = x - DAT_0056aea8 * 32.0f;
@@ -1033,6 +1029,7 @@ void ServiceMenu::DrawInfo()
 // in ebp (or ebp,-1 / mov [slot],ebp / push ebp) and has its EH Color slot above pos[]/uv[] (frame 0x90, mine 0x78).
 // Tried 2026-10-31: buf[16]->buf[40] matches the original frame size 0x90 (279->229); 720 decl-order permutations of uv/pos/color/buf/i/unused, x/y swap, separate j counter, color.value=-1, volatile z did not beat it; still differs: uv/pos/color/i slot order (original: i low, uv/pos above, Color above them) and -1 held in ebp.
 // Tried 2026-11-01 re-pass: ~20 variants (tune loop as do-while over int* tp with volatile k=5 like DrawRepair, k/row/i merged into one local, y/x and k/row/dummy decl orders, buf[32]/[40]); the code already equals the original apart from stack offsets (loops, -1 in ebp, calls identical) and decl order never moves scalar slots; original frame has x/y at 0x18/0x14 with a hole at 0x10 and row/k shared at 0x1c below uv/pos, ours puts x/y at 0x10/0x14 and the counter above pos (229 insns differ, all slot offsets); no behaviour bug found (per-entry tune[i] vs tuneOrig[i] already correct).
+// 2026-11-12: the two selector markers as `x = (...) * DAT; y = DAT * 551; stores` (x kept on the FPU stack like the original) and `int row = unk28;` hoisted above the second marker: 229 -> 63 insns differ (3000 vs 3004 bytes). Left: frame 0x98 vs 0x90 (original spills (float)tune[row] into a slot at 0x6c, ours adds slots) and the uv store order in the changed-tune quad.
 // original: FUN_00449860 (page 1, the Tune tab)
 void ServiceMenu::DrawTune()
 {
@@ -1109,9 +1106,11 @@ void ServiceMenu::DrawTune()
         uv[2].y = uv[3].y = 1.0f;
         ((RaceDeviceSlots*)DAT_0056b0ac)->DrawQuad((Vec2*)pos, (Vec2*)uv, color, 1.0f, 1.0f);
         // selector marker for the original tuning
-        pos[0].x = pos[3].x = ((float)tuneOrig[unk28] * 80.0f + 601.0f) * DAT_0056aea8;
-        pos[0].y = pos[1].y = y = DAT_0056aeac * 551.0f;
-        pos[1].x = pos[2].x = DAT_0056aea8 * 128.0f + pos[0].x;
+        x = ((float)tuneOrig[unk28] * 80.0f + 601.0f) * DAT_0056aea8;
+        y = DAT_0056aeac * 551.0f;
+        pos[0].x = pos[3].x = x;
+        pos[0].y = pos[1].y = y;
+        pos[1].x = pos[2].x = DAT_0056aea8 * 128.0f + x;
         pos[2].y = pos[3].y = DAT_0056aeac * 35.0f + y;
         uv[0].x = uv[3].x = 0.0f;
         uv[0].y = uv[1].y = 0.0f;
@@ -1130,9 +1129,12 @@ void ServiceMenu::DrawTune()
             uv[1].x = uv[2].x = 1.0f;
             uv[2].y = uv[3].y = 0.5f;
         }
-        pos[0].x = pos[3].x = ((float)tune[unk28] * 80.0f + 601.0f) * DAT_0056aea8;
-        pos[0].y = pos[1].y = y = DAT_0056aeac * 551.0f;
-        pos[1].x = pos[2].x = DAT_0056aea8 * 128.0f + pos[0].x;
+        int row = unk28;
+        x = ((float)tune[row] * 80.0f + 601.0f) * DAT_0056aea8;
+        y = DAT_0056aeac * 551.0f;
+        pos[0].x = pos[3].x = x;
+        pos[0].y = pos[1].y = y;
+        pos[1].x = pos[2].x = DAT_0056aea8 * 128.0f + x;
         pos[2].y = pos[3].y = DAT_0056aeac * 35.0f + y;
         ((RaceDeviceSlots*)DAT_0056b0ac)->DrawQuad((Vec2*)pos, (Vec2*)uv, color, 1.0f, 1.0f);
         TextRenderer* bigText = *(TextRenderer**)((BYTE*)m_game + 0x1390bc);
@@ -1162,7 +1164,6 @@ void ServiceMenu::DrawTune()
         lil->Print(DAT_0056b0ac, x, y, FUN_00405380(0x73), 0, 1.0f, 1.0f);
         lil->Print(DAT_0056b0ac, DAT_0056aea8 * 604.0f, y, FUN_00405380(0x77), 0, 1.0f, 1.0f);
         lil->color = DAT_00508c04;
-        int row = unk28;
         int cost = tuneTime[row];
         lil->SetScale(DAT_0056aea8 * 1.5f, DAT_0056aeac * 1.5f);
         itoa(cost, buf, 10);
@@ -1217,6 +1218,7 @@ void ServiceMenu::DrawTune()
 // differ (the original also has a separate memory loop counter for the damage loop).
 // Tried 2026-10-30 night: 277->176 via damage loop on a separate int j with float* dp walking damage[] (repair read as dp[-14], same data), x/y decl swap, bool selected; still differs: original keeps -1 in ebx (or ebx,-1 / push ebx) where we push imm, and first-loop index/pointer regs (ebp/ebx) are swapped; z=-1 volatile store, white locals, Color/int variants did not move it.
 // Tried 2026-11-01 re-pass: 176->168 insns (1105->925 bytes): damage loop as a do-while over `float* dp` with a volatile down-counter k=7 (the original has dp walking in ebp, the count in a [esp+0x24] slot, no guard), y(248) assigned before x(601) so the slot stores follow the original; ~25 variants (decl order of i/dp/k, loop forms, -1 via int/white temp, ptr walk of SMH_PartText, i==unk2c, unsigned i, if/else colour) did not change the remaining diff: first loop has i/ptr in ebx/ebp swapped vs the original's ebp/ebx and -1 lands in ebp not ebx after the loop (so DrawQuad pushes ebp), loop x/y slots 0x14/0x18 swapped; the original has no EH states in the loop so empty-dtor colour structs do not apply.
+// 2026-11-12: 30 more variants (loop tp pointer, if/else and SetColorObj colour, direct text->color, x/y decl swap, k/dp declaration placement): unchanged 165 insns; i/tp and -1/dp register pairs stay swapped.
 // original: FUN_0044a420 (page 2 of Draw)
 void ServiceMenu::DrawRepair()
 {

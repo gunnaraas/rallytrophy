@@ -416,6 +416,7 @@ static const float C3_mixB = 0.00253906241f, C3_mixA = 0.00134765625f; // 0x4e22
 // (fld yv; fadd st,st(1); fstp; fstp st(0)); plain float locals let VC6 store x before the second rand(). Passing both
 // rand terms as by-value arguments of an inline helper forces the spill and fixes the function tail (5 insns, 1372
 // bytes) but evaluates the y term first; 40 helper signatures/bodies/returns did not give x-first with the spill.
+// 2026-11-12: volatile write of j2 as well as j1 fixes the yv/j1 slots and the x-add order (9 -> 3 insns differ, 1369 -> 1378 bytes vs 1376); j2 should stay on the x87 stack (fadd st,st(1); fstp st(0)) but is spilled to [ebp+0xc]; non-volatile j2 variants (15) all store x before the second rand().
 // Spawn core 2 (tyre-slip dust): emission amount from slip, speed and lateral slip, one particle.
 float CarEmitterB::SpawnCore2(float a, float b)
 {
@@ -500,7 +501,8 @@ float CarEmitterB::SpawnCore2(float a, float b)
     p->velocity.y = yv;
     float j1;
     *(volatile float*)&j1 = (float)((rand() & 0x3fff) - 0x1fff) * C_jit;
-    float j2 = (float)((rand() & 0x3fff) - 0x1fff) * 6.103515625e-5f;
+    float j2;
+    *(volatile float*)&j2 = (float)((rand() & 0x3fff) - 0x1fff) * 6.103515625e-5f;
     p->velocity.x = j1 + p->velocity.x;
     p->velocity.y = yv + j2;
     p->velocity.z = (float)((rand() & 0x3fff) - 0x1fff) * C_jit + p->velocity.z;
