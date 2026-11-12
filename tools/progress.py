@@ -12,17 +12,14 @@ Per-module numbers come from analysis/modules.csv (name,start,end,description;
 hex addresses, end exclusive; edit by hand to add modules). Functions in the game range outside those module ranges are reported as "Outside mapped modules". A memory-map and
 per-module chart and function map are written under analysis/.
 
-usage: progress.py           print the summary and update analysis/PROGRESS-REPORT.md + SVGs
+usage: progress.py           print the summary and update analysis/PROGRESS-REPORT.md + progress.svg
        progress.py --print   print only (writes no files)
 """
 import csv
-import bisect
 import datetime
 import glob
-import math
 import os
 import re
-import subprocess
 import sys
 from xml.sax.saxutils import escape
 
@@ -30,7 +27,6 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 GAME_START, GAME_END = 0x401000, 0x4bcfc7
 MARKER = re.compile(r"\b(FUNCTION|NONMATCHING):\s*RALLYTROPHY\s+0x([0-9a-fA-F]+)")
 SVG_NAME = "progress.svg"
-FUNCTION_MAP_NAME = "function-map.svg"
 ANALYSIS_DIR = os.path.join(ROOT, "analysis")
 BEGIN, END = "<!-- progress:begin -->", "<!-- progress:end -->"
 
@@ -43,58 +39,6 @@ def game_functions():
             if GAME_START <= address < GAME_END:
                 sizes[address] = int(row["size"])
     return sizes
-
-
-def function_labels():
-    """Return display names for inventory entries, including extra functions."""
-    labels = {}
-    analysis = os.path.join(ROOT, "analysis")
-    for row in csv.DictReader(open(os.path.join(analysis, "functions.csv"))):
-        labels[int(row["entry"], 16)] = row["name"]
-    for row in csv.DictReader(open(os.path.join(analysis, "functions_extra.csv"))):
-        labels[int(row["entry"], 16)] = row["note"]
-    return labels
-
-
-def branch_counts(sizes):
-    """Count conditional branches and indirect dispatches in each PE function."""
-    exe = os.path.join(ROOT, "orig", "RallyTrophy.exe")
-    if not os.path.isfile(exe):
-        return {}, False
-    try:
-        result = subprocess.run(
-            ["objdump", "-d", "-j", ".text", exe],
-            check=True, capture_output=True, text=True,
-        )
-    except (OSError, subprocess.CalledProcessError):
-        return {}, False
-
-    counts = {}
-    starts = sorted(sizes)
-    for line in result.stdout.splitlines():
-        if ":" not in line or "\t" not in line:
-            continue
-        address_text, _ = line.split(":", 1)
-        try:
-            address = int(address_text.strip(), 16)
-        except ValueError:
-            continue
-        fields = line.split("\t")
-        if len(fields) < 3:
-            continue
-        instruction = fields[-1].strip().split()
-        if not instruction:
-            continue
-        mnemonic = instruction[0].lower()
-        conditional = (mnemonic.startswith("j") and mnemonic not in ("jmp", "jmpq")) or mnemonic.startswith("loop")
-        indirect_dispatch = mnemonic in ("jmp", "jmpq") and len(instruction) > 1 and instruction[1].startswith("*")
-        if conditional or indirect_dispatch:
-            index = bisect.bisect_right(starts, address) - 1
-            if index >= 0:
-                function = starts[index]
-                if address < function + sizes[function]:
-                    counts[function] = counts.get(function, 0) + 1
-    return counts, True
 
 
 def marked():
@@ -235,77 +179,6 @@ def svg(sizes, exact, near, rows, rest):
     return "\n".join(o) + "\n"
 
 
-def function_map_svg(sizes, exact, near, rows, labels, branches, have_disassembly):
-    """Render one tile per function; area combines byte size and branch complexity."""
-    W, H = 1600, 1120
-    LEFT, TOP = 20, 112
-    MAP_W, MAP_H = W - 2 * LEFT, H - TOP - 24
-    mods = [(n, s, e) for n, s, e, *_rest in rows]
-    funcs = []
-    for address, size in sorted(sizes.items()):
-        module = next((n for n, start, end in mods if start <= address < end), "Outside mapped modules")
-        branch_n = branches.get(address, 0)
-        complexity = branch_n + 1
-        weight = size * (1 + math.log2(complexity))
-        st = status(address, exact, near)
-        state = "byte-exact" if st == 2 else "written, not exact" if st == 1 else "not written"
-        label = labels.get(address, "function")
-        tip = (f"{address:#010x} · {label} · {module} · {size:,} code bytes · "
-               f"complexity {complexity} ({branch_n} branch points) · {state}")
-        funcs.append((address, weight, size, complexity, st, tip))
-
-    total_weight = sum(f[1] for f in funcs) or 1
-    exact_n = sum(f[4] == 2 for f in funcs)
-    near_n = sum(f[4] == 1 for f in funcs)
-    todo_n = len(funcs) - exact_n - near_n
-    target_rows = max(1, round(math.sqrt(len(funcs) * MAP_H / MAP_W)))
-    target_weight = total_weight / target_rows
-    groups, group, group_weight = [], [], 0.0
-    for index, func in enumerate(funcs):
-        remaining_groups = target_rows - len(groups)
-        remaining_items = len(funcs) - index
-        if group and len(groups) < target_rows - 1 and group_weight >= target_weight and remaining_items >= remaining_groups:
-            groups.append(group)
-            group, group_weight = [], 0.0
-        group.append(func)
-        group_weight += func[1]
-    if group:
-        groups.append(group)
-
-    o = [
-        f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}" '
-        'font-family="-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="12">',
-        '<title>Rally Trophy per-function decompilation map</title>',
-        f'<rect width="{W}" height="{H}" rx="8" fill="#0d1117"/>',
-        '<text x="20" y="30" font-size="18" font-weight="600" fill="#e6edf3">'
-        'Every game function, sized by code bytes and branch complexity</text>',
-        f'<text x="20" y="53" fill="#8b949e">{exact_n:,} byte-exact · {near_n:,} written but not byte-exact · {todo_n:,} unwritten. Tile area = bytes × (1 + log₂(1 + branch points)); hover for details.</text>',
-        '<g transform="translate(20,72)" fill="#e6edf3">',
-        f'<rect width="12" height="12" fill="{C_EXACT}"/><text x="18" y="11">byte-exact</text>',
-        f'<rect x="118" width="12" height="12" fill="{C_NEAR}"/><text x="136" y="11">written, not exact</text>',
-        f'<rect x="286" width="12" height="12" fill="{C_TODO}"/><text x="304" y="11">not written</text>',
-        '</g>',
-    ]
-    if not have_disassembly:
-        o.append('<text x="500" y="83" fill="#e3b341">Local executable or objdump unavailable; tile areas use code bytes only.</text>')
-    row_h = MAP_H / len(groups)
-    colors = {2: C_EXACT, 1: C_NEAR, 0: C_TODO}
-    y = TOP
-    for group in groups:
-        row_weight = sum(f[1] for f in group) or 1
-        x = LEFT
-        for address, weight, size, complexity, st, tip in group:
-            width = MAP_W * weight / row_weight
-            # Preserve narrow functions as visible slivers without changing later boundaries.
-            visible_w = max(0.35, width - 1.0)
-            o.append(f'<rect x="{x:.2f}" y="{y:.2f}" width="{visible_w:.2f}" height="{max(1, row_h - 1):.2f}" '
-                     f'fill="{colors[st]}" stroke="#0d1117" stroke-width="0.8"><title>{escape(tip)}</title></rect>')
-            x += width
-        y += row_h
-    o.append('</svg>')
-    return "\n".join(o) + "\n"
-
-
 def bar(fraction, width=30):
     filled = int(round(fraction * width))
     return "█" * filled + "░" * (width - filled)
@@ -323,7 +196,6 @@ def summary():
     written_n, written_b = exact_n + near_n, exact_b + near_b
     mods = modules()
     rows, rest = module_stats(sizes, exact, near, mods)
-    branches, have_disassembly = branch_counts(sizes)
     date = datetime.date.today().isoformat()
     lines = [
         f"_Updated {date} by `tools/progress.py` (game code `0x401000`–`0x4bcfc6`)._",
@@ -343,25 +215,20 @@ def summary():
         "",
         f"![Decompilation progress]({SVG_NAME})",
         "",
-        f"![Per-function size and complexity map]({FUNCTION_MAP_NAME})",
-        "",
         "Progress by module (ranges in `analysis/modules.csv`):",
         "",
         module_table(rows, rest),
     ]
-    return ("\n".join(lines), svg(sizes, exact, near, rows, rest),
-            function_map_svg(sizes, exact, near, rows, function_labels(), branches, have_disassembly))
+    return "\n".join(lines), svg(sizes, exact, near, rows, rest)
 
 
 def main(argv):
-    text, image, function_image = summary()
+    text, image = summary()
     print(text)
     if "--print" in argv:
         return 0
     with open(os.path.join(ANALYSIS_DIR, SVG_NAME), "w") as f:
         f.write(image)
-    with open(os.path.join(ANALYSIS_DIR, FUNCTION_MAP_NAME), "w") as f:
-        f.write(function_image)
     readme = os.path.join(ANALYSIS_DIR, "PROGRESS-REPORT.md")
     content = open(readme).read()
     if BEGIN not in content or END not in content:

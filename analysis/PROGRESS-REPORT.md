@@ -26,8 +26,6 @@ written ████████████████████████
 
 ![Decompilation progress](progress.svg)
 
-![Per-function size and complexity map](function-map.svg)
-
 Progress by module (ranges in `analysis/modules.csv`):
 
 | Module | Range | Exact / written / total | % exact | % written | |
