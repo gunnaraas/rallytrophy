@@ -41,7 +41,7 @@ import tempfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from asm_helpers import ROOT, pe_reader  # noqa: E402
 from match import marked_functions  # noqa: E402
-from objcmp import coff_function  # noqa: E402
+from objcmp import coff_function, disasm as objcmp_disasm  # noqa: E402
 
 X87 = re.compile(r"^f(add|sub|mul|div|ld|st|xch|chs|sqrt|com|ucom|abs)")
 ARITH = re.compile(r"^f(add|sub|mul|div)")
@@ -85,18 +85,10 @@ IMM = re.compile(r"0x[0-9a-f]+|\d+")
 
 def disasm(blob):
     """Return [(address, mnemonic, operand text)] for every instruction in a code blob."""
-    with tempfile.NamedTemporaryFile(suffix=".bin") as f:
-        f.write(blob)
-        f.flush()
-        out = subprocess.run(["objdump", "-D", "-b", "binary", "-mi386", "-Mintel", f.name],
-                             capture_output=True, text=True).stdout
     seq = []
-    for line in out.splitlines():
-        parts = line.split("\t")
-        if len(parts) < 3 or not parts[-1].strip():
-            continue
-        op, _, ops = parts[-1].strip().partition(" ")
-        seq.append((int(parts[0].strip().rstrip(":"), 16), op, ops.strip()))
+    for a, t in objcmp_disasm(blob):
+        op, _, ops = t.partition(" ")
+        seq.append((a, op, ops.strip()))
     return seq
 
 

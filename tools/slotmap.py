@@ -19,12 +19,12 @@ import os
 import re
 import subprocess
 import sys
-import tempfile
 from collections import Counter, defaultdict
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from match import CXXFLAGS, CFLAGS, TARGET_EXE, marked_functions  # noqa: E402
-from objcmp import PE, coff_function  # noqa: E402
+from objcmp import PE, coff_function, disasm  # noqa: E402
+from triage import original_size, sizes_table  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 IMAGE_BASE = 0x400000
@@ -43,20 +43,6 @@ def compile_listing(src):
     if cc.returncode:
         sys.exit(cc.stdout)
     return os.path.join(OUT, base + ".obj"), os.path.join(OUT, base + ".asm")
-
-
-def disasm(code, vma):
-    with tempfile.NamedTemporaryFile(suffix=".bin") as f:
-        f.write(code)
-        f.flush()
-        out = subprocess.run(["objdump", "-D", "-b", "binary", "-m", "i386", "-M", "intel", "--no-show-raw-insn",
-                              f"--adjust-vma=0x{vma:x}", f.name], check=True, capture_output=True, text=True).stdout
-    res = []
-    for line in out.splitlines():
-        m = re.match(r"\s+([0-9a-f]+):\s+(.*)", line)
-        if m and m.group(2).strip() and not m.group(2).startswith("(bad)"):
-            res.append((int(m.group(1), 16), m.group(2).strip()))
-    return res
 
 
 def listing(asm, symbol):
@@ -152,8 +138,7 @@ def main(argv):
                                                          os.path.join(OUT, base + ".asm"))
     built_code = coff_function(obj, symbol)[0].rstrip(b"\x90\xcc")
     pe = PE(TARGET_EXE)
-    size = next((int(l.split("|")[6]) for l in open(os.path.join(ROOT, "analysis", "nonmatching-triage.md"))
-                 if l.startswith(f"| 0x{address:x} ")), len(built_code))
+    size = original_size(obj, symbol, address, pe) if address in sizes_table() else len(built_code)
     orig = disasm(pe.b[pe.rva_to_off(address - IMAGE_BASE):][:size], address)
     built = disasm(built_code, 0)
     offs, names = listing(asm, symbol)

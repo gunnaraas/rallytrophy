@@ -9,7 +9,8 @@ usage: numdiff.py
 """
 import subprocess,re,collections
 rows=[]
-for l in open('analysis/nonmatching-triage.md'):
+import os
+for l in open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'analysis', 'nonmatching-triage.md')):
     c=[x.strip() for x in l.split('|')]
     if len(c)>9 and c[1].startswith('0x'): rows.append((c[1],c[2],c[3],int(c[7])))
 num=re.compile(r'0x[0-9a-f]+')

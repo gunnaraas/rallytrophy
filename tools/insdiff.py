@@ -13,7 +13,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from match import TARGET_EXE, marked_functions  # noqa: E402
 from objcmp import PE, relocations  # noqa: E402
-from triage import compare  # noqa: E402
+from triage import compare, original_size  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -26,10 +26,9 @@ def main(source, address, normalise=False):
     address = int(address, 16)
     pe = PE(TARGET_EXE)
     symbol = next(n for a, n, _ in marked_functions(source) if a == address)
-    size = next(int(l.split("|")[6]) for l in open(os.path.join(ROOT, "analysis", "nonmatching-triage.md"))
-                if l.startswith(f"| 0x{address:x} "))
+
     obj = os.path.join(ROOT, "build", "obj", os.path.splitext(os.path.basename(source))[0] + ".obj")
-    orig, built, *_ = compare(obj, symbol, pe, relocations(pe), address, size, None)
+    orig, built, *_ = compare(obj, symbol, pe, relocations(pe), address, original_size(obj, symbol, address, pe), None)
     if normalise:
         orig, built = norm(orig), norm(built)
     for line in difflib.unified_diff(orig, built, "original", "built", n=2, lineterm=""):
@@ -38,7 +37,9 @@ def main(source, address, normalise=False):
 
 if __name__ == "__main__":
     args = [a for a in sys.argv[1:] if a != "--norm"]
-    if len(args) == 1:  # address only: find the source from the triage table
-        args = [next(l.split("|")[2].strip() for l in open(os.path.join(ROOT, "analysis", "nonmatching-triage.md"))
-                     if l.startswith(f"| 0x{int(args[0], 16):x} ")), args[0]]
+    if len(args) == 1:  # address only: find the source file by its marker
+        import glob
+        a = int(args[0], 16)
+        args = [next(f for f in sorted(glob.glob(os.path.join(ROOT, "src", "*.c*")))
+                     if any(x == a for x, _, _ in marked_functions(f))), args[0]]
     main(*args[:2], normalise="--norm" in sys.argv)

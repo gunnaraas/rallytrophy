@@ -17,6 +17,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from match import TARGET_EXE, marked_functions  # noqa: E402
 from objcmp import PE, coff_function  # noqa: E402
+from triage import original_size, sizes_table  # noqa: E402
 from slotmap import IMAGE_BASE, OUT, compile_listing, disasm  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -28,6 +29,16 @@ def shape(t):
     t = re.sub(r"st\(\d\)", "ST", t)
     t = re.sub(r"0x[0-9a-f]+|\b\d+\b", "N", t)
     return re.sub(r"\s+", " ", t)
+
+
+def code_only(ins, end):
+    """Drop switch jump tables: everything from the lowest `jmp [reg*4+table]` target inside the function on."""
+    starts = [int(m.group(1), 16) for _, t in ins
+              if (m := re.match(r"jmp\s+DWORD PTR \[e\w\w\*4\+(0x[0-9a-f]+)\]", t))]
+    lo = ins[0][0] if ins else 0
+    starts = [x for x in starts if lo < x < end]
+    cut = min(starts) if starts else end
+    return [(a, t) for a, t in ins if a < cut], cut
 
 
 def source_lines(asm, symbol):
@@ -62,13 +73,12 @@ def main(argv):
                 (os.path.join(OUT, base + ".obj"), os.path.join(OUT, base + ".asm")))
     built_code = coff_function(obj, symbol)[0].rstrip(b"\x90\xcc")
     pe = PE(TARGET_EXE)
-    size = next((int(l.split("|")[6]) for l in open(os.path.join(ROOT, "analysis", "nonmatching-triage.md"))
-                 if l.startswith(f"| 0x{address:x} ")), len(built_code))
+    size = original_size(obj, symbol, address, pe) if address in sizes_table() else len(built_code)
     image = pe.b[pe.rva_to_off(address - IMAGE_BASE):]
-    orig = disasm(image[:size], address)
-    built = disasm(built_code, 0)
-    olen = [b - a for (a, _), (b, _) in zip(orig, orig[1:] + [(address + size, "")])]
-    blen = [b - a for (a, _), (b, _) in zip(built, built[1:] + [(len(built_code), "")])]
+    orig, oend = code_only(disasm(image[:size], address), address + size)
+    built, bend = code_only(disasm(built_code, 0), len(built_code))
+    olen = [b - a for (a, _), (b, _) in zip(orig, orig[1:] + [(oend, "")])]
+    blen = [b - a for (a, _), (b, _) in zip(built, built[1:] + [(bend, "")])]
     lines, text = source_lines(asm, symbol)
 
     def src(j1, j2):
