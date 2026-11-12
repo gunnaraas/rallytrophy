@@ -4259,10 +4259,10 @@ int Game::FUN_00437220(int a)
         DAT_0056b0bc->ClearKeys();
     }
     FUN_00436ed0();
-    text->SetColorObj(Color(color.value));
     TextRenderer* text = v->smallText;
     float y = DAT_0056aeac * 350.0f;
     color.value = DAT_00508c04;
+    text->color = color.value;
     float x = DAT_0056aea8 * 512.0f;
     x -= text->GetWidth(FUN_00405380(0x21), 0) * 0.5f;
     text->Print(DAT_0056b0ac, x, y, FUN_00405380(0x21), 0, 1.0f, 1.0f);
@@ -4277,8 +4277,8 @@ int Game::FUN_00437220(int a)
     }
     text->color = color.value;
     text->Print(DAT_0056b0ac, x, y, FUN_00405380(0x22), 0, 1.0f, 1.0f);
-    text->SetColorObj(Color(color.value));
     color.value = DAT_00508c04;
+    text->color = color.value;
     x += text->GetWidth(FUN_00405380(0x22), 0);
     text->Print(DAT_0056b0ac, x, y, "/", 0, 1.0f, 1.0f);
     x += text->GetWidth("/", 0);

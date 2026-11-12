@@ -666,8 +666,8 @@ void Screen1378::Slot3(int noPresent)
         ((MenuGame*)DAT_0056b0c8)->FUN_00435b60(1, 2, 1, 1, 0, -1.0f);
         for (int j = 0; j < 3; j++) {
             Color col(0);
-            text->SetColorObj(Color(col.value));
             col.value = (j == self->m_selected) ? DAT_00508c0c : DAT_00508c04;
+            text->color = col.value;
             const char* label;
             switch (j) {
             case 0:

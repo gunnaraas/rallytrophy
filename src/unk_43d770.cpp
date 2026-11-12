@@ -442,9 +442,9 @@ int PlayerNameMenu::Run()
                 text->Print(DAT_0056b0ac, lx, ly, labels[i].text.c_str(), 0, 1.0f, 1.0f);
                 if (i < rowCount) {
                     nameText->scaleX = DAT_0056aea8 * 1.5f;
-                    nameText->SetColorObj(Color(col.value));
                     ly = positions[i].y;
                     lx = positions[i].x;
+                    nameText->color = col.value;
                     float s = DAT_0056aea8 * 490.0f / nameText->GetWidth(name[i].c_str(), 0);
                     if (s > 1.5f) {
                         s = 1.5f;

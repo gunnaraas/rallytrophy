@@ -2808,8 +2808,8 @@ int RaceMode::NameMenu(int reset)
     big->SetScale(DAT_0056aea8, DAT_0056aeac);
     for (int i = 0; i < 10; i++) {
         Color rowColor;
-        big->SetColorObj(Color(rowColor.value));
         rowColor.value = (i == unk24c) ? DAT_00565444 : DAT_0056543c;
+        big->color = rowColor.value;
         if (i == 0) {
             const char* label = FUN_00405380(0x19c);
             float x = DAT_0056aea8 * 500.0f - big->GetWidth(label, 0);
@@ -3537,8 +3537,8 @@ int RaceMode::FUN_0048a920(int sort)
             } else {
                 tint = 0xffffffff;
             }
-            text->SetColorObj(Color(color.value));
             color.value = tint;
+            text->color = color.value;
             int total = 0;
             int count = DAT_00565494[i]->unk1a50;
             for (int k = 0; k < count; k++) {
@@ -3570,8 +3570,8 @@ int RaceMode::FUN_0048a920(int sort)
             i++;
         } while (i < DAT_00565490);
     }
-    text->SetColorObj(Color(color.value));
     color.value = 0xffffffff;
+    text->color = color.value;
     int result = 0;
     if (DAT_0057ba35) {
         pressed = 1;
@@ -4218,8 +4218,8 @@ int RaceMode::FUN_0048b080(int award)
         for (int i = 0; i < DAT_00565490; i++) {
             char points[12];
             char rank[28]; // 2026-11-11: sized to the original frame (was 12; +16 could equally be in points; 1398 -> 1413 of 1422 bytes)
-            text->SetColorObj(Color(color.value));
             color.value = DAT_00565494[i] == local ? DAT_00508bf0 : 0xffffffff;
+            text->color = color.value;
             _itoa(DAT_00565494[i]->unk1a54, points, 10);
             _itoa(i + 1, rank, 10);
             text->Print(DAT_0056b0ac, xRank - text->GetWidth(rank, z), y, rank, z, 1.0f, 1.0f);
@@ -4238,8 +4238,8 @@ int RaceMode::FUN_0048b080(int award)
             ((RaceDeviceSlots*)DAT_0056b0ac)->Slot32(3);
         }
     }
-    text->SetColorObj(Color(color.value));
     color.value = 0xffffffff;
+    text->color = color.value;
     int done = 0;
     int result = 0;
     if (DAT_0057ba35) {
