@@ -34,6 +34,13 @@ ScreenPoint DAT_00565458(512.0f, 179.0f);
 ScreenPoint DAT_00565450(0.0f, 0.0f);
 ScreenPoint DAT_00565448(1024.0f, 768.0f);
 
+// Cursor position temporary of the race options menu: HudPoint with an inline (x, y) constructor. Kept local to
+// this file: adding the constructor to HudPoint itself changes SnowFall::SnowFall (0x474c50) by 4 bytes.
+class RM_Pt : public HudPoint {
+public:
+    RM_Pt(float a, float b) { x = a; y = b; }
+};
+
 // FUNCTION: RALLYTROPHY 0x485f60
 // Adds a player to the race; a local player is also entered in the local list.
 void RaceMode::AddPlayer(Player* player)
@@ -3805,12 +3812,6 @@ extern float DAT_0057ba00;
 // A sound object inside the game object (offset from DAT_0056b0c8).
 #define SOUND_AT(offset) ((GameSound*)((BYTE*)DAT_0056b0c8 + (offset)))
 
-// Cursor position temporary of the race options menu: HudPoint with an inline (x, y) constructor. Kept local to
-// this file: adding the constructor to HudPoint itself changes SnowFall::SnowFall (0x474c50) by 4 bytes.
-class RM_Pt : public HudPoint {
-public:
-    RM_Pt(float a, float b) { x = a; y = b; }
-};
 // FUNCTION: RALLYTROPHY 0x48d7f0
 // The race options menu: five entries (four volume sliders with +/- arrows, and "back"), driven by the keyboard
 // and the mouse. `init` re-selects the entry under the mouse. Returns -1 when the menu is closed, otherwise 1.
@@ -3964,6 +3965,8 @@ extern DWORD DAT_0056543c;             // pause-menu entry colour
 // options screen (0x48d7f0) and a quit confirmation (GameView::FUN_00437220)
 // as sub-states in unk244/unk240. `reset` selects the first entry and moves
 // the mouse onto it. Returns 1 to resume, -1 to restart, -2 to quit, else 0.
+// Tried 2026-11-12 (size 1640 vs 1684): the three cursor-position sites as RM_Pt temporaries / block-local objects in
+// all 12 combinations give 1628..1708 bytes, never 1684, and more differing bytes; setter title is worse too.
 int RaceMode::FUN_00489300(int reset)
 {
     TextRenderer* big = DAT_0056b0c8->bigText;
