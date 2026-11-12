@@ -207,6 +207,10 @@ int MenuManager::Run(MenuGame* game, NetRace* session)
 // title Print's device load is now early, but uses a different register.
 // Tried 2026-10-30 night: `!= 0` for the second Contains loop (was `!= first`; 28->25 insns, ebp now holds zero); moving M3_Unit/HudPoint decls, dropping titleDevice, hoisting title args all worse or equal; still differs: (1,1) object and GetScale copy in swapped slots (0x34/0x3c), title Print device load early in esi.
 // Tried 2026-10-31 re-pass (25 insns differ now): ~25 variants (one/scale decl placement top/loop/scope, volatile device/color/scaleX/Y barriers, title arg locals, operand order); best 24 (volatile text->color store, not applied); still differs: scale copy at 0x34 vs original 0x3c with the (1,1) object at 0x34, and title Print device loaded early into esi instead of after the string.
+// Tried 2026-11-11: slot order follows reference counts (see NOTES). Probes: two extra stores to the (1,1) object or
+// one store fewer in the scale copy give the original's 0x34/0x3c order; one extra store does not. No neutral form
+// found in ~35 variants: reads of one.x/one.y fold before counting, scale as two-arg/init-list/pointer/array/memcpy/
+// __int64 copy, struct assign, reference-bound or default-argument temporaries, unit declared after the colour store.
 // original: FUN_0043cc50 (thiscall; MenuManager::Frame)
 int MenuManager::Frame()
 {
