@@ -386,3 +386,11 @@ original built as a temporary is a named local here. `SetPosition(&Pt(x * sx, y 
 constructor stores straight into the temporary, sets the EH state after both stores, and lets the temporary share
 the slots of floats that die in its arguments. A named `HudPoint position; position.x = ...` does not share.
 Do not add such a constructor to the shared HudPoint class: it changes SnowFall::SnowFall; use a local subclass.
+
+## Wave 2026-11-12 (inline-member lever, six Sonnet agents)
+
+- Constant folded into a computed offset (`[eax+ebp+0x39a8]` vs ours `lea` with the constant): the original indexed a
+  real struct array, `((Rally*)(base + 0x39a4))[r].a[s]`, not `off = r*1512 + s*16 + 0x39a4` (0x448f80 matched).
+- Quad helpers: `SetQuad(uv, ...)` called before the position stores, colour assigned last (0x48e4c0, 0x48eb20).
+- Reusing an existing float local as the FPU temporary (`x = ...; pos[0].x = pos[3].x = x;`) fixed an `fld st(1)` schedule (0x449860 229 -> 63).
+- The inline-setter lever did nothing for register-swap-only near misses (0x44c580, 0x43a6e0, 0x450be0, 0x436250).
