@@ -64,6 +64,9 @@ They expect locally supplied game files and toolchain components; see
   `[esp+X]` slots with the source local that lands there in our build (from a `/FAs` listing),
   with reference counts on both sides, and flags locals in a different slot. Use it on
   "frame/slot order differs" near misses together with the reference-count rule in NOTES.md.
+- [`triage.py`](triage.py): classify every NONMATCHING function by its first differences (size, order,
+  registers, EH state) after a full `match.py` run; a full run rewrites `analysis/nonmatching-triage.md`.
+  `original_size()` gives the original function size exactly as the matcher compares it.
 - [`structural.py`](structural.py): cluster NONMATCHING functions by stack
   frame, EH-state and call-count differences from the original (`--rows` for
   per-function detail).
