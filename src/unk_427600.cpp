@@ -229,6 +229,9 @@ int GameScreen11A4::Run(MenuGame* game)
 // a FrameTemps struct (626 differences), volatile clicked (1,548), and volatile sy (584); all reverted.
 // Tried 2026-10-30 night: volatile stores on scaleX/color/scaleY, color temp, clicked/sy/wait/first declaration orders, deferred sy init, device local (before switch or before scaleX: tail-merges the three Print cases, 2644 bytes); none beat 134 insns differ; clicked/sy slots still swapped and device/colour scratch registers still rotated.
 // Tried 2026-11-01 re-pass: text pointer declared late (before/after first draw call: 255 insns), sy/clicked/wait/first/sx declaration orders (sy slot stays 0x20, clicked 0x24; original 0x24/0x20), sy set after init, sy as reference, !(done||clicked), clicked=done, clicked reset in loop; none beat 134 insns differ.
+// 2026-11-11 (later): slots are ordered by reference count (loop refs weigh more), ties by declaration. The
+// original has one more `clicked` reference: the mouse test is two ifs, each with its own `clicked = 1`, which VC6
+// tail-merges to the same code. 12 -> 3 bytes; left: the 0x4267a0 reload scheduling (edi reload after fadd).
 // original: FUN_00427c10 (thiscall; one frame loop of the screen)
 int GameScreen11A4::Frame()
 {
@@ -346,8 +349,12 @@ int GameScreen11A4::Frame()
                 done = 1;
                 continue;
             }
-            if ((m_items[3]->Contains(*((MouseInput*)DAT_0056b0c0)->GetPosition()) && m_items[3]->enabled) ||
-                m_items[4]->Contains(*((MouseInput*)DAT_0056b0c0)->GetPosition())) {
+            if (m_items[3]->Contains(*((MouseInput*)DAT_0056b0c0)->GetPosition()) && m_items[3]->enabled) {
+                m_game->Play(1);
+                clicked = 1;
+                continue;
+            }
+            if (m_items[4]->Contains(*((MouseInput*)DAT_0056b0c0)->GetPosition())) {
                 m_game->Play(1);
                 clicked = 1;
                 continue;

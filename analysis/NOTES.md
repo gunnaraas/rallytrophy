@@ -340,13 +340,21 @@ hand (`StMsg::Format` = `std::string::replace(iterator, iterator, const char*, c
   first term loaded; reordering or parenthesising the written sum does not change the emitted order.
 
 
-## Stack slots of plain float locals (2026-11-11)
+## Stack slots of plain locals follow reference counts (2026-11-11)
 
-Standalone experiments (`cl /O2 /Oa /G6 /GX`, three `H * k` floats kept across calls):
+Found with standalone compiles and add/remove-one-reference probes on 0x427c10 and 0x43cc50:
 
-- All single-assigned: slots follow declaration order, lowest first.
-- Declaration order alone does not move a variable that is assigned more than once; reordering only changes which
-  multiply is emitted first.
-- A variable reassigned under an `if` is one stored variable and takes the lowest slot. If the original has it
-  *above* another local, the first value was a separate variable: `float y0 = ...; Print(y0); float y = y2;` puts
-  y in y0's freed slot, above y2. This fixed the y/y2 swap in 0x48cca0.
+- VC6 orders the stack slots of non-register locals by **reference count, highest count at the lowest offset**;
+  references inside a loop weigh more than ones outside; ties keep declaration order. Declaration order, names,
+  types and initialiser form do not move a slot otherwise (30+ such variants on 0x427c10 changed nothing).
+- The count is taken after constant folding (reads of a known constant member do not count) but before tail
+  merging. So when two locals sit in swapped slots with otherwise identical code, the original has one more (or one
+  fewer) *source* reference that folds to the same instructions. The natural case: `if (a || b) { v = 1; }` was
+  written as two ifs with the same body, which VC6 merges back (0x427c10: clicked/sy slots, 12 -> 3 bytes).
+- Probe to confirm before searching: replace one read of the lower variable by another variable; if the slots flip
+  to the original's, hunt for the missing/extra reference.
+- 8-byte objects with destructors obey the same rule (extra stores to the (1,1) object in 0x43cc50 flip it below the
+  scale copy), but no behaviour-neutral source of the extra reference has been found there yet.
+- A variable whose first value is used once and then reassigned under an `if` is one stored variable with a high
+  count. If the original has it above another local, the first value was its own variable:
+  `float y0 = ...; Print(y0); float y = y2;` (0x48cca0, y/y2 slots).
