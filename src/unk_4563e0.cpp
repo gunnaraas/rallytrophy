@@ -1410,19 +1410,18 @@ struct G3CameraView {
     __asm fstp dword ptr [eax+8] \
     __asm fstp dword ptr [eax+4]
 
-// NONMATCHING: RALLYTROPHY 0x4578c0
-// 2026-11-11: forward/right as two float[3] locals gives the original 0x28 frame (fwd.z at -0x14, right.z at -0x20),
-// indexing presets[v->view] directly gives the absolute table operands, and volatile loads of fwd[2] give the
-// original fld/fld st(0) squares; 590 vs 588 bytes, 49 differing.
-// Left: (1) both look[] sums evaluate their terms in the opposite order (original: fwd term first; operand, factor
-// and association swaps are all canonicalised away); (2) first-branch pointer slots (original trans -4, matrix -8,
-// point -0xc; declaration order has no effect, 12 orders tried).
-// The eye and look-at points of the current preset around the followed car.
+// FUNCTION: RALLYTROPHY 0x4578c0
+// forward/right are two float[3] locals (0x28 frame), presets[v->view] is indexed directly, and fwd[2] is read through
+// volatile for the fld/fld st(0) squares. What made it exact (2026-11-11): each G3_TRANSFORM sits in its own inner
+// block with its own trans/matrix/point locals (slots follow declaration order within the block); statement orders
+// found by permute.py (eye assigned before the second block, fwd[2] before fwd[0], right[2] before right[0]); and the
+// first product of look[2] in a named temporary, which makes it the first term loaded.
 void ViewManager::FUN_004578c0(float* eye, float* look)
 {
     G3CameraView* v = (G3CameraView*)this;
-    G3CameraCar* car = v->car;
-    if (car == 0) {
+    G3CameraCar* car;
+    car = v->car;
+    if (0 == car) {
         eye[0] = 0;
         eye[1] = 0;
         eye[2] = 100.0f;
@@ -1431,24 +1430,29 @@ void ViewManager::FUN_004578c0(float* eye, float* look)
         look[2] = 0;
         return;
     }
-    G3CameraBody* body = car->body;
-    if (v->view == 6) {
-        const float* trans = body->pos;
-        const float* matrixB = body->row0;
-        const float* matrix = body->row0;
-        const float* point = CameraTable::presets[6].lookAt;
-        G3_TRANSFORM(point, matrix, eye, trans);
-        matrixB = body->row0;
-        point = CameraTable::presets[v->view].position;
+    G3CameraBody* body;
+    body = car->body;
+    if (6 == v->view) {
+        {
+            const float* trans = body->pos;
+            const float* matrix = body->row0;
+            const float* point = CameraTable::presets[6].lookAt;
+            G3_TRANSFORM(point, matrix, eye, trans);
+        }
         eye = (float*)body->pos;
-        G3_TRANSFORM(point, matrixB, look, eye);
+        {
+            const float* matrix = body->row0;
+            const float* point = CameraTable::presets[v->view].position;
+            G3_TRANSFORM(point, matrix, look, eye);
+        }
         return;
     }
     float fwd[3];
     float right[3];
-    fwd[0] = body->vel[0];
     fwd[2] = body->vel[2];
-    float z = *(volatile float*)&fwd[2];
+    float z;
+    fwd[0] = body->vel[0];
+    z = *(volatile float*)&fwd[2];
     if (z * z + fwd[0] * fwd[0] <= 0.001f) {
         if (*(unsigned int*)&body->vel[1] & 0x80000000) {
             fwd[0] = body->row1[0];
@@ -1458,19 +1462,22 @@ void ViewManager::FUN_004578c0(float* eye, float* look)
             fwd[2] = -body->row1[2];
         }
     }
-    float z2 = *(volatile float*)&fwd[2];
-    float inv = 1.0f / (float)sqrt(z2 * z2 + fwd[0] * fwd[0]);
-    fwd[0] *= inv;
-    fwd[2] *= inv;
-    right[0] = fwd[2];
+    float z2;
+    z2 = *(volatile float*)&fwd[2];
+    float inv;
+    inv = 1.0f / (float)sqrt(z2 * z2 + fwd[0] * fwd[0]);
+    fwd[0] = fwd[0] * (inv);
+    fwd[2] = fwd[2] * (inv);
     right[2] = -fwd[0];
+    right[0] = fwd[2];
 #define P CameraTable::presets[v->view]
     eye[0] = right[0] * P.lookAt[0] + fwd[0] * P.lookAt[2] + body->pos[0];
     eye[1] = P.lookAt[1] + body->pos[1];
-    eye[2] = right[2] * P.lookAt[0] + fwd[2] * P.lookAt[2] + body->pos[2];
+    eye[2] = right[2] * P.lookAt[0] + P.lookAt[2] * fwd[2] + body->pos[2];
     look[0] = fwd[0] * P.position[2] + right[0] * P.position[0] + body->pos[0];
     look[1] = P.position[1] + body->pos[1];
-    look[2] = fwd[2] * P.position[2] + right[2] * P.position[0] + body->pos[2];
+    float fz = fwd[2] * P.position[2];
+    look[2] = fz + right[2] * P.position[0] + body->pos[2];
 #undef P
 }
 

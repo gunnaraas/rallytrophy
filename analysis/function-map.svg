@@ -2,7 +2,7 @@
 <title>Rally Trophy per-function decompilation map</title>
 <rect width="1600" height="1120" rx="8" fill="#0d1117"/>
 <text x="20" y="30" font-size="18" font-weight="600" fill="#e6edf3">Every game function, sized by code bytes and branch complexity</text>
-<text x="20" y="53" fill="#8b949e">1,896 byte-exact · 188 written but not byte-exact · 0 unwritten. Tile area = bytes × (1 + log₂(1 + branch points)); hover for details.</text>
+<text x="20" y="53" fill="#8b949e">1,897 byte-exact · 187 written but not byte-exact · 0 unwritten. Tile area = bytes × (1 + log₂(1 + branch points)); hover for details.</text>
 <g transform="translate(20,72)" fill="#e6edf3">
 <rect width="12" height="12" fill="#3fb950"/><text x="18" y="11">byte-exact</text>
 <rect x="118" width="12" height="12" fill="#e3b341"/><text x="136" y="11">written, not exact</text>
@@ -714,7 +714,7 @@
 <rect x="1562.95" y="559.27" width="16.05" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00456820 · FUN_00456820 · Car camera · 442 code bytes · complexity 3 (2 branch points) · byte-exact</title></rect>
 <rect x="20.00" y="589.09" width="17.67" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x004569e0 · FUN_004569e0 · Car camera · 304 code bytes · complexity 9 (8 branch points) · byte-exact</title></rect>
 <rect x="38.67" y="589.09" width="286.02" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x00456b10 · FUN_00456b10 · Car camera · 3,489 code bytes · complexity 24 (23 branch points) · written, not exact</title></rect>
-<rect x="325.69" y="589.09" width="27.77" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x004578c0 · FUN_004578c0 · Car camera · 588 code bytes · complexity 5 (4 branch points) · written, not exact</title></rect>
+<rect x="325.69" y="589.09" width="27.77" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x004578c0 · FUN_004578c0 · Car camera · 588 code bytes · complexity 5 (4 branch points) · byte-exact</title></rect>
 <rect x="354.47" y="589.09" width="77.24" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00457b10 · FUN_00457b10 · Car camera · 1,599 code bytes · complexity 5 (4 branch points) · byte-exact</title></rect>
 <rect x="432.71" y="589.09" width="0.47" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00458150 · FUN_00458150 · Car camera · 100 code bytes · complexity 1 (0 branch points) · byte-exact</title></rect>
 <rect x="434.18" y="589.09" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x004581c0 · Car camera module end: guard-bit initialiser of the STL header statics (_$E) · Car camera · 25 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>

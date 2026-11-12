@@ -332,4 +332,10 @@ hand (`StMsg::Format` = `std::string::replace(iterator, iterator, const char*, c
   out-of-line calls of three; 6-7: one; two sub-struct copies: none).
 - Real `std::string` in `SaveReplay` compiles to the same bytes as the `H6Str` emulation, so those emulations are
   faithful; the cloned-epilogue difference there is not caused by them. Thirty flag sets did not remove it either.
+- Locals read by inline asm (measured on 0x4578c0, 2026-11-11): stack slots follow declaration order within a block
+  (first declared at the highest address), and a local that is assigned twice sorts apart from the single-assigned
+  ones. Two asm blocks that each need their own pointers want two inner `{ }` blocks with their own declarations,
+  not one set of pointers reassigned between them. Names and split/unsplit declarations do not matter.
+- Term order of a float sum: a product held in a named temporary (`float fz = a * b; x = fz + c * d + e;`) is the
+  first term loaded; reordering or parenthesising the written sum does not change the emitted order.
 
