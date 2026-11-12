@@ -25,6 +25,8 @@ They expect locally supplied game files and toolchain components; see
   `build/permute/<addr>/best.cpp`, ranking by aligned instructions first.
   Apply it only on MATCH: mutations can
   reorder dependent statements.
+- [`declorder.py`](declorder.py): permute groups of local declarations that sit directly above an inline-asm
+  transform macro (their stack slots follow declaration order) and keep the best order per group.
 - [`flag_sweep.py`](flag_sweep.py): score every NONMATCHING function in the
   given files under alternative compiler flags.
 - [`asm_helpers.py`](asm_helpers.py): list NONMATCHING functions whose

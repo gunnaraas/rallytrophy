@@ -440,8 +440,8 @@ void Car::ProcessContacts()
             HitRec* r = &recs[i3];
             Vec3 local;
             const float* in = r->pos;
-            const float* mat = inv2.m;
             float* out = (float*)&local;
+            const float* mat = inv2.m;
             MATRIX_TRANSFORM();
             float fx = r->f1c;
             float fy = r->f20;
@@ -461,8 +461,8 @@ void Car::ProcessContacts()
             HitRec* r = &recs[i4];
             Vec3 local;
             const float* in = r->pos;
-            const float* mat = inv2.m;
             float* out = (float*)&local;
+            const float* mat = inv2.m;
             MATRIX_TRANSFORM();
             float fx = r->f1c;
             float fy = r->f20;

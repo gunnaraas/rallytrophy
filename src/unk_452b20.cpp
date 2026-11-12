@@ -309,8 +309,8 @@ void Car::FUN_00452eb0(float dt)
     {
         G_Set(p, 0.0f, 0.0f, V->body->unkb4);
         const float* trans = V->body->pos;
-        const float* in = (const float*)&p;
         const float* mat = V->body->mat;
+        const float* in = (const float*)&p;
         float* out = (float*)&world;
         G_TRANSFORM_ADD();
         G_Copy(V->ctrl4, V->body->FUN_004204f0(world) - V->ctrl4);
@@ -320,8 +320,8 @@ void Car::FUN_00452eb0(float dt)
     {
         G_Set(p, 0.0f, 0.0f, V->body->unka8);
         const float* trans = V->body->pos;
-        const float* in = (const float*)&p;
         const float* mat = V->body->mat;
+        const float* in = (const float*)&p;
         float* out = (float*)&world;
         G_TRANSFORM_ADD();
         G_Copy(V->ctrl3, V->body->FUN_004204f0(world) - V->ctrl3);
@@ -332,8 +332,8 @@ void Car::FUN_00452eb0(float dt)
         G_Copy3(p, V->vec20d0);
         p += V->vec1018;
         const float* trans = V->body->pos;
-        const float* in = (const float*)&p;
         const float* mat = V->body->mat;
+        const float* in = (const float*)&p;
         float* out = (float*)&world;
         G_TRANSFORM_ADD();
         G_Copy(V->ctrl5, V->body->FUN_004204f0(world) - V->ctrl5);
@@ -345,8 +345,8 @@ void Car::FUN_00452eb0(float dt)
         G_Copy3(p, V->vec203c);
         p += V->vec1024;
         const float* trans = V->body->pos;
-        const float* in = (const float*)&p;
         const float* mat = V->body->mat;
+        const float* in = (const float*)&p;
         float* out = (float*)&world;
         G_TRANSFORM_ADD();
         G_Copy(V->ctrl6, V->body->FUN_004204f0(world) - V->ctrl6);

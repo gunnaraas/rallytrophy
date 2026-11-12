@@ -286,8 +286,8 @@ void CarEmitterC::Render(RenderDevice* device, Camera* camera)
             pt.y = pos->y;
             pt.z = pos->z;
             pt -= p->velocity * scale;
-            const float* mat = (const float*)&cam;
             in = (const float*)&pt;
+            const float* mat = (const float*)&cam;
             out = (float*)&w2;
             TRANSFORM44(in, mat, out);
             float dx = (w1.x - w2.x) * k;
@@ -320,8 +320,8 @@ void CarEmitterC::Render(RenderDevice* device, Camera* camera)
             pc.x = pos->x;
             pc.y = pos->y;
             pc.z = pos->z;
-            in = (const float*)&w2;
             out = (float*)&q;
+            in = (const float*)&w2;
             TRANSFORM44(in, viewB, out);
             float size = p->size;
             Vec3 t1 = rb * size;

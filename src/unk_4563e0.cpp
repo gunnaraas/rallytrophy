@@ -1056,10 +1056,10 @@ void ViewManager::FUN_00456b10(float dt)
         local.z = body->unkb4 * 0.75f + body->unka8 * 0.25f;
         local.y = body->unkb0 * 0.8f + body->unka4 * 0.2f;
         {
-            const float* trans = (const float*)&body->pos;
-            float* result = (float*)&V->target;
             const float* point = (const float*)&local;
+            const float* trans = (const float*)&body->pos;
             const float* mtx = body->matrix;
+            float* result = (float*)&V->target;
             G2_TRANSFORM_ADD();
         }
         V->camPos.x = V->zone->pos.x;
@@ -1100,9 +1100,9 @@ void ViewManager::FUN_00456b10(float dt)
             Vec3 p0;
             {
                 const float* trans = (const float*)&body->pos;
+                const float* mtx = body->matrix;
                 const float* point = (const float*)&body->unkb8;
                 float* result = (float*)&p0;
-                const float* mtx = body->matrix;
                 G2_TRANSFORM_ADD();
             }
             Vec3* cam = &V->camPos;
@@ -1171,9 +1171,9 @@ void ViewManager::FUN_00456b10(float dt)
             p.z -= V->car->vec20b8.z * 0.024f;
             {
                 const float* trans = (const float*)&body->pos;
+                const float* mtx = body->matrix;
                 const float* point = (const float*)&p;
                 float* result = pos;
-                const float* mtx = body->matrix;
                 G2_TRANSFORM_ADD();
             }
             memcpy(matrix, body->matrix, sizeof(V->matrix));
@@ -1222,10 +1222,10 @@ void ViewManager::FUN_00456b10(float dt)
         if (V->view == 6) {
             // Rigid mounted camera looking at the car's target point.
             G2_Body* body = V->car->body;
-            const float* trans = (const float*)&body->pos;
             const float* point = (const float*)&CameraTable::presets[6].position;
             float* result = pos;
             const float* mtx = body->matrix;
+            const float* trans = (const float*)&body->pos;
             G2_TRANSFORM_ADD();
             float* row0 = &matrix[0];
             float* row1 = &matrix[4];

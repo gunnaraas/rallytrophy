@@ -2097,8 +2097,8 @@ void Car::FUN_0045cc30(StartPosition* start, void* world)
             {
                 const float* trans = (const float*)&v->body->pos;
                 const float* matrix = (const float*)&v->body->right;
-                const float* point = (const float*)&u;
                 float* result = (float*)&wp;
+                const float* point = (const float*)&u;
                 W7_TRANSFORM_ADD();
             }
             if (!q->Probe(rr + 0.01f, &wp, (Vec3*)(normalZ - 2), &v->hitB[i], &v->hitA[i], &v->wheelSurface[i])) {
