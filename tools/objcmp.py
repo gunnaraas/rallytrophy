@@ -82,15 +82,24 @@ def coff_function(path, symbol):
     return code, masked, targets
 
 
-def disassemble(code, vma):
+def disasm(code, vma=0):
+    """[(address, instruction text)] for a code blob loaded at `vma` (objdump, Intel syntax; `(bad)` dropped)."""
     with tempfile.NamedTemporaryFile(suffix=".bin") as f:
         f.write(code)
         f.flush()
         out = subprocess.run(
             ["objdump", "-D", "-b", "binary", "-m", "i386", "-M", "intel", "--no-show-raw-insn",
              f"--adjust-vma=0x{vma:x}", f.name], check=True, capture_output=True, text=True).stdout
-    return [line.split(":", 1)[1].strip() for line in out.splitlines()
-            if line.startswith("  ") and ":" in line]
+    res = []
+    for line in out.splitlines():
+        m = re.match(r"\s+([0-9a-f]+):\s+(.*)", line)
+        if m and m.group(2).strip() and not m.group(2).startswith("(bad)"):
+            res.append((int(m.group(1), 16), m.group(2).strip()))
+    return res
+
+
+def disassemble(code, vma):
+    return [t for _, t in disasm(code, vma)]
 
 
 def aligned_relocation_table(built, image, size, limit, targets, original_relocs, address):
