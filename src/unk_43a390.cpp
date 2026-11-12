@@ -531,8 +531,7 @@ void Screen1378::Slot3(int noPresent)
         text->scaleY = DAT_0056aeac * 2.0f;
         text->color = DAT_00508bfc;
         text->Print(DAT_0056b0ac, 54.0f * DAT_0056aea8, 142.0f * DAT_0056aeac, FUN_00405380(0x12d), 0, 1.0f, 1.0f);
-        text->scaleX = DAT_0056aea8;
-        text->scaleY = DAT_0056aeac;
+        text->SetScale(DAT_0056aea8, DAT_0056aeac);
         BuildRects();
         Color white(0xffffffff);
         text->color = white.value;

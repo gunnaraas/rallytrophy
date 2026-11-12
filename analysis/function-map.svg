@@ -2,7 +2,7 @@
 <title>Rally Trophy per-function decompilation map</title>
 <rect width="1600" height="1120" rx="8" fill="#0d1117"/>
 <text x="20" y="30" font-size="18" font-weight="600" fill="#e6edf3">Every game function, sized by code bytes and branch complexity</text>
-<text x="20" y="53" fill="#8b949e">1,906 byte-exact · 178 written but not byte-exact · 0 unwritten. Tile area = bytes × (1 + log₂(1 + branch points)); hover for details.</text>
+<text x="20" y="53" fill="#8b949e">1,907 byte-exact · 177 written but not byte-exact · 0 unwritten. Tile area = bytes × (1 + log₂(1 + branch points)); hover for details.</text>
 <g transform="translate(20,72)" fill="#e6edf3">
 <rect width="12" height="12" fill="#3fb950"/><text x="18" y="11">byte-exact</text>
 <rect x="118" width="12" height="12" fill="#e3b341"/><text x="136" y="11">written, not exact</text>
@@ -459,7 +459,7 @@
 <rect x="1323.83" y="380.36" width="4.34" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00436ed0 · FUN_00436ed0 · Game object · 366 code bytes · complexity 1 (0 branch points) · byte-exact</title></rect>
 <rect x="1329.16" y="380.36" width="23.41" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00437040 · FUN_00437040 · Game object · 467 code bytes · complexity 6 (5 branch points) · byte-exact</title></rect>
 <rect x="1353.58" y="380.36" width="111.96" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x00437220 · FUN_00437220 · Game object · 1,346 code bytes · complexity 27 (26 branch points) · written, not exact</title></rect>
-<rect x="1466.54" y="380.36" width="112.46" height="28.82" fill="#e3b341" stroke="#0d1117" stroke-width="0.8"><title>0x00437770 · FUN_00437770 · Game object · 1,352 code bytes · complexity 27 (26 branch points) · written, not exact</title></rect>
+<rect x="1466.54" y="380.36" width="112.46" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00437770 · FUN_00437770 · Game object · 1,352 code bytes · complexity 27 (26 branch points) · byte-exact</title></rect>
 <rect x="20.00" y="410.18" width="4.05" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00437cc0 · FUN_00437cc0 · Game object · 351 code bytes · complexity 1 (0 branch points) · byte-exact</title></rect>
 <rect x="25.05" y="410.18" width="1.46" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00437e20 · FUN_00437e20 · Game object · 66 code bytes · complexity 3 (2 branch points) · byte-exact</title></rect>
 <rect x="27.51" y="410.18" width="0.35" height="28.82" fill="#3fb950" stroke="#0d1117" stroke-width="0.8"><title>0x00437e70 · Game module end: guard-bit initialiser of the STL header statics (_$E) · Game object · 25 code bytes · complexity 2 (1 branch points) · byte-exact</title></rect>

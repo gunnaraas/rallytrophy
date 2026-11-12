@@ -1152,7 +1152,7 @@ void ServiceMenu::DrawTune()
             bigText->Print(DAT_0056b0ac, x, y, right, 0, 1.0f, 1.0f);
         }
         lil->SetScale(DAT_0056aea8 * 0.75f, DAT_0056aeac * 0.75f);
-        lil->color = DAT_00508c04;
+        lil->SetColorObj(Color(DAT_00508c04));
         x = DAT_0056aea8 * 804.0f;
         y = DAT_0056aeac * 192.0f;
         lil->Print(DAT_0056b0ac, x, y, FUN_00405380(0x73), 0, 1.0f, 1.0f);
@@ -1172,7 +1172,7 @@ void ServiceMenu::DrawTune()
         if (timeLeft < cost && tune[row] == tuneOrig[row]) {
             lil->SetColor(ColorArg(0xFFD14A4F));
         } else {
-            lil->color = DAT_00508c04;
+            lil->SetColorObj(Color(DAT_00508c04));
         }
         lil->Print(DAT_0056b0ac, x, y, buf, 0, 1.0f, 1.0f);
         lil->SetScale(DAT_0056aea8, DAT_0056aeac);
@@ -1324,8 +1324,7 @@ void ServiceMenu::DrawRepair()
         text->Print(DAT_0056b0ac, DAT_0056aea8 * 804.0f, hy, FUN_00405380(0x73), 0, 1.0f, 1.0f);
         text->Print(DAT_0056b0ac, DAT_0056aea8 * 604.0f, hy, FUN_00405380(0x76), 0, 1.0f, 1.0f);
         text->color = DAT_00508c04;
-        text->scaleX = DAT_0056aea8 * 1.5f;
-        text->scaleY = DAT_0056aeac * 1.5f;
+        text->SetScale(DAT_0056aea8 * 1.5f, DAT_0056aeac * 1.5f);
         int cost = repairTime[unk2c];
         itoa(cost, buf, 10);
         float ry = DAT_0056aeac * 200.0f;
