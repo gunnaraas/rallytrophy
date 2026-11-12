@@ -400,3 +400,12 @@ Do not add such a constructor to the shared HudPoint class: it changes SnowFall:
   (calls.py, size) first and use slotmap.py once a function is the right size.
 - TrackSelectMenu::Run 0x443790: the original copies name/description of the by-value RallyInfo inline (_Tidy +
   assign); ours calls the copy ctor out of line. An inline/__forceinline subclass copy ctor does not inline.
+- Sizegap wave (2026-11-12, six Sonnet agents, 25 functions with 1-4 hunks + six RaceMode menus): 0 matches, gains on
+  0x443790 (387 -> 95, two-arm colour/scale before `std::string buf`), 0x422fc0 (62 -> 3, insert grow arm expanded with
+  end stored before last), 0x4721b0 (34 -> 30, light-direction y/z read into locals first), 0x479f60 (9 -> 3, volatile
+  j2 write like j1). Recurring blocker in 4 functions (0x443790, 0x44d6a0, 0x403ca0, 0x48bd10): where VC6 stops inlining
+  std::string helpers in a function (inline vs call to _Tidy / copy ctor / resize). `#pragma inline_depth` 1-4 and
+  `auto_inline(off)` change nothing; `inline_depth(0)` disables all inlining. Needs its own investigation.
+- 0x46c2c0 Wheel::Wheel: the original reloads `this` into ecx and discards it between Reset() and the normal stores,
+  hinting at an inline call with a discarded result there.
+- slotmap.py gives 0 aligned hits on 0x480ce0 (bug to fix); sizegap's "original size" is wrong for some variants of 0x489300.
