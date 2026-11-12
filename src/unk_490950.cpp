@@ -307,6 +307,7 @@ extern int DAT_00501454;
 extern int DAT_00501458;
 
 // NONMATCHING: RALLYTROPHY 0x491130
+// 2026-11-12: all 16 placements of the a/b/mode/flag initialisers (declaration vs both branches) tried; the declaration form (17 insns) stays best.
 // Same size and flow; VC6 gives the four live values (a, b, setup, mode) other registers
 // (original: ebx=0x501428 value, edi=0x50142c value, ebp=setup pointer, esi=mode).
 // Tried 2026-10-30 night: local declaration reorders, a/b clamp order and forms, mode/branch/zeroing restructures, Car* temp, permute -r 20 (no MATCH, best 18); register allocation of a/b/setup/mode still differs (22 insns), hand edits only reach 20-21.
