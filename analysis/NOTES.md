@@ -339,3 +339,14 @@ hand (`StMsg::Format` = `std::string::replace(iterator, iterator, const char*, c
 - Term order of a float sum: a product held in a named temporary (`float fz = a * b; x = fz + c * d + e;`) is the
   first term loaded; reordering or parenthesising the written sum does not change the emitted order.
 
+
+## Stack slots of plain float locals (2026-11-11)
+
+Standalone experiments (`cl /O2 /Oa /G6 /GX`, three `H * k` floats kept across calls):
+
+- All single-assigned: slots follow declaration order, lowest first.
+- Declaration order alone does not move a variable that is assigned more than once; reordering only changes which
+  multiply is emitted first.
+- A variable reassigned under an `if` is one stored variable and takes the lowest slot. If the original has it
+  *above* another local, the first value was a separate variable: `float y0 = ...; Print(y0); float y = y2;` puts
+  y in y0's freed slot, above y2. This fixed the y/y2 swap in 0x48cca0.

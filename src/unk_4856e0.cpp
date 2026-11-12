@@ -3753,7 +3753,7 @@ void TextRenderer::SetColor(ColorArg c)
 // bool-returning inline: its ternary gives the original's byte-wide `and al,1 / neg al / sbb / neg`.
 static inline bool OddVariant(char c) { return c & 1; }
 // NONMATCHING: RALLYTROPHY 0x48cca0
-// 713 vs 723 bytes. Frame, ebx = 0, the by-value colour temporary (ColorArg: copy ctor + empty dtor, with a
+// 724 vs 723 bytes (was 713). Frame, ebx = 0, the by-value colour temporary (ColorArg: copy ctor + empty dtor, with a
 // visible nothrow SetColor) all match. Left: instruction scheduling of the hoisted y/step multiplies, and the
 // original builds id = 0x161 + 1 via `and al,1 / neg al / sbb / neg` (byte-wide test) where this folds to `and eax,1`.
 // Tried 2026-10-30 night: `pressed = byte ? 1 : 0` fixed the tail (104 -> 99 insns); ~30 variants of the id test (char/BYTE/bool casts, ==1, >0, ?:, %2) never give the byte-wide `and al,1/neg al/sbb/neg` (==1 gives `dec al/neg/sbb`, >0 gives setg); permuting y/y2/step order, declaration order, volatile colour/y stores did not move the early color-store/width-load scheduling.
@@ -3763,19 +3763,23 @@ static inline bool OddVariant(char c) { return c & 1; }
 // 2026-11-11: the id comes from a ternary over a bool-returning inline (OddVariant), which gives the original's
 // `and al,1 / neg al / sbb / neg / add 0x161`; 23 -> 21 insns. Left: text is loaded before the Draw call in the original
 // (doing so here costs 58 insns) and the y/y2 slots are swapped; 480 declaration orders did not move either.
+// 2026-11-11 (later): the first Print's y is its own variable (y0) and `float y = y2;` is declared after that Print:
+// y then reuses y0's slot above y2, as in the original; 21 -> 14 insns, 724 vs 723 bytes. Loading text before Draw
+// matches the first 12 instructions but the colour store/width load then schedule differently (59 insns); 17 orders
+// and forms of that head plus a permuter pass gave nothing.
 int RaceMode::FUN_0048cca0(int unused, int variant)
 {
 
     m_image->Draw(DAT_0056b0ac, 0);
     TextRenderer* text = DAT_0056b0c8->text;
-    float y = DAT_0056aeac * 90.0f;
+    float y0 = DAT_0056aeac * 90.0f;
     text->color = DAT_00508bf0;
     float y2 = DAT_0056aeac * 240.0f;
     int result = 0;
     float step = DAT_0056aeac * 64.0f;
     text->SetScale(DAT_0056aea8 * 1.2f, DAT_0056aeac * 1.2f);
-    text->Print(DAT_0056b0ac, DAT_0056b0ac->GetWidth() * 0.5f - text->GetWidth(FUN_00405380(0x166), 0) * 0.5f, y, FUN_00405380(0x166), 0, 1.0f, 1.0f);
-    y = y2;
+    text->Print(DAT_0056b0ac, DAT_0056b0ac->GetWidth() * 0.5f - text->GetWidth(FUN_00405380(0x166), 0) * 0.5f, y0, FUN_00405380(0x166), 0, 1.0f, 1.0f);
+    float y = y2;
     text->SetColor(ColorArg(0xffffffff));
     text->SetScale(DAT_0056aea8, DAT_0056aeac);
     if (variant) {
