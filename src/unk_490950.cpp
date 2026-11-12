@@ -544,6 +544,7 @@ void Player::FUN_00491620(const void* packet)
 }
 
 // NONMATCHING: RALLYTROPHY 0x491490
+// 2026-11-12 (sizegap): original spills ebp to [esp+0x18] around the per-section block and lays the ternary out without the jmp; if/else, ternary-in-store, prev temp, total computed late/inline, stage reload, split store order: none below 16 insns (base).
 // 388 vs 388 bytes, logic complete. The original keeps `size` in eax from the start (the default case
 // returns it) and switches on ecx; case 2 then differs in register allocation (time/total swapped,
 // the Stage lives in ebp and is spilled around the idiv).
