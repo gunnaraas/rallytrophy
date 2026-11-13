@@ -438,3 +438,12 @@ followed by M calls to an inline function:
   push_back is unaffected by `#pragma inline_depth` 8..255. 0x43df70: 52 -> 48 via SetScale for the final restore.
 - sizegap.py limits: it disassembles switch jump tables after `ret` as code (bogus top hunk on 0x43df70) and can
   misalign a hunk onto a matching EH-state store (0x4b0e90); confirm a hunk with insdiff before acting on it.
+
+## Corpus lookup and a dead lever (2026-11-13)
+
+- `tools/idiom.py` indexes the 1500 byte-exact functions (original instruction -> source line, from `/FAcs`
+  listings) so a NONMATCHING hunk can be looked up instead of guessed: e.g. `lea R,[R+N]; mov R2,R` (the copy
+  0x461a40 lacks) comes from `SpeechItem item = queue.front();` and from `for (int j = 0; j < 7; j++)` loops.
+- Declaration count is NOT a general lever: forcing 1..32 extra global typedefs into unk_4303e0, unk_43a390,
+  unk_452b20 and unk_490950 changed no byte in any of their 19 NONMATCHING functions. The winmain flip was a
+  one-off.
