@@ -511,6 +511,7 @@ float TriCollector::Closest(float r, float* pos, float* out, float* nrm)
     } while (0)
 
 // NONMATCHING: RALLYTROPHY 0x419770
+// Pass 2026-11-13: 170 -> 164 insns differ (1090 -> 1094 bytes, orig 1130): TriClosest4b call (as orig), x/y/z bounds as nested ifs with local float pairs (xb,xa loaded before the first compare, as the original's two-fld pattern); open: orig keeps i in memory and q bits in ebp (ours i in ebx, q in memory -> e1/e2/dv z-copies fuse), ss ScenePoint (no ED::~ED) always worse (205+), Near419 forceinline puts q in a reg but adds and eax,0xff/bool store (893 bytes differ but 184 insns).
 // Tried 2026-11-04: original state 0 (ebp-0x94, zeroed x/y/z at esp+0x10..0x18) is the sum accumulator, not an empty ED: `ScenePoint ss` (+ qz dead volatile store for the 0x5c slot) gives the original 3/7/3 state stores and removes the ED::~ED call but 4th saved register (esi) is lost: 170->207 insns, not adopted.
 // Tried 2026-11-01 re-pass: 220->170 insns differ (~30 variants): rewritten Closest-style (Sph419 P, ScenePoint lo/hi with lo.x = pos[0] - r, ED empty-dtor local first, float s[3], plane test dv.x = pos[0]-a->x with dot in the asm order z,y,x, int bit-compare of d2 vs q); frame 0x88 now matches. Still differs: q/d2 stack slots (orig q at 0x64, d2 at 0x6c, P at 0x70 vs ours one slot lower), shared xor-eax zero, dv.y/z int-copied then fsub in the original but fused here, bounds checks load vertex pointers up front in the original, e1/e2 int-copied first; too far for permute.
 int TriCollector::Contact(float r, float* pos, float* a_, float* b, float* c, int* surf)
@@ -535,13 +536,16 @@ int TriCollector::Contact(float r, float* pos, float* a_, float* b, float* c, in
             ScenePoint dv(*(ScenePoint*)pos); dv.x = pos[0] - a->x; dv.y -= a->y; dv.z -= a->z;
             if (DAT_004e134c <= dv.z * t->nz + dv.y * t->ny + dv.x * t->nx) {
                 unsigned s_ = t->sel;
-                if (t->v[(s_ >> 2) & 3]->x >= lo.x && t->v[s_ & 3]->x <= hi.x &&
-                    t->v[(s_ >> 6) & 3]->y >= lo.y && t->v[(s_ >> 4) & 3]->y <= hi.y &&
-                    t->v[(s_ & 0xc00) >> 10]->z >= lo.z && t->v[(s_ >> 8) & 3]->z <= hi.z) {
+                float xb = t->v[s_ & 3]->x; float xa = t->v[(s_ >> 2) & 3]->x;
+                if (xa >= lo.x && xb <= hi.x) {
+                float yb = t->v[(s_ >> 4) & 3]->y; float ya = t->v[(s_ >> 6) & 3]->y;
+                if (ya >= lo.y && yb <= hi.y) {
+                float zb = t->v[(s_ >> 8) & 3]->z; float za = t->v[(s_ & 0xc00) >> 10]->z;
+                if (za >= lo.z && zb <= hi.z) {
                     ScenePoint e1(*(ScenePoint*)&t->v[1]->x); e1 -= *(ScenePoint*)&a->x;
                     ScenePoint e2(*(ScenePoint*)&t->v[2]->x); e2 -= *(ScenePoint*)&a->x;
                     ScenePoint cp; float tmp[3];
-                    if (fun_004b3800(pos, &a->x, &e1.x, &e2.x, &cp.x) <= rr) {
+                    if (TriClosest4b(pos, &a->x, &e1.x, &e2.x, &cp.x) <= rr) {
                         if (n == 0) {
                             if (b != 0) { b[0] = cp.x; b[1] = cp.y; b[2] = cp.z; }
                             if (c != 0) { c[0] = t->nx; c[1] = t->ny; c[2] = t->nz; }
@@ -551,6 +555,8 @@ int TriCollector::Contact(float r, float* pos, float* a_, float* b, float* c, in
                         s[0] += d[0]; s[1] += d[1]; s[2] += d[2];
                         n++;
                     }
+                }
+                }
                 }
             }
         }
