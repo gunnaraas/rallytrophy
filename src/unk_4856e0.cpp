@@ -2594,7 +2594,8 @@ public:
 // Tried 2026-11-01: shared zero `int k=0` as Draw arg + reset-loop counter (puts zero in esi like the original, 333->335 insns, this still ebp); m_editing volatile reads, step/switch/click tests against k, inline profiles, declaration swaps: no better. Still differs: this in ebp not ebx (m_editing CSE'd into bl takes ebx) and the later zeros (step, clickSel) share esi where the original has separate edi/ebp.
 // Pass 2026-11-13: dropped the volatile z slot (Draw gets shared zero k = reset-loop counter), clicked/clickSel declared before mouse, m_editing copied once for the first test: 1628 -> 1494 differing bytes (333 insns differ unchanged, 2768 vs 2766 bytes). Still: this in ebp not ebx (m_editing CSE'd into bl), step zero shares edi with unk24c=0 where the original uses esi.
 // Pass 2 2026-11-13: real std::string resize()/append(1,c) instead of the hand twins, with five dead `(void)M_TEXT.size();` calls at the end spending the inline budget (exactly 5: 4 or 6 blow the size up) so _Split/_Grow/_Eos stay calls like the original; literal Draw zero, editing copy dropped, unk240/result stores before ClearKeys, low/high branch flipped: 333 -> 125 insns differ, 1494 -> 960 differing bytes, 2762 vs 2766 bytes. Left: block scheduling of the Print/GetWidth argument pushes, one inline _Eos in append(1,c) (original calls it), prologue load order, step zero position.
-// Pass 3 2026-11-13: six dead size() calls (not five; with the first Print/GetWidth y as a named float, the name ternary inline in Print's arguments and `step = 0` assigned at `keys:` the budget needs 6) make the backspace _Eos a call: 125 -> 20 insns differ, 960 -> 74 differing bytes, 2766 = original size. Left: x/y temp frame slots in the label Print branches (orig shares edge's slot), prologue mouse-load order, textInput store order after profiles load, Print name-ternary arg order.
+// Pass 3 2026-11-13: six dead size() calls (not five; with the first Print/GetWidth y as a named float, the name ternary inline in Print's arguments and `step = 0` assigned at `keys:` the budget needs 6) make the backspace _Eos a call: 125 -> 20 insns differ, 960 -> 74 differing bytes, 2766 = original size. Left: x/y temp frame slots in the label Print branches (orig shares (DAT_0056aea8 * 500.0f)'s slot), prologue mouse-load order, textInput store order after profiles load, Print name-ternary arg order.
+// Pass 4 2026-11-13: `edge` removed (the repeated DAT_0056aea8 * 500.0f is now a compiler CSE temp, which puts the label-branch x spill in its slot like the original), name ternary written `!empty ? name : FUN_00405380(0x27)`: 20 -> 19 insns differ, 74 -> 77 bytes. Left: the ternary's push/branch order in the slot-name Print, inline _Eos operand order in resize(0x15), prologue mouse-load order, textInput store order, `cmp eax,esi` for if (unk240).
 // keyboard into m_text. Returns 1 when the menu is left.
 int RaceMode::NameMenu(int reset)
 {
@@ -2619,15 +2620,14 @@ int RaceMode::NameMenu(int reset)
     mouse.y = DAT_0057ba04;
     if (unk240 == 0) {
         if (!m_editing) {
-            float edge = DAT_0056aea8 * 500.0f;
             int low, high;
             int step;
-            if (mouse.x <= edge && DAT_0056aea8 * 100.0f <= mouse.x && DAT_0056aeac * 150.0f <= mouse.y
+            if (mouse.x <= (DAT_0056aea8 * 500.0f) && DAT_0056aea8 * 100.0f <= mouse.x && DAT_0056aeac * 150.0f <= mouse.y
                 && DAT_0056aeac * 182.0f >= mouse.y) {
                 unk24c = 0;
                 goto hit;
             }
-            if (DAT_0056aea8 * 100.0f <= mouse.x && mouse.x <= edge && DAT_0056aeac * 520.0f <= mouse.y
+            if (DAT_0056aea8 * 100.0f <= mouse.x && mouse.x <= (DAT_0056aea8 * 500.0f) && DAT_0056aeac * 520.0f <= mouse.y
                 && DAT_0056aeac * 552.0f >= mouse.y) {
                 unk24c = 1;
                 goto hit;
@@ -2672,13 +2672,13 @@ int RaceMode::NameMenu(int reset)
             if (step != 0) {
                 switch (unk24c) {
                 case 0:
-                    if (mouse.x > edge) {
+                    if (mouse.x > (DAT_0056aea8 * 500.0f)) {
                         mouse.x = DAT_0056aea8 * 256.0f;
                     }
                     mouse.y = DAT_0056aeac * 166.0f;
                     break;
                 case 1:
-                    if (mouse.x > edge) {
+                    if (mouse.x > (DAT_0056aea8 * 500.0f)) {
                         mouse.x = DAT_0056aea8 * 256.0f;
                     }
                     mouse.y = DAT_0056aeac * 536.0f;
@@ -2823,7 +2823,7 @@ int RaceMode::NameMenu(int reset)
                     ((CaretDrawer*)((char*)DAT_0056b0c8 + 0x2008))->FUN_00450a70(DAT_0056b0ac, caretX, y, rowColor.value);
                 }
             } else {
-                big->Print(DAT_0056b0ac, x, y, m_slots[i - 2].empty ? FUN_00405380(0x27) : m_slots[i - 2].name, 0, 1.0f, 1.0f);
+                big->Print(DAT_0056b0ac, x, y, !m_slots[i - 2].empty ? m_slots[i - 2].name : FUN_00405380(0x27), 0, 1.0f, 1.0f);
             }
         }
     }
