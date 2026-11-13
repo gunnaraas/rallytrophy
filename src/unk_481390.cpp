@@ -127,6 +127,7 @@ void NetRace::Slot4(int mode)
 }
 
 // NONMATCHING: RALLYTROPHY 0x481940
+// Pass 2026-11-13: both FUN_0045b2c0 calls merged into one call site after the if/else (continue when unk4c==2): 96 -> 65 insns differ, cached-zero edi gone, size 1244 -> 1231. Remaining: done/step stack slots swapped (done must sit above step with i), orig keeps two arg-push sequences (only push camera/call shared), ebp=1 hoisted one insn early; if/else unk4c, ternary ping/lag, goto-merge, else-first all worse.
 // Tried 2026-11-01: volatile read of unk40 fixes the prologue ebp/counter order (103->96 insns); volatile unk87c, zero local, split loop index, volatile loop index, localBit order did not remove the cached zero in edi (original compares with test, no zero register).
 // Tried 2026-10-30 night: if-not-unk48 else restructure of the first player loop (163->~104 insns, kept); volatile zero stores, split loop index, register hint, counter temps did not help. Still differs: original keeps `started` in ebp and the loop index in memory, ours keeps a cached zero in edi and the index in ebp.
 // 1235 vs 1240 bytes; logic complete. Register allocation differs: this
@@ -222,13 +223,13 @@ void NetRace::Update(int dt)
                     }
                 }
                 car->unk1334 = frozen;
-                if (m_players[i]->unk4c != 2) {
-                    car->FUN_0045b2c0(camera, time, dt);
+                if (m_players[i]->unk4c == 2) {
+                    continue;
                 }
             } else {
                 m_players[i]->unk4c = 0;
-                car->FUN_0045b2c0(camera, time, dt);
             }
+            car->FUN_0045b2c0(camera, time, dt);
         }
         m_stage->FUN_004112a0(this);
     }
