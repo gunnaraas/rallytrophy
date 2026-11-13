@@ -3,6 +3,7 @@
 #include "unk_41a890.h"
 #include <math.h>
 #include "x87_cross.h"
+#include "unk_414330.h"
 
 extern float DAT_004e1348, DAT_004e138c;
 struct P3 { float x, y, z; P3() {} ~P3() {} P3 operator-(const P3& o) const; }; // operator- is 0x414330
@@ -18,12 +19,11 @@ struct LL { float x, y, z; LL() {} ~LL() {} };
 // reason: original uses an ebp frame (cause unknown; ours is esp-based) and reuses arg slots as temps; logic complete, tri loop/EH states approximated
 // Tried 2026-10-31: locals V/W + chained float stores (429->226 insns), volatile pad24/ints/zero, z-pointer/ptr-increment copy loops, loop counters in dead mesh/b slots; still differs: original keeps 0 in edi (cmp eax,edi, immediate 1s) while ours puts 1 in a register, and the tri loop temps/regs swap.
 // Tried 2026-11-01: 25 variants of the entry (zero as register var feeding root/b==/cnt, volatile or plain pad24, plain 1-store placement, bb=b first); all stay at 227-231 insns differ: original keeps 0 in edi (no stack zero slot, W null path needs no xor, 1s stay immediates) while ours CSEs 1 into edi and zero into ebx, which cascades through the whole function.
+// Pass 2026-11-13: S414Vec3::Sub calls (as original) instead of P3 operator-, t->v[0]->z/y/x * t->nz/ny/nx plane dot, no zero local, plain ints store: 226 -> 213 insns differ, size +16 -> +1; entry still keeps 1 (not 0) in edi, tri loop temps/regs differ.
 ColModel::ColModel(void* mesh, int a, int b)
 {
     float* p = (float*)mesh;
     root = 0;
-    int zero = 0;
-    *(volatile int*)&zero = 0;
     pad24 = 1;
     if (b == 0) {
         nVerts = 8;
@@ -45,7 +45,7 @@ ColModel::ColModel(void* mesh, int a, int b)
             W[i].y = V[i].y;
             W[i].z = V[i].z;
         }
-        int* ip = new int[18]; *(int* volatile*)&ints = ip;
+        int* ip = new int[18]; ints = ip;
         ColVert* wv = wverts;
     T(0).v[0] = (TVert*)(wv + 0);
     T(0).v[1] = (TVert*)(wv + 3);
@@ -143,7 +143,7 @@ ColModel::ColModel(void* mesh, int a, int b)
             W[i].y = V[i].y;
             W[i].z = V[i].z;
         }
-        int* ip = new int[12]; *(int* volatile*)&ints = ip;
+        int* ip = new int[12]; ints = ip;
         ColVert* wv = wverts;
     T(0).v[0] = (TVert*)(wv + 0);
     T(0).v[1] = (TVert*)(wv + 1);
@@ -205,10 +205,10 @@ ColModel::ColModel(void* mesh, int a, int b)
             t->id = 0;
             ((SceneSphere*)t)->SetTriple((ScenePoint*)&t->v[0]->x, (ScenePoint*)&t->v[1]->x, (ScenePoint*)&t->v[2]->x);
             float* n = &t->nx;
-            P3 s2 = *(P3*)&t->v[2]->x - *(P3*)&t->v[0]->x;
-            float* l20 = &s2.x;
-            P3 s1 = *(P3*)&t->v[1]->x - *(P3*)&t->v[0]->x;
-            float* l28 = &s1.x;
+            float s2[3]; float s1[3];
+            ((S414Vec3*)&t->v[2]->x)->Sub(s2, &t->v[0]->x);
+            ((S414Vec3*)&t->v[1]->x)->Sub(s1, &t->v[0]->x);
+            float* l20 = s2; float* l28 = s1;
             X87Cross(n, l28, l20);
             char* tb = (char*)tris;
             float* ci = (float*)centers;
@@ -216,10 +216,9 @@ ColModel::ColModel(void* mesh, int a, int b)
             *(float*)(tb + off + 0x18) = k * *(float*)(tb + off + 0x18);
             *(float*)(tb + off + 0x1c) = k * *(float*)(tb + off + 0x1c);
             *(float*)(tb + off + 0x20) = k * *(float*)(tb + off + 0x20);
-            float* v0 = &(*(TVert**)(tb + off + 0x28))->x;
-            float q = v0[2] * *(volatile float*)(tb + off + 0x20);
-            q = v0[1] * *(float*)(tb + off + 0x1c) + q;
-            q = v0[0] * *(float*)(tb + off + 0x18) + q;
+            float q = t->v[0]->z * t->nz;
+            q = t->v[0]->y * t->ny + q;
+            q = t->v[0]->x * t->nx + q;
             *(float*)(tb + off + 0x24) = q;
             float* c = (float*)((char*)ci + cb);
             c[0] = *(float*)(tb + off);
