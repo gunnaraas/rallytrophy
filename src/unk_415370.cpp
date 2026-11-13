@@ -34,7 +34,7 @@ static char Event1File[] = "Event1File";
 static char Event1Volume[] = "Event1Volume";
 static char Event1Delay[] = "Event1Delay";
 
-struct V2 { float a, b; };
+struct V2 { float a, b; V2& operator=(const V2& o) { a = o.a; b = o.b; return *this; } };
 
 // One surface sound (0x2c bytes).
 struct SurfSlot {
@@ -52,20 +52,20 @@ static __forceinline int RoundF(float v)
     return r;
 }
 
-#define SURF_SET(S, KIND)                                                           \
+#define SURF_SET(K, KIND)                                                           \
     fx = cfg.GetString(KIND);                                                       \
     if (fx.length() > 1) {                                                          \
-        (S)->sample = DAT_0056b0b0->LoadSample((base.Str() + fx).c_str());                  \
+        *(Sample**)((char*)(pm + 88 * K) - 4) = DAT_0056b0b0->LoadSample((base.Str() + fx).c_str());                  \
     }                                                                               \
-    (S)->pitchRange = *(V2*)&cfg.GetVector2(KIND "PitchRange");                       \
-    (S)->pitchMinMax = *(V2*)&cfg.GetVector2(KIND "PitchMinMax");                     \
-    (S)->volRange = *(V2*)&cfg.GetVector2(KIND "VolumeRange");                        \
-    (S)->volMinMax = *(V2*)&cfg.GetVector2(KIND "VolumeMinMax");                      \
-    (S)->atten = *(V2*)&cfg.GetVector2(KIND "Attenuation");                           \
-    (S)->pitchRange.a *= 0.2777778f;                                                  \
-    (S)->pitchRange.b *= 0.2777778f;                                                  \
-    (S)->volRange.a *= 0.2777778f;                                                    \
-    (S)->volRange.b *= 0.2777778f;
+    pm[88 * K + 0] = *(V2*)&cfg.GetVector2(KIND "PitchRange");                       \
+    pm[88 * K + 1] = *(V2*)&cfg.GetVector2(KIND "PitchMinMax");                     \
+    pm[88 * K + 2] = *(V2*)&cfg.GetVector2(KIND "VolumeRange");                        \
+    pm[88 * K + 3] = *(V2*)&cfg.GetVector2(KIND "VolumeMinMax");                     \
+    pm[88 * K + 4] = *(V2*)&cfg.GetVector2(KIND "Attenuation");                           \
+    pm[88 * K + 0].a *= 0.2777778f;                                                  \
+    pm[88 * K + 0].b *= 0.2777778f;                                                  \
+    pm[88 * K + 2].a *= 0.2777778f;                                                    \
+    pm[88 * K + 2].b *= 0.2777778f;
 
 // VC6 std::string layout twin for LoadSounds' mixed out-of-line and inline path operations.
 struct LoadSoundsPath {
@@ -108,6 +108,7 @@ static inline int Bal(int a) { return a; }
 // An explicit register self alias regressed to 3394/2219; an explicit std::string cast for operator+ regressed to 3439/2248.
 // Tried 2026-10-30 night: AssignB uses out-of-line Eos, surface loop is 15 passes with length()>=2 (orig cmp 2/jb, count 0xf), event loop bound re-reads this+0x1600, V2 copies direct (449->387 insns); still differs: orig keeps ev/off in frame slots with i in ebx (ours strength-reduces to a pointer in ebx), name/count in memory, and strlen n in esi in AssignB.
 // Tried 2026-11-01 re-pass: 10 discarded Bal(1) at function end (387->345 insns, 3217 vs 3209 bytes; 1-9 and 11+ worse, at start 645); zero-reg int z, volatile name/k/ev/off, fx as LoadSoundsPath (worse 424), loop shapes; still differs: orig has this in esi and zero in ebx (ours swapped), no stack i (i in ebx), frame 0x98 vs 0x9c, n in esi in AssignB.
+// Pass 2026-11-13: surface loop indexes this+0x160c+k*0x2c / this+0x23c8+k (V2* pm, no running pointer; bias and size 3224->3205), event loop `e = ev + i` with `off` kept for the last store, V2 copy via inline operator= (pair-first loads) with the Bal(1) padding removed (needs 0): 343 -> 303 insns differ, 3212 vs 3209 bytes, register-normalised diff lines 364->125; remaining: this in ebx / zero in esi (orig swapped), fmul placement between GetVector2 calls, ev/off slots.
 void StageSoundLoader::LoadSounds()
 {
     FLD(int, 0x15f8) = 0;
@@ -143,7 +144,7 @@ void StageSoundLoader::LoadSounds()
             Event1Delay[5] = Event1File[5];
             path.AssignOut("data/soundfx/", strlen("data/soundfx/"));
             path.AppendCString(cfg.GetString(Event1File));
-            AmbientSound* e = (AmbientSound*)((char*)ev + off);
+            AmbientSound* e = ev + i;
             Sample* smp = DAT_0056b0b0->LoadSample(path.c_str());
             *(Sample**)((unsigned char*)e + 0x70) = smp;
             e->SetSample(smp);
@@ -157,27 +158,21 @@ void StageSoundLoader::LoadSounds()
         cfg.Close();
     }
     std::string fx;
-    SurfSlot* roll = (SurfSlot*)((unsigned char*)this + 0x1608);
-    std::string* name = &FLD(std::string, 0x23c8);
-    for (int i = 15; i != 0; i--, name++, roll++) {
+    for (int k = 0; k < 15; k++) {
+        std::string* name = (std::string*)((unsigned char*)this + 0x23c8) + k;
+        V2* pm = (V2*)((unsigned char*)this + 0x160c + k * 0x2c);
         if (name->length() >= 2) {
             base.AssignB("data/global/surfacesounds/");
             base.AppendString(*name);
             cfg.Define(SurfaceKeys, 0x1e);
             cfg.Load(base.c_str(), true, false, 0);
             base.AssignB("data/soundfx/");
-            SurfSlot* s = roll;
-            SURF_SET(s, "Roll")
-            s = roll + 16;
-            SURF_SET(s, "Ground")
-            s = roll + 32;
-            SURF_SET(s, "Slide")
-            s = roll + 48;
-            SURF_SET(s, "Brake")
-            s = roll + 64;
-            SURF_SET(s, "Acc")
+            SURF_SET(0, "Roll")
+            SURF_SET(1, "Ground")
+            SURF_SET(2, "Slide")
+            SURF_SET(3, "Brake")
+            SURF_SET(4, "Acc")
             cfg.Close();
         }
     }
-    Bal(1); Bal(1); Bal(1); Bal(1); Bal(1); Bal(1); Bal(1); Bal(1); Bal(1); Bal(1);   // inline budget
 }
