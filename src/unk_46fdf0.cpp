@@ -1011,8 +1011,10 @@ inline WORD EmitVertex(WORD* slot, ShadowVertex* src)
     if (n == 0xffff) {
         n = (WORD)g_shadowVertexBase;
         *slot = n;
-        *(Vec3*)g_shadowVertexOut = *(Vec3*)src;
-        *(Vec3*)g_shadowVertexOut += *(Vec3*)&src->nx * 0.005f;
+        g_shadowVertexOut->x = src->x;
+        g_shadowVertexOut->y = src->y;
+        g_shadowVertexOut->z = src->z;
+        *(Vec3*)g_shadowVertexOut += *(Vec3*)&(*(ScenePoint*)&src->nx * 0.005f);
         Vec3 dd(*(Vec3*)src);
         dd -= g_shadowSphere.centre;
         g_shadowVertexOut->colour[2] = g_shadowLutR[src->colour[2]];
@@ -1040,6 +1042,7 @@ inline WORD EmitVertex(WORD* slot, ShadowVertex* src)
 // Frame/register scheduling remains different (target: Evidence above).
 // Tried 2026-10-30 night: 249->203 insns differ with a second induction pointer into the face sphere (cp = &f->cx, += 8 floats) and an explicit begin()?end()-begin():0 count; the o.x/y/z store order, countdown loop, per-use idx[k], volatile count/idx and count if/else forms did not help; still differs in register allocation (target keeps i in ebp, obj in edi, count in a stack slot) and the o locals sit 4 bytes lower than the target's.
 // Re-pass 2026-11-01: 203->201 insns by anchoring the face cursor at &f->cz (target: ebp = f+0x18, centre at cp[-2..0], radius cp[1]); 16 variants (volatile f/cp/count, store orders, decl orders, f re-derived from cp) did not help; f/i/j/count live in stack slots in the target while ours keeps them in regs.
+// Pass 2026-11-13: 250 -> 186 insns differ (1782 -> 1770 bytes): ScenePoint operator* in EmitVertex (calls now match), component-wise position copy, count as explicit if/else, i1/i2 re-read from idx, plane-0 sum as one expression; remaining: loop-head spills (target keeps i/count/f in stack slots, obj in edi), slot lea CSE in the inlined EmitVertex, vertexBase load before the branch, tail counter schedule.
 // original: FUN_00471ab0 (project the caster meshes into the shadow plane)
 void ParallelShadow::ProjectMeshes(ShadowCaster* obj)
 {
@@ -1047,7 +1050,8 @@ void ParallelShadow::ProjectMeshes(ShadowCaster* obj)
     obj->meshList.At(i);
     ShadowFaceTable* table = obj->faceTable;
     ShadowMeshNode* node = obj->meshList.At(i);
-    unsigned count = node->meshes.begin() ? node->meshes.end() - node->meshes.begin() : 0;
+    unsigned count;
+    if (node->meshes.begin() == 0) count = 0; else count = node->meshes.end() - node->meshes.begin();
     for (; i < count; i++) {
         ShadowMesh* mesh = node->meshes[i];
         if (mesh->info->type != 1) {
@@ -1091,8 +1095,7 @@ void ParallelShadow::ProjectMeshes(ShadowCaster* obj)
             ShadowVertex* v2 = verts + (WORD)i2;
             for (int k = 0; k < 3; k++) {
                 ShadowPlane* pl = &g_shadowPlanes[k];
-                float plane0 = pl->nx * v0->x + v0->y * pl->ny;
-                if (plane0 + v0->z * pl->nz - pl->d > 0.0f
+                if (pl->nx * v0->x + v0->y * pl->ny + v0->z * pl->nz - pl->d > 0.0f
                     && v1->z * pl->nz + v1->y * pl->ny + pl->nx * v1->x - pl->d > 0.0f
                     && v2->z * pl->nz + v2->y * pl->ny + pl->nx * v2->x - pl->d > 0.0f) {
                     goto skip;
