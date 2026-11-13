@@ -12,7 +12,7 @@ extern void __cdecl PoolFree(void* p);              // 0x4bd000 (operator delete
 struct AStr {
     std::allocator<char> alloc; char* ptr; unsigned int len; unsigned int res;
     void Assign(const char* s, unsigned int n);
-    AStr(const char* s, const std::allocator<char>& al = std::allocator<char>()) : alloc(al) { ptr = 0; len = 0; res = 0; Assign(s, strlen(s)); }
+    AStr(char* const& s, const std::allocator<char>& al = std::allocator<char>()) : alloc(al) { ptr = 0; len = 0; res = 0; Assign(s, strlen(s)); }
     ~AStr() {}
 };
 #pragma comment(linker, "/alternatename:?Assign@AStr@@QAEXPBDI@Z=?assign@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@QAEAAV12@PBDI@Z")
@@ -38,6 +38,7 @@ static inline int Bal(int a) { return a + 1; }
 // reason: first draft; inlined throw/string construction and loop scheduling unverified
 // Tried 2026-10-31: per-site ALLOC macro (inline logic_error throw; AStr = inline zeroing + out-of-line assign for sites 1-6/fmt10, CStr = out-of-line _Grow/_Eos for the fmt0 site), 8 discarded Bal(1) at function end (inline budget), n computed per branch, PoolFree(src) not advanced s (fixes a behavioural bug), copy pointers dd/s; 572->~380 insns, size 2314 vs 2302. Bit-mask expansions were already right. Still differs: loop pointer/temp registers (original keeps s in ecx, d in edx, v in eax) and prologue eax/ecx choices.
 // Tried 2026-11-01 re-pass: ~35 variants (Bal(1) start x end grid saturates, s declared per branch/after ALLOC, src as fmt-slot reference, volatile src/PoolFree(src), s via &src[0]/casts/second local, indexed src loops); none beat baseline 381 insns differ. Original keeps src in ebp only to copy it into s (ecx, d copy in edx) then reuses ebp as a temp and reloads src from its slot; VC6 coalesces s with src (s=ebp) in every form tried.
+// Tried 2026-11-13 pass (Sonnet): 381 -> 200 insns differ (2314 -> 2320 bytes, 1622 -> 1476 differing): fmt3 copy loop as three *dd++ = *sb++ plus sb++ with a separate unsigned char* sb (s copy now in ecx like the original); AStr takes char* const& (global read lazily, byte copy before the load); explicit fmt==7 branch before fmt==10 (VC6 tail-merges the bpp/pixels stores); fmt10 test via local v; fmt0 loop via sp copy and v temp, palette stores in order 0,1,2; fmt1 sp copy before ALLOC. Rejected: inline Pk helpers for loops (all arg orders), sp copies in fmt2/5/6, sp after ALLOC (src reloaded from slot, n in ebp), for-init copies. Remaining: original keeps src in ebp until the per-branch copy (mov ecx,ebp) then reuses ebp as loop temp; register choice (al/cl, eax/ecx) in the 8 throw blocks; fmt1 site 3 bytes longer.
 void __fastcall ConvertImageFormat(ImgW5* img, int edx, unsigned int fmt)
 {
     if (fmt == (unsigned int)img->format) return;
@@ -48,12 +49,13 @@ void __fastcall ConvertImageFormat(ImgW5* img, int edx, unsigned int fmt)
     img->pixels = 0;
     unsigned int* s = src;
     if (fmt == 1) {
+        unsigned int* sp = s;
         int n = img->height * img->width;
         img->format = 1; img->bytesPerPixel = 2; img->bpp = 16;
         unsigned short* d; ALLOC(d, unsigned short, n * 2);
         unsigned short* dd = d;
         for (; n > 0; n--) {
-            unsigned int v = *s++;
+            unsigned int v = *sp++;
             *dd++ = (unsigned short)((v >> 9) & 0x7c00 | (v >> 6) & 0x3e0 | (v >> 3) & 0x1f);
         }
         PoolFree(src);
@@ -71,13 +73,8 @@ void __fastcall ConvertImageFormat(ImgW5* img, int edx, unsigned int fmt)
         int n = img->height * img->width;
         img->format = 3; img->bytesPerPixel = 3; img->bpp = 24;
         unsigned char* d; ALLOC(d, unsigned char, n * 3);
-        unsigned char* dd = d;
-        for (; n > 0; n--) {
-            dd[0] = ((unsigned char*)s)[0];
-            dd[1] = ((unsigned char*)s)[1];
-            dd[2] = ((unsigned char*)s)[2];
-            dd += 3; s++;
-        }
+        unsigned char* dd = d; unsigned char* sb = (unsigned char*)s;
+        for (; n > 0; n--) { *dd++ = *sb++; *dd++ = *sb++; *dd++ = *sb++; sb++; }
         PoolFree(src);
     } else if (fmt == 5) {
         int n = img->height * img->width;
@@ -99,6 +96,11 @@ void __fastcall ConvertImageFormat(ImgW5* img, int edx, unsigned int fmt)
             *dd++ = (unsigned short)((v >> 16) & 0xf000 | (v >> 12) & 0xf00 | (v >> 8) & 0xf0 | (v >> 4) & 0xf);
         }
         PoolFree(src);
+    } else if (fmt == 7) {
+        img->format = 7;
+        img->bytesPerPixel = 4;
+        img->bpp = 32;
+        img->pixels = (unsigned char*)src;
     } else if (fmt == 10) {
         int h = img->height;
         int rowBytes = (img->width + 7) >> 3;
@@ -107,7 +109,8 @@ void __fastcall ConvertImageFormat(ImgW5* img, int edx, unsigned int fmt)
         memset(d, 0, h * rowBytes);
         for (int y = img->height; y > 0; y--) {
             for (int x = 0; x < img->width; x++) {
-                if (*s++ & 0x80000000)
+                unsigned int v = *s++;
+                if (v & 0x80000000)
                     d[x >> 3] |= (unsigned char)(1 << (x & 7));
             }
             d += rowBytes;
@@ -117,14 +120,14 @@ void __fastcall ConvertImageFormat(ImgW5* img, int edx, unsigned int fmt)
         int n = img->height * img->width;
         img->format = 0; img->bytesPerPixel = 1; img->bpp = 8;
         unsigned char* d; ALLOC0(d, unsigned char, n);
-        unsigned char* dd = d;
-        for (; n > 0; n--) *dd++ = (unsigned char)(*s++ >> 8);
+        unsigned char* dd = d; unsigned int* sp = s;
+        for (; n > 0; n--) { unsigned int v = *sp++; *dd++ = (unsigned char)(v >> 8); }
         unsigned char* p = (unsigned char*)PoolAlloc(0x300);
         img->palette = p;
-        for (int i = 0; i < 256; i++, p += 3) p[0] = p[1] = p[2] = (unsigned char)i;
+        for (int i = 0; i < 256; i++, p += 3) { p[0] = (unsigned char)i; p[1] = (unsigned char)i; p[2] = (unsigned char)i; }
         PoolFree(src);
     } else {
-        img->format = (fmt == 7) ? 7 : 4;
+        img->format = 4;
         img->bytesPerPixel = 4;
         img->bpp = 32;
         img->pixels = (unsigned char*)src;

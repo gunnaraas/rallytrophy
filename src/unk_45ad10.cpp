@@ -1046,12 +1046,12 @@ struct W7_Car {
 
 // ---- functions in address order ----
 // NONMATCHING: RALLYTROPHY 0x45ad40
-// Best tested form: 1402/1404 bytes, 696 differing bytes. Making Camber's rear reference height volatile improves
-// the FPU/stack schedule; volatile Toe reference/base/output values, a volatile one-time reference store, and factoring
+// Best tested form: 1402/1404 bytes, 696 differing bytes. Making Camber's rear reference height improves
+// the FPU/stack schedule; Toe reference/base/output values, a one-time reference store, and factoring
 // the Toe base after its branch are worse. Other differences remain in the toe
 // blocks, wheel-matrix stack slots, and the target's hoisted 1.0f register. Evidence: ev_44efd80de74fa57abbe051afd7c89aabb5cbbfca52bc9ff6c566f2d37ba828ec.
 // Tried 2026-10-30 night: hand-inlined Toe/Camber using the dt param slot as the ref temp (matches orig [ebp+8]) with base/spring1 copied to locals, and reloading wheel damage per use (114->73 insns differ); still differs: orig keeps x and spring0/base on the FPU stack across the steer math (slot/frame 0x20 vs 0x1c), a/x/y declaration order and wheel-ptr hoisting had no effect.
-// Tried 2026-11-01 re-pass: volatile loads of spring0/toeBase into locals (all-operands-first fld) plus reusing tb as the y accumulator (y stored in the toe-base slot) 73->53 insns differ; still differs: orig interleaves the tb/sp1 int spills with the flds, frame 0x20 vs 0x1c, and wheel-matrix temp slots.
+// Tried 2026-11-01 re-pass: loads of spring0/toeBase into locals (all-operands-first fld) plus reusing tb as the y accumulator (y stored in the toe-base slot) 73->53 insns differ; still differs: orig interleaves the tb/sp1 int spills with the flds, frame 0x20 vs 0x1c, and wheel-matrix temp slots.
 void Car::UpdateSteering(float dt)
 {
     W3_CarView* v = (W3_CarView*)this;
@@ -1081,7 +1081,7 @@ void Car::UpdateSteering(float dt)
     float x;
     float tb = v->toeBase;
     float sp1 = v->spring[1].value;
-    float s0 = *(volatile float*)&v->spring[0].value; float tb0 = *(volatile float*)&v->toeBase;
+    float s0 = v->spring[0].value; float tb0 = v->toeBase;
     dt = v->frontRef[v->tuning];
     if (s0 < dt) x = (dt - s0) * v->frontIn[v->tuning] * v->toeIn + tb0;
     else x = (s0 - dt) * v->frontOut[v->tuning] * v->toeOut + tb0;
@@ -1675,6 +1675,7 @@ void Car::ApplySuspensionForces()
     }
 }
 
+inline float W6_Rd(const float* p) { return *p; }
 // NONMATCHING: RALLYTROPHY 0x45c700
 // original: FUN_0045c700. Current candidate: 1128/1144 bytes, 868 differing bytes outside relocations. Loading the
 // target's 1.0f at 0x4e1c1c through a volatile read reproduces its `fld [constant]; fadd rideTop` order; reading
@@ -1683,6 +1684,7 @@ void Car::ApplySuspensionForces()
 // and hoisting zero in ECX for the contact flag. Evidence: ev_af5f5586f35ae18eb2ec962f2895369e53df17277d2c787e5bd8b75f92d812f0.
 // Tried 2026-10-30 night: Surface() args fixed to nz-2/nz+0x78/4/nz+0x48/4 (original disasm: base-8,+0x48,+0x78; was off by 8 bytes); rideHeight int-copy, lx/lz int-copy loads, local/world hoisted, dir default-ctor, swapped surfP/nz decls, nz-2 cast forms: no gain (176 insns); still differs: orig keeps only nz (not nz-2) as loop pointer, EH state 3 at Trace (ours 2), dist<rideTop branch layout without hoisted xor ecx.
 // Tried 2026-11-01 re-pass: W6_Body::depth was at 0x234 (bogus pad), fixed to 0x230; volatile loop pointers surfP/nz (original reloads both from slots, no hoisted nz-2) and a volatile int copy of rideHeight after rideTop took 176->136 insns; ~35 variants of body->depth/comp order, empty-dtor locals, dist flag layout, rideHeight/radius slot forms gave no more; still differs: radius/loadForce slot numbers, EH state 3 at Trace (ours 2), original loads depth first in comp (fld depth; fld st(1)), dist<rideTop branch without hoisted xor ecx.
+// Pass 2026-11-13: 114 -> 103 insns differ (1134 -> 1152 bytes, orig 1144): W6_Rd() inline read of r[-3] reproduces the original's `fld min; fld ly; fsub st,st(1)`, local.y set after the t compute (local.x/z first), `dir.x *= (k = -t)`, vNew = V - (s*dt)*invMass. Open: a variant dropping the `ly` local (use wp[-1]) and caching Surface's nz in a local is structurally closer (582 vs 670 differing bytes, 1140 bytes) but shifts one frame slot (127 raw insns); original keeps vNew and t in separate slots.
 // Per wheel: ground ray cast, suspension integration step (explicit spring/damper/bump stop), surface lookup.
 void Car::UpdateWheelContact()
 {
@@ -1698,9 +1700,9 @@ void Car::UpdateWheelContact()
         int rhi = *(volatile int*)&c->rideHeight;
         Vec3 local;
         local.x = wp[-2];
-        local.y = wp[-1] + radius;
         local.z = wp[0];
         float t = *(volatile float*)0x004e1c1c + rideTop;
+        local.y = wp[-1] + radius;
         const float* matrix = c->body->rotation;
         const float* point = (const float*)&local;
         Vec3 world;
@@ -1708,8 +1710,8 @@ void Car::UpdateWheelContact()
         float* result = (float*)&world;
         W6_XFORM_ROW();
         Vec3 dir = *(Vec3*)&c->body->rotation[4];
-        float k = -t;
-        dir.x *= k;
+        float k;
+        dir.x *= (k = -t);
         dir.y *= k;
         dir.z *= k;
         world.x += c->body->position[0];
@@ -1742,32 +1744,30 @@ void Car::UpdateWheelContact()
         }
         s += loadForce;
         float prev = wp[-0x114 / 4];
-        float q = s * c->dt;
-        q = q * c->invMass;
-        float vNew = V - q;
+        float vNew = V - (s * c->dt) * c->invMass;
         float pNew = vNew * c->dt + prev;
         float ly = wp[-1];
         float t2 = ly - x;
         float a = (t2 - prev) * c->invDt;
         float vel;
         if (t2 < pNew) {
-            if (pNew <= ly - r[-3]) {
+            if (pNew <= ly - W6_Rd(&r[-3])) {
                 t2 = pNew;
                 ((int*)wp)[0x16c / 4] = 0;
                 vel = vNew;
             } else {
                 ((int*)wp)[0x16c / 4] = 0;
                 vel = (float)fabs(vNew) * -0.7f;
-                t2 = ly - r[-3];
+                t2 = ly - W6_Rd(&r[-3]);
             }
         } else {
-            if (t2 > ly - r[-3]) {
+            if (t2 > ly - W6_Rd(&r[-3])) {
                 if (a < 0.0f) {
                     a = 0.0f;
                 } else if (a > 10.0f) {
                     a = 10.0f;
                 }
-                t2 = ly - r[-3];
+                t2 = ly - W6_Rd(&r[-3]);
             }
             if (hFrac == 1.0f) {
                 a = 0.0f;
@@ -1818,6 +1818,7 @@ void Car::SetupBrakes()
 // original: FUN_0045cc30 (Car::Reset / PlaceOnTrack: clear the per-race state, place the car at `start` with the
 // orientation `world`, drop it onto the terrain and settle the suspension with 100 physics steps)
 // NONMATCHING: RALLYTROPHY 0x45cc30
+// Pass 2026-11-13: 251 -> 178 insns differ (1912 -> 1025 bytes, 3635 -> 3631/3623). hit[] is a plain local BYTE array (the world-slot volatile alias was wrong: it also aliased the original's dword load + test al/ah), dir.x *= (k = -kRay) keeps k in the x87 stack as the original, `float top` local before g = localY - top, q->mode store non-volatile. Rejected: rideHeight local (worse, 197-237), spring top as double expression (194), rr/normalZ/q decl moves, trans/pos store orders, v1408 non-volatile (180).
 // Current candidate: 3635/3623 bytes, 1947 differing bytes outside relocations (baseline: 3581/3623, 2573 differences).
 // Tried 2026-10-30 night: k1414/v1408 store order swapped, wheel-reset loop forms (ptr/dec/block counter), hoisting best/h/mn/mx/rr decls (worse), sphere decl moved after pos (262->253 insns); first-loop counter still gets its own slot (orig shares ebp-0x14 with the h pointer) and query-box store schedule still differs.
 // A volatile induction pointer to &hitNormal[0].z (passing normalZ-2) aligns the final wheel loop and target frame;
@@ -1918,7 +1919,7 @@ void Car::FUN_0045cc30(StartPosition* start, void* world)
     mx.z = sphere.center.z + r;
     W7_Query* q = &v->query;
     q->Erase(v->query.first, v->query.last);
-    *(volatile int*)&q->mode = 0x11;
+    q->mode = 0x11;
     *(W7_Sphere* volatile*)((BYTE*)this + 0x145c) = &sphere;
     q->minX = mn.x;
     q->maxX = mx.x;
@@ -1932,7 +1933,7 @@ void Car::FUN_0045cc30(StartPosition* start, void* world)
         float best = W7_kRay + W7_kRay;
         float lowDrop = 0.0f;
         float h[4];
-        volatile BYTE* hit = (volatile BYTE*)&world;
+        BYTE hit[4];
         for (i = 0; i < 4; i++) {
             Vec3 wp;
             {
@@ -1945,8 +1946,8 @@ void Car::FUN_0045cc30(StartPosition* start, void* world)
             wp.y += body->pos.y;
             wp.z += body->pos.z;
             Vec3 dir(body->up);
-            float k = -W7_kRay;
-            dir.x *= k;
+            float k;
+            dir.x *= (k = -W7_kRay);
             dir.y *= k;
             dir.z *= k;
             float r = q->Cast(v->rideHeight, &wp, &dir, 0, 0);
@@ -2019,8 +2020,8 @@ void Car::FUN_0045cc30(StartPosition* start, void* world)
         wp.y += body->pos.y;
         wp.z += body->pos.z;
         Vec3 dir(body->up);
-        float k = -W7_kRay;
-        dir.x *= k;
+        float k;
+        dir.x *= (k = -W7_kRay);
         dir.y *= k;
         dir.z *= k;
         float r = q->Cast(v->rideHeight, &wp, &dir, 0, 0);
@@ -2075,7 +2076,8 @@ void Car::FUN_0045cc30(StartPosition* start, void* world)
                 e = 0.0f;
         }
         float f = w->localY - e;
-        float g = w->localY - v->spring[i].top;
+        float top = v->spring[i].top;
+        float g = w->localY - top;
         if (f > g)
             f = g;
         v->spring[i].lower = w->localY - f;

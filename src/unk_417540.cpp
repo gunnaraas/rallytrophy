@@ -87,14 +87,21 @@ struct AnimTrace {                                      // the hit collector at 
     int mode;                                           // 0x30
 };
 
+struct E24 { float f[9]; };
+struct V24 {
+    int alloc; E24* first; E24* last; E24* end;
+    unsigned int size() const { return (first == 0 ? 0 : (unsigned int)(last - first)); }
+};
+
 #define F(o, t) (*(t*)((BYTE*)this + (o)))
 #define DIR (*(AVec*)((BYTE*)this + 0x1390))
 #define POS (*(AVec*)((BYTE*)this + 0x1378))
 #define REC(i) ((float*)(F(0x13ac, int) + (i) * 0x24))
 
 // NONMATCHING: RALLYTROPHY 0x417540
-// Tried 2026-10-30 night: int tests for rec[8], <=0 / !(<) guards, d > inner, dz*dz+dx*dx order (423->410), volatile off, int idx, car decl position; original keeps idx in ebx and i in edi with no record-pointer strength reduction, ours spills idx and hoists edi, so the whole register map and frame (0x90 vs 0xa0) differ.
-// Tried 2026-11-01 re-pass: volatile spill of r2, int/unsigned i, px/pz load order and int-copy, local decl orders (car/idx/local30), indexed record pointer, Bal(1) sweep 1-10 at start (no effect, nothing inlined differently); all stay 409-413 insns differ (410 base) since the original has no hoisted record pointer and a different lo/hi/trace store order.
+// Tried 2026-10-30 night: int tests for rec[8], <=0 / !(<) guards, d > inner, dz*dz+dx*dx order (423->410), off, int idx, car decl position; original keeps idx in ebx and i in edi with no record-pointer strength reduction, ours spills idx and hoists edi, so the whole register map and frame (0x90 vs 0xa0) differ.
+// Tried 2026-11-01 re-pass: spill of r2, int/unsigned i, px/pz load order and int-copy, local decl orders (car/idx/local30), indexed record pointer, Bal(1) sweep 1-10 at start (no effect, nothing inlined differently); all stay 409-413 insns differ (410 base) since the original has no hoisted record pointer and a different lo/hi/trace store order.
+// 2026-11-13 pass: record loop via a vector-style V24::size() (first==0?0:last-first) fixes the register map (idx ebx, i edi, no hoisted base); r[2] read via int copy, DIR copied member-wise, local30 declared in the block, r0 pointer for the rec[8] test: 396 -> 369 insns differ, 2267 -> 2292 bytes. Left: floor/ph (original keeps a float ph temp, ours a double temp), dv/POS copies, x87 order in Length.
 // 2256 vs 2332 bytes; the nine calls and the cleanup states (0, 3, 5, 8 stored; nine Vec3-like locals in the
 // original's order: dv, lo, hi, sphere, a, b, n1, n2, down) match, and the record lerp / box / sample points are
 // vector operations as in the original. Left: register allocation (the original keeps the record pointer in edi
@@ -103,7 +110,6 @@ void Stage::FUN_00417540(Player* player, int time, int dt)
 {
     int car = *(int*)((BYTE*)player + 0x28);
     unsigned int idx = 0xffffffff;
-    int local30 = 0;
     float* r;
     float rate;
     float f4;
@@ -111,6 +117,7 @@ void Stage::FUN_00417540(Player* player, int time, int dt)
 
     if (F(0x136c, int) == -1) {
         unsigned int i = 0;
+        int local30 = 0;
         if (F(0x13ec, int) == 2) {
             if (F(0x13f0, int) <= 0) goto tail;
             if (!(F(0x13f4, int) < F(0x13f0, int))) F(0x13f4, int) = 0;
@@ -118,7 +125,8 @@ void Stage::FUN_00417540(Player* player, int time, int dt)
             int tk = F(0x13fc + k * 8, int);
             if (time + dt <= tk) goto tail;
             idx = F(0x13f8 + k * 8, unsigned int);
-            if (*(int*)&REC(idx)[8] == 0) goto tail;
+            float* r0 = REC(idx);
+            if (*(int*)&r0[8] == 0) goto tail;
             local30 = (time - tk) + dt;
             F(0x13f4, int) = k + 1;
         } else {
@@ -129,11 +137,13 @@ void Stage::FUN_00417540(Player* player, int time, int dt)
             float dd = F(0x240, float) - F(0x244, float);
             float inner = dd * dd;
             int off = 0;
-            for (; F(0x13ac, int) != 0 && i < (unsigned int)((F(0x13b0, int) - F(0x13ac, int)) / 0x24); i++) {
+            V24& vec = *(V24*)((BYTE*)this + 0x13a8);
+            for (; i < vec.size(); i++) {
                 float* p = (float*)(F(0x13ac, int) + off);
                 if (*(int*)(F(0x13ac, int) + 0x20 + off) != 0) {
-                    float dz = p[2] - pz;
                     float dx = p[0] - px;
+                    float pz2; *(int*)&pz2 = *(int*)&p[2];
+                    float dz = pz2 - pz;
                     float d = dz * dz + dx * dx;
                     if (d < r2 && d > inner && d < best) {
                         idx = i;
@@ -142,8 +152,7 @@ void Stage::FUN_00417540(Player* player, int time, int dt)
                 }
                 off += 0x24;
             }
-        }
-        if (idx != 0xffffffff) {
+        }        if (idx != 0xffffffff) {
             int mode = F(0x13ec, int);
             r = REC(idx);
             r[8] = 0.0f;
@@ -158,7 +167,9 @@ void Stage::FUN_00417540(Player* player, int time, int dt)
             F(0x139c, int) = 0;
             F(0x13a0, int) = 0;
             F(0x1394, int) = 0;
-            DIR = *(AVec*)&r[3];
+            DIR.x = r[3];
+            DIR.y = r[4];
+            DIR.z = r[5];
             DIR -= *(AVec*)&r[0];
             F(0x136c, unsigned int) = idx;
             F(0x1374, int) = 1;
@@ -203,9 +214,9 @@ tail:
         // the original rounds the phase to float in the dead dt slot ([ebp+0x10]) before subtracting floor
         float& ph = *(float*)&dt;
         f4 = (f5 * F(0x23c, float) * rate) / F(0x234, float) + F(0x13a0, float);
-        *(volatile float*)&ph = f4;
+        ph = f4;
         F(0x13a0, float) = f4;
-        F(0x13a0, float) = (float)(*(volatile float*)&ph - floor(f4));
+        F(0x13a0, float) = (float)(ph - floor(f4));
         f5 = f5 * rate + F(0x139c, float);
         f4 = r[6];
         F(0x139c, float) = f5;

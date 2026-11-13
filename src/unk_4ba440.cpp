@@ -135,7 +135,6 @@ inline void Rot(float* o, const float* p, const float* m)
     }
 }
 
-struct P3 { float x, y, z; P3 operator*(float s) const; }; // 0x40b0c0
 extern float DAT_004e134c;
 extern float DAT_004e1348;
 
@@ -474,16 +473,17 @@ void SegmentInfo::Update()
 // NONMATCHING: RALLYTROPHY 0x4ba620
 // Semantics complete (inline-asm Xform/Rot, EBP frame). 66->47 insns differ: i-indexed loop over planes/tplanes + if/else idx stores.
 // Tried 2026-10-31 re-pass: ~35 variants (param-slot counter, q-pointer vs indexed, ternary vs if/else, 6 dot orders (original y,z,x kept), while/!= loops, t hoisted, a/c tail forms, volatile self); still differs: original has one induction pointer q with jmp-to-test loop and lea of P/T after the first Xform, esi/edi prologue swapped, tail a/c in stack temps.
+// 2026-11-13 pass 2: 16 -> ~7 insns (37 bytes differ): Rot arg P/T inline, tail a/c as a ScenePoint w (stack slots shared with t) + float f copy of farD; still missing the kept stores of w.x/w.y (original does fstp/fld of both). 2026-11-13 pass 1: 44 -> 16 insns differ (500 -> 505 vs 523 bytes): ScenePoint (header) operator* for the 0x40b0c0 call, P/T locals declared after XformSelf and Rot called with &tplanes[4*i] inline. Remaining: Rot slot stores in m,p,o order (ours p,m,o; param permutations did not change it), a/c tail kept in stack temps in the original (volatile/array/ref/address-taken forms all worse).
 void ViewFrustum::Init(FrustumDevice* device)
 {
     ViewFrustum* self = this;
     device->SetupFrustum(this);
     camera = device->GetCameraMatrix();
     for (int i = 0; i < 6; i++) {
-        float* P = &planes[4*i]; float* T = &tplanes[4*i];
-        P3 t = *(P3*)P * P[3];
+        ScenePoint t = *(ScenePoint*)&planes[4*i] * planes[4*i+3];
         XformSelf(&t.x, &t.x, self->camera);
-        Rot(T, P, self->camera);
+        float* P = &planes[4*i]; float* T = &tplanes[4*i];
+        Rot(&tplanes[4*i], &planes[4*i], self->camera);
         float q = t.y * T[1];
         q = t.z * T[2] + q;
         q = t.x * T[0] + q;
@@ -494,11 +494,10 @@ void ViewFrustum::Init(FrustumDevice* device)
     }
     farD = -planes[7];
     nearD = planes[3];
-    float a = planes[10];
-    float c = planes[18];
-    a = a * farD;
-    c = c * farD;
-    radius = (float)sqrt(c * c + farD * farD + a * a);
+    ScenePoint w(planes[10], planes[18], 0.0f);
+    float f = farD;
+    w.x = w.x * f; w.y = w.y * f;
+    radius = (float)sqrt(w.y * w.y + f * f + w.x * w.x);
 }
 
 // A vector with an empty destructor and the out-of-line operator- (0x414330): the live copy gives the original its EH frame.

@@ -13,12 +13,41 @@ __declspec(dllimport) int __stdcall BinkSetVolume(void*, int);
 __declspec(dllimport) int __stdcall BinkGetSummary(void*, void*);
 }
 extern int DAT_00501448;   // volume setting (0..100 scaled)
+struct CStr {
+    std::allocator<char> alloc; char* ptr; unsigned int len; unsigned int res;
+    bool Grow(unsigned int n, bool trim);
+    void Eos(unsigned int n);
+    CStr(const char* s, const std::allocator<char>& al = std::allocator<char>()) : alloc(al) {
+        ptr = 0; len = 0; res = 0;
+        unsigned int n = strlen(s);
+        if (Grow(n, true)) { memcpy(ptr, s, n); Eos(n); }
+    }
+    CStr(const char* s, int, const std::allocator<char>& al = std::allocator<char>()) : alloc(al) {
+        ptr = 0; len = 0; res = 0;
+        unsigned int n = strlen(s);
+        if (Grow(n, true)) { memcpy(ptr, s, n); len = n; ptr[n] = 0; }
+    }
+    ~CStr() {}
+};
+#pragma comment(linker, "/alternatename:?Grow@CStr@@QAE_NI_N@Z=?_Grow@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAE_NI_N@Z")
+#pragma comment(linker, "/alternatename:?Eos@CStr@@QAEXI@Z=?_Eos@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEXI@Z")
+struct ErrStr {
+    std::allocator<char> alloc; char* ptr; unsigned int len; unsigned int res;
+    void Assign(const CStr& x, unsigned int pos, unsigned int n);
+    ErrStr(const CStr& x) : alloc(x.alloc) { ptr = 0; len = 0; res = 0; Assign(x, 0, std::string::npos); }
+    ~ErrStr();
+};
+#pragma comment(linker, "/alternatename:?Assign@ErrStr@@QAEXABUCStr@@II@Z=?assign@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@QAEAAV12@ABV12@II@Z")
+class ColLogicError : public std::exception {
+public:
+    ColLogicError(const CStr& s) : std::exception(""), str(s) {}
+    virtual ~ColLogicError();
+    ErrStr str;
+};
+struct EmptyCall { void Run(); };   // folded empty function 0x48e660
 #define F(T, o) (*(T*)((BYTE*)this + (o)))
 
-// NONMATCHING: RALLYTROPHY 0x4097a0
-// reason: first draft; exception handling (std::logic_error vs original string-exception class 0x4e2c78) and new-expression scheduling unverified
-// Tried 2026-10-30 night: real binkw32 dllimports (BinkSetSoundTrack/SetIOSize/Open/SetVolume/GetSummary) replace the DAT_0059b2f8 casts, int volume divide, std::string+logic_error throw forms, inline_depth 0-8; imports/divide now match but the throw string temp (original _Grow+out-of-line _Eos then exception ctor) and the new-expression/EH-state layout still differ (337 insns, 2276 vs 2203 bytes).
-// Tried 2026-11-01 re-pass: BStr overlay (inline zero + out-of-line Grow/Eos, allocator byte copy) on all or only the first throw matches the first throw prologue/Grow/Eos shape but grows the function (394 insns differ vs 337, 2368 bytes) because the other logic_error copies inline; Bal(1) x2-13, inline_depth 0-4, partial BStr sites (11 variants) no help; the original keeps its exception temps in lower slots (frame 0x60 vs ours 0x64).
+// FUNCTION: RALLYTROPHY 0x4097a0
 BinkVideo::BinkVideo(const char* name, RenderDevice* device, int flags)
 {
     F(int, 0xa8) = 0;
@@ -33,7 +62,7 @@ BinkVideo::BinkVideo(const char* name, RenderDevice* device, int flags)
     void* h = BinkOpen(name, bf | 0x1000000);
     F(void*, 0x9c) = h;
     if (h == 0) {
-        throw std::logic_error("Cannot open video");
+        throw ColLogicError(CStr("Cannot open video"));
     }
     if (flags != 0) {
         BinkSetVolume(h, (DAT_00501448 << 15) / 100);
@@ -44,11 +73,9 @@ BinkVideo::BinkVideo(const char* name, RenderDevice* device, int flags)
     VidDevice* dev = *(VidDevice**)((BYTE*)device + 0x20);
     F(int, 4) = width;
     F(int, 8) = height;
-    int fmt = dev->PickFormat(4, 0);
-    F(int, 0) = fmt;
-    if (fmt != 4) {
-        fmt = dev->PickFormat(2, 6);
-        F(int, 0) = fmt;
+    F(int, 0) = dev->PickFormat(4, 0);
+    if (F(int, 0) != 4) {
+        F(int, 0) = dev->PickFormat(2, 6);
     }
     if (width == 0x140 && height == 0xf0) {
         F(int, 0xc) = 2;
@@ -74,25 +101,24 @@ BinkVideo::BinkVideo(const char* name, RenderDevice* device, int flags)
         F(Sprite*, 0x14) = new Sprite;
         F(Sprite*, 0x18) = new Sprite;
         F(Sprite*, 0x1c) = new Sprite;
-        int f = F(int, 0);
-        s0->texture = dev->MakeTexture(new Texture("avi0"), f, 0x100, 0x100, 0x15);
-        F(Sprite*, 0x14)->texture = dev->MakeTexture(new Texture("avi1"), f, 0x100, 0x100, 0x15);
-        F(Sprite*, 0x18)->texture = dev->MakeTexture(new Texture("avi2"), f, 0x100, 0x80, 0x15);
-        F(Sprite*, 0x1c)->texture = dev->MakeTexture(new Texture("avi3"), f, 0x100, 0x80, 0x15);
+        s0->texture = dev->MakeTexture(new Texture("avi0"), F(int, 0), 0x100, 0x100, 0x15);
+        F(Sprite*, 0x14)->texture = dev->MakeTexture(new Texture("avi1"), F(int, 0), 0x100, 0x100, 0x15);
+        F(Sprite*, 0x18)->texture = dev->MakeTexture(new Texture("avi2"), F(int, 0), 0x100, 0x80, 0x15);
+        F(Sprite*, 0x1c)->texture = dev->MakeTexture(new Texture("avi3"), F(int, 0), 0x100, 0x80, 0x15);
     } else {
-        throw std::logic_error("Unsupported video resolution");
+        throw ColLogicError(CStr("Unsupported video resolution", 0));
     }
-    F(void*, 0xa0) = dev->MakeSurface(new Texture("bink"), F(int, 0), width, F(int, 0x24), 5);
-    int surf;
+    Texture* bt = new Texture("bink");
+    F(Texture*, 0xa0) = bt;
+    F(void*, 0xa0) = dev->MakeSurface(bt, F(int, 0), width, F(int, 0x24), 5);
     switch (F(int, 0)) {
-    case 1: case 5: surf = 9; break;
-    case 2: surf = 10; break;
-    case 3: surf = 1; break;
-    case 4: case 7: surf = 3; break;
-    case 6: surf = 7; break;
-    default: throw std::logic_error("Invalid video format");
+    case 1: case 5: F(int, 0xa4) = 9; break;
+    case 2: F(int, 0xa4) = 10; break;
+    case 3: F(int, 0xa4) = 1; break;
+    case 6: F(int, 0xa4) = 7; break;
+    case 4: case 7: F(int, 0xa4) = 3; break;
+    default: throw ColLogicError(CStr("Invalid video format", 0));
     }
-    F(int, 0xa4) = surf;
     for (int i = 0; i < F(int, 0xc); i++) {
         BYTE* s = F(BYTE*, 0x10 + i * 4);
         *(int*)(s + 0x9c) = 0xe;
@@ -102,4 +128,5 @@ BinkVideo::BinkVideo(const char* name, RenderDevice* device, int flags)
         *(float*)(s + 0x68) = 1.0f;
         *(float*)(s + 0x6c) = 1.0f;
     }
+    ((EmptyCall*)this)->Run();
 }

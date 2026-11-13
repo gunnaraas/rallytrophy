@@ -39,6 +39,16 @@ inline int TSB_FloatToInt(float f)
 extern char DAT_005070b0[];            // global empty text buffer
 
 // ---- Group TS-C: Setup ----
+// The temporary of `section + "text"` whose destructor the original calls out of line (_Tidy(true), 0x402700).
+struct TC_Tmp {
+    BYTE alloc[4];
+    char* ptr;
+    unsigned int len;
+    unsigned int res;
+    ~TC_Tmp() { Tidy(true); }
+    void Tidy(bool built);                             // 0x402700
+};
+TC_Tmp TC_Plus(const std::string* a, const char* b);   // 0x409130 (cdecl, hidden result pointer)
 // A VC6 std::string seen through its layout (allocator, pointer, length, reserve). Setup's string operations are
 // expanded to different depths (the inline budget runs out part way through the function), so each site is pinned:
 // out-of-line assign/append (0x404ba0/0x403ba0), expansions that call _Eos (0x402960) or set the terminator inline.
@@ -53,6 +63,7 @@ struct TC_Str {
     void Eos(unsigned int n);                         // 0x402960
     void AppendNC(unsigned int n, char c);             // 0x408d10
     void AssignStr(const std::string& x, unsigned int pos, unsigned int n); // 0x4024f0
+    void AssignT(const TC_Tmp& x) { AssignStr(*(const std::string*)&x, 0, std::string::npos); }
     static void Xlen();                                // 0x4bd00b
     void AssignA(const char* s) { AssignCall(s, strlen(s)); }
     void AppendA(const char* s) { AppendCall(s, strlen(s)); }
@@ -118,20 +129,9 @@ struct TC_Local {
 };
 #define TC_STR(x) ((std::string*)&(x))
 
-// The temporary of `section + "text"` whose destructor the original calls out of line (_Tidy(true), 0x402700).
-struct TC_Tmp {
-    BYTE alloc[4];
-    char* ptr;
-    unsigned int len;
-    unsigned int res;
-    ~TC_Tmp() { Tidy(true); }
-    void Tidy(bool built);                             // 0x402700
-};
-TC_Tmp TC_Plus(const std::string* a, const char* b);   // 0x409130 (cdecl, hidden result pointer)
 #define TC_ASSIGN_PLUS(dst, a, b) \
     { \
-        TC_Tmp tmp = TC_Plus((const std::string*)&(a), (b)); \
-        TC_S(dst).AssignStr(*(std::string*)&tmp, 0, std::string::npos); \
+        TC_S(dst).AssignT(TC_Plus((const std::string*)&(a), (b))); \
     }
 
 
@@ -277,10 +277,24 @@ struct TSE_Str16 {
     BYTE data[16];
 };
 
+struct TSE_StrCp {
+    TSE_StrCp(const TSE_StrCp& o)
+    {
+        alloc[0] = o.alloc[0];
+        Tidy(false);
+        Assign(o, 0, std::string::npos);
+    }
+    ~TSE_StrCp();
+    void Tidy(bool b);                                       // 0x402700
+    void Assign(const TSE_StrCp& o, unsigned int p, unsigned int n); // 0x4024f0
+    BYTE alloc[4];
+    char* ptr;
+    unsigned int len, res;
+};
 // RallyInfo (include/unk_441370.h) with the seven string arrays as TSE_Str16: same layout, used for the by-value call.
 struct TSE_RallyInfo {
-    std::string name;
-    std::string description;
+    TSE_StrCp name;
+    TSE_StrCp description;
     int numStages, numNovice, numIntermediate, numExpert, numArcade, firstArcade;
     float length[12];
     TSE_Str16 stageName[12];
@@ -565,6 +579,8 @@ TrackSelectMenu::~TrackSelectMenu()
 // and store schedules follow from that. original: FUN_004418d0 (vtable slot 1, ret 4)
 // Tried 2026-10-30 night: 26 variants (info/r declaration order and position, while/pointer/hoisted-count loops, r1 and r10 temps, volatile start value, const pointers); none moved r into ebp/esi swap (best stays 306 insns); the allocator ranks r above info and the original also pushes ebp function-wide, cause unknown.
 // Tried 2026-11-01 re-pass: 24 more (register keyword, all info-> as rally[r]. in whole/k-loop/tail, info decl position, r1 temp, count local, while loop, volatile zero start, ip++ cursor, ++r); all 306-534 insns, none flips the r/info ebp/esi assignment (r also lives in the original in ebp from the xor before the loop).
+// Pass 2 2026-11-13: TC_ASSIGN_PLUS passes the TC_Plus temporary straight to AssignT (original reuses the returned eax, no extra lea): 4716 -> 4672 bytes, 3062 -> 2932 differing, normalised diff 500 -> 86; left: r spill/head reload (frame 0x14c vs 0x150) and k in ebx/pointer in ebp instead of k in memory/pointer in ebx.
+// Pass 1 2026-11-13: `r == 0` in the k loop became `info == rally` (r no longer outranks info, so ebp=r/esi=info as in the original; differing bytes 3415 -> 3062, normalised insn diff 977 -> 500); left: r is not spilled/reloaded at the loop head, k loop keeps k in ebx not memory, frame 0x14c vs 0x150. ~50 variants incl. bool first, r10 hoists, k/ns locals: none better.
 void TrackSelectMenu::Setup(MenuGame* game)
 {
     if (m_state) {
@@ -615,7 +631,7 @@ void TrackSelectMenu::Setup(MenuGame* game)
             TC_S(info->lengthText[k]).AssignB(DAT_005070b0);
             TC_ASSIGN_PLUS(key, section, "Length")
             info->length[k] = config.GetFloat(key.c_str());
-            if (r == 0 && k == 5) {
+            if (info == rally && k == 5) {
                 info->length[5] = 4.8f;
             }
             TC_ASSIGN_PLUS(key, section, "Time")
@@ -3790,9 +3806,13 @@ public:
     };
 };
 
-// Inlining depth 1 (std::string helpers stay out of line as in the original; 437 -> 432 differing instructions).
-#pragma inline_depth(1)
+// Inlining depth 2: depth 1 kept the by-value RallyInfo name/description copies out of line (nested copy ctor = depth 2).
+#pragma inline_depth(2)
 // NONMATCHING: RALLYTROPHY 0x443790
+// 2026-11-13 (idiom/calls/sizegap): 95 -> 8 insns differ, size gap closed (5296/5296). inline_depth(2) lets the by-value copy's
+// name/description expand (TSE_StrCp: hand copy ctor = alloc byte, Tidy(false), Assign(o, 0, npos)); DrawSelector's `selected`
+// param is int (the `and edx,0xff` promote). Left: lea operand order in the five TSE_Str::Append sites ([len+n] vs [n+len],
+// no source form flips it) and the name-print block (original stores text->color after the scaleX store; we hoist it).
 // 2026-11-12 (sizegap.py): item colour and (1, 1) scale assigned in both arms of `if (selected)` (plain bool),
 // colour stored, then `std::string buf` declared: 387 -> 95 insns differ. Whole remaining size gap (-45 bytes) is the
 // DrawRally copy below.
@@ -4050,11 +4070,13 @@ int TrackSelectMenu::Run()
                 }
                 y = TSE_STEP * sy + y;
             }
-            float oldX = text->scaleX;
             float oldY = text->scaleY;
-            text->scaleX = oldX * 0.85f;
+            float oldX = text->scaleX;
+            float nx = oldX * 0.85f;
             text->color = DAT_00508c14.value;
-            text->scaleY = oldY * 0.85f;
+            float ny = oldY * 0.85f;
+            text->scaleX = nx;
+            text->scaleY = ny;
             text->Print(DAT_0056b0ac, TSE_NAMEX * sx, TSE_NAMEY * sy, rally[curRally].name.c_str(), 0, 1.0f, 1.0f);
             text->scaleX = oldX;
             text->scaleY = oldY;

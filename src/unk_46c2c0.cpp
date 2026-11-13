@@ -303,8 +303,10 @@ void Wheel::Reset()
     params.y = 2.0f;
 }
 
+static inline void WheelAddTorque(float* t, const Vec3& v) { float x = t[0]; t[0] = x + v.x; t[1] = v.y + t[1]; t[2] = v.z + t[2]; }
 // NONMATCHING: RALLYTROPHY 0x46c790
 // original: FUN_0046c790
+// Pass 2026-11-13: ld assigned inside the && condition, torque add via inline WheelAddTorque(FUN_004203e0(...)) (uses the returned eax), arm built as a Vec3 argument temp; 412->388 insns differ, 3511->3501 bytes.
 // Re-pass 2026-11-01: float-sum audit vs original fadd order; fixed latVel/lonVel (x,z,y chain), latLen2 (y,x,z chain), blendSpeed and slip relax (K before unk2ec); all other sums and field reads already agree; 420->414 insns differ, rest is frame size 0xfc vs 0xe4 and x87 lifetimes.
 // Tried 2026-10-30 night: ~16 variants (load int local 433->420, vel field-wise, Vec3/array localPos, decl order, volatile S/ld, slip copy, fy/L2 split); remaining diff is frame size 0xfc vs 0xe4 (asm pointer temps share float slots in the original), missing EH-state store timing, and x87 lifetimes.
 // 3506 vs 3573 bytes (2843 differing bytes). Stiction vector declaration groups reproduce target EH transitions 8,
@@ -321,8 +323,8 @@ void Wheel::UpdateForces()
     unk2fc = 0.0f;
     unk304 = 0.0f;
     unk308 = 0.0f;
-    int ld = *(const int*)&load;
-    if (active != 0 && ld > *(const int*)&kMinLoad) {
+    int ld;
+    if (active != 0 && (ld = *(const int*)&load) > *(const int*)&kMinLoad) {
         Vec3 lat, lon, contact, vel;
 
         // Contact point and its velocity in world space.
@@ -557,14 +559,7 @@ void Wheel::UpdateForces()
         body->force[0] = F.x + body->force[0];
         body->force[1] = F.y + body->force[1];
         body->force[2] = F.z + body->force[2];
-        Vec3 arm;
-        arm.x = contact.x - body->centre[0];
-        arm.y = contact.y - body->centre[1];
-        arm.z = contact.z - body->centre[2];
-        Vec3 torque = FUN_004203e0(F, arm);
-        body->torque[0] = body->torque[0] + torque.x;
-        body->torque[1] = torque.y + body->torque[1];
-        body->torque[2] = torque.z + body->torque[2];
+        WheelAddTorque(body->torque, FUN_004203e0(F, Vec3(contact.x - body->centre[0], contact.y - body->centre[1], contact.z - body->centre[2])));
         unk2e4 = load * S->grip;
     } else {
         unk2f4 = unk2f8 = unk314 = unk310 = unk30c = params.z = torqueB.x = torqueB.y = torqueB.z = unk2e4 = forceA.x = forceA.y = forceA.z = 0.0f;

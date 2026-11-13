@@ -60,32 +60,63 @@ static __forceinline void AppS(std::string& d, const char* s)
 {
     SndStr& t = (SndStr&)d;
     unsigned n = strlen(s);
-    if ((unsigned)-1 - t.n <= n)
+    if (std::string::npos - t.n <= n)
         std::_Xlen();
-    if (n != 0 && t.Grow(n += t.n, false)) {
-        memcpy(t.p + t.n, s, n - t.n);
-        t.p[t.n = n] = 0;
+    unsigned m;
+    if (0 < n && t.Grow(m = t.n + n, false)) {
+        char* d2 = t.p + t.n;
+        std::char_traits<char>::copy(d2, s, n);
+        t.p[t.n = m] = 0;
     }
 }
 
 // assign(const char*) with _Grow expanded but _Eos left as a call (T7-T9Sound).
 struct XS : std::string {
     void EosX(unsigned n);
+    unsigned MaxSz() const;
+    void TidyX(bool b);
+    void CopyX(unsigned n);
+    static unsigned char& Rc(const char* u) { return ((unsigned char*)u)[-1]; }
     void Asg(const char* s)
     {
         unsigned n = strlen(s);
-        if (_Grow(n, true)) {
+        if (MaxSz() < n)
+            std::_Xlen();
+        bool ok;
+        if (_Ptr != 0 && Rc(_Ptr) != 0 && Rc(_Ptr) != 255) {
+            if (n == 0) {
+                --Rc(_Ptr), TidyX(false);
+                ok = false;
+            } else {
+                CopyX(n);
+                ok = true;
+            }
+        } else if (n == 0) {
+            TidyX(true);
+            ok = false;
+        } else {
+            if (31 < _Res || _Res < n) {
+                TidyX(true);
+                CopyX(n);
+            }
+            ok = true;
+        }
+        if (ok) {
             memcpy(_Ptr, s, n);
             EosX(n);
         }
     }
 };
+#pragma comment(linker, "/alternatename:?MaxSz@XS@@QBEIXZ=?max_size@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@QBEIXZ")
+#pragma comment(linker, "/alternatename:?TidyX@XS@@QAEX_N@Z=?_Tidy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEX_N@Z")
+#pragma comment(linker, "/alternatename:?CopyX@XS@@QAEXI@Z=?_Copy@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEXI@Z")
 #pragma comment(linker, "/alternatename:?EosX@XS@@QAEXI@Z=?_Eos@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEXI@Z")
 
 // NONMATCHING: RALLYTROPHY 0x411600
 // Tried 2026-10-31: switch(level), pointer-walk loops, name = copy of this+8 (not empty), SetSnd (out-of-line _Grow via /alternatename overlay) for R0-T6 sounds, 13 trailing discarded Bal(1) (10-15 tried; 13/14 best): 1306->680 insns. Still differs: cfg at ebp-0x20 not ebp-0x7c (frame 0x84 vs 0x70: VC6 does not share the buf/RoundF temp slots; block-scoping buf, decl order, plain/forceinline RoundF, Raw2/Raw3 tmp copies all no help), Vector2/3 copy load/store interleave.
 // Tried 2026-10-31 re-pass: declaration order of cfg/fog/col/buf/name (all permutations tried) never moves cfg off ebp-0x20 (frame stays 0x84); block-scoped buf, buf in a forceinline helper, loop counter volatile (sizes 8613/8593 closer but insns differ rises) and a RoundF macro with function-scope float temp (size 9042) all no help; the original has the inlined RoundF float spill at ebp-0x10 and r temps at the top of the frame with cfg lowest, ours puts them below cfg.
 // 2026-11-11: itoa buffer char buf[12] (was 32) gives the original frame (sub esp,0x70): 5221 -> 1258 bytes differ, 579 -> 209 insns.
+// 2026-11-13: T7-T9Sound assign = _Grow expanded with max_size/_Tidy/_Copy/_Eos as calls (XS::Asg), AppS uses std::string::npos, 0 < n, char_traits::copy into a local dest: 1258 -> 490 bytes, 209 -> 124 insns, size 8584 -> 8615 (orig 8628). Left: original keeps constant 0 in edi across the tail (loop counter spills to [ebp+8], p reuses this/ebx; ours puts i/p/level in ebx/esi/edi), SunColor multiply scheduling.
 void StageConfigLoader::LoadConfig(const char* path)
 {
     const int* r_;

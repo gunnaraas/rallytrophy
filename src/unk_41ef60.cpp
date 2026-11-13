@@ -1,5 +1,6 @@
 // Car body contact response: turns the contact records into forces/torques on the body.
 #include "unk_41ef60.h"
+#include "scene_object.h"
 
 struct PV { float x, y, z; };
 struct PVm { float x, y, z; PV operator*(float k) const; };   // 0x40b0c0, POD result read through eax
@@ -110,10 +111,10 @@ void RespBody::Respond(void* car, void* stage, int flag)
     Vec3 negS;
     negS.x = negS.y = negS.z = 0.0f;
     float limit;
-    if (car == 0) {
-        limit = 1000.0f;
-    } else {
+    if (car != 0) {
         limit = *(float*)((char*)car + 0x1080);
+    } else {
+        limit = 1000.0f;
     }
     Vec3 c = *(Vec3*)((char*)this + 0x1cc);
     float* h = *(float**)((char*)this + 0x238);
@@ -121,11 +122,7 @@ void RespBody::Respond(void* car, void* stage, int flag)
     for (i = 0; i < *(unsigned int*)((char*)this + 0x23c); i++, h += 20) {
         Vec3 v;
         Vec3 av;
-        if (flag == 0) {
-            v.x = h[9];
-            *(int*)&v.y = *(int*)&h[10];
-            *(int*)&v.z = *(int*)&h[11];
-        } else {
+        if (flag != 0) {
             v = c;
             Vec3* w = &FUN_004204f0(*(Vec3*)&h[3]);
             v.x = c.x + w->x;
@@ -133,6 +130,10 @@ void RespBody::Respond(void* car, void* stage, int flag)
             *(int*)&v.y = *(int*)&ty;
             float tz = c.z + w->z;
             *(int*)&v.z = *(int*)&tz;
+        } else {
+            v.x = h[9];
+            *(int*)&v.y = *(int*)&h[10];
+            *(int*)&v.z = *(int*)&h[11];
         }
         float d = v.x * h[6]; d = v.y * h[7] + d; d = v.z * h[8] + d;
         if (NEG(d) == 0) {
@@ -163,7 +164,7 @@ void RespBody::Respond(void* car, void* stage, int flag)
     posS.x = DAT_004e1348 / posS.x;
     posS.y = DAT_004e1348 / posS.y;
     posS.z = DAT_004e1348 / posS.z;
-    float invDt = DAT_004e1348 / BF(0x214);
+    float one = DAT_004e1348; float invDt = one / BF(0x214);
 
     Vec3 fp, fn;                    // accumulated impulse per axis (positive / negative parts)
     fp.x = fp.y = fp.z = 0.0f;
@@ -244,10 +245,10 @@ void RespBody::Respond(void* car, void* stage, int flag)
                     if (limit < depth) {
                         Vec3 l = *(Vec3*)&h[3];
                         l -= *(Vec3*)((char*)this + 0x14);
-                        Vec3 p, q;
-                        p.x = l.z * BF(0x28); p.x = l.y * BF(0x24) + p.x; p.x = l.x * BF(0x20) + p.x;
-                        p.y = l.z * BF(0x38); p.y = l.y * BF(0x34) + p.y; p.y = l.x * BF(0x30) + p.y;
-                        p.z = l.z * BF(0x48); p.z = l.y * BF(0x44) + p.z; p.z = l.x * BF(0x40) + p.z;
+                        Vec3 p(l.x * BF(0x20) + (l.y * BF(0x24) + l.z * BF(0x28)),
+                               l.x * BF(0x30) + (l.y * BF(0x34) + l.z * BF(0x38)),
+                               l.x * BF(0x40) + (l.y * BF(0x44) + l.z * BF(0x48)));
+                        Vec3 q;
                         q.x = BF(0x28) * h[8]; q.x = BF(0x24) * h[7] + q.x; q.x = h[6] * BF(0x20) + q.x;
                         q.y = BF(0x38) * h[8]; q.y = BF(0x34) * h[7] + q.y; q.y = h[6] * BF(0x30) + q.y;
                         q.z = BF(0x48) * h[8]; q.z = BF(0x44) * h[7] + q.z; q.z = h[6] * BF(0x40) + q.z;
@@ -312,8 +313,7 @@ void RespBody::Respond(void* car, void* stage, int flag)
             BF(0x1e4) = BF(0x1e4) + ng.x;
             BF(0x1e8) = ng.y + BF(0x1e8);
             BF(0x1ec) = ng.z + BF(0x1ec);
-            Vec3 arm = *(Vec3*)&h[3];
-            arm -= *(Vec3*)((char*)this + 0x224);
+            Vec3 arm(h[3] - BF(0x224), h[4] - BF(0x228), h[5] - BF(0x22c));
             const PV& tq = FUN_004203e0(ng, arm);
             BF(0x1f0) = tq.x + BF(0x1f0);
             BF(0x1f4) = tq.y + BF(0x1f4);

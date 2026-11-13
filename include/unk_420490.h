@@ -147,6 +147,7 @@ public:
     virtual void Slot3(int unused);
     void Start(DWORD game, int a, int b); // 0x421e30: build the car list, then lay it out
     int Layout();                      // 0x421fa0: 1 once a car is chosen, -1 on back/quit
+    int Fun_004242a0(int car);          // 0x4242a0 (reads only its stack argument)
     void RefreshUnits();               // 0x423b90: rewrite the four car-info strings of every entry in the chosen units
     void LoadCars();                   // 0x420db0: read the per-car info.ini files and load the photo sprites
     void Free();                       // 0x421d00: release the stage entries and the item rectangles

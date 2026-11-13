@@ -70,6 +70,7 @@ float __cdecl TriTestB(void* model, unsigned short* tri, void* verts, float* pt)
 // Logic complete; original keeps the node in ebx and 0 in edi, and orders the translation dot-products differently (1662 vs 1635 bytes).
 // Tried 2026-10-30 night: AddTo inline vec add, copy-init Vec3, switch(DAT_00581e28), d/e/facing in dead param slot, GV3 memory diff vectors, TraceMeshPart nTris at 0x0e, guard first, reversed dot order; still differs: original keeps 0 in edi (i=0 CSE'd with push 0/cmp), c/rad reloaded from [ebx+0xc4] without address CSE, translation dot loads w[14] first, stack slot order.
 // Re-pass 2026-11-01: all 15 float sums re-associated to the asm fadd order (m12-14, d, df, tri d, ef, t, second, den; rounding fix, score unchanged 251 insns); also tried zero-in-edi (i/volatile z at top), set/list/seg/guard declaration order, volatile list load: no change or worse.
+// Pass 2026-11-13 (big-function agent): 252 -> 206 insns differ, size 1616 -> 1633 (orig 1635). Kept: sphere centre/radius read straight from the node (CC/RAD macros), parts[i] re-read per member, p = tv+24 via the re-read, dir pointer for the first sphere dot and first loop dot, if(cnt) do-while. Rejected: zero-in-edi via i declared early (pools 0 but spills i), inlined dq, named SegmentInfo fields, dir for the 2nd loop dot. Still open: 0 pooled in edi / node in ebx, tv kept in a stack slot with tris in ebx, 2nd loop dot lea of &s[9].
 float __cdecl TraceNodeSweep(TraceNode* nParam)
 {
     TraceNode* n = nParam;
@@ -95,29 +96,28 @@ float __cdecl TraceNodeSweep(TraceNode* nParam)
             seg = &loc;
         }
         float* s = (float*)seg;
-        float* c = &nf[0x2e];              // sphere center 0xb8
-        float* radp = &nf[0x31]; float& rad = *radp;
+#define CC(k) (((float*)n)[0x2e+(k)])
+#define RAD (((float*)n)[0x31])
         float& d = *(float*)&nParam;
-        d = c[2] * s[11]; d = c[1] * s[10] + d; d = c[0] * s[9] + d; d = d - s[12]; // chained: VC6 re-associates the one-expression sum
-        if (-rad <= d && d <= s[13] + rad) {
+        float* dir = s + 9; d = CC(2) * dir[2]; d = CC(1) * dir[1] + d; d = CC(0) * dir[0] + d; d = d - s[12]; // chained: VC6 re-associates the one-expression sum
+        if (-RAD <= d && d <= s[13] + RAD) {
             Vec3 q = *(Vec3*)(s + 3);
             AddTo(q, d * *(Vec3*)(s + 9));
             GV3 dfv; float* df = dfv.v;
-            df[0] = q.x - c[0]; df[1] = q.y - c[1]; df[2] = q.z - c[2];
+            df[0] = q.x - CC(0); df[1] = q.y - CC(1); df[2] = q.z - CC(2);
             float dq = df[0] * df[0]; dq = df[2] * df[2] + dq; dq = df[1] * df[1] + dq;
-            if (dq <= rad * rad) {
+            if (dq <= RAD * RAD) {
                 float best = 1.0f;
                 for (unsigned i = 0; i < list->size(); i++) {
-                    TraceMeshPart* part = set->parts[i];
                     float* tv = (*list)[i];
-                    unsigned cnt = part->nTris;
-                    float* model = (float*)part->model;
-                    char* verts = (char*)part->verts;
-                    unsigned short* tri = part->tris;
+                    unsigned cnt = set->parts[i]->nTris;
+                    float* model = (float*)set->parts[i]->model;
+                    char* verts = (char*)set->parts[i]->verts;
                     unsigned twoSided = ((int*)model)[0x27] & 1;
-                    float* p = tv + 6;
-                    while (cnt != 0) {
-                        d = p[-4] * s[11]; d = p[-5] * s[10] + d; d = s[9] * tv[0] + d;
+                    unsigned short* tri = set->parts[i]->tris;
+                    float* p = (float*)((char*)(*list)[i] + 24);
+                    if (cnt != 0) do {
+                        d = p[-4] * dir[2]; d = p[-5] * dir[1] + d; d = dir[0] * tv[0] + d;
                         if (twoSided != 0 || *(int*)&d <= 0) {
                             float r = p[1];
                             d = s[11] * p[0]; d = s[10] * p[-1] + d; d = s[9] * p[-2] + d; d = d - s[12];
@@ -162,7 +162,7 @@ float __cdecl TraceNodeSweep(TraceNode* nParam)
                         p += 8;
                         tri += 3;
                         tv += 8;
-                    }
+                    } while (cnt != 0);
                 }
                 return best;
             }

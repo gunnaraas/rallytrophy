@@ -59,7 +59,7 @@ static __forceinline void GridInsert(GridPtrVec* v, int* P, const int& X)
 {
     if ((unsigned int)(v->end - v->last) < 1) {
         unsigned int s = v->Size();
-        int n = v->Size() + (s < 1 ? 1 : v->Size());
+        int n = v->Size() + (1 < s ? v->Size() : 1);
         int* b = v->allocator.allocate(n, (void*)0);
         int* q = v->Ucopy(v->first, P, b);
         v->Ufill(q, 1, &X);
@@ -67,18 +67,19 @@ static __forceinline void GridInsert(GridPtrVec* v, int* P, const int& X)
         v->Destroy(v->first, v->last);
         GridFree(v->first);
         v->end = b + n;
-        v->first = b;
         v->last = b + v->Size() + 1;
+        v->first = b;
     } else if ((unsigned int)(v->last - P) < 1) {
         v->Ucopy(P, P, P + 1);
         v->Ufill(v->last, 1 - (v->last - P), &X);
-        for (int* p = P; p != v->last; ++p)
+        int* e = v->last;
+        for (int* p = P; p != e; ++p)
             *p = X;
-        v->last += 1;
+        v->last = e + 1;
     } else {
         v->Ucopy(v->last - 1, v->last, v->last);
         int* d = v->last;
-        for (int* f = v->last - 1; f != P; )
+        for (int* f = v->last - 1; P != f; )
             *--d = *--f;
         for (int* p = P; p != P + 1; ++p)
             *p = X;
@@ -91,12 +92,13 @@ static __forceinline void GridInsert(GridPtrVec* v, int* P, const int& X)
 // 1720 vs 1716 bytes: logic, calls and x87 blocks match; inline-asm helper argument stack slots and the loop-invariant ebx=0 register differ.
 // Tried 2026-10-30 night: 292->187 via `float r2 = rr*rr; if (len < r2)` and local GridPtrVec* r/a for the two Ins calls; loop forms/goto/declaration order/pragma flags (a,g,w,t,y,s) no effect; still differs: original loops are unrotated (head test once, i/ebx=0 in regs) and GridInsert block layout/slots.
 // Tried 2026-11-01 re-pass: ~25 variants (while/for-header/goto loop heads, volatile zero local for the ebx=0 compare, i/made/attached/ScenePoint/r,a declaration order, self pointer, ++i in progress expr, volatile flags, len-after-r2); none below 187 insns differ; still differs: loop-head layout (original unrotated, i in ecx, ebx=0 live) and GridInsert block layout.
+// 2026-11-13 pass: 187 -> 87 insns differ (1722 -> 1709 bytes): loops as `while (1)` + break (unrotated), `++k` in progress expr, GridInsert std::max(1,s) order, e/P!=f/last=e+1 forms, per-loop v=&c->records..; left: ecx/eax regs for nodeFirst[k]->node, branch-3 `mov ecx,eax; add eax,-4` vs lea.
 // original: FUN_0040fcc0
 void StageGrid::Build()
 {
     unsigned int i = 0;
     GridRef* made;
-    for (;;) {
+    while (1) {
         if (objFirst == 0 || i >= (unsigned int)(objLast - objFirst))
             break;
         SceneNode* o = objFirst[i];
@@ -136,19 +138,25 @@ void StageGrid::Build()
         label->SetProgress((float)(int)(i + 1) / (float)(unsigned int)(objFirst == 0 ? 0 : objLast - objFirst) * DAT_0050846c + DAT_00508468);
         i++;
     }
-    for (unsigned int k = 0; nodeFirst != 0 && k < (unsigned int)(nodeLast - nodeFirst); ) {
+    unsigned int k = 0;
+    while (1) {
+        if (nodeFirst == 0 || k >= (unsigned int)(nodeLast - nodeFirst))
+            break;
         nodeFirst[k]->node->Slot3();
-        k++;
-        label->SetProgress((float)(int)k / (float)(unsigned int)(nodeFirst == 0 ? 0 : nodeLast - nodeFirst) * DAT_00508464 + DAT_00508460);
+        label->SetProgress((float)(int)++k / (float)(unsigned int)(nodeFirst == 0 ? 0 : nodeLast - nodeFirst) * DAT_00508464 + DAT_00508460);
     }
     for (int j = 0; j < count48; j++) {
         BYTE* rec = records48 + j * 0x48;
+        int x = (int)rec;
         GridCell* c = Cell((float*)(rec + 0x30));
-        GridInsert(&c->records48, c->records48.last, (int)rec);
+        GridPtrVec* v = &c->records48;
+        GridInsert(v, v->last, x);
     }
     for (int m = 0; m < count2c; m++) {
         BYTE* rec = records2c + m * 0x2c;
+        int x = (int)rec;
         GridCell* c = Cell((float*)(rec + 0x14));
-        GridInsert(&c->records2c, c->records2c.last, (int)rec);
+        GridPtrVec* v = &c->records2c;
+        GridInsert(v, v->last, x);
     }
 }

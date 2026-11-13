@@ -64,6 +64,12 @@ They expect locally supplied game files and toolchain components; see
   `[esp+X]` slots with the source local that lands there in our build (from a `/FAs` listing),
   with reference counts on both sides, and flags locals in a different slot. Use it on
   "frame/slot order differs" near misses together with the reference-count rule in NOTES.md.
+- [`idiom.py`](idiom.py): ask the byte-exact corpus which source form produces an instruction idiom.
+  `--build` indexes every matched function from `/FAcs` listings (original instruction -> source
+  line); `idiom.py ADDRESS` looks up each differing hunk of a NONMATCHING function and prints the
+  source forms that produced the same instructions elsewhere; `-e 'REGEX'` greps the corpus
+  (`a;b` consecutive instructions, `-w N` one regex over N joined instructions with groups tying
+  registers). Read the hit in context and copy its form, not its names.
 - [`triage.py`](triage.py): classify every NONMATCHING function by its first differences (size, order,
   registers, EH state) after a full `match.py` run; a full run rewrites `analysis/nonmatching-triage.md`.
   `original_size()` gives the original function size exactly as the matcher compares it.

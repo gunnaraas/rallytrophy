@@ -1,17 +1,27 @@
 #include "unk_4b3050.h"
 #include <math.h>
+#include "unk_414330.h"
+#include "scene_object.h"
 
 static inline int FloatBits(const float& f) { return *(const int*)&f; }
 static inline float AbsF(float f) { return (float)fabs(f); }
 
-struct Pod3 { float x, y, z; Pod3& operator+=(const Vec3& o) { x += o.x; y += o.y; z += o.z; return *this; } };
+struct PS { float x,y,z; PS operator*(float) const; };
+#pragma comment(linker, "/alternatename:??DPS@@QBE?AU0@M@Z=??DScenePoint@@QBE?AU0@M@Z")
+static inline void AddOut(float& px, float& py, float& pz, float* out, const PS& q) { px += q.x; out[0] = px; py += q.y; out[1] = py; pz += q.z; out[2] = pz; }
+struct P3 { float x,y,z; };
+struct Pod3 { float x, y, z; Pod3& operator+=(const Vec3& o) { x += o.x; y += o.y; z += o.z; return *this; }
+    Pod3& operator+=(const PS& o) { x += o.x; y += o.y; z += o.z; return *this; }
+    Pod3& operator+=(const ScenePoint& o) { x += o.x; y += o.y; z += o.z; return *this; } };
 #pragma comment(linker, "/alternatename:_fun_004b3800=?TriClosest4b@@YAMPAM0000@Z")
 // NONMATCHING: RALLYTROPHY 0x4b3800
 // SYMBOL: ?TriClosest4b@@YAMPAM0000@Z
-// Tried 2026-11-01: C++-linkage twin (TriClosest4b + alternatename) now gives the original's EH frame; END copy via a Vec3 temp 195->185; 12 declaration orders no effect (slots follow first use). Still differs: original puts e/t/s in the e1/origin/point param slots (ours e2/e1/-), keeps e1 in a register for END, and lays branches out with more duplicated tails (1473 vs 1372 bytes).
+// Tried 2026-11-01: C++-linkage twin gives the original's EH frame; 12 declaration orders no effect (slots follow first use).
+// 2026-11-13 pass: 194 -> 103 insns differ (1381 -> 1443 vs 1473 bytes): Sub via S414Vec3 into a ScenePoint diff (EH object), END as float px/py/pz with out-of-line PS operator* (alternatename to ScenePoint's), goto-free Eberly if/else structure with leaf bodies duplicated; paren-regrouped e = (e + e + dist) + c at some leaves stops VC6 merging identical tails (bitmask search). Remaining: tail-merge pattern at the L_E/-e>=c leaves, s/t/e slot order (orig s,t,e = point,origin,e1 slots; ours e,t,s).
 float __cdecl TriClosest4b(float* point, float* origin, float* e1, float* e2, float* out)
 {
-    Vec3 diff = *(Vec3*)origin - *(Vec3*)point;
+    ScenePoint diff;
+    ((S414Vec3*)origin)->Sub(&diff.x, point);
     float a = e1[0]*e1[0] + e1[1]*e1[1] + e1[2]*e1[2];
     float b = e1[0]*e2[0] + e2[2]*e1[2] + e2[1]*e1[1];
     float c = e2[0]*e2[0] + e2[1]*e2[1] + e2[2]*e2[2];
@@ -27,33 +37,37 @@ float __cdecl TriClosest4b(float* point, float* origin, float* e1, float* e2, fl
             if (f8 < 0.0f) {
                 if (d < 0.0f) {
                     t = 0.0f;
-                    if (-d >= a) { s = 1.0f; e = d + d + dist + a; goto END; }
-                    goto S_NEGD;
+                    {
+                        if (-d >= a) { s = 1.0f; e = (d + d + dist) + a; }
+                        else { s = -(d / a); e = s * d + dist; }
+                    }
+                } else {
+                    s = 0.0f;
+                    {
+                        if (e >= 0.0f) { t = 0.0f; e = dist; }
+                        else if (-e >= c) { t = 1.0f; e = (e + e + dist) + c; }
+                        else { t = -(e / c); e = t * e + dist; }
+                    }
                 }
+            } else {
                 s = 0.0f;
-                if (e >= 0.0f) { e = dist; t = 0.0f; goto END; }
-                goto L_E;
+                {
+                        if (e >= 0.0f) { t = 0.0f; e = dist; }
+                        else if (-e >= c) { t = 1.0f; e = (e + e + dist) + c; }
+                        else { t = -(e / c); e = t * e + dist; }
+                    }
             }
-            s = 0.0f;
-            if (e >= 0.0f) { e = dist; t = 0.0f; goto END; }
-L_E:
-            if (-e >= c) { t = 1.0f; e = e + e + dist + c; goto END; }
-            goto T_NEGE;
-        }
-        if (f8 < 0.0f) {
+        } else if (f8 < 0.0f) {
             t = 0.0f;
-            if (d < 0.0f) {
-                if (-d >= a) { s = 1.0f; e = d + d + dist + a; goto END; }
-                goto S_NEGD;
-            }
-            e = dist; s = 0.0f; goto END;
-        }
-        {
+            if (d >= 0.0f) { s = 0.0f; e = dist; }
+            else if (-d >= a) { s = 1.0f; e = (d + d + dist) + a; }
+            else { s = -(d / a); e = s * d + dist; }
+        } else {
             double inv = 1.0 / t;
             s = (float)(inv * s);
             t = (float)(inv * f8);
+            e = ((t*c + s*b + (e + e)) * t + (t*b + s*a + (d + d)) * s) + dist;
         }
-        goto SUM;
     } else {
         if (s < 0.0f) {
             t = d + b;
@@ -61,61 +75,43 @@ L_E:
             if (tmp > t) {
                 numer = tmp - t;
                 denom = (a - (b + b)) + c;
-                if (numer >= denom) goto L_1;
-                s = numer / denom;
-                t = 1.0f - s;
-                goto SUM;
+                if (numer >= denom) { s = 1.0f; t = 0.0f; e = (d + d + dist) + a; }
+                else { s = numer / denom; t = 1.0f - s; e = ((t*c + s*b + (e + e)) * t + (t*b + s*a + (d + d)) * s) + dist; }
+            } else {
+                s = 0.0f;
+                if (tmp <= 0.0f) { t = 1.0f; e = (e + e + dist) + c; }
+                else if (e >= 0.0f) { t = 0.0f; e = dist; }
+                else { t = -(e / c); e = t * e + dist; }
             }
-            s = 0.0f;
-            if (tmp <= 0.0f) { t = 1.0f; e = e + e + dist + c; goto END; }
-            if (e >= 0.0f) { e = dist; t = 0.0f; goto END; }
-            goto T_NEGE;
-        }
-        if (f8 < 0.0f) {
+        } else if (f8 < 0.0f) {
             t = e + b;
             tmp = d + a;
             if (tmp > t) {
                 numer = tmp - t;
                 denom = (a - (b + b)) + c;
-                if (numer >= denom) { t = 1.0f; s = 0.0f; e = e + e + dist + c; goto END; }
-                t = numer / denom;
-                s = 1.0f - t;
-                goto SUM;
+                if (numer >= denom) { t = 1.0f; s = 0.0f; e = e + e + dist + c; }
+                else { t = numer / denom; s = 1.0f - t; e = ((t*c + s*b + (e + e)) * t + (t*b + s*a + (d + d)) * s) + dist; }
+            } else {
+                t = 0.0f;
+                if (tmp <= 0.0f) { s = 1.0f; e = d + d + dist + a; }
+                else if (d >= 0.0f) { s = 0.0f; e = dist; }
+                else { s = -(d / a); e = s * d + dist; }
             }
-            t = 0.0f;
-            if (tmp <= 0.0f) { s = 1.0f; e = d + d + dist + a; goto END; }
-            if (d >= 0.0f) { e = dist; s = 0.0f; goto END; }
-            goto S_NEGD;
-        }
-        t = ((e + c) - b) - d;
-        if (t <= 0.0f) { s = 0.0f; t = 1.0f; e = e + e + dist + c; goto END; }
-        {
-            denom = (a - (b + b)) + c;
-            if (t >= denom) {
-L_1:
-                s = 1.0f; t = 0.0f; e = d + d + dist + a; goto END;
+        } else {
+            t = ((e + c) - b) - d;
+            if (t <= 0.0f) { s = 0.0f; t = 1.0f; e = e + e + dist + c; }
+            else {
+                denom = (a - (b + b)) + c;
+                if (t >= denom) { s = 1.0f; t = 0.0f; e = d + d + dist + a; }
+                else { s = t / denom; t = 1.0f - s; e = ((t*c + s*b + (e + e)) * t + (t*b + s*a + (d + d)) * s) + dist; }
             }
-            s = t / denom;
-            t = 1.0f - s;
         }
     }
-SUM:
-    e = ((t*c + s*b + (e + e)) * t + (t*b + s*a + (d + d)) * s) + dist;
-    goto END;
-S_NEGD:
-    s = -(d / a);
-    e = s * d + dist;
-    goto END;
-T_NEGE:
-    t = -(e / c);
-    e = t * e + dist;
-END:
     if (out) {
-        Pod3 p; p.x = origin[0]; out[0] = p.x; p.y = origin[1]; out[1] = p.y; p.z = origin[2]; out[2] = p.z;
-        p += *(Vec3*)e1 * s;
-        out[0] = p.x; out[1] = p.y; out[2] = p.z;
-        p += *(Vec3*)e2 * t;
-        out[0] = p.x; out[1] = p.y; out[2] = p.z;
+        float px, py, pz;
+        px = origin[0]; out[0] = px; py = origin[1]; out[1] = py; pz = origin[2]; out[2] = pz;
+        AddOut(px, py, pz, out, *(PS*)e1 * s);
+        AddOut(px, py, pz, out, *(PS*)e2 * t);
     }
     return (float)fabs(e);
 }

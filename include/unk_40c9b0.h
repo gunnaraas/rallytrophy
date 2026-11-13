@@ -64,7 +64,7 @@ struct StVirt {                        // scene object: slot 0 dtor, slot 7 prep
     virtual ~StVirt();
     virtual void s1(); virtual void s2(); virtual void s3(); virtual void s4();
     virtual void s5(); virtual void s6();
-    virtual void Prepare();            // slot 7 (+0x1c)
+    virtual void Prepare(int x);       // slot 7 (+0x1c), called with 1
 };
 struct StMeshList { void* At(int i); };           // 0x4a6800
 struct StSceneObj { void Place(float* m); };      // 0x4a7b80

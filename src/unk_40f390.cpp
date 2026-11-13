@@ -33,7 +33,8 @@ void StageGrid::FillCells()
     float margin = *(volatile float*)&DAT_004e13b4;
     int gy = 0, gx;
     float invH = DAT_004e1348 / g->cellH;
-    float diag = (float)sqrt(g->cellW * g->cellW + g->cellH * g->cellH);
+    float cw = g->cellW;
+    float diag = (float)sqrt(cw * cw + g->cellH * g->cellH);
     float rd;
     for (; gy < g->rows; gy++) {
         for (gx = 0; gx < g->cols; gx++) {

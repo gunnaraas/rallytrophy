@@ -360,8 +360,9 @@ bool ReplayHeader::Load(int index)
             DAT_00501468 = *(int*)(raw + 0x34);
             DAT_00501458 = t6e;
             DAT_0050145c = raw[0x6c];
+            int t2c = *(int*)(raw + 0x28);
             DAT_00501450->unk28 = *(int*)(raw + 0x24);
-            DAT_00501450->unk2c = *(int*)(raw + 0x28);
+            DAT_00501450->unk2c = t2c;
             NetRace* race = DAT_00501450;
             int cars = *(int*)(raw + 0x68) + 1;
             for (int i = 0; i < cars; i++) {

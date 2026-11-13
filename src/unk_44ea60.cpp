@@ -144,10 +144,11 @@ struct C_Str {
     // assign(x, 0, npos) expanded; the nested erase calls and _Eos stay calls
     void AssignInline(const C_Str* x)
     {
-        unsigned int m = std::string::npos;
-        unsigned int n = x->len;
-        if (n < m) {
-            m = n;
+        unsigned int m = x->len;
+        unsigned int n;
+        unsigned int lim = std::string::npos;
+        if (lim < m) {
+            m = lim;
         }
         if (this == x) {
             Erase(m, std::string::npos);
@@ -261,11 +262,12 @@ struct C_Str {
 #define C_PROFILE (*(C_Profile**)((BYTE*)m_game + 0x2dcc))
 
 // NONMATCHING: RALLYTROPHY 0x44ed90
-// 3391 vs 3386 bytes; frame layout, EH states, call sequence and the hand-expanded std::string sites match. Left: the
+// 3386 vs 3386 bytes (2026-11-13 pass: 155 -> 135 insns differ); frame layout, EH states, call sequence and the hand-expanded std::string sites match. Left: the
 // Esc/Enter cancel paths are not tail-merged (the mouse warps now use the C_WarpPoint argument temporary, which
 // fixed their store order).
 // Tried 2026-10-30 night: local C_Str* + volatile editing store at the Esc cancel site 161->155; tail-merge with the Enter-reject site only happens with the same form at both (then survivor/stub layout is reversed vs original, 163).
 // Tried 2026-11-01: goto cancel label (Esc block as target from Enter-reject and vice versa; with/without lt+volatile; if/else forms): Esc block then matches but VC6 still duplicates the Enter-reject inline and any goto moves sx/sy/saved/c stack slots (sx 0x34->0x24, saved +8), 314->396 diff lines; sx/sy/string decl reorders did not undo the shift.
+// Tried 2026-11-13: shared C_Profile* pr for the two Enter-save calls (size 3391->3386, -17 insns), AssignInline min() as lim<m (-3); no gain: ptr-form/goto-with-lt (frame +8, regalloc shift), if/else swaps, bad/ok flag forms, AppendChar store forms, n=len-1 forms. Remaining: Esc/reject head+tail split (orig has a real join: head 'lea;mov editing;lea' then shared tail), reject blocks laid out after success (je stub).
 // original: FUN_0044ed90
 int SlotMenu::Frame()
 {
@@ -337,8 +339,9 @@ int SlotMenu::Frame()
                     if (labels[m_selected].text.length() > 0) {
                         if (records[m_selected - 2].kind <= 0 || ((C_Game*)m_game)->FUN_00436250(this) != 0) {
                             strcpy(records[m_selected - 2].name, labels[m_selected].text.c_str());
-                            C_PROFILE->FUN_00490fb0(records[m_selected - 2].name);
-                            C_PROFILE->FUN_0044d260(m_selected - 2);
+                            C_Profile* pr = C_PROFILE;
+                            pr->FUN_00490fb0(records[m_selected - 2].name);
+                            pr->FUN_0044d260(m_selected - 2);
                             RefreshSlots();
                             editing = 0;
                         } else {

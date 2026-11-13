@@ -284,9 +284,11 @@ extern float DAT_00500cfc;
 // NONMATCHING: RALLYTROPHY 0x49c130
 // Target point and lateral offset along the AI path. Logic complete; instruction scheduling and stack slots
 // not matched.
-// Tried 2026-10-31: ~15 variants (member-wise A/B/C init 809->804, z-first init, volatile reads, scoped/reused n1-n3, flat as floats, CopyXZ for A/B/C, D moved into last arm, dead diff removed); original (frame 0x94 vs our 0xb8, ~46 bytes longer) reloads the A/B/C components from memory for each sqrt and shares slots among the Vec3 temps, which no declaration/scoping change reproduced.
-// Tried 2026-11-01 re-pass: dC is computed lazily inside the compares (inline sqrt, original has 2-comp sqrt only on the dA<dB path), 1.0f/0.0f read as DAT_004e1348/DAT_004e134c (C.y, D.y use the global 0, 3 compare/fsub sites), insns 804->777; ~20 more variants (Len2D helper, volatile component reads, shared zero, D field order, double ls for il1-3, q0/q1 placement, total order) did not help or moved size away. Still differs: original reloads A/B/C z from memory (fstp+fld) where we fst, shares zero in st(0) across C.y/D.y, and keeps il sqrt on FPU stack (fdiv st,st(1)).
-// Tried 2026-11-01 pm: 0.0/1.0/5.0/36.0 compares as DAT_ globals (no change in insns), double ls for acc and segLen/t (matches the original's FPU-resident sqrt; fixes those sequences), k as plain int with k1 read via a volatile pointer: 319->314; ~30 variants (declaration orders of vel/fwd/vel2/dir/dir2, volatile phase/k, full dir2 copy, dir2.y early) no better; the original has dir/dir2/k below pts/w and acc/phase/k1 above, ours puts dir2 above w and phase low, and it reads dir.y from memory in segLen (ours folds).
+// Tried 2026-10-31: ~15 variants (member-wise A/B/C init 809->804, z-first init, reads, scoped/reused n1-n3, flat as floats, CopyXZ for A/B/C, D moved into last arm, dead diff removed); original (frame 0x94 vs our 0xb8, ~46 bytes longer) reloads the A/B/C components from memory for each sqrt and shares slots among the Vec3 temps, which no declaration/scoping change reproduced.
+// Tried 2026-11-01 re-pass: dC is computed lazily inside the compares (inline sqrt, original has 2-comp sqrt only on the dA<dB path), 1.0f/0.0f read as DAT_004e1348/DAT_004e134c (C.y, D.y use the global 0, 3 compare/fsub sites), insns 804->777; ~20 more variants (Len2D helper, component reads, shared zero, D field order, double ls for il1-3, q0/q1 placement, total order) did not help or moved size away. Still differs: original reloads A/B/C z from memory (fstp+fld) where we fst, shares zero in st(0) across C.y/D.y, and keeps il sqrt on FPU stack (fdiv st,st(1)).
+// Pass 2026-11-13: SetV member-wise copies for unk60/unkc8/unkd4 (+player->car->body for unkd4), unk134.x=t after f2, len1 local before 1/len, lateral x,z,y store order, sideways z before x: insns differ 176->144, size 2540->2588 (orig 2631); open: k1 lives in ebx (orig memory; volatile pk1 read gives 142 but rejected), vel2 spill layout, sl dup (fld st0/st1) before t, Eval arg pushes hoisted above len2.
+// Tried 2026-11-01 pm: 0.0/1.0/5.0/36.0 compares as DAT_ globals (no change in insns), double ls for acc and segLen/t (matches the original's FPU-resident sqrt; fixes those sequences), k as plain int with k1 read via a pointer: 319->314; ~30 variants (declaration orders of vel/fwd/vel2/dir/dir2, phase/k, full dir2 copy, dir2.y early) no better; the original has dir/dir2/k below pts/w and acc/phase/k1 above, ours puts dir2 above w and phase low, and it reads dir.y from memory in segLen (ours folds).
+// Tried 2026-11-13: q0/q1 locals removed (seg->unk28[i] CSE'd lazily like the original: this/seg registers swap, z read at seg+0x30/0x3c), A/B/C/D y stored after z (C.y init literal 0, DAT_004e134c after SubV), D by members: insns differ 652->411, bytes 3210->2899, size 3802->3819 (orig 3877); original keeps dA/dB on the FPU stack (fst/fxch/fcomp), shares the DAT zero via st(0) for C.y/D.y, and has flat as Vec3 (EH state 6; r2 variant gets size 3868 but scores 433), tail n1/n2/n3/P share one Vec3 slot.
 #define POS ((Vec3*)&((CarBodyV*)car->body)->position)
 // original sums |nearest|^2 as (x*x + z*z) + y*y
 #define NLEN(v) ((float)sqrt(((v).x * (v).x + (v).z * (v).z) + (v).y * (v).y))
@@ -303,25 +305,23 @@ float AIDriver::FUN_0049c130()
     AiSegment* next = path->At(index + 1);
     AiSegment* prev = path->At(index - 1);
     unk180 = seg;
-    Vec3Slot* q0 = &seg->unk28[0];
-    Vec3Slot* q1 = &seg->unk28[1];
 
-    Vec3 A; A.x = q0->x - seg->a->x; A.y = 0; A.z = q0->z - seg->a->z;
+    Vec3 A; A.x = seg->unk28[0].x - seg->a->x; A.z = seg->unk28[0].z - seg->a->z; A.y = 0;
     float len0 = (float)sqrt(A.z * A.z + A.x * A.x);
     FUN_004b3dd0(POS, (Vec3*)seg->a, &A, &nearest);
     SubV(&nearest, POS, &A);
     A.y = 0;
-    Vec3 B; B.x = q1->x - q0->x; B.y = 0; B.z = q1->z - q0->z;
+    Vec3 B; B.x = seg->unk28[1].x - seg->unk28[0].x; B.z = seg->unk28[1].z - seg->unk28[0].z; B.y = 0;
     float len1 = (float)sqrt(B.z * B.z + B.x * B.x);
-    FUN_004b3dd0(POS, (Vec3*)q0, &B, &nearest);
+    FUN_004b3dd0(POS, (Vec3*)(&seg->unk28[0]), &B, &nearest);
     SubV(&nearest, POS, &B);
     B.y = 0;
-    Vec3 C; C.x = seg->b->x - q1->x; C.y = DAT_004e134c; C.z = seg->b->z - q1->z;
+    Vec3 C; C.x = seg->b->x - seg->unk28[1].x; C.z = seg->b->z - seg->unk28[1].z; C.y = 0;
     float len2 = (float)sqrt(C.z * C.z + C.x * C.x);
-    FUN_004b3dd0(POS, (Vec3*)q1, &C, &nearest);
+    FUN_004b3dd0(POS, (Vec3*)(&seg->unk28[1]), &C, &nearest);
     SubV(&nearest, POS, &C);
     C.y = DAT_004e134c;
-    Vec3 D(next->unk28[0].x - seg->b->x, DAT_004e134c, next->unk28[0].z - seg->b->z);
+    Vec3 D; D.x = next->unk28[0].x - seg->b->x; D.z = next->unk28[0].z - seg->b->z; D.y = DAT_004e134c;
     float len3 = (float)sqrt(D.z * D.z + D.x * D.x);
     float total = len2 + len1 + len0;
 
@@ -336,7 +336,7 @@ float AIDriver::FUN_0049c130()
         A += *POS;
         A -= *(Vec3*)seg->a;
         A.y = 0;
-        SubV(q0, seg->a, &nearest);
+        SubV((&seg->unk28[0]), seg->a, &nearest);
         t = A.Length() / NLEN(nearest);
         unkc4 = (int)t;
         unk134.x = t;
@@ -344,15 +344,15 @@ float AIDriver::FUN_0049c130()
         unk134.y = t * t;
         unk134.z = t * t * t;
         unk7c = unk134.Spline(prev->unk44, seg->a->unk2c, seg->unk40, seg->unk44);
-        unk140.x = unk134.Spline(prev->unk28[1].x, seg->a->x, q0->x, q1->x);
-        unk140.z = unk134.Spline(prev->unk28[1].z, seg->a->z, q0->z, q1->z);
+        unk140.x = unk134.Spline(prev->unk28[1].x, seg->a->x, seg->unk28[0].x, seg->unk28[1].x);
+        unk140.z = unk134.Spline(prev->unk28[1].z, seg->a->z, seg->unk28[0].z, seg->unk28[1].z);
         float t2 = t + inv0;
         if (t2 <= DAT_004e1348) {
             unk134.x = t2;
             unk134.y = t2 * t2;
             unk134.z = t2 * t2 * t2;
-            unk14c.x = unk134.Spline(prev->unk28[1].x, seg->a->x, q0->x, q1->x);
-            unk14c.z = unk134.Spline(prev->unk28[1].z, seg->a->z, q0->z, q1->z);
+            unk14c.x = unk134.Spline(prev->unk28[1].x, seg->a->x, seg->unk28[0].x, seg->unk28[1].x);
+            unk14c.z = unk134.Spline(prev->unk28[1].z, seg->a->z, seg->unk28[0].z, seg->unk28[1].z);
         } else {
             float t3 = t2 - DAT_004e1348;
             t3 = t3 * len0;
@@ -360,8 +360,8 @@ float AIDriver::FUN_0049c130()
             unk134.x = t3;
             unk134.y = t3 * t3;
             unk134.z = t3 * t3 * t3;
-            unk14c.x = unk134.Spline(seg->a->x, q0->x, q1->x, seg->b->x);
-            unk14c.z = unk134.Spline(seg->a->z, q0->z, q1->z, seg->b->z);
+            unk14c.x = unk134.Spline(seg->a->x, seg->unk28[0].x, seg->unk28[1].x, seg->b->x);
+            unk14c.z = unk134.Spline(seg->a->z, seg->unk28[0].z, seg->unk28[1].z, seg->b->z);
         }
     } else if ((float)sqrt(C.z * C.z + C.x * C.x) > dB) {
         // Nearest to the middle edge.
@@ -369,9 +369,9 @@ float AIDriver::FUN_0049c130()
         float inv1 = DAT_00500cfc / len1;
         float inv2 = DAT_00500cfc / len2;
         B += *POS;
-        B -= *(Vec3*)q0;
+        B -= *(Vec3*)(&seg->unk28[0]);
         B.y = 0;
-        SubV(q1, q0, &nearest);
+        SubV((&seg->unk28[1]), (&seg->unk28[0]), &nearest);
         t = B.Length() / NLEN(nearest);
         unkc4 = (int)t;
         unk134.x = t;
@@ -379,15 +379,15 @@ float AIDriver::FUN_0049c130()
         unk134.y = t * t;
         unk134.z = t * t * t;
         unk7c = unk134.Spline(seg->a->unk2c, seg->unk40, seg->unk44, seg->b->unk2c);
-        unk140.x = unk134.Spline(seg->a->x, q0->x, q1->x, seg->b->x);
-        unk140.z = unk134.Spline(seg->a->z, q0->z, q1->z, seg->b->z);
+        unk140.x = unk134.Spline(seg->a->x, seg->unk28[0].x, seg->unk28[1].x, seg->b->x);
+        unk140.z = unk134.Spline(seg->a->z, seg->unk28[0].z, seg->unk28[1].z, seg->b->z);
         float t2 = t + inv1;
         if (t2 <= DAT_004e1348) {
             unk134.x = t2;
             unk134.y = t2 * t2;
             unk134.z = t2 * t2 * t2;
-            unk14c.x = unk134.Spline(seg->a->x, q0->x, q1->x, seg->b->x);
-            unk14c.z = unk134.Spline(seg->a->z, q0->z, q1->z, seg->b->z);
+            unk14c.x = unk134.Spline(seg->a->x, seg->unk28[0].x, seg->unk28[1].x, seg->b->x);
+            unk14c.z = unk134.Spline(seg->a->z, seg->unk28[0].z, seg->unk28[1].z, seg->b->z);
         } else {
             float t3 = t2 - DAT_004e1348;
             t3 = t3 * len1;
@@ -395,8 +395,8 @@ float AIDriver::FUN_0049c130()
             unk134.x = t3;
             unk134.y = t3 * t3;
             unk134.z = t3 * t3 * t3;
-            unk14c.x = unk134.Spline(q0->x, q1->x, seg->b->x, next->unk28[0].x);
-            unk14c.z = unk134.Spline(q0->z, q1->z, seg->b->z, next->unk28[0].z);
+            unk14c.x = unk134.Spline(seg->unk28[0].x, seg->unk28[1].x, seg->b->x, next->unk28[0].x);
+            unk14c.z = unk134.Spline(seg->unk28[0].z, seg->unk28[1].z, seg->b->z, next->unk28[0].z);
         }
     } else {
         // Nearest to the last edge (second corner point to node b).
@@ -404,9 +404,9 @@ float AIDriver::FUN_0049c130()
         float inv2 = DAT_00500cfc / len2;
         float inv3 = DAT_00500cfc / len3;
         C += *POS;
-        C -= *(Vec3*)q1;
+        C -= *(Vec3*)(&seg->unk28[1]);
         C.y = DAT_004e134c;
-        SubV(seg->b, q1, &nearest);
+        SubV(seg->b, (&seg->unk28[1]), &nearest);
         t = C.Length() / NLEN(nearest);
         unkc4 = (int)t;
         unk134.x = t;
@@ -414,15 +414,15 @@ float AIDriver::FUN_0049c130()
         unk134.y = t * t;
         unk134.z = t * t * t;
         unk7c = unk134.Spline(seg->unk40, seg->unk44, seg->b->unk2c, next->unk40);
-        unk140.x = unk134.Spline(q0->x, q1->x, seg->b->x, next->unk28[0].x);
-        unk140.z = unk134.Spline(q0->z, q1->z, seg->b->z, next->unk28[0].z);
+        unk140.x = unk134.Spline(seg->unk28[0].x, seg->unk28[1].x, seg->b->x, next->unk28[0].x);
+        unk140.z = unk134.Spline(seg->unk28[0].z, seg->unk28[1].z, seg->b->z, next->unk28[0].z);
         float t2 = t + inv2;
         if (t2 <= DAT_004e1348) {
             unk134.x = t2;
             unk134.y = t2 * t2;
             unk134.z = t2 * t2 * t2;
-            unk14c.x = unk134.Spline(q0->x, q1->x, seg->b->x, next->unk28[0].x);
-            unk14c.z = unk134.Spline(q0->z, q1->z, seg->b->z, next->unk28[0].z);
+            unk14c.x = unk134.Spline(seg->unk28[0].x, seg->unk28[1].x, seg->b->x, next->unk28[0].x);
+            unk14c.z = unk134.Spline(seg->unk28[0].z, seg->unk28[1].z, seg->b->z, next->unk28[0].z);
         } else {
             float t3 = t2 - DAT_004e1348;
             t3 = t3 * len2;
@@ -430,8 +430,8 @@ float AIDriver::FUN_0049c130()
             unk134.x = t3;
             unk134.y = t3 * t3;
             unk134.z = t3 * t3 * t3;
-            unk14c.x = unk134.Spline(q1->x, seg->b->x, next->unk28[0].x, next->unk28[1].x);
-            unk14c.z = unk134.Spline(q1->z, seg->b->z, next->unk28[0].z, next->unk28[1].z);
+            unk14c.x = unk134.Spline(seg->unk28[1].x, seg->b->x, next->unk28[0].x, next->unk28[1].x);
+            unk14c.z = unk134.Spline(seg->unk28[1].z, seg->b->z, next->unk28[0].z, next->unk28[1].z);
         }
     }
 
@@ -447,7 +447,7 @@ float AIDriver::FUN_0049c130()
     n1.x *= il1;
     n1.z *= il1;
     n1.x *= w;
-    n1.y = *(volatile float*)&n1.y * w; // original multiplies the stored 0
+    n1.y = n1.y * w; // original multiplies the stored 0
     n1.z *= w;
     n1.x += unk140.x;
     n1.y += unk140.y;
@@ -462,7 +462,7 @@ float AIDriver::FUN_0049c130()
     n2.x *= il2;
     n2.z *= il2;
     n2.x *= w;
-    n2.y = *(volatile float*)&n2.y * w; // original multiplies the stored 0
+    n2.y = n2.y * w; // original multiplies the stored 0
     n2.z *= w;
     n2.x += unk140.x;
     n2.y += unk140.y;
@@ -488,14 +488,14 @@ float AIDriver::FUN_0049c130()
     // Unit sideways vector; the result is the (negated) heading component along it.
     Vec3 n3;
     n3.x = unk54.z;
-    *(volatile float*)&n3.y = 0;
+    n3.y = 0;
     n3.z = -unk54.x;
     float il3 = DAT_004e1348 / (float)sqrt(n3.x * n3.x + n3.z * n3.z);
     n3.x *= il3;
     n3.z *= il3;
     unk3c.y = 0;
     // original keeps the n3.y (= 0) term
-    float rs = n3.z * forward.z; rs = *(volatile float*)&n3.y * forward.y + rs; rs = n3.x * forward.x + rs;
+    float rs = n3.z * forward.z; rs = n3.y * forward.y + rs; rs = n3.x * forward.x + rs;
     float result = -rs;
     unk78 = unk7c;
     unk3c.x = n3.x * unk7c + unk140.x;
@@ -1264,6 +1264,7 @@ float AIDriver::FUN_0049d950(float unused)
 }
 
 __forceinline static void CopyXZ(Vec3& d, const Vec3& s) { d.x = s.x; d.z = s.z; }
+__forceinline static void SetV(Vec3& d, const Vec3& s) { d.x = s.x; d.y = s.y; d.z = s.z; }
 
 extern float DAT_004e1348, DAT_004e27c0;
 // NONMATCHING: RALLYTROPHY 0x49d970
@@ -1413,10 +1414,10 @@ float AIDriver::FUN_0049d970()
         break;
     }
     float f1 = (float)(DAT_00500cfc / sl);
-    unk134.x = t;
     float l2q = dir2.z * dir2.z; l2q = dir2.x * dir2.x + l2q; l2q = *(volatile float*)&dir2.y * *(volatile float*)&dir2.y + l2q;
     float len2 = (float)sqrt(l2q);
     float f2 = DAT_00500cfc / len2;
+    unk134.x = t;
     PathSpline* spline = (PathSpline*)&unk134;
     spline->t2 = t * t;
     spline->t3 = t * t * t;
@@ -1441,13 +1442,14 @@ float AIDriver::FUN_0049d970()
     }
     unk24 = seg->a->unk24;
     unkec = seg->unk14;
-    SubV(&unk14c, &unk140, &unk60);
+    SetV(*(Vec3*)&unk60, *(Vec3*)&unk14c - *(Vec3*)&unk140);
     // perpendicular of the path direction, normalised in the plane
+    lateral.x = unk60.z;
     lateral.z = -unk60.x;
     lateral.y = 0;
-    lateral.x = unk60.z;
     unk48.y = 0;
-    float inv = 1.0f / (float)sqrt(lateral.z * lateral.z + lateral.x * lateral.x);
+    float len1 = (float)sqrt(lateral.z * lateral.z + lateral.x * lateral.x);
+    float inv = 1.0f / len1;
     lateral.x = inv * lateral.x;
     lateral.z = inv * lateral.z;
     float m;
@@ -1459,16 +1461,16 @@ float AIDriver::FUN_0049d970()
     unk48.x = m * lateral.x + unk140.x;
     unk48.z = m * lateral.z + unk140.z;
     sideways.y = 0;
-    sideways.x = unk48.z - ((CarBodyV*)car->body)->position.z;
     sideways.z = -(unk48.x - ((CarBodyV*)car->body)->position.x);
+    sideways.x = unk48.z - ((CarBodyV*)car->body)->position.z;
     float inv2 = 1.0f / (float)sqrt(sideways.z * sideways.z + sideways.x * sideways.x);
     sideways.x = inv2 * sideways.x;
     sideways.z = inv2 * sideways.z;
     float u34 = *(volatile float*)&sideways.y * forward.y; u34 = sideways.z * forward.z + u34; u34 = sideways.x * forward.x + u34;
     unk34 = u34;
-    *(Vec3*)&unkc8 = *(Vec3*)&unk3c - ((CarBodyV*)car->body)->position;
+    SetV(*(Vec3*)&unkc8, *(Vec3*)&unk3c - ((CarBodyV*)car->body)->position);
     unkc8.y = 0;
-    *(Vec3*)&unkd4 = *(Vec3*)&unk140 - ((CarBodyV*)car->body)->position;
+    SetV(*(Vec3*)&unkd4, *(Vec3*)&unk140 - ((CarBodyV*)player->car->body)->position);
     unkd4.y = 0;
     return 0.0f;
 }
@@ -1491,6 +1493,7 @@ __forceinline static void Copy(Vec3& d, const Vec3& s) { d.x = s.x; d.y = s.y; d
 // ahead of it, evaluates the racing line (Catmull-Rom through the segment's nodes/corner points) at the car and 1.25
 // units ahead, offsets the p sideways by the road width and derives the steering offset (unk34).
 // Tried 2026-11-01 re-pass: lazy dist2 sqrt inside the && compares and 0.0f read as DAT_004e134c for v0/v1/v2/gap/unk14c .y (787->698 insns, 3502->3543 bytes vs 3592); ~30 variants (other .y sites, p.y, unk28, dist order, local pointer/declaration order) no better; still differs: original keeps player in edi/path in ebp (ours ebp/ebx) so the whole register allocation and several fst/fstp reloads of the n/v components differ.
+// Pass 2026-11-13: 720 -> 594 insns differ (3545 -> 3532 bytes vs 3592): u0/u1 as #define expressions not locals (-55), body cached via CarBody* + int-copied velocity, p.y=0 in the cap branch, v0.y/v1.y literal 0.0f at two sites, t2<=1 branch order in cases 1-2. Not fixed: player/index register split (index reloaded from player->unk1a7c; orig keeps it in ebx), x87 preloads in dist0/dist1 Length.
 float AIDriver::FUN_0049e3d0()
 {
     Vec3 n;
@@ -1500,19 +1503,20 @@ float AIDriver::FUN_0049e3d0()
 #define sp (*(AiSpline*)&unk134)
     unk28 = 0;
     AiPath* path = player->FUN_00491e10();
-    int index = player->unk1a7c;
-    AiSegment* cur = path->At(index);
-    AiSegment* next = path->At(index + 1);
-    AiSegment* prev = path->At(index - 1);
+    AiSegment* cur = path->At(player->unk1a7c);
+    AiSegment* next = path->At(player->unk1a7c + 1);
+    AiSegment* prev = path->At(player->unk1a7c - 1);
 
     // Where the car will be in 1.43 seconds (horizontal speed capped at 15).
-    p.x = car->body->velocity[0];
-    p.y = car->body->velocity[1];
-    p.z = car->body->velocity[2];
+    CarBody* body = car->body;
+    p.x = body->velocity[0];
+    p.y = body->velocity[1];
+    p.z = body->velocity[2];
     p.y = 0;
-    float speed = (float)sqrt(p.z * p.z + p.x * p.x);
+    float speed = (float)sqrt(p.x * p.x + p.z * p.z);
     if (speed > DAT_00500d08) {
         float k = DAT_00500d08 / speed;
+        p.y = 0;
         p.x = k * p.x;
         p.z = k * p.z;
     }
@@ -1534,8 +1538,8 @@ float AIDriver::FUN_0049e3d0()
         i++;
     } while (dCur > dNext);
 
-    Vec3* u0 = (Vec3*)&cur->unk28[0];
-    Vec3* u1 = (Vec3*)&cur->unk28[1];
+#define u0 ((Vec3*)&cur->unk28[0])
+#define u1 ((Vec3*)&cur->unk28[1])
 
     // The segment is three pieces: a -> u0, u0 -> u1, u1 -> b; find the n p on each.
     Vec3 v0;
@@ -1548,7 +1552,7 @@ float AIDriver::FUN_0049e3d0()
     v0.y = DAT_004e134c;
     Vec3 v1;
     v1.x = u1->x - u0->x;
-    v1.y = DAT_004e134c;
+    v1.y = 0.0f;
     v1.z = u1->z - u0->z;
     float len1 = (float)sqrt(v1.z * v1.z + v1.x * v1.x);
     FUN_004b3dd0(&p, u0, &v1, &n);
@@ -1581,7 +1585,7 @@ float AIDriver::FUN_0049e3d0()
         v0.y = p.y + v0.y;
         v0.z = p.z + v0.z;
         v0 -= *(Vec3*)cur->a;
-        v0.y = DAT_004e134c;
+        v0.y = 0.0f;
         SubV(u0, cur->a, &n);
         float nl = n.x * n.x + n.z * n.z;
         nl = nl + n.y * n.y;
@@ -1594,7 +1598,13 @@ float AIDriver::FUN_0049e3d0()
         unk140.x = sp.Eval(prev->unk28[1].x, ((Vec3*)cur->a)->x, u0->x, u1->x);
         unk140.z = sp.Eval(prev->unk28[1].z, ((Vec3*)cur->a)->z, u0->z, u1->z);
         float t2 = t + step0;
-        if (t2 > DAT_004e1348) {
+        if (t2 <= DAT_004e1348) {
+            sp.t = t2;
+            sp.t2 = t2 * t2;
+            sp.t3 = sp.t2 * t2;
+            unk14c.x = sp.Eval(prev->unk28[1].x, ((Vec3*)cur->a)->x, u0->x, u1->x);
+            unk14c.z = sp.Eval(prev->unk28[1].z, ((Vec3*)cur->a)->z, u0->z, u1->z);
+        } else {
             t2 = (t2 - DAT_004e1348) * len0; // original chains ((t2-1)*len)*step through one temp
             t2 = t2 * step1;
             sp.t = t2;
@@ -1602,12 +1612,6 @@ float AIDriver::FUN_0049e3d0()
             sp.t3 = sp.t2 * t2;
             unk14c.x = sp.Eval(((Vec3*)cur->a)->x, u0->x, u1->x, ((Vec3*)cur->b)->x);
             unk14c.z = sp.Eval(((Vec3*)cur->a)->z, u0->z, u1->z, ((Vec3*)cur->b)->z);
-        } else {
-            sp.t = t2;
-            sp.t2 = t2 * t2;
-            sp.t3 = sp.t2 * t2;
-            unk14c.x = sp.Eval(prev->unk28[1].x, ((Vec3*)cur->a)->x, u0->x, u1->x);
-            unk14c.z = sp.Eval(prev->unk28[1].z, ((Vec3*)cur->a)->z, u0->z, u1->z);
         }
     } else if ((float)sqrt(v2.x * v2.x + v2.z * v2.z) > dist1) {
         // Nearest to the middle piece.
@@ -1630,7 +1634,13 @@ float AIDriver::FUN_0049e3d0()
         unk140.x = sp.Eval(((Vec3*)cur->a)->x, u0->x, u1->x, ((Vec3*)cur->b)->x);
         unk140.z = sp.Eval(((Vec3*)cur->a)->z, u0->z, u1->z, ((Vec3*)cur->b)->z);
         float t2 = t + step1;
-        if (t2 > DAT_004e1348) {
+        if (t2 <= DAT_004e1348) {
+            sp.t = t2;
+            sp.t2 = t2 * t2;
+            sp.t3 = sp.t2 * t2;
+            unk14c.x = sp.Eval(((Vec3*)cur->a)->x, u0->x, u1->x, ((Vec3*)cur->b)->x);
+            unk14c.z = sp.Eval(((Vec3*)cur->a)->z, u0->z, u1->z, ((Vec3*)cur->b)->z);
+        } else {
             t2 = (t2 - DAT_004e1348) * len1; // original chains ((t2-1)*len)*step through one temp
             t2 = t2 * step2;
             sp.t = t2;
@@ -1638,12 +1648,6 @@ float AIDriver::FUN_0049e3d0()
             sp.t3 = sp.t2 * t2;
             unk14c.x = sp.Eval(u0->x, u1->x, ((Vec3*)cur->b)->x, ((Vec3*)&next->unk28[0])->x);
             unk14c.z = sp.Eval(u0->z, u1->z, ((Vec3*)cur->b)->z, ((Vec3*)&next->unk28[0])->z);
-        } else {
-            sp.t = t2;
-            sp.t2 = t2 * t2;
-            sp.t3 = sp.t2 * t2;
-            unk14c.x = sp.Eval(((Vec3*)cur->a)->x, u0->x, u1->x, ((Vec3*)cur->b)->x);
-            unk14c.z = sp.Eval(((Vec3*)cur->a)->z, u0->z, u1->z, ((Vec3*)cur->b)->z);
         }
     } else {
         // Nearest to the last piece.
@@ -1727,6 +1731,8 @@ float AIDriver::FUN_0049e3d0()
     ((Vec3*)&unkd4)->y = 0;
     return DAT_004e134c;
 }
+#undef u0
+#undef u1
 
 #undef sp
 

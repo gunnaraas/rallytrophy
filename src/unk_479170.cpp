@@ -370,7 +370,7 @@ float CarEmitterB::SpawnCore1(float scale, float age)
     p->velocity.y *= 0.5f;
     float j1 = (float)((rand() & 0x3fff) - 0x1fff) * 9.1552734375e-5f;
     float j2 = (float)((rand() & 0x3fff) - 0x1fff) * 6.103515625e-5f;
-    vel->x = j1 + *(volatile float*)&vel->x; // field re-read like the original (fadd [ebx]); the original also spills j1 to float across the 2nd rand(), which VC6 sinks below this store here
+    vel->x = j1 + vel->x; // field re-read like the original (fadd [ebx]); the original also spills j1 to float across the 2nd rand(), which VC6 sinks below this store here
     p->velocity.y += j2;
     p->size = 0.2f;
     p->velocity.z += (float)((rand() & 0x3fff) - 0x1fff) * 9.1552734375e-5f;

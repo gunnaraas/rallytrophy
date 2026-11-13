@@ -804,22 +804,20 @@ void Player::FUN_00491950(int t)
     c->unk1350 = 1;
 }
 
-// NONMATCHING: RALLYTROPHY 0x491e20
-// Tried 2026-10-30 night: ~25 variants (pointer-stepped loops, bi temp, regrouping, declaration order) stay at 15 insns. Swapping target/base scores 13 but is wrong: the original reads t from unk250c ([ebp-4]) and base from unk24e4.
-// Tried 2026-10-31 re-pass: explicit byte-offset base (off = base - target) and tp++ walkers (18 insns, shrinks to 324 bytes), base/target declaration reorders (18-20), volatile target read, permute.py -r 40 (best stays 15/42); VC6 still picks the 0x24e4 array as the induction pointer.
-// 331 vs 331 bytes, 42 differ: same code, but VC6 picks the other array as the primary induction
-// variable of the loop (original steps the 0x250c array and adds a runtime offset to reach 0x24e4).
 // Computes the stage times of a simulated opponent from its skill table: each of the ten
 // splits is the reference split scaled by the skill, plus random error, rounded to 10 ms.
+// Matched 2026-11-13: target[i] written out twice (raises its use weight so VC6 steps the 0x250c array and
+// reaches 0x24e4 by runtime offset); base read first, target after the unk1a50 store.
+// FUNCTION: RALLYTROPHY 0x491e20
 void Player::FUN_00491e20(Stage* stage)
 {
     int rally = stage->unk0;
     unk30 = 1;
     unk1a1c = 1;
-    int* target = stage->unk250c;
+    int* base = stage->unk24e4;
     int index = stage->stageCount;
     unk1a50 = index;
-    int* base = stage->unk24e4;
+    int* target = stage->unk250c;
     float* ai = aiTable;
     unk1a18 = 10;
     float skill = ai[rally * 8 + index + 1] * 0.01f;
@@ -835,7 +833,7 @@ void Player::FUN_00491e20(Stage* stage)
     for (i = 0; i < 10; i++) {
         float t = (float)target[i];
         float r = (float)(rand() & 0x3ff) * (1.0f / 1023);
-        t = r * t * error + ((float)base[i] + t * rest);
+        t = r * (float)target[i] * error + ((float)base[i] + t * rest);
         if ((rand() & 0x3fff) < fatalLimit) {
             t += (float)(rand() & 0xfff);
         }

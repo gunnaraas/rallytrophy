@@ -438,3 +438,86 @@ followed by M calls to an inline function:
   push_back is unaffected by `#pragma inline_depth` 8..255. 0x43df70: 52 -> 48 via SetScale for the final restore.
 - sizegap.py limits: it disassembles switch jump tables after `ret` as code (bogus top hunk on 0x43df70) and can
   misalign a hunk onto a matching EH-state store (0x4b0e90); confirm a hunk with insdiff before acting on it.
+
+## Corpus lookup and a dead lever (2026-11-13)
+
+- `tools/idiom.py` indexes the 1500 byte-exact functions (original instruction -> source line, from `/FAcs`
+  listings) so a NONMATCHING hunk can be looked up instead of guessed: e.g. `lea R,[R+N]; mov R2,R` (the copy
+  0x461a40 lacks) comes from `SpeechItem item = queue.front();` and from `for (int j = 0; j < 7; j++)` loops.
+- Corpus survey over all 169 NONMATCHING functions (shape-aligned hunks): 5721 hunks, 2595 with an exact-text hit in
+  the corpus; the big "size" functions get the most leads (Stage::Stage 119 of 262 hunks, StageScreen::Layout 98/164).
+- **Runs of four identical stores are an inline helper** (`static inline void Quad(float* v, float f)`): that is what
+  hoists the next allocation's `push <size>` above the quad stores (0x486240 LoadOverlays matched, from the corpus hit
+  on G4_Quad in unk_4303e0.cpp). Swept over the other six functions with such runs: no change, so it only matters next
+  to a `new`.
+- **Stale `volatile` workarounds**: a `*(volatile T*)&x = e` or `T volatile x` added in an earlier pass can be what
+  blocks the function now (0x469a20: plain `float kk = ...` 17 -> 6 bytes). Swept over all 57 NONMATCHING functions
+  that carry one (one site at a time and all at once): closer in 8 (applied), same or worse elsewhere.
+- Local NAMES do not matter either: 12 random renamings of 0x436250's locals gave identical bytes.
+- Neutral reference-count rewrites swept mechanically (`if (A || B)` -> `if (A) {} else if (B) {}` with the same
+  body; `v = e;` moved into both arms of a following if/else) over the 38 functions that have such sites: no match,
+  noise-level gains only in two 5-10 KB functions. These forms matter only where the slot order is the last difference.
+- Declaration count is NOT a general lever: forcing 1..32 extra global typedefs into unk_4303e0, unk_43a390,
+  unk_452b20 and unk_490950 changed no byte in any of their 19 NONMATCHING functions. The winmain flip was a
+  one-off.
+
+## Big-function rounds (2026-11-13)
+
+- **Chained assignment = load once, copy registers.** `a.x = b.x = c.x = d.x = lo.x;` reproduces the original's
+  `mov ecx,eax; mov edx,eax` fan-out where per-field stores reload (0x470940 corner block now exact).
+- **A named temporary re-addressed with `lea` is a sign the original passed the call result straight through**
+  (`dst.Assign(Plus(a, b))` instead of `T tmp = Plus(a, b); dst.Assign(tmp);`): 0x4418d0, seven 7-byte hunks.
+- **Register roles follow use weight, so lower the weight of the wrong winner**: reading `m_game->text` in two blocks
+  instead of the `text` local fixed 0x421fa0's ebx/edi swap; testing `info == rally` instead of `r == 0` fixed
+  0x4418d0's. Adding uses to the intended winner rarely works; removing uses from the wrong one does.
+- **`fcompp` vs `fcomp; fstp st(0)`**: write the compare as one expression with the sum on the left
+  (`if (d.z*d.z + d.y*d.y + d.x*d.x <= r*r)`), not via a named d2.
+- **Literal constants as named file statics** (`static const float K262 = 262.0f;`, used `K262 * sy`) give the
+  original's `fld [const]; fmul [local]` order and stop folding of `25 + 575` (0x421fa0).
+- Unexplained: in 0x411600 the score moves with the number of unused `__forceinline` helpers defined in the file
+  (0, 2 -> 124 insns; 1, 3 -> 127; 4 -> 121). Same family as the winmain declaration-count flip; not used.
+- FillCells 0x40f390: the inline-asm RoundF costs register allocation (plain casts free esi/edi/ebx but call
+  __ftol, which the original lacks). `/QIfist` on the cast form does not reproduce the original either (2128 bytes
+  vs 2101 without); how the original rounds inline without asm demoting registers is open.
+- x87 operand order (toy compiles, 0x470940): VC6 canonicalises commutative fmul/fadd operands; local-struct x
+  global always emits `fld global; fmul local`, whatever the source order, helper or alias. A one-expression sum is
+  emitted z,y,x; a statement chain (`t = c.x*D.x; t += c.z*D.z; t += c.y*D.y`) keeps source order. Where the original
+  is local-first, the local term is probably a different kind of node (e.g. produced by an inline `+=` through a member
+  path); unresolved.
+- Unrolled loops: where the original has N copies of a small search with no loop counter, write N copies (a macro is
+  fine); `while (1) { if (a) break; if (b) break; e++; }` stays top-tested where `for (; cond;)` gets rotated
+  (0x419f30, 490 -> 362 insns with the e[] fixup also unrolled).
+- **`/Oa` caches a plain pointer field across calls**: a `m->name` load is CSE'd through a chain of strcmp calls.
+  Reading it through a string-like sub-object (`struct { const char* ptr; int len; ...; c_str() { return ptr ? ptr : ""; } }`)
+  reloads it per use as the original does (0x45e480, ~300 insns of the glow/window chain).
+- **Right-to-left setters**: `fld b; fld a; fstp d0; fstp d1` is an inline `Set2f(d, a, b)` call (arguments evaluated
+  right to left), not two stores (0x45e480).
+- **Identity matrices**: a struct without a constructor, stores written inline right after the declaration, puts the
+  EH state store before the identity stores as in the original (0x493650 IdentityMatrix, 0x473470 RainMatrix).
+- **Stale volatiles keep paying**: removing `volatile BYTE* hit` aliasing in 0x45cc30 was its biggest single gain.
+- **A named local/helper can renumber `_$E` static initialisers** (0x45bc20: `Vec3 f = vel * -down;` or a helper broke
+  two matched `_$E` functions in unk_45ad10.cpp). Always rerun match.py on the whole file, not only the target.
+- **Vector-style `size()` stops VC6 hoisting a base pointer** (`first == 0 ? 0 : last - first` as an inline member):
+  0x417540 got the original's register map. Arrays instead of scalar locals give the original's real frame slots
+  (0x4ad1d0 r[9]/a[9]).
+- **Inline budget mystery solved (0x443790)**: `#pragma inline_depth(1)` forbids the second level a by-value struct
+  copy needs (implicit copy ctor -> string copy ctor). With depth 2 VC6 inlines _Tidy + assign as the original does
+  (standalone probe confirms). Check any file that sets inline_depth(1) where the original inlines string copies.
+- **Tail merging of identical leaves**: VC6 cross-jumps textually different but identical-code blocks. Regrouping with
+  parens (`(e + e + dist) + c`, same value) stops a merge without changing bytes elsewhere (0x4b3800); a cast on a
+  late arm (`(float)(v1 - v0)`) does the same (0x4b59b0).
+- **bool vs int parameters**: an `int` parameter receiving a bool emits `and edx,0xff; push edx`, a `bool` one does not
+  (0x443790 DrawSelector).
+- **Re-read the member, do not cache it in a local**: `MakeTexture(F(int,0))` per call instead of `int f = F(int,0)`
+  fixed BinkVideo::BinkVideo's register map (0x4097a0 MATCHED).
+- **Color by value puts -1 in edi**: `DrawQuad(pos, uv, color, 1, 1)` with a `Color color(0xffffffff)` local passed by
+  value reproduces the original's shared -1 register (0x40a0f0 MATCHED, lead from MenuScreen::DrawIconCell via idiom.py).
+- **Expressions written out per use let VC6 make its own CSE temps** (`w * 0.5f` at every use instead of an `x` local):
+  that is where the original's fld/fst temp slots come from (0x40a0f0).
+- **Budget padding, re-swept**: one discarded value-returning inline call pushes the first throw's string copy out of
+  line (0x4b91c0 MATCHED with K=1 after struct copies were added; K was 10 before). Re-sweep K after any change that
+  adds or removes inline calls.
+- **Struct copies of a ScenePoint give the original's two-pointer induction** (d and d+0x14) and the for-increment
+  order (`d++, sa++, sb++, n++`) can swap two spilled registers in a loop tail (0x4b91c0).
+- **Word copy loops**: `shr ecx,1; rep movsd; adc ecx,ecx; rep movsw` is VC6 turning a plain `for (k...) dst[out++] = src[k];` loop over unsigned shorts into a string copy; no memcpy form gives it (0x4aa690, lead from FillTriangle 0x472710).
+- **Raise a variable's weight with a second written-out use** (not an unused copy, which does nothing): `r * (float)target[i] * error` instead of reusing `t` made VC6 step `target` as the induction pointer (0x491e20 MATCHED).

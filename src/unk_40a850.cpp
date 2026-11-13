@@ -54,10 +54,13 @@ inline void XformT(float* o, const float* p, const float* m, const float* t)
     }
 }
 
+inline void SetFi(float* f, int x, float y, int z) { *(int*)&f[0] = x; f[1] = y; *(int*)&f[2] = z; }
+
 // NONMATCHING: RALLYTROPHY 0x40a850
 // reason: Xform+translation x87 block (mn corner) is now inline asm like the original and the ebp frame matches; remaining: original keeps this/list in stack locals (ebp-0x44/-0x54) with different register allocation and FPU scheduling (1970 vs 2098 bytes, 1692 differing).
 // Tried 2026-10-31: ~25 variants; in-place Vec3 copy-then-modify (lo/hi/ax/ay/az as the original's int copies), volatile this/list spill slots, l->items[i]->state re-read, car-first decl order took 417->405 insns; still differs: original keeps i/hit in stack slots with this=esi/list=edi, and slot order of lo/hi/ax/ay/az/v0/w0 plus FPU scheduling.
 // Tried 2026-11-01 re-pass: fixed four float-sum associations to the original's fadd order (distance x2+z2+y2, sphere radius x2+z2+y2, velocity and angular delta sums z+y+x; products already read the right fields); 12 more variants (volatile this/list, decl orders, per-axis deltas, it->state) best 405->400; still differs: original frame 0xc4 vs ours 0xbc, this/list/i/hit spilled to slots, and FPU scheduling.
+// Pass 2026-11-13: 239 -> 222 insns differ (2040 -> 2088 vs 2098 bytes): ax group as hoisted sum (t = mn+ax, then pick mn/mx), m declared right after bx, m2 as z2+y2+x2 with m2 > 0.1f, SetFi int-copy store for force += g, b copied per component between vel reads; open: ay/az groups (original hoists fld ay before the sign test), list/this single spill store (ours has an extra), FUN_004ad1d0 arg-1 spill, ang load register order.
 // original: FUN_0040a850
 void U40A850Prop::Fn(int dt)
 {
@@ -98,11 +101,11 @@ void U40A850Prop::Fn(int dt)
         Vec3 v0 = *(Vec3*)a->vel;
         Vec3 w0 = *(Vec3*)a->ang;
         U40A850Box* bx = a->box;
+        float* m = a->mat[0];
         Vec3 lo = *(Vec3*)bx->lo;
         Vec3 hi = *(Vec3*)bx->hi;
         lo.x -= 0.1f; lo.y -= 0.1f; lo.z -= 0.1f;
         hi.x += 0.1f; hi.y += 0.1f; hi.z += 0.1f;
-        float* m = a->mat[0];
         Vec3 ax = *(Vec3*)m;
         Vec3 ay = *(Vec3*)(m + 4);
         Vec3 az = *(Vec3*)(m + 8);
@@ -111,10 +114,13 @@ void U40A850Prop::Fn(int dt)
         az.x = (hi.z - lo.z) * az.x; az.y = (hi.z - lo.z) * az.y; az.z = (hi.z - lo.z) * az.z;
         Vec3 mn;
         XformT(&mn.x, &lo.x, m, a->pos);
+        float tx = mn.x + ax.x;
         Vec3 mx = mn;
-        if (*(unsigned*)&ax.x & 0x80000000) mn.x += ax.x; else mx.x += ax.x;
-        if (*(unsigned*)&ax.y & 0x80000000) mn.y += ax.y; else mx.y += ax.y;
-        if (*(unsigned*)&ax.z & 0x80000000) mn.z += ax.z; else mx.z += ax.z;
+        if (*(unsigned*)&ax.x & 0x80000000) mn.x = tx; else mx.x = tx;
+        float ty = mn.y + ax.y;
+        if (*(unsigned*)&ax.y & 0x80000000) mn.y = ty; else mx.y = ty;
+        float tz = mn.z + ax.z;
+        if (*(unsigned*)&ax.z & 0x80000000) mn.z = tz; else mx.z = tz;
         if (*(unsigned*)&ay.x & 0x80000000) mn.x = ay.x + mn.x; else mx.x = ay.x + mx.x;
         if (*(unsigned*)&ay.y & 0x80000000) mn.y = ay.y + mn.y; else mx.y = ay.y + mx.y;
         if (*(unsigned*)&ay.z & 0x80000000) mn.z = ay.z + mn.z; else mx.z = ay.z + mx.z;
@@ -149,10 +155,10 @@ void U40A850Prop::Fn(int dt)
         U40A850Body* c = body;
         c->dt = (float)dt * 0.001f;
         Vec3 g(0.0f, c->mass * -14.715f, 0.0f);
-        c->force[1] += g.y;
+        SetFi(c->force, *(int*)&c->force[0], c->force[1] + g.y, *(int*)&c->force[2]);
         Vec3 n = *(Vec3*)c->vel;
-        float m2 = n.x * n.x + (n.y * n.y + n.z * n.z);
-        if (0.1f < m2) {
+        float m2 = n.z * n.z + n.y * n.y + n.x * n.x;
+        if (m2 > 0.1f) {
             float inv = 1.0f / (float)sqrt(n.x * n.x + (n.z * n.z + n.y * n.y));
             n.x = inv * n.x;
             n.y = n.y * inv;
@@ -171,8 +177,11 @@ void U40A850Prop::Fn(int dt)
         }
         c->FUN_0041c540();
         c->FUN_0041c220(0.1f, 0.15f);
-        float a1 = c->vel[0], a2 = c->vel[1], a3 = c->vel[2];
-        UPod b = *(UPod*)c->ang;
+        float a1 = c->vel[0], a2 = c->vel[1];
+        UPod b; b.x = c->ang[0];
+        float a3 = c->vel[2];
+        b.y = c->ang[1];
+        b.z = c->ang[2];
         UPod dv; dv.x = a1 - v0.x; dv.y = a2 - v0.y; dv.z = a3 - v0.z;
         UPod dw; dw.x = b.x - w0.x; dw.y = b.y - w0.y; dw.z = b.z - w0.z;
         if (a1 * a1 + a2 * a2 + a3 * a3 < 0.001f && b.z * b.z + b.y * b.y + b.x * b.x < 0.001f &&

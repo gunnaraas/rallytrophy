@@ -1013,6 +1013,16 @@ inline void G2_Normalize(float* p)
     p[2] *= inv;
 }
 
+inline float G2_NormLen(float* p)
+{
+    float len = (float)sqrt(p[0] * p[0] + p[1] * p[1] + p[2] * p[2]);
+    float inv = 1.0f / len;
+    p[0] *= inv;
+    p[1] *= inv;
+    p[2] *= inv;
+    return len;
+}
+
 // NONMATCHING: RALLYTROPHY 0x456b10
 // Same size (3489), logic-complete, EH state numbers (0, 5, 7, 8, 0xa) and the inline-assembler blocks identical; the
 // frame slots (the original orders them by use count: d, p0, c, max, hit, min, e, sphere) and the register choice
@@ -1022,15 +1032,16 @@ inline void G2_Normalize(float* p)
 // (+0x1e8), or from the preset of camera view +0x1d4 (0-5 chase with ray-cast clearance, 6 rigid look-at, 7/8 mounted).
 // Tried 2026-10-30 night: savedPos store order, int-copy temps, volatile barriers, pos/matrix local order/macros, hoisted locals; only z-before-y savedPos helped (422->419); frame slots (matrix/pos spills at -0x20/-0x30, 12-byte local at -0x48) still differ.
 // Re-pass 2026-11-01: 11 prologue variants (px/py/pz locals, int-copy temps, volatile dt/savedPos stores, decl order); best 413 vs 419 baseline but size 3496, none matched; ~415 insns differ, far beyond permuter range, root cause is frame-slot/regalloc layout of whole function.
+// Pass 2026-11-13: 396 -> 342 insns differ, size 3492 -> 3505 (loop walks cam with cp++, G2_NormLen keeps the view-8 sqrt live (fdiv form), matrix declared after savedPos stores, trace declared before cam, c built member-wise with member-wise sph.center; still open: d/c fp-forwarding order of c.y/c.z adds, trace/cam esi/ebx swap, frame slots of pos/matrix/this).
 #define V ((G2_View*)this)
 void ViewManager::FUN_00456b10(float dt)
 {
     float* pos = (float*)&V->pos;
-    float* matrix = V->matrix;
-    V->dt = dt;
     V->savedPos.x = pos[0];
+    V->dt = dt;
     V->savedPos.z = pos[2];
     V->savedPos.y = pos[1];
+    float* matrix = V->matrix;
     memcpy(V->prevMatrix, matrix, sizeof(V->matrix));
     if (V->flag1e0) {
         V->flag134 = 0;
@@ -1105,40 +1116,47 @@ void ViewManager::FUN_00456b10(float dt)
                 float* result = (float*)&p0;
                 G2_TRANSFORM_ADD();
             }
+            G2_Trace* trace = &V->trace;
             Vec3* cam = &V->camPos;
             Vec3 d(*cam);
             d -= p0;
-            Vec3 c(d.x * 0.5f, d.y * 0.5f, d.z * 0.5f);
+            Vec3 c;
+            c.x = d.x * 0.5f;
+            c.y = d.y * 0.5f;
+            c.z = d.z * 0.5f;
             c += p0;
             G2_Sphere sph;
-            sph.center = c;
+            sph.center.x = c.x;
+            sph.center.y = c.y;
+            sph.center.z = c.z;
             float dl; dl = d.z * d.z; dl = d.y * d.y + dl; dl = d.x * d.x + dl;
             sph.radius = (float)sqrt(dl) * 0.5f;
             Vec3 lo(*cam);
             Vec3 hi(*cam);
-            for (int i = 0; i < 3; i++) {
+            {
                 float* l = &lo.x;
                 float* h = &hi.x;
                 const float* cp = &cam->x;
                 const float* pp = &p0.x;
-                float a = cp[i] - 0.1f;
-                float b = cp[i] + 0.1f;
-                if (a < l[i]) {
-                    l[i] = a;
-                }
-                if (b > h[i]) {
-                    h[i] = b;
-                }
-                a = pp[i] - 0.1f;
-                b = pp[i] + 0.1f;
-                if (a < l[i]) {
-                    l[i] = a;
-                }
-                if (b > h[i]) {
-                    h[i] = b;
+                for (int i = 0; i < 3; i++, cp++) {
+                    float a = *cp - 0.1f;
+                    float b = *cp + 0.1f;
+                    if (a < l[i]) {
+                        l[i] = a;
+                    }
+                    if (b > h[i]) {
+                        h[i] = b;
+                    }
+                    a = pp[i] - 0.1f;
+                    b = pp[i] + 0.1f;
+                    if (a < l[i]) {
+                        l[i] = a;
+                    }
+                    if (b > h[i]) {
+                        h[i] = b;
+                    }
                 }
             }
-            G2_Trace* trace = &V->trace;
             trace->Erase(trace->first, trace->last);
             trace->boxMin = lo;
             trace->boxMax = hi;
@@ -1150,7 +1168,7 @@ void ViewManager::FUN_00456b10(float dt)
                 Vec3 hit(p0);
                 Vec3 e;
                 hit += d * t;
-                hit.y = cam->y;
+                hit.y = V->camPos.y;
                 e.x = hit.x - p0.x;
                 e.y = hit.y - p0.y;
                 e.z = hit.z - p0.z;
@@ -1181,7 +1199,7 @@ void ViewManager::FUN_00456b10(float dt)
             n.x = n.x * 0.1f;
             n.y = 1.0f;
             n.z = n.z * 0.05f + 0.02f;
-            G2_Normalize(&n.x);
+            G2_NormLen(&n.x);
             G2_Matrix rows;
             float f[3];
             f[0] = 0.0f;
@@ -1295,6 +1313,7 @@ void ViewManager::FUN_00456b10(float dt)
 finish:
     V->nearPlane = G2_kNearMount;
 }
+
 
 // ---- G3: camera offsets, camera.txt loader, fixed camera, module end ----
 

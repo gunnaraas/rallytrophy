@@ -278,71 +278,64 @@ extern float DAT_004e1388; // 2/3
 extern float DAT_004e138c; // 0.5
 extern float DAT_004e1390; // 0.8
 
-struct RenderColor { DWORD c; RenderColor(DWORD v) : c(v) {} ~RenderColor() {} };
 
-// NONMATCHING: RALLYTROPHY 0x40a0f0
-// reason: first draft of the float/stack layout, not yet compared
-// Tried 2026-10-31: original has a third unwind object (empty-dtor DWORD holder of -1, EH state 2, now matched) and literal float constants (fld w; fmul K now matches); still differs: original keeps -1 in edi (push edi) and has one more 4-byte stack slot (sub esp,0x58), shifting every store; ~15 decl-order/int-temp/pos-readback variants did not fix it (127 insns differ, was 131). Render makes no direct Bink calls (FillVideoTextures does, already matched).
-// Tried 2026-11-01 re-pass: 16 variants of the -1-in-edi idiom (volatile/address-taken/plain int m1 passed to vf66 and the RenderColor ctor, color.c reads, color decl order) and function-scope x/y, w/h after arrays; all stay 127 insns (best), volatile m1 adds a store; edi=-1 (or edi,-1; also used for the final EH state store) is not reproduced and the frame stays 4 bytes short; too far (127) for permute.py.
+// FUNCTION: RALLYTROPHY 0x40a0f0
+// Matched 2026-11-13: Color (not a local struct) + RaceDeviceSlots::DrawQuad by value puts -1 in edi; repeated w*0.5f / h*0.6666667f (CSE temps, no x/y locals); chained pos/uv stores.
 void BinkVideo::Render(RenderDevice* device)
 {
     float w = (float)DAT_0056b0ac->GetWidth();
     float h = (float)DAT_0056b0ac->GetHeight();
     HudPoint pos[4];
     HudPoint uv[4];
-    RenderColor color(0xffffffff);
+    Color color(0xffffffff);
     int width = F(int, 4);
     if (width == 0x140) {
         float x = w * 0.8f;
-        pos[0].x = 0; pos[0].y = 0;
-        pos[1].x = x; pos[1].y = 0;
-        pos[2].x = x; pos[2].y = h;
-        pos[3].x = 0; pos[3].y = h;
-        uv[0].x = 0; uv[0].y = 0;
-        uv[1].x = 1.0f; uv[1].y = 0;
-        uv[2].x = 1.0f; uv[2].y = 0.9375f;
-        uv[3].x = 0; uv[3].y = 0.9375f;
+        pos[0].x = pos[3].x = 0;
+        pos[0].y = pos[1].y = 0;
+        pos[1].x = pos[2].x = x;
+        pos[2].y = pos[3].y = h;
+        uv[0].x = uv[3].x = 0;
+        uv[0].y = uv[1].y = 0;
+        uv[1].x = uv[2].x = 1.0f;
+        uv[2].y = uv[3].y = 0.9375f;
         DAT_0056b0ac->vf35(F(Sprite*, 0x10));
-        DAT_0056b0ac->vf66(pos, uv, 0xffffffff, 1.0f, 1.0f);
+        ((RaceDeviceSlots*)DAT_0056b0ac)->DrawQuad((Vec2*)pos, (Vec2*)uv, color, 1.0f, 1.0f);
         pos[0].x = pos[1].x;
         pos[3].x = pos[2].x;
-        pos[1].x = pos[2].x = w;
+        pos[2].x = pos[1].x = w;
         DAT_0056b0ac->vf35(F(Sprite*, 0x14));
-        DAT_0056b0ac->vf66(pos, uv, 0xffffffff, 1.0f, 1.0f);
+        ((RaceDeviceSlots*)DAT_0056b0ac)->DrawQuad((Vec2*)pos, (Vec2*)uv, color, 1.0f, 1.0f);
     } else if (width == 0x200) {
         if (*(int*)(**(int**)((BYTE*)this + 0x10) + 0x50) == 0) {
             FillVideoTextures(this);
         }
-        float x = w * 0.5f;
-        float y = h * 0.6666667f;
-        pos[0].x = 0; pos[0].y = 0;
-        pos[1].x = x; pos[1].y = 0;
-        pos[2].x = x; pos[2].y = y;
-        pos[3].x = 0; pos[3].y = y;
-        uv[0].x = 0; uv[0].y = 0;
-        uv[1].x = 1.0f; uv[1].y = 0;
-        uv[2].x = 1.0f; uv[2].y = 1.0f;
-        uv[3].x = 0; uv[3].y = 1.0f;
+        pos[0].x = pos[3].x = 0;
+        pos[0].y = pos[1].y = 0;
+        pos[1].x = pos[2].x = w * 0.5f;
+        uv[0].x = uv[3].x = 0;
+        uv[0].y = uv[1].y = 0;
+        uv[1].x = uv[2].x = 1.0f;
+        uv[2].y = uv[3].y = 1.0f;
+        pos[2].y = pos[3].y = h * 0.6666667f;
         DAT_0056b0ac->vf35(F(Sprite*, 0x10));
-        DAT_0056b0ac->vf66(pos, uv, 0xffffffff, 1.0f, 1.0f);
-        pos[0].x = x;
-        pos[1].x = w;
-        pos[2].x = w;
-        pos[3].x = x;
+        ((RaceDeviceSlots*)DAT_0056b0ac)->DrawQuad((Vec2*)pos, (Vec2*)uv, color, 1.0f, 1.0f);
+        pos[0].x = pos[1].x;
+        pos[3].x = pos[2].x;
+        pos[2].x = pos[1].x = w;
         DAT_0056b0ac->vf35(F(Sprite*, 0x14));
-        DAT_0056b0ac->vf66(pos, uv, 0xffffffff, 1.0f, 1.0f);
-        pos[0].x = 0; pos[0].y = y;
-        pos[1].x = x; pos[1].y = y;
-        pos[2].x = x; pos[2].y = h;
-        pos[3].x = 0; pos[3].y = h;
+        ((RaceDeviceSlots*)DAT_0056b0ac)->DrawQuad((Vec2*)pos, (Vec2*)uv, color, 1.0f, 1.0f);
+        pos[0].x = pos[3].x = 0;
+        pos[0].y = pos[1].y = h * 0.6666667f;
+        pos[1].x = pos[2].x = w * 0.5f;
+        pos[2].y = pos[3].y = h;
         DAT_0056b0ac->vf35(F(Sprite*, 0x18));
-        DAT_0056b0ac->vf66(pos, uv, 0xffffffff, 1.0f, 1.0f);
-        pos[0].x = x;
-        pos[1].x = w;
-        pos[2].x = w;
-        pos[3].x = x;
+        ((RaceDeviceSlots*)DAT_0056b0ac)->DrawQuad((Vec2*)pos, (Vec2*)uv, color, 1.0f, 1.0f);
+        pos[0].x = pos[1].x;
+        pos[3].x = pos[2].x;
+        pos[2].x = pos[1].x = w;
         DAT_0056b0ac->vf35(F(Sprite*, 0x1c));
-        DAT_0056b0ac->vf66(pos, uv, 0xffffffff, 1.0f, 1.0f);
+        ((RaceDeviceSlots*)DAT_0056b0ac)->DrawQuad((Vec2*)pos, (Vec2*)uv, color, 1.0f, 1.0f);
     }
 }
 

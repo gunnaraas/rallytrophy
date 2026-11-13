@@ -214,6 +214,7 @@ static inline const char* NameOf(void* p)    // object name (std::string at +0x1
 // copy and jumps back), the plain-object push_back sits before the checkpoint block, and the frame layout.
 // Tried 2026-10-30 night: idx/p in dead param slot a, StBody sized 0x284 (header), int copies of sign pos, dead c[] kept via volatile stores (2957->2656 diff lines); still differs: frame 0x250 vs 0x258 (lodMask is a byte at [ebp-0x44] in the original), start-store scheduling, body->pos copy addressing, sign tail merge.
 // Tried 2026-11-01 re-pass: now 8636 vs 8656 bytes, 1115 insns differ; swapping idx/p scratch slot a->c (alloc byte stays at [ebp+0xb], original [ebp+0x13]) and moving/reordering the i/n/num declarations (10 variants) change nothing or worsen; original has i at [ebp-0x3c] below num[8] (-0x28) and the colModel string (-0x38) while ours puts i/n at -0x20/-0x24 above them, and num at -0x3c - slot assignment is not driven by declaration position; Bal sweeps pointless (call sequence already identical).
+// Pass 2026-11-13: 1034 -> 972 insns differ, 8616 -> 8644 bytes (orig 8656): StVirt::Prepare takes 1 (push 1 at all three sites), PushBack args copied to a local, mf1.v38 loop as i++ then progress with repeated VEC(0x38)[i], net->stage read before idx*0x5e8 and idx = a, S414Vec3 struct copies for bounds[0..5] and s->body->pos; open: s/body reloaded from memory in the original (ours caches in esi/edi), label reloaded from this+0x1364 each time (using it helps bytes, not insns), p in edi in the v48/mf3.v28 loops, frame 0x258 vs 0x250.
 // original: FUN_0040c9b0
 Stage::Stage(int a, int b, int c, int d)
 {
@@ -267,9 +268,8 @@ Stage::Stage(int a, int b, int c, int d)
     StPath line;                                     // function-scope strings: destroyed at the end
     StPath text;
     StNetInfo* net = (StNetInfo*)DAT_00501450;
-    *(volatile int*)&a = net->raceIndex;
-    int idx = a;
-    text += FUN_00405380(idx + 0xb4);
+    a = net->raceIndex;
+        text += FUN_00405380(a + 0xb4);
     text += " - ";
     if (DAT_00501458 == 0) {
         text += FUN_00405380(0x1a);
@@ -281,7 +281,7 @@ Stage::Stage(int a, int b, int c, int d)
         text += " ";
         text += FUN_00405380(0x1b);
         text += " ";
-        _itoa(net->stage - IV((BYTE*)DAT_0056b0c8, 0x3680 + idx * 0x5e8), num, 10);
+        int st = net->stage; _itoa(st - IV((BYTE*)DAT_0056b0c8, 0x3680 + a * 0x5e8), num, 10);
         text += num;
     }
     text += "\n";
@@ -397,14 +397,15 @@ Stage::Stage(int a, int b, int c, int d)
     }
 
     // model 1 list at +0x38
-    for (i = 0; i < (int)mf1.v38.size(); i++) {
-        VEC(0x38).PushBack(mf1.v38[i]);
-        void* o = VEC(0x38)[i];
-        ((StSceneObj*)o)->Place(&AT(float, 0x1d0));
-        ((StVirt*)o)->Prepare();
-        ((StSceneObj2*)o)->Refresh();
-        IV(o, 8) = 1;
-        label->SetProgress(((float)(i + 1) / (float)(int)mf1.v38.size()) * DAT_0050848c + DAT_00508488);
+    for (i = 0; i < (int)mf1.v38.size(); ) {
+        void* t = mf1.v38[i];
+        VEC(0x38).PushBack(t);
+        ((StSceneObj*)VEC(0x38)[i])->Place(&AT(float, 0x1d0));
+        ((StVirt*)VEC(0x38)[i])->Prepare(1);
+        ((StSceneObj2*)VEC(0x38)[i])->Refresh();
+        IV(VEC(0x38)[i], 8) = 1;
+        i++;
+        label->SetProgress(((float)i / (float)(int)mf1.v38.size()) * DAT_0050848c + DAT_00508488);
     }
 
     // model 1 parts (+0x28): splits, starts, signs, checkpoints, plain objects
@@ -440,9 +441,7 @@ Stage::Stage(int a, int b, int c, int d)
             }
             if (_strnicmp(NameOf(p), "sign_", 5) == 0) {
                 StSign* s = new StSign;
-                ((int*)s->pos)[0] = IV(p, 0x14);
-                ((int*)s->pos)[1] = IV(p, 0x18);
-                ((int*)s->pos)[2] = IV(p, 0x1c);
+                *(S414Vec3*)s->pos = *(S414Vec3*)((BYTE*)p + 0x14);
                 memcpy(s->mat, (BYTE*)p + 0x20, 0x40);
                 float ext[3] = { 250.0f, 200.0f, 250.0f };
                 int c[3];
@@ -451,9 +450,7 @@ Stage::Stage(int a, int b, int c, int d)
                 *(volatile float*)&c[1] = FV(p, 0xa4) * DAT_004e13c4 + FV(p, 0xb0) * DAT_004e1390;
                 s->body = new StBody(p, 150.0f, ext, (float*)((BYTE*)p + 0xb8));
                 s->body->SetCollision2(p);
-                s->body->pos[0] = FV(p, 0x14);
-                s->body->pos[1] = FV(p, 0x18);
-                s->body->pos[2] = FV(p, 0x1c);
+                *(S414Vec3*)s->body->pos = *(S414Vec3*)((BYTE*)p + 0x14);
                 s->f4c = 1.45f;
                 s->Sync();
                 VEC(0x88).PushBack(s);
@@ -483,12 +480,8 @@ Stage::Stage(int a, int b, int c, int d)
     }
 
     // grid from the model bounds
-    AT(float, 0x164) = mf1.bounds[0];
-    AT(float, 0x168) = mf1.bounds[1];
-    AT(float, 0x16c) = mf1.bounds[2];
-    AT(float, 0x170) = mf1.bounds[3];
-    AT(float, 0x174) = mf1.bounds[4];
-    AT(float, 0x178) = mf1.bounds[5];
+    *(S414Vec3*)&AT(float, 0x164) = *(S414Vec3*)&mf1.bounds[0];
+    *(S414Vec3*)&AT(float, 0x170) = *(S414Vec3*)&mf1.bounds[3];
     AT(float, 0x188) = mf1.bounds[6];
     AT(float, 0x18c) = mf1.bounds[7];
     AT(float, 0x190) = mf1.bounds[8];
@@ -548,10 +541,10 @@ Stage::Stage(int a, int b, int c, int d)
     StModelFile mf3(colModel.c_str(), texDir.c_str(), 0, &AT(BYTE, 0xac), 0);
 
     for (i = 0; i < (int)mf3.v48.size(); i++)
-        VEC(0x48).PushBack(mf3.v48[i]);
+    { void* t = mf3.v48[i]; VEC(0x48).PushBack(t); }
     for (i = 0; i < (int)mf3.v38.size(); ) {
-        VEC(0x58).PushBack(mf3.v38[i]);
-        ((StVirt*)VEC(0x58)[i])->Prepare();
+        void* t3 = mf3.v38[i]; VEC(0x58).PushBack(t3);
+        ((StVirt*)VEC(0x58)[i])->Prepare(1);
         i++;
         label->SetProgress(((float)i / (float)(int)mf3.v38.size()) * DAT_00508484 + DAT_00508480);
     }
@@ -585,7 +578,7 @@ Stage::Stage(int a, int b, int c, int d)
                 msg.Format(msg.begin(), msg.end(), "collision mesh %s has no triangles", NameOf(p));
                 throw StLogicError(msg);
             }
-            ((StVirt*)p)->Prepare();
+            ((StVirt*)p)->Prepare(1);
             StColModel* m = new StColModel(p, 0);
             m->Update();
             m->tree->Build(0x10);

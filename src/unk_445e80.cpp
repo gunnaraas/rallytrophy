@@ -1219,12 +1219,13 @@ void ServiceMenu::DrawTune()
 // Tried 2026-10-30 night: 277->176 via damage loop on a separate int j with float* dp walking damage[] (repair read as dp[-14], same data), x/y decl swap, bool selected; still differs: original keeps -1 in ebx (or ebx,-1 / push ebx) where we push imm, and first-loop index/pointer regs (ebp/ebx) are swapped; z=-1 volatile store, white locals, Color/int variants did not move it.
 // Tried 2026-11-01 re-pass: 176->168 insns (1105->925 bytes): damage loop as a do-while over `float* dp` with a volatile down-counter k=7 (the original has dp walking in ebp, the count in a [esp+0x24] slot, no guard), y(248) assigned before x(601) so the slot stores follow the original; ~25 variants (decl order of i/dp/k, loop forms, -1 via int/white temp, ptr walk of SMH_PartText, i==unk2c, unsigned i, if/else colour) did not change the remaining diff: first loop has i/ptr in ebx/ebp swapped vs the original's ebp/ebx and -1 lands in ebp not ebx after the loop (so DrawQuad pushes ebp), loop x/y slots 0x14/0x18 swapped; the original has no EH states in the loop so empty-dtor colour structs do not apply.
 // 2026-11-12: 30 more variants (loop tp pointer, if/else and SetColorObj colour, direct text->color, x/y decl swap, k/dp declaration placement): unchanged 165 insns; i/tp and -1/dp register pairs stay swapped.
+// 2026-11-13 round 2: 65->63 insns (x(339) computed before y(262)); ~45 more variants on the -1/dp ebx/ebp swap (white int/Color locals, separate white for the loop, col set inside loop, dp/k/col order, loop forms, repair[7-k], float dv=*dp) all 65 or worse.
 // original: FUN_0044a420 (page 2 of Draw)
 void ServiceMenu::DrawRepair()
 {
     TextRenderer* text = m_game->text;
-    float y = DAT_0056aeac * 262.0f;
     float x = DAT_0056aea8 * 339.0f;
+    float y = DAT_0056aeac * 262.0f;
     HudPoint uv[4];
     HudPoint pos[4];
     Color col;
@@ -1250,12 +1251,12 @@ void ServiceMenu::DrawRepair()
             y = DAT_0056aeac * 42.0f + y;
         }
         DAT_0056b0ac->vf35(&damageIcons);
-        y = DAT_0056aeac * 248.0f;
-        col.value = -1;
         x = DAT_0056aea8 * 601.0f;
+        col.value = -1;
         float* dp = damage;
         volatile int k;
         k = 7;
+        y = DAT_0056aeac * 248.0f;
         do {
             if (*dp > 0.0f) {
                 pos[0].x = pos[3].x = x;
@@ -1315,39 +1316,46 @@ void ServiceMenu::DrawRepair()
         pos[2].y = pos[3].y = DAT_0056aeac * 32.0f + y;
         DAT_0056b0ac->vf66(pos, uv, col.value, 1.0f, 1.0f);
         TextRenderer* text2 = SMH_FONT2(m_game);
-        float ty = DAT_0056aeac * 580.0f;
+        y = DAT_0056aeac * 580.0f;
         col.value = 0xff000000;
         text2->color = col.value;
-        text2->Print(DAT_0056b0ac, DAT_0056aea8 * 607.0f, ty, "0%", 0, 1.0f, 1.0f);
-        float tx = DAT_0056aea8 * 995.0f - text2->GetWidth("100%", 0);
-        text2->Print(DAT_0056b0ac, tx, ty, "100%", 0, 1.0f, 1.0f);
-        tx = DAT_0056aea8 * 801.0f - text2->GetWidth(FUN_00405380(0x74), 0) * 0.5f;
-        text2->Print(DAT_0056b0ac, tx, ty, FUN_00405380(0x74), 0, 1.0f, 1.0f);
+        text2->Print(DAT_0056b0ac, DAT_0056aea8 * 607.0f, y, "0%", 0, 1.0f, 1.0f);
+        x = DAT_0056aea8 * 995.0f - text2->GetWidth("100%", 0);
+        text2->Print(DAT_0056b0ac, x, y, "100%", 0, 1.0f, 1.0f);
+        x = DAT_0056aea8 * 801.0f - text2->GetWidth(FUN_00405380(0x74), 0) * 0.5f;
+        text2->Print(DAT_0056b0ac, x, y, FUN_00405380(0x74), 0, 1.0f, 1.0f);
         text->scaleX = DAT_0056aea8 * 0.75f;
         text->scaleY = DAT_0056aeac * 0.75f;
-        text->color = DAT_00508c04;
-        float hy = DAT_0056aeac * 192.0f;
-        text->Print(DAT_0056b0ac, DAT_0056aea8 * 804.0f, hy, FUN_00405380(0x73), 0, 1.0f, 1.0f);
-        text->Print(DAT_0056b0ac, DAT_0056aea8 * 604.0f, hy, FUN_00405380(0x76), 0, 1.0f, 1.0f);
-        text->color = DAT_00508c04;
-        text->SetScale(DAT_0056aea8 * 1.5f, DAT_0056aeac * 1.5f);
+        text->SetColorObj(Color(DAT_00508c04));
+        x = DAT_0056aea8 * 804.0f;
+        y = DAT_0056aeac * 192.0f;
+        text->Print(DAT_0056b0ac, x, y, FUN_00405380(0x73), 0, 1.0f, 1.0f);
+        x = DAT_0056aea8 * 604.0f;
+        text->Print(DAT_0056b0ac, x, y, FUN_00405380(0x76), 0, 1.0f, 1.0f);
+        text->scaleX = DAT_0056aea8 * 1.5f;
+        text->scaleY = DAT_0056aeac * 1.5f;
+        text->SetColorObj(Color(DAT_00508c04));
         int cost = repairTime[unk2c];
         itoa(cost, buf, 10);
-        float ry = DAT_0056aeac * 200.0f;
-        text->Print(DAT_0056b0ac, DAT_0056aea8 * 785.0f - text->GetWidth(buf, 0), ry, buf, 0, 1.0f, 1.0f);
+        y = DAT_0056aeac * 200.0f;
+        x = DAT_0056aea8 * 785.0f;
+        x -= text->GetWidth(buf, 0);
+        text->Print(DAT_0056b0ac, x, y, buf, 0, 1.0f, 1.0f);
         int left = timeLeft;
         if (left < cost && !repair[unk2c]) {
             text->SetColor(0xffd14a4f);
         } else {
-            text->color = DAT_00508c04;
+            text->SetColorObj(Color(DAT_00508c04));
         }
         itoa(left, buf, 10);
-        text->Print(DAT_0056b0ac, DAT_0056aea8 * 985.0f - text->GetWidth(buf, 0), ry, buf, 0, 1.0f, 1.0f);
-        float titleScaleX0 = DAT_0056aea8;
-        int titleColor0 = *(volatile const int*)&DAT_00508c04;
-        text->scaleX = titleScaleX0;
-        text->color = titleColor0;
-        text->scaleY = DAT_0056aeac;
+        x = DAT_0056aea8 * 985.0f;
+        x -= text->GetWidth(buf, 0);
+        text->Print(DAT_0056b0ac, x, y, buf, 0, 1.0f, 1.0f);
+        x = DAT_0056aea8;
+        y = DAT_0056aeac;
+        text->scaleX = x;
+        text->SetColorObj(Color(DAT_00508c04));
+        text->scaleY = y;
     } else {
         col.value = -1;
         DAT_0056b0ac->vf35(&repairSprite);

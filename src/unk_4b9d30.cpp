@@ -18,6 +18,7 @@ struct V3Sub { float x, y, z; float* Sub(float* out, const float* o) const; }; /
 // NONMATCHING: RALLYTROPHY 0x4b9d30 (draft: the world-point transform (centre*matA + pos) is the Xform asm block (frame now ebp as original; 1563 vs 1750 bytes, ~1395 differ mostly from shifts). Remaining: EH state 3 and sub esp 0x224 (ours 2 / 0x210), the original reuses the arg slots [ebp+8..0x14] for temporaries (more asm), different dot-product order in the vertex loop)
 // Tried 2026-10-30 night: cam/body matrices via local pointers (cm), 4 early + 5 late dtor objects (V3E w/tmp/X5) gives sp 0x224, EH state 3 and 1748 bytes (326->316 insns; cm alone 308); operand order of the translation products ignores source order, matrix slots ignore declaration order (original: invBody -0x230, invProd -0x1f0, clip -0x1b0, invCam -0x170, invAxes -0x130, prod -0xf0); X5 candidates u/a/d/up all worse.
 // Tried 2026-11-01 re-pass: vertex loop and pre-loop scaling rewritten to the original's fadd association (clip scaled in place after the q copy; u=(g3+g1)+(f4+ang), v=(f8-g2)-g4; a rounding fix, 316->319 insns only because of slot cascade); matrix declaration order (6 orders, incl. original slot order) and q.m[16] position make no difference to slots; temps/volatile on g2/g4 and bm-sum temp variants worse; 313-331 insns differ, too far for permute.
+// Pass 2026-11-13: cam via cam->matB for x/z, (float)sqrt in all DAT/sqrt (fdivr mem form), up[] declared then assigned (269 -> 260 insns differ, 1278 -> 1228 bytes, size 1713 -> 1710); declaration order of tmp/d/up/u and operand order of the invBody/invCam translation sums change nothing; len stays on the x87 stack (original spills it to a temp), pointer-local hoist before len interleaves like the original but loses insns.
 void ShadowUpdater::Update(ShadowBody* body, ShadowBody* cam, const float* centre, float radius)
 {
     Mat4Local invBody, invCam, prod, invProd;
@@ -44,13 +45,13 @@ void ShadowUpdater::Update(ShadowBody* body, ShadowBody* cam, const float* centr
     p[14] = 0.0f;
     p[12] = 0.0f;
 
-    float z = cm[10];
-    float x = cm[8];
+    float z = cam->matB[10];
+    float x = cam->matB[8];
     if (x * x + z * z < DAT_004e1398) {
-        x = cm[4];
-        z = cm[6];
+        x = cam->matB[4];
+        z = cam->matB[6];
     }
-    float len = (float)sqrt(x * x + (long double)z * (long double)z);
+    float len = (float)sqrt(x * x + z * z);
     float ang = (float)((atan2((double)(z / len), (double)(x / len)) + DAT_004e2a20) * DAT_004e2a18);
 
     V3E w;
@@ -105,26 +106,27 @@ void ShadowUpdater::Update(ShadowBody* body, ShadowBody* cam, const float* centr
     V3E av;
     Mat4Local clip, q, invAxes;
     V3D tmp;
-    float* a = &av.x;
     float d[3];
+    float up[3];
+    float u[3];
+    float* a = &av.x;
     float* r = ((V3Sub*)&w)->Sub(&tmp.x, cam->pos);
     d[0] = r[0];
     d[1] = r[1];
     d[2] = r[2];
-    float s = DAT_004e1348 / sqrt(d[0] * d[0] + d[1] * d[1] + d[2] * d[2]);
+    float s = DAT_004e1348 / (float)sqrt(d[0] * d[0] + d[1] * d[1] + d[2] * d[2]);
     d[0] = s * d[0];
     d[1] = d[1] * s;
     d[2] = d[2] * s;
-    float up[3] = {0.0f, 1.0f, 0.0f};
+    up[0] = 0.0f; up[1] = 1.0f; up[2] = 0.0f;
     X87Cross(a, up, d);
-    s = DAT_004e1348 / sqrt(a[2] * a[2] + a[1] * a[1] + a[0] * a[0]);
+    s = DAT_004e1348 / (float)sqrt(a[2] * a[2] + a[1] * a[1] + a[0] * a[0]);
     a[0] = a[0] * s;
     a[1] = a[1] * s;
     a[2] = a[2] * s;
-    float u[3];
     X87Cross(u, d, a);
     float c0 = cam->pos[0], c2 = cam->pos[2], c1 = cam->pos[1];
-    s = DAT_004e1348 / sqrt(u[1] * u[1] + u[2] * u[2] + u[0] * u[0]);
+    s = DAT_004e1348 / (float)sqrt(u[1] * u[1] + u[2] * u[2] + u[0] * u[0]);
     u[0] = s * u[0];
     u[1] = u[1] * s;
     u[2] = u[2] * s;
