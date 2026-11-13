@@ -2102,7 +2102,7 @@ struct CarTextureView {
     SpriteNode* spriteHead;            // 0xfc0
     SpriteNode* spriteTail;            // 0xfc4
     SpriteNode* spriteFree;            // 0xfc8
-    volatile int spriteCount;          // 0xfcc (volatile: keeps VC6 from caching the count between appends; fixes the register choice)
+    int spriteCount;          // 0xfcc (volatile: keeps VC6 from caching the count between appends; fixes the register choice)
     int spriteFreeCount;               // 0xfd0
     BYTE unkfd4[0x108c - 0xfd4];
     float unk108c;                     // 0x108c: scaled into the interior windows texture
@@ -2170,11 +2170,18 @@ struct CarTextureView {
         } else { \
             (v)->spriteHead = node; \
         } \
-        ++(v)->spriteCount; \
         (v)->spriteTail = node; \
+        ++(v)->spriteCount; \
     } while (0)
 
+// Assigns a std::string temporary (dir + name) to a file name string; its destructor is expanded at the call.
+static inline void AssignStd(NameString& n, const std::string& s)
+{
+    n.Assign(*(const TmpString*)&s, 0, std::string::npos);
+}
+
 // NONMATCHING: RALLYTROPHY 0x463940
+// 2026-11-13 pass: spriteCount non-volatile, tail store before ++count, SpriteName temp via pointer, AssignStd(b, dir + "x") (std::string temp, inline dtor): 1532->1115 bytes, 119->66 insns, 2936->2924. Left: meters stores 18/1c/20 scheduled late (2 sites), light sprite 2-in-edx/test dl, Brake/Reverse eax/edi load order; 300 store permutations per site found nothing better; QuadF helper and stale-volatile removal were worse.
 // 2026-10-31: 30 trailing discarded Bal(1) calls (N 27..37; fewer do nothing, 38+ over-spend) keep the early-return _Tidy calls out of line, chained cache stores reversed: 190->150 insns. Tried: JoinPath temp as the Assign argument (worse, 2977 bytes). Still differs: ADD_SPRITE count inc scheduling (mov/inc/mov vs inc mem), the original passes the operator+ result eax straight to Assign instead of lea of a named tmp, sprite store order.
 // Tried 2026-11-01 re-pass: ADD_SPRITE with count inc before the tail store and the free-list next in a block temp, flareBrake stored before the name Assign, volatile color40[0] at the Brake site: 311->263 diff lines. Count inc deferral past the next call's arg pushes, node reg (ecx vs edx) and color40/color60 store order at Brake/Reverse sites still differ (about 120 insns; permute not run, too far).
 // Built 2983 bytes against 2926, 1773 differing bytes. Volatile stores at three flare sites plus the explicit
@@ -2233,7 +2240,7 @@ void Car::LoadTextures(const std::string& dir)
     a.Assign(SoundPath(dir, "FlareBrake.tga"), 0, std::string::npos);
     s = (FlareSprite*)new Sprite;
     v->flareBrake = s;
-    ((SpriteName*)&s->name)->Assign("flare brake");
+    { SpriteName* nm = (SpriteName*)&s->name; nm->Assign("flare brake"); }
     s->texture = v->cache->Load(a.c_str(), 0x40);
     s->blendSrc = 2;
     s->blendDst = 2;
@@ -2322,11 +2329,11 @@ void Car::LoadTextures(const std::string& dir)
         *(int*)((char*)windows + 0x60) = FloatToInt(v->unk108c * 256.0f);
     }
 
-    ASSIGN_INLINE(b, "interior_windows_damaged.tga");
+    AssignStd(b, dir + "interior_windows_damaged.tga");
     v->interiorWindows = v->cache->Load(b.c_str(), 0x40);
 
     if (v->flags & 1) {
-        ASSIGN_INLINE(b, "OverlayMetersKmh.tga");
+        AssignStd(b, dir + "OverlayMetersKmh.tga");
         s = (FlareSprite*)new Sprite;
         v->metersKmh = s;
         s->texture = v->cache->Load(b.c_str(), 0x441);
@@ -2346,7 +2353,7 @@ void Car::LoadTextures(const std::string& dir)
         s->unk9c = 2;
         ADD_SPRITE(v, s);
 
-        ASSIGN_INLINE(b, "OverlayMetersMph.tga");
+        AssignStd(b, dir + "OverlayMetersMph.tga");
         s = (FlareSprite*)new Sprite;
         v->metersMph = s;
         s->texture = v->cache->Load(b.c_str(), 0x441);
