@@ -503,6 +503,7 @@ void Screen1378::Layout()
 // NONMATCHING: RALLYTROPHY 0x43b1d0
 // Tried 2026-10-30 night: dropped the sx/sy locals (original reads DAT_0056aea8/ac fresh for each of the 12 products and stores scaleX/Y first, before loading text), net-> reloads instead of a race local (size 4949->5002 vs 5003, but VC6 then adds a push ebp/and esp,-8 frame the original lacks), z=0 volatile register, this volatile, Bal(1) sweeps, volatile net reloads; still differs: original keeps this in ebp, 0 in ebx, frame 0xb8 vs our 0xac, and ~900 insns differ by alignment drift so no variant scored better.
 // Tried 2026-11-01 re-pass: sx/sy products read the globals directly in original slot order (54 first), scale stores via locals (fld/fstp as original), `Screen1378* volatile self = this` used for net (lobby race), m_selected and DrawCursor only: 908->696 insns differ (built 5029 vs 5003); still differs: this kept in ebp by the original, frame 0xb8 vs ours, x0 slot shared with colD in the original, ~700 insns drift.
+// Pass 2026-11-13: lobby snapshot loop indexed (entries[i], state in a local), session fields reread via DAT_0056b0b8->, status width in a float temp, per-case Print in the button switch, SetScale for the two scale restores (Color white kept): 912 -> 880 insns differ, 4960 -> 5033 bytes (orig 5003); still differs: this in ebp and zero pooled in ebx before the line ctor (original j lives in memory), frame 0xb8 vs 0xa8.
 // The session rows follow target-observed order (including the separate 0x133 row), both first-row append calls,
 // and all 21 _Grow / 13 _Eos boundaries; register/frame scheduling remains. Evidence:
 // ev_d0320ad31102fdbe186138a6333006379715eb281e74b440e51f34d3f4d12b57.
@@ -547,17 +548,17 @@ void Screen1378::Slot3(int noPresent)
             NetRace* race = self->net;
             race->Lock();
             count = race->m_players.size();
-            LobbyEntry* out = entries;
             for (int i = 0; i < count; i++) {
                 Player* p = race->m_players[i];
+                LobbyEntry* out = &entries[i];
                 strcpy(out->name, p->name);
                 out->unk20 = p->unk20;
-                out->state = p->state;
+                int st = p->state;
+                out->state = st;
                 out->ping = race->GetLatency(p);
-                if (out->state == 2) {
+                if (st == 2) {
                     out->unk28 = p->unk2c;
                 }
-                ++out;
             }
             race->Unlock();
             big->SetColor(ColorArg(0xff000000));
@@ -592,51 +593,49 @@ void Screen1378::Slot3(int noPresent)
                 }
                 ly += lineH;
             }
-            big->scaleX = DAT_0056aea8;
-        big->scaleY = DAT_0056aeac;
+            big->SetScale(DAT_0056aea8, DAT_0056aeac);
         // Session description, one "label: value" line per row.
-        T_56b0b8* session = DAT_0056b0b8;
         float y = rowY;
         C4_AssignEos(line, FUN_00405380(0x19));
         ((C4_LineCall*)&line)->Append(C4_SEP, strlen(C4_SEP));
-        const char* rallyName = FUN_00405380(session->m_rallyInfo[0] + 0xb4);
+        const char* rallyName = FUN_00405380(DAT_0056b0b8->m_rallyInfo[0] + 0xb4);
         ((C4_LineCall*)&line)->Append(rallyName, strlen(rallyName));
         big->Print(DAT_0056b0ac, colF, y, line.c_str(), 0, 1.0f, 1.0f);
         y = rowY + rowH;
         C4_AssignEos(line, FUN_00405380(0x133));
         C4_AppendEos(line, C4_SEP);
-        if (session->m_rallyInfo[2]) {
+        if (DAT_0056b0b8->m_rallyInfo[2]) {
             C4_AppendEos(line, FUN_00405380(0x2a));
             C4_AppendEos(line, C4_SPACE);
         }
-        C4_AppendEos(line, FUN_00405380(DAT_004f8d14[session->m_rallyInfo[3]]));
+        C4_AppendEos(line, FUN_00405380(DAT_004f8d14[DAT_0056b0b8->m_rallyInfo[3]]));
         big->Print(DAT_0056b0ac, colF, y, line.c_str(), 0, 1.0f, 1.0f);
         y += rowH;
         line = FUN_00405380(0x1a);
         C4_AppendEos(line, C4_SEP);
         char buf[16];
-        itoa(session->m_rallyInfo[1], buf, 10);
+        itoa(DAT_0056b0b8->m_rallyInfo[1], buf, 10);
         C4_AppendEos(line, buf);
         big->Print(DAT_0056b0ac, colF, y, line.c_str(), 0, 1.0f, 1.0f);
         y += rowH;
         line = FUN_00405380(0x11a);
         C4_AppendEos(line, C4_SEP);
-        C4_AppendEos(line, FUN_00405380(DAT_004f8d24[session->m_ghostMode]));
+        C4_AppendEos(line, FUN_00405380(DAT_004f8d24[DAT_0056b0b8->m_ghostMode]));
         big->Print(DAT_0056b0ac, colF, y, line.c_str(), 0, 1.0f, 1.0f);
         y += rowH;
         line = FUN_00405380(0x119);
         C4_AppendEos(line, C4_SEP);
-        C4_AppendEos(line, FUN_00405380(DAT_004f8d2c[session->m_damage]));
+        C4_AppendEos(line, FUN_00405380(DAT_004f8d2c[DAT_0056b0b8->m_damage]));
         big->Print(DAT_0056b0ac, colF, y, line.c_str(), 0, 1.0f, 1.0f);
         y += rowH;
         line = FUN_00405380(0x11c);
         C4_AppendEos(line, C4_SEP);
-        line += FUN_00405380(DAT_004f8d34[session->m_cars]);
+        line += FUN_00405380(DAT_004f8d34[DAT_0056b0b8->m_cars]);
         big->Print(DAT_0056b0ac, colF, y, line.c_str(), 0, 1.0f, 1.0f);
         y += rowH;
         C4_AssignInline(line, FUN_00405380(0x11b));
         C4_AppendInline(line, C4_SEP);
-        C4_AppendInline(line, DAT_004f8d44[session->m_option4]);
+        C4_AppendInline(line, DAT_004f8d44[DAT_0056b0b8->m_option4]);
         big->Print(DAT_0056b0ac, colF, y, line.c_str(), 0, 1.0f, 1.0f);
         }
 
@@ -659,7 +658,8 @@ void Screen1378::Slot3(int noPresent)
             }
             break;
         }
-        text->Print(DAT_0056b0ac, DAT_0056aea8 * 512.0f - text->GetWidth(status, 0) * 0.5f, rowBot, status, 0, 1.0f, 1.0f);
+        float sw = text->GetWidth(status, 0);
+        text->Print(DAT_0056b0ac, DAT_0056aea8 * 512.0f - sw * 0.5f, rowBot, status, 0, 1.0f, 1.0f);
 
         // The three buttons.
         float bx = DAT_0056aea8 * 54.0f; // original: both read before FUN_00435b60, bx kept for all three rows
@@ -669,24 +669,22 @@ void Screen1378::Slot3(int noPresent)
             Color col(0);
             col.value = (j == self->m_selected) ? DAT_00508c0c : DAT_00508c04;
             text->color = col.value;
-            const char* label;
             switch (j) {
             case 0:
-                label = FUN_00405380(0x2c);
+                text->Print(DAT_0056b0ac, bx, by, FUN_00405380(0x2c), 0, 1.0f, 1.0f);
                 break;
             case 1:
                 if (net->m_host == 0) {
-                    label = FUN_00405380(0x17 + (unk2c ? 0x118 : 0));
+                    text->Print(DAT_0056b0ac, bx, by, FUN_00405380(0x17 + (unk2c ? 0x118 : 0)), 0, 1.0f, 1.0f);
                 } else {
-                    label = FUN_00405380(0x7d + (unk2c ? 0xb2 : 0));
+                    text->Print(DAT_0056b0ac, bx, by, FUN_00405380(0x7d + (unk2c ? 0xb2 : 0)), 0, 1.0f, 1.0f);
                 }
                 break;
             default:
                 by = 610.0f * DAT_0056aeac;
-                label = FUN_00405380(0x30);
+                text->Print(DAT_0056b0ac, bx, by, FUN_00405380(0x30), 0, 1.0f, 1.0f);
                 break;
             }
-            text->Print(DAT_0056b0ac, bx, by, label, 0, 1.0f, 1.0f);
             by += DAT_0056aeac * 42.0f;
         }
         self->DrawCursor(*((MouseInput*)DAT_0056b0c0)->GetPosition());
@@ -695,8 +693,7 @@ void Screen1378::Slot3(int noPresent)
             DAT_0056b0ac->Present();
         }
     }
-    big->scaleX = DAT_0056aea8;
-    big->scaleY = DAT_0056aeac;
+    big->SetScale(DAT_0056aea8, DAT_0056aeac);
 }
 
 // FUNCTION: RALLYTROPHY 0x43c560
