@@ -202,6 +202,7 @@ void Car::FUN_00469a00(int a, int b)
 // NONMATCHING: RALLYTROPHY 0x469a20
 // 1009 bytes, 2 insns differ (142 -> 3 -> 2; state-0 store fixed by a volatile body pointer read `bb`). Remaining: the `lea edx,[ebp-0x4c]` for the Forward40()*k temp lands after the float push, and the loop's
 // surface-pointer slot store comes before `lea ebx,[esi+0x28]`.
+// 2026-11-13: plain `float kk = ...` (no volatile) fixes the Forward40()*kk `lea edx` placement: 17 -> 6 differing bytes, 1 insn pair left (loop: the surface-cursor slot store [ebp+0x10] comes before `lea ebx,[esi+0x28]`, original after). Tried since: decl order of i/w/surf/type/effect, wheel[i].contact test, `effect > 0`, i outside the for, `!= 4`; all 6 or worse.
 // Tried 2026-10-31: fewer uses of `effect` (Spawn(effect - 1)) lets the compiler keep c in edi (frame 0x40), vel2
 // declared after vel's stores matches the EH states, `float thr`/`r` locals give fcomp+fstp, volatile kk gives
 // the double store; permute.py -r 20 found nothing better than 3.
@@ -232,8 +233,7 @@ void Car::EmitEffects(float a, float b, float c)
                 Vec3 vel2;
                 vel += body->PointVelocity(pos);
                 vel2 = vel * 0.9f;
-                float kk;
-                *(volatile float*)&kk = (float)rand() * kInv32767 * 0.5f + level * 1.8f + 3.0f;
+                float kk = (float)rand() * kInv32767 * 0.5f + level * 1.8f + 3.0f;
                 vel2 -= body->Forward40() * kk;
                 vel2.y += ((float)rand() * kInv32767 + 1.0f) * 0.5f;
                 vel2.x += (1.0f - (float)rand() * kInv32767 * 2.0f) * 0.9f;
