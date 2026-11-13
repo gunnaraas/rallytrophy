@@ -483,6 +483,7 @@ static inline void CopyProp(StageProp* d, const StageProp* src)
 // operator= inlined at two sites and called at the third (true with 6-7 copy statements, e.g. one 3- or 4-float
 // sub-struct plus single floats; 9 single copies give two calls, two sub-structs none) and the element anchored at
 // +0x14 (4-float sub-struct first). Best layouts still swap M and last (esi/edi), the same residual as this body.
+// 2026-11-13 pass: third branch reads `last` once into a local (Oe, as the STL's _Oend): M/last swap fixed, 132 -> 94 insns differ, 797 -> 804 bytes. Left: third-loop copy_backward element copy (original biases pointers at +0x14, 5 insns less) and the P+M fill loop.
 // Follow-up: the original calls operator= only at the last of its three sites (calls N C C C D F C C C =). Nine single
 // copies (the layout its _Construct/operator= helpers show) give calls at both fill sites here; {3-float, 2-float
 // sub-structs + singles} gives the original's pattern but different copy code. Not moved by: how the instance is
@@ -523,9 +524,10 @@ void PropVec::Ins(StageProp* P, unsigned int M, const StageProp& X)
             CopyProp(F, &X);
         last += M;
     } else if (0 < M) {
-        StageProp* D = last;
+        StageProp* Oe = last;
+        StageProp* D = Oe;
         StageProp* F;
-        for (F = last - M; F != last; ++D, ++F)
+        for (F = Oe - M; F != Oe; ++D, ++F)
             ConstructProp(D, F);
         StageProp* B = last;
         StageProp* E = last - M;
