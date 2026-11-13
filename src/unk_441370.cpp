@@ -39,6 +39,16 @@ inline int TSB_FloatToInt(float f)
 extern char DAT_005070b0[];            // global empty text buffer
 
 // ---- Group TS-C: Setup ----
+// The temporary of `section + "text"` whose destructor the original calls out of line (_Tidy(true), 0x402700).
+struct TC_Tmp {
+    BYTE alloc[4];
+    char* ptr;
+    unsigned int len;
+    unsigned int res;
+    ~TC_Tmp() { Tidy(true); }
+    void Tidy(bool built);                             // 0x402700
+};
+TC_Tmp TC_Plus(const std::string* a, const char* b);   // 0x409130 (cdecl, hidden result pointer)
 // A VC6 std::string seen through its layout (allocator, pointer, length, reserve). Setup's string operations are
 // expanded to different depths (the inline budget runs out part way through the function), so each site is pinned:
 // out-of-line assign/append (0x404ba0/0x403ba0), expansions that call _Eos (0x402960) or set the terminator inline.
@@ -53,6 +63,7 @@ struct TC_Str {
     void Eos(unsigned int n);                         // 0x402960
     void AppendNC(unsigned int n, char c);             // 0x408d10
     void AssignStr(const std::string& x, unsigned int pos, unsigned int n); // 0x4024f0
+    void AssignT(const TC_Tmp& x) { AssignStr(*(const std::string*)&x, 0, std::string::npos); }
     static void Xlen();                                // 0x4bd00b
     void AssignA(const char* s) { AssignCall(s, strlen(s)); }
     void AppendA(const char* s) { AppendCall(s, strlen(s)); }
@@ -118,20 +129,9 @@ struct TC_Local {
 };
 #define TC_STR(x) ((std::string*)&(x))
 
-// The temporary of `section + "text"` whose destructor the original calls out of line (_Tidy(true), 0x402700).
-struct TC_Tmp {
-    BYTE alloc[4];
-    char* ptr;
-    unsigned int len;
-    unsigned int res;
-    ~TC_Tmp() { Tidy(true); }
-    void Tidy(bool built);                             // 0x402700
-};
-TC_Tmp TC_Plus(const std::string* a, const char* b);   // 0x409130 (cdecl, hidden result pointer)
 #define TC_ASSIGN_PLUS(dst, a, b) \
     { \
-        TC_Tmp tmp = TC_Plus((const std::string*)&(a), (b)); \
-        TC_S(dst).AssignStr(*(std::string*)&tmp, 0, std::string::npos); \
+        TC_S(dst).AssignT(TC_Plus((const std::string*)&(a), (b))); \
     }
 
 
@@ -565,7 +565,8 @@ TrackSelectMenu::~TrackSelectMenu()
 // and store schedules follow from that. original: FUN_004418d0 (vtable slot 1, ret 4)
 // Tried 2026-10-30 night: 26 variants (info/r declaration order and position, while/pointer/hoisted-count loops, r1 and r10 temps, volatile start value, const pointers); none moved r into ebp/esi swap (best stays 306 insns); the allocator ranks r above info and the original also pushes ebp function-wide, cause unknown.
 // Tried 2026-11-01 re-pass: 24 more (register keyword, all info-> as rally[r]. in whole/k-loop/tail, info decl position, r1 temp, count local, while loop, volatile zero start, ip++ cursor, ++r); all 306-534 insns, none flips the r/info ebp/esi assignment (r also lives in the original in ebp from the xor before the loop).
-// Pass 2026-11-13: `r == 0` in the k loop became `info == rally` (r no longer outranks info, so ebp=r/esi=info as in the original; differing bytes 3415 -> 3062, normalised insn diff 977 -> 500); left: r is not spilled/reloaded at the loop head, k loop keeps k in ebx not memory, frame 0x14c vs 0x150. ~50 variants incl. bool first, r10 hoists, k/ns locals: none better.
+// Pass 2 2026-11-13: TC_ASSIGN_PLUS passes the TC_Plus temporary straight to AssignT (original reuses the returned eax, no extra lea): 4716 -> 4672 bytes, 3062 -> 2932 differing, normalised diff 500 -> 86; left: r spill/head reload (frame 0x14c vs 0x150) and k in ebx/pointer in ebp instead of k in memory/pointer in ebx.
+// Pass 1 2026-11-13: `r == 0` in the k loop became `info == rally` (r no longer outranks info, so ebp=r/esi=info as in the original; differing bytes 3415 -> 3062, normalised insn diff 977 -> 500); left: r is not spilled/reloaded at the loop head, k loop keeps k in ebx not memory, frame 0x14c vs 0x150. ~50 variants incl. bool first, r10 hoists, k/ns locals: none better.
 void TrackSelectMenu::Setup(MenuGame* game)
 {
     if (m_state) {

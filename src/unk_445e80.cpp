@@ -1219,13 +1219,13 @@ void ServiceMenu::DrawTune()
 // Tried 2026-10-30 night: 277->176 via damage loop on a separate int j with float* dp walking damage[] (repair read as dp[-14], same data), x/y decl swap, bool selected; still differs: original keeps -1 in ebx (or ebx,-1 / push ebx) where we push imm, and first-loop index/pointer regs (ebp/ebx) are swapped; z=-1 volatile store, white locals, Color/int variants did not move it.
 // Tried 2026-11-01 re-pass: 176->168 insns (1105->925 bytes): damage loop as a do-while over `float* dp` with a volatile down-counter k=7 (the original has dp walking in ebp, the count in a [esp+0x24] slot, no guard), y(248) assigned before x(601) so the slot stores follow the original; ~25 variants (decl order of i/dp/k, loop forms, -1 via int/white temp, ptr walk of SMH_PartText, i==unk2c, unsigned i, if/else colour) did not change the remaining diff: first loop has i/ptr in ebx/ebp swapped vs the original's ebp/ebx and -1 lands in ebp not ebx after the loop (so DrawQuad pushes ebp), loop x/y slots 0x14/0x18 swapped; the original has no EH states in the loop so empty-dtor colour structs do not apply.
 // 2026-11-12: 30 more variants (loop tp pointer, if/else and SetColorObj colour, direct text->color, x/y decl swap, k/dp declaration placement): unchanged 165 insns; i/tp and -1/dp register pairs stay swapped.
-// 2026-11-13: 165->65 insns (921->1065 bytes counted, 2242->2255 of 2256): SetColorObj(Color(DAT_00508c04)) for the colours, x/y reused for all text positions (one x/y pair), x -= GetWidth(buf, 0) as separate statements, title scale through x/y, scaleX/scaleY as plain stores around the cost load, x(601) before y(248), stale volatile titleColor0 dropped; left: -1 in ebp/dp in ebx (orig swapped), imm push -1 vs push ebx.
+// 2026-11-13 round 2: 65->63 insns (x(339) computed before y(262)); ~45 more variants on the -1/dp ebx/ebp swap (white int/Color locals, separate white for the loop, col set inside loop, dp/k/col order, loop forms, repair[7-k], float dv=*dp) all 65 or worse.
 // original: FUN_0044a420 (page 2 of Draw)
 void ServiceMenu::DrawRepair()
 {
     TextRenderer* text = m_game->text;
-    float y = DAT_0056aeac * 262.0f;
     float x = DAT_0056aea8 * 339.0f;
+    float y = DAT_0056aeac * 262.0f;
     HudPoint uv[4];
     HudPoint pos[4];
     Color col;

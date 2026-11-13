@@ -984,12 +984,14 @@ static const float K610 = 610.0f;
 static const float K230 = 230.0f;
 static const float K130 = 130.0f;
 // NONMATCHING: RALLYTROPHY 0x421fa0
-// 2026-11-13: StrT s0 (out-of-line ctor) for the row string, Fun_004242a0 as a StageScreen member (thiscall), direct m_selected in the Enter/click blocks, int selected, per-slot K* static const floats (literal*sx/sy order), SetScale for the second scale pair, dir/ctr forms: 573 -> 396 insns differ (built 4088 vs orig 4093); open: tail K576..K15 statics (right shape, swap ebx/edi: text vs items base), x=54*sx per-iteration temp, delta-switch scheduling.
+// 2026-11-13: StrT s0 (out-of-line ctor) for the row string, Fun_004242a0 as StageScreen member, direct m_selected in Enter/click blocks, int selected, per-slot K* static const floats (literal*sx/sy order), SetScale for the second scale pair: 573 -> 396 insns differ.
+// 2026-11-13 round 2: text uses in the DAT_00501334 and avail0/scale blocks read m_game->text (lower weight: fixes the ebx/edi text vs m_items-lea swap), shared `float x` temp for tail Prints and row-loop 54*sx, named Color + Vec2(1,1) per row (EH states 11/12/13 as original), tail K576/K424/K450: try_variants 449 insns (hunks 77 -> 70, orig insns in hunks 137 -> 86, built 4124 vs 4128); open: row-loop float temps/selected byte, K48/K15, tail temps.
 // 2026-11-12: every text->color = X as text->SetColorObj(Color(X)): 677 -> 578 insns differ (built 4272 -> 4036 bytes; orig 4128); SetScale(x, y) for the adjacent scale pairs is neutral (+-2 insns); notFirst/first-late/wait-first zero-register variants worse or neutral.
 // Tried 2026-10-31: rewrote from the disassembly (local sx/sy, DrawPhoto/DrawBook(entry, avail), second text renderer at game+0x1390bc, per-iteration std::string, k-switch for the entry fields, avail0 colour/0x71 block) 842->683 insns; tried ~35 variants (decl order of scalars has no effect, bool/int selected, volatile/addressed first/avail0, m_game vs cached game, float vs int scale copies); still differs: original keeps 0 in esi/ebx as one shared constant register and the frame is 0xc bytes smaller (locals sx 0x1c, sy 0x28, y 0x18, x tmp 0x14), register allocation drifts the whole body.
 // Tried 2026-11-01 re-pass: 11 more variants (shared zero for exitFlag/done/wait, zero arg to Print, first, done/text decl order, per-iteration std::string s, y/r4/sa/sb/ia/ib placement, sx/sy split decl); none below 683 insns differ (best equal to base; built 4320 vs orig 4128 bytes, frame 0xd8 vs 0xcc); still differs: whole-body regalloc drift (orig keeps 0 in esi, ours edi/ebx) and 0xc bytes extra frame, not within permuter range.
 int StageScreen::Layout()
 {
+    float x;
     int exitFlag = 0;
     DAT_0056b0ac->SetRenderState(5, 0);
     DAT_0056b0ac->vf42(8);
@@ -1140,12 +1142,15 @@ int StageScreen::Layout()
             DrawBook(entry, avail);
             float y = K262 * sy;
             for (int r4 = 0; r4 < 4; r4++) {
+                x = K54 * sx;
                 int selected = (m_selected == r4);
-                text->SetColorObj(Color(selected ? DAT_00508c0c : DAT_00508c04));
+                Color rc(selected ? DAT_00508c0c : DAT_00508c04);
+                text->SetColorObj(rc);
+                Vec2 one(1.0f, 1.0f);
                 StrT s0; std::string& s = *(std::string*)&s0;
                 switch (r4) {
                 case 0: {
-                    text->Print(DAT_0056b0ac, K54 * sx, y, strB.ptr ? strB.ptr : "", 0, 1.0f, 1.0f);
+                    text->Print(DAT_0056b0ac, x, y, strB.ptr ? strB.ptr : "", 0, 1.0f, 1.0f);
                     int cur = unk124[0];
                     char buf[32];
                     FUN_004c1902(cur + 1, buf, 10);
@@ -1161,7 +1166,7 @@ int StageScreen::Layout()
                     if (!avail) {
                         text->SetColorObj(Color(DAT_00508c08));
                     }
-                    text->Print(DAT_0056b0ac, K54 * sx, y, strC.ptr ? strC.ptr : "", 0, 1.0f, 1.0f);
+                    text->Print(DAT_0056b0ac, x, y, strC.ptr ? strC.ptr : "", 0, 1.0f, 1.0f);
                     if (!avail) {
                         Color c(DAT_00508c08);
                         DrawSpinner(text, &pair[unk22c], K250 * sx, y, K230 * sx, 1, c, 0, 0, 0);
@@ -1174,31 +1179,31 @@ int StageScreen::Layout()
                         text->SetColorObj(Color(DAT_00508c08));
                     }
                     y = K42 * sy + y;
-                    text->Print(DAT_0056b0ac, K54 * sx, y, strA.ptr ? strA.ptr : "", 0, 1.0f, 1.0f);
+                    text->Print(DAT_0056b0ac, x, y, strA.ptr ? strA.ptr : "", 0, 1.0f, 1.0f);
                     text->SetColorObj(Color(selected ? DAT_00508c0c : DAT_00508c04));
                     break;
                 case 3:
                     y = K610 * sy;
-                    text->Print(DAT_0056b0ac, K54 * sx, y, strD.ptr ? strD.ptr : "", 0, 1.0f, 1.0f);
+                    text->Print(DAT_0056b0ac, x, y, strD.ptr ? strD.ptr : "", 0, 1.0f, 1.0f);
                     break;
                 }
                 y = K42 * sy + y;
             }
-            int ia = *(int*)&text->scaleX;
-            text->SetColorObj(Color(DAT_0050892c));
+            int ia = *(int*)&m_game->text->scaleX;
+            m_game->text->SetColorObj(Color(DAT_0050892c));
             text2->SetColorObj(Color(DAT_0050892c));
-            int ib = *(int*)&text->scaleY;
-            text->scaleX = *(float*)&ia * 0.85f;
-            text->scaleY = *(float*)&ib * 0.85f;
+            int ib = *(int*)&m_game->text->scaleY;
+            m_game->text->scaleX = *(float*)&ia * 0.85f;
+            m_game->text->scaleY = *(float*)&ib * 0.85f;
             if (avail) {
-                text->Print(DAT_0056b0ac, 576.0f * sx, 424.0f * sy, entry->s1.ptr ? entry->s1.ptr : "", 0, 1.0f, 1.0f);
+                m_game->text->Print(DAT_0056b0ac, K576 * sx, K424 * sy, entry->s1.ptr ? entry->s1.ptr : "", 0, 1.0f, 1.0f);
             }
             if (avail0) {
-                text->SetColor(0xff740000);
-                text->Print(DAT_0056b0ac, 760.0f * sx - text->GetWidth(FUN_00405380(0x71), 0) * 0.5f, 633.0f * sy,
+                m_game->text->SetColor(0xff740000);
+                m_game->text->Print(DAT_0056b0ac, 760.0f * sx - m_game->text->GetWidth(FUN_00405380(0x71), 0) * 0.5f, 633.0f * sy,
                             FUN_00405380(0x71), 0, 1.0f, 1.0f);
             }
-            y = 450.0f * sy;
+            y = K450 * sy;
             *(int*)&text->scaleX = ia;
             *(int*)&text->scaleY = ib;
             float sa = *(float*)&ia * 1.25f;
@@ -1206,8 +1211,10 @@ int StageScreen::Layout()
             for (int k = 0; k < 4; k++) {
                 StrT* v;
                 OutStr* u;
-                text2->Print(DAT_0056b0ac, 575.0f * sx, y, names[k].c_str(), 0, 1.0f, 1.0f);
-                text2->Print(DAT_0056b0ac, 798.0f * sx, y, names[4 + k].c_str(), 0, 1.0f, 1.0f);
+                x = K575 * sx;
+                text2->Print(DAT_0056b0ac, x, y, names[k].c_str(), 0, 1.0f, 1.0f);
+                x = K798 * sx;
+                text2->Print(DAT_0056b0ac, x, y, names[4 + k].c_str(), 0, 1.0f, 1.0f);
                 switch (k) {
                 case 0: v = &entry->s2; u = &entry->a; break;
                 case 1: v = &entry->s3; u = &entry->b; break;
@@ -1217,19 +1224,21 @@ int StageScreen::Layout()
                 text2->scaleX = sa;
                 text2->scaleY = sb;
                 float y2 = 15.0f * sy + y;
-                text2->Print(DAT_0056b0ac, (K25 + K575) * sx, y2, v->ptr ? v->ptr : "", 0, 1.0f, 1.0f);
-                text2->Print(DAT_0056b0ac, (K25 + K798) * sx, y2, u->ptr ? u->ptr : "", 0, 1.0f, 1.0f);
+                x = (K25 + K575) * sx;
+                text2->Print(DAT_0056b0ac, x, y2, v->ptr ? v->ptr : "", 0, 1.0f, 1.0f);
+                x = (K25 + K798) * sx;
+                text2->Print(DAT_0056b0ac, x, y2, u->ptr ? u->ptr : "", 0, 1.0f, 1.0f);
                 y = 48.0f * sy + y;
                 *(int*)&text2->scaleX = ia;
                 *(int*)&text2->scaleY = ib;
             }
             if (DAT_00501334 > 1) {
-                text->scaleX = DAT_0056aea8 * 0.75f;
-                text->scaleY = DAT_0056aeac * 0.75f;
-                text->SetColorObj(Color(0x99000000));
-                text->Printf(DAT_0056b0ac, DAT_0056aea8 * 58.0f, DAT_0056aeac * 184.0f, "%s %i: %s", FUN_00405380(0x94),
+                m_game->text->scaleX = DAT_0056aea8 * 0.75f;
+                m_game->text->scaleY = DAT_0056aeac * 0.75f;
+                m_game->text->SetColorObj(Color(0x99000000));
+                m_game->text->Printf(DAT_0056b0ac, DAT_0056aea8 * 58.0f, DAT_0056aeac * 184.0f, "%s %i: %s", FUN_00405380(0x94),
                              unk238 + 1, (char*)DAT_00501300 + 0x38 + unk238 * 30);
-                text->SetScale(DAT_0056aea8, DAT_0056aeac);
+                m_game->text->SetScale(DAT_0056aea8, DAT_0056aeac);
             }
             ((MenuGame*)DAT_0056b0c8)->FUN_00435b60(1, 2, 0, 0, 1, -1.0f);
             ((MenuGame*)DAT_0056b0c8)->FUN_00435b60(4, 1, 0, 1, 1, -1.0f);
@@ -1247,6 +1256,22 @@ int StageScreen::Layout()
     }
     return 1;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

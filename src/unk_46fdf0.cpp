@@ -644,6 +644,7 @@ struct Quad4 { float a, b, c, d; };
 // Tried 2026-10-30 night: swapped dot-product operand order (inline and via helper, VC6 emits the same x87 order), Vec3 c at function top / after fwd / per-arm copy-init / per-arm assign / per-section block scope / extra dummy Vec3 / explicit named operator* temp; the original has c at ebp-0x18 and the operator* return temp at ebp-0x24 (ours reversed) and block-scoped c fixes the slot but moves the temp to ebp-0x5c, drops c's stores and grows the function to 3520 bytes.
 // Tried 2026-11-01 re-pass: audited every float sum against the original fadd order; the plane-offset sum 0x50950c was emitted z,y,x (original x,z,y) and the three dot tests are now chained temps in the original z,y,x association; remaining sum diffs are fld/fmul operand order only (a local copy of the dir field hoists the load, volatile reorders the whole run); frame/slot differences unchanged (3537 vs 3336 bytes).
 // 2026-11-13 pass: 260 -> 122 insns differ (3374 -> 3335 vs 3336 bytes): corners' d built per component, 'half' as ScenePoint operator+ (0x419f00), scale calls via ScenePoint (0x40b0c0), sprite colour as a 16-byte Quad4 struct copy, plane-0 sum single expression, 680 centre stores moved before the 640 inverse chain; remaining: corner stores (original loads each lo/hi once and copies registers), x87 fld operand order in plane sums, tail interleave of matrix/const/sprite stores, prologue push edi.
+// 2026-11-13 round 2: 122 -> 40 insns differ (3336 = original size): corner stores chained per component pair, hi copy after the plane-2 sum, `d2 <= r*r` compare (fcompp), light row 1 copied through a float pointer, 640/680 constants/centre stores re-slotted, mesh-> stores direct; remaining: fld operand order in plane sums/first dot, prologue push edi / epilogue pop esi placement, tail chain interleave (centre stores vs 640.m[12]).
 // Prepares the shadow plane for the frame: clip planes from the camera, the light-space matrices and the casters' volume.
 // original: FUN_00470940
 void ParallelShadow::Prepare(RenderDevice* device, void* unused, DrawContext* context, Camera* camera, int unused2)
@@ -720,8 +721,8 @@ void ParallelShadow::Prepare(RenderDevice* device, void* unused, DrawContext* co
             c.z = camera->position.z;
             c += *(Vec3*)&(*(ScenePoint*)right * (camera->boxMin[0] - 0.01f));
         }
-        Vec3 lo = *(Vec3*)camera->boxMin;
         DAT_0050952c = DAT_00509520.z * c.z + DAT_00509520.y * c.y + c.x * DAT_00509520.x;
+        Vec3 lo = *(Vec3*)camera->boxMin;
         Vec3 hi = *(Vec3*)camera->boxMax;
 
         float low = 1000.0f;
@@ -745,9 +746,10 @@ void ParallelShadow::Prepare(RenderDevice* device, void* unused, DrawContext* co
         DAT_00509680.m[0] = lightMatrix.m[0];
         DAT_00509680.m[1] = lightMatrix.m[1];
         DAT_00509680.m[2] = lightMatrix.m[2];
-        DAT_00509680.m[4] = lightMatrix.m[4];
-        DAT_00509680.m[5] = lightMatrix.m[5];
-        DAT_00509680.m[6] = lightMatrix.m[6];
+        const float* r1 = &lightMatrix.m[4];
+        DAT_00509680.m[4] = r1[0];
+        DAT_00509680.m[5] = r1[1];
+        DAT_00509680.m[6] = r1[2];
         DAT_00509680.m[8] = lightMatrix.m[8];
         DAT_00509680.m[9] = lightMatrix.m[9];
         DAT_00509680.m[10] = lightMatrix.m[10];
@@ -765,30 +767,12 @@ void ParallelShadow::Prepare(RenderDevice* device, void* unused, DrawContext* co
         DAT_00509600.Multiply((const float*)&camera->right, DAT_00509640);
 
         Vec3 corners[8];
-        corners[0].x = lo.x;
-        corners[0].y = lo.y;
-        corners[0].z = lo.z;
-        corners[1].x = lo.x;
-        corners[1].y = lo.y;
-        corners[1].z = hi.z;
-        corners[2].x = hi.x;
-        corners[2].y = lo.y;
-        corners[2].z = hi.z;
-        corners[3].x = hi.x;
-        corners[3].y = lo.y;
-        corners[3].z = lo.z;
-        corners[4].x = lo.x;
-        corners[4].y = hi.y;
-        corners[4].z = lo.z;
-        corners[5].x = lo.x;
-        corners[5].y = hi.y;
-        corners[5].z = hi.z;
-        corners[6].x = hi.x;
-        corners[6].y = hi.y;
-        corners[6].z = hi.z;
-        corners[7].x = hi.x;
-        corners[7].y = hi.y;
-        corners[7].z = lo.z;
+        corners[0].x = corners[1].x = corners[4].x = corners[5].x = lo.x;
+        corners[2].x = corners[3].x = corners[6].x = corners[7].x = hi.x;
+        corners[0].y = corners[1].y = corners[2].y = corners[3].y = lo.y;
+        corners[4].y = corners[5].y = corners[6].y = corners[7].y = hi.y;
+        corners[0].z = corners[3].z = corners[4].z = corners[7].z = lo.z;
+        corners[1].z = corners[2].z = corners[5].z = corners[6].z = hi.z;
         float maxX = 0.0f;
         float maxY = 0.0f;
         for (int j = 0; j < 8; j++) {
@@ -822,19 +806,15 @@ void ParallelShadow::Prepare(RenderDevice* device, void* unused, DrawContext* co
                 dist = d.x * dir.x + dist;
                 if (dist >= -r) {
                     d -= dist * dir;
-                    float d2 = d.z * d.z;
-                    d2 = d.y * d.y + d2;
-                    d2 = d.x * d.x + d2;
-                    if (r * r >= d2)
+                    if (d.z * d.z + d.y * d.y + d.x * d.x <= r * r)
                         ProjectMeshes(o);
                 }
             }
         }
         if (g_shadowTriangleCount != 0) {
             flags &= 0xfe;
-            Mesh* m = mesh;
-            m->vertexCount = g_shadowVertexCount;
-            m->primitiveCount = g_shadowTriangleCount;
+            mesh->vertexCount = g_shadowVertexCount;
+            mesh->primitiveCount = g_shadowTriangleCount;
             DAT_00509680.m[0] = DAT_00509570.x;
             DAT_00509680.m[1] = DAT_00509570.y;
             DAT_00509680.m[2] = DAT_00509570.z;
@@ -868,6 +848,11 @@ void ParallelShadow::Prepare(RenderDevice* device, void* unused, DrawContext* co
             DAT_00509680.m[7] = 0.0f;
             DAT_00509680.m[11] = 0.0f;
             DAT_00509680.m[15] = 1.0f;
+            DAT_00509640.m[3] = 0.0f;
+            DAT_00509640.m[7] = 0.0f;
+            DAT_00509680.m[12] = g_shadowSphere.centre.x;
+            DAT_00509680.m[13] = g_shadowSphere.centre.y;
+            DAT_00509680.m[14] = g_shadowSphere.centre.z;
             DAT_00509640.m[0] = DAT_00509680.m[0];
             DAT_00509640.m[1] = DAT_00509680.m[4];
             DAT_00509640.m[2] = DAT_00509680.m[8];
@@ -877,16 +862,11 @@ void ParallelShadow::Prepare(RenderDevice* device, void* unused, DrawContext* co
             DAT_00509640.m[8] = DAT_00509680.m[2];
             DAT_00509640.m[9] = DAT_00509680.m[6];
             DAT_00509640.m[10] = DAT_00509680.m[10];
-            DAT_00509640.m[3] = 0.0f;
-            DAT_00509640.m[7] = 0.0f;
-            DAT_00509640.m[11] = 0.0f;
-            DAT_00509640.m[15] = 1.0f;
-            DAT_00509680.m[12] = g_shadowSphere.centre.x;
-            DAT_00509680.m[13] = g_shadowSphere.centre.y;
-            DAT_00509680.m[14] = g_shadowSphere.centre.z;
             DAT_00509640.m[12] = -(g_shadowSphere.centre.x * DAT_00509680.m[0] + g_shadowSphere.centre.z * DAT_00509680.m[2] + g_shadowSphere.centre.y * DAT_00509680.m[1]);
             DAT_00509640.m[13] = -(g_shadowSphere.centre.x * DAT_00509680.m[4] + g_shadowSphere.centre.z * DAT_00509680.m[6] + g_shadowSphere.centre.y * DAT_00509680.m[5]);
             DAT_00509640.m[14] = -(g_shadowSphere.centre.x * DAT_00509680.m[8] + g_shadowSphere.centre.z * DAT_00509680.m[10] + g_shadowSphere.centre.y * DAT_00509680.m[9]);
+            DAT_00509640.m[11] = 0.0f;
+            DAT_00509640.m[15] = 1.0f;
             *(Quad4*)spriteB.unk60 = *(Quad4*)&DAT_00561af8;
             spriteB.unk60[0] *= 0.9f;
             spriteB.unk40[0] = 0.0f;

@@ -460,3 +460,19 @@ followed by M calls to an inline function:
 - Declaration count is NOT a general lever: forcing 1..32 extra global typedefs into unk_4303e0, unk_43a390,
   unk_452b20 and unk_490950 changed no byte in any of their 19 NONMATCHING functions. The winmain flip was a
   one-off.
+
+## Big-function rounds (2026-11-13)
+
+- **Chained assignment = load once, copy registers.** `a.x = b.x = c.x = d.x = lo.x;` reproduces the original's
+  `mov ecx,eax; mov edx,eax` fan-out where per-field stores reload (0x470940 corner block now exact).
+- **A named temporary re-addressed with `lea` is a sign the original passed the call result straight through**
+  (`dst.Assign(Plus(a, b))` instead of `T tmp = Plus(a, b); dst.Assign(tmp);`): 0x4418d0, seven 7-byte hunks.
+- **Register roles follow use weight, so lower the weight of the wrong winner**: reading `m_game->text` in two blocks
+  instead of the `text` local fixed 0x421fa0's ebx/edi swap; testing `info == rally` instead of `r == 0` fixed
+  0x4418d0's. Adding uses to the intended winner rarely works; removing uses from the wrong one does.
+- **`fcompp` vs `fcomp; fstp st(0)`**: write the compare as one expression with the sum on the left
+  (`if (d.z*d.z + d.y*d.y + d.x*d.x <= r*r)`), not via a named d2.
+- **Literal constants as named file statics** (`static const float K262 = 262.0f;`, used `K262 * sy`) give the
+  original's `fld [const]; fmul [local]` order and stop folding of `25 + 575` (0x421fa0).
+- Unexplained: in 0x411600 the score moves with the number of unused `__forceinline` helpers defined in the file
+  (0, 2 -> 124 insns; 1, 3 -> 127; 4 -> 121). Same family as the winmain declaration-count flip; not used.
