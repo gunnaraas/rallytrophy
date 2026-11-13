@@ -227,6 +227,7 @@ int PlayerNameMenu::Open(MenuGame* game, NetRace* net_)
 // ---- module end: guard-bit initialiser of the STL header statics and its atexit registration ----
 
 // NONMATCHING: RALLYTROPHY 0x43df70
+// 2026-11-12: final name scale restore as SetScale (fld/fstp copy as in the original): 52 -> 48 insns. Left: the loop's three cursor pointers (name, icon, labels) are set up in a different order (ours keeps labels in ecx: extra `mov ecx,edx`); SetScale on the in-loop pairs and colour forms do not move it.
 // The temporary selected index reduces the original candidate's 1,691 differences to 1,669 at the target's 3,832-byte
 // size. The target stores after the first increment and uses an unconditional loop back edge; this form emits a body
 // compare and conditional back edge. The title Print device load and draw-loop induction-pointer order also differ.
@@ -501,8 +502,7 @@ int PlayerNameMenu::Run()
         memcpy((char*)DAT_00501300 + 0x38 + i * 30, name[i].c_str(), strlen(name[i].c_str()) + 1);
         DAT_00501300[0x3b + i] = icon[i];
     }
-    nameText->scaleX = DAT_0056aea8;
-    nameText->scaleY = DAT_0056aeac;
+    nameText->SetScale(DAT_0056aea8, DAT_0056aeac);
     if (done || DAT_0057b9f4) {
         r = -1;
         m_game->Play(2);

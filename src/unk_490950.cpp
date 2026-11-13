@@ -307,6 +307,7 @@ extern int DAT_00501454;
 extern int DAT_00501458;
 
 // NONMATCHING: RALLYTROPHY 0x491130
+// 2026-11-12: all 16 placements of the a/b/mode/flag initialisers (declaration vs both branches) tried; the declaration form (17 insns) stays best.
 // Same size and flow; VC6 gives the four live values (a, b, setup, mode) other registers
 // (original: ebx=0x501428 value, edi=0x50142c value, ebp=setup pointer, esi=mode).
 // Tried 2026-10-30 night: local declaration reorders, a/b clamp order and forms, mode/branch/zeroing restructures, Car* temp, permute -r 20 (no MATCH, best 18); register allocation of a/b/setup/mode still differs (22 insns), hand edits only reach 20-21.
@@ -544,6 +545,7 @@ void Player::FUN_00491620(const void* packet)
 }
 
 // NONMATCHING: RALLYTROPHY 0x491490
+// 2026-11-12 (sizegap): original spills ebp to [esp+0x18] around the per-section block and lays the ternary out without the jmp; if/else, ternary-in-store, prev temp, total computed late/inline, stage reload, split store order: none below 16 insns (base).
 // 388 vs 388 bytes, logic complete. The original keeps `size` in eax from the start (the default case
 // returns it) and switches on ecx; case 2 then differs in register allocation (time/total swapped,
 // the Stage lives in ebp and is spilled around the idiv).

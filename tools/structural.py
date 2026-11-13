@@ -11,25 +11,18 @@ usage: structural.py [--rows]
 import collections
 import os
 import re
-import subprocess
 import sys
-import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from asm_helpers import ROOT, pe_reader  # noqa: E402
 from match import marked_functions  # noqa: E402
-from objcmp import coff_function  # noqa: E402
+from objcmp import coff_function, disasm as objcmp_disasm  # noqa: E402
 
 STATE = re.compile(r"mov\s+(?:DWORD|BYTE) PTR \[ebp-0x4\],(0x[0-9a-f]+|e[a-d]x|e[sd]i|[a-d]l)$")  # state may come from a zeroed register
 
 
 def disasm(blob):
-    with tempfile.NamedTemporaryFile(suffix=".bin") as f:
-        f.write(blob)
-        f.flush()
-        out = subprocess.run(["objdump", "-D", "-b", "binary", "-mi386", "-Mintel", f.name],
-                             capture_output=True, text=True).stdout
-    return [l.split("\t")[-1].strip() for l in out.splitlines() if re.match(r"\s+[0-9a-f]+:\t", l) and l.count("\t") >= 2]
+    return [t for _, t in objcmp_disasm(blob)]
 
 
 def shape(blob, eh):

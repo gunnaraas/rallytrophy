@@ -24,13 +24,6 @@ The progress report measures source-marker coverage and byte matches. “Written
 means a source body exists; it does not certify behavioral equivalence.
 Third-party library ranges are listed separately from the first-party queue.
 
-![Per-function decompilation map](analysis/function-map.svg)
-
-Each tile represents one function. Tile area combines code size with branch
-complexity. The image is static here; open `analysis/function-map.svg` directly
-in a browser to hover a tile for its address, module, byte count, and branch
-count.
-
 ## Set up the matcher
 
 The matcher uses the original Visual C++ 6.0 SP5 compiler and the official
