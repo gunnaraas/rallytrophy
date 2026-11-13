@@ -2592,17 +2592,17 @@ public:
 // filled slot opens a confirmation dialog (game+0x437770) and an empty one is edited with the
 // Tried 2026-10-31: 360->333 insns with a volatile-stored dead `int z` (frame slot) passed to Draw; z/self-volatile for other stores, loop var hoisted as shared zero, const this copy, volatile local: no better (z folds to 0). Still differs: this lands in ebp and zero in edi (original ebx/esi, zero shared with loop counter).
 // Tried 2026-11-01: shared zero `int k=0` as Draw arg + reset-loop counter (puts zero in esi like the original, 333->335 insns, this still ebp); m_editing volatile reads, step/switch/click tests against k, inline profiles, declaration swaps: no better. Still differs: this in ebp not ebx (m_editing CSE'd into bl takes ebx) and the later zeros (step, clickSel) share esi where the original has separate edi/ebp.
+// Pass 2026-11-13: dropped the volatile z slot (Draw gets shared zero k = reset-loop counter), clicked/clickSel declared before mouse, m_editing copied once for the first test: 1628 -> 1494 differing bytes (333 insns differ unchanged, 2768 vs 2766 bytes). Still: this in ebp not ebx (m_editing CSE'd into bl), step zero shares edi with unk24c=0 where the original uses esi.
 // keyboard into m_text. Returns 1 when the menu is left.
 int RaceMode::NameMenu(int reset)
 {
     int result = 0;
-    int z;
-    *(volatile int*)&z = 0;
-    m_image->Draw(DAT_0056b0ac, z);
+    int k = 0;
+    m_image->Draw(DAT_0056b0ac, k);
     if (reset) {
         ProfileList* profiles = *(ProfileList**)((char*)DAT_0056b0c8 + 0x2dd0);
-        for (int i = 0; i < 8; i++) {
-            profiles->FUN_00404930(i, &m_slots[i]);
+        for (; k < 8; k++) {
+            profiles->FUN_00404930(k, &m_slots[k]);
         }
         TEXT_DEVICE->textInput = 0;
         unk24c = 0;
@@ -2611,13 +2611,14 @@ int RaceMode::NameMenu(int reset)
         TEXT_DEVICE->Flush();
         m_caret = 0;
     }
+    int clickSel = 0;
+    bool clicked = false;
     Vec2 mouse;
     mouse.x = DAT_0057ba00;
     mouse.y = DAT_0057ba04;
-    bool clicked = false;
-    int clickSel = 0;
+    char editing = m_editing;
     if (unk240 == 0) {
-        if (!m_editing) {
+        if (!editing) {
             float edge = DAT_0056aea8 * 500.0f;
             int step = 0;
             int low, high;

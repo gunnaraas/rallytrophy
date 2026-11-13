@@ -10,6 +10,7 @@
 #include <math.h>
 #include <string.h>
 #include "x87_xform.h"
+#include "scene_object.h"
 
 static const float kLutZero = 0.0f;
 static const float kLutOne = 1.0f;
@@ -634,6 +635,7 @@ inline float Dot(const Vec3& a, const Vec3& b)
     return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
+struct Quad4 { float a, b, c, d; };
 // NONMATCHING: RALLYTROPHY 0x470940
 // The sphere-centre and corner transforms are the X87Xform asm helper and the light basis uses inline-asm cross (437 -> 394 differing instructions).
 // 3490 vs 3336 bytes. Same calls, constants, EH states and data flow; the frame differs: the original keeps c at ebp-0x18
@@ -641,6 +643,7 @@ inline float Dot(const Vec3& a, const Vec3& b)
 // with the three outputs interleaved; every inline form tried (member, free, Vec3 ctor) is optimised harder.
 // Tried 2026-10-30 night: swapped dot-product operand order (inline and via helper, VC6 emits the same x87 order), Vec3 c at function top / after fwd / per-arm copy-init / per-arm assign / per-section block scope / extra dummy Vec3 / explicit named operator* temp; the original has c at ebp-0x18 and the operator* return temp at ebp-0x24 (ours reversed) and block-scoped c fixes the slot but moves the temp to ebp-0x5c, drops c's stores and grows the function to 3520 bytes.
 // Tried 2026-11-01 re-pass: audited every float sum against the original fadd order; the plane-offset sum 0x50950c was emitted z,y,x (original x,z,y) and the three dot tests are now chained temps in the original z,y,x association; remaining sum diffs are fld/fmul operand order only (a local copy of the dir field hoists the load, volatile reorders the whole run); frame/slot differences unchanged (3537 vs 3336 bytes).
+// 2026-11-13 pass: 260 -> 122 insns differ (3374 -> 3335 vs 3336 bytes): corners' d built per component, 'half' as ScenePoint operator+ (0x419f00), scale calls via ScenePoint (0x40b0c0), sprite colour as a 16-byte Quad4 struct copy, plane-0 sum single expression, 680 centre stores moved before the 640 inverse chain; remaining: corner stores (original loads each lo/hi once and copies registers), x87 fld operand order in plane sums, tail interleave of matrix/const/sprite stores, prologue push edi.
 // Prepares the shadow plane for the frame: clip planes from the camera, the light-space matrices and the casters' volume.
 // original: FUN_00470940
 void ParallelShadow::Prepare(RenderDevice* device, void* unused, DrawContext* context, Camera* camera, int unused2)
@@ -667,17 +670,15 @@ void ParallelShadow::Prepare(RenderDevice* device, void* unused, DrawContext* co
             c.x = camera->position.x;
             c.y = camera->position.y;
             c.z = camera->position.z;
-            c += *fwd * (camera->boxMax[2] + 0.01f);
+            c += *(Vec3*)&(*(ScenePoint*)fwd * (camera->boxMax[2] + 0.01f));
         } else {
             DAT_00509500 = -*fwd;
             c.x = camera->position.x;
             c.y = camera->position.y;
             c.z = camera->position.z;
-            c += *fwd * (camera->boxMin[2] - 0.01f);
+            c += *(Vec3*)&(*(ScenePoint*)fwd * (camera->boxMin[2] - 0.01f));
         }
-        DAT_0050950c = c.x * DAT_00509500.x;
-        DAT_0050950c = c.z * DAT_00509500.z + DAT_0050950c;
-        DAT_0050950c = c.y * DAT_00509500.y + DAT_0050950c;
+        DAT_0050950c = c.x * DAT_00509500.x + c.z * DAT_00509500.z + c.y * DAT_00509500.y;
 
         Vec3* up = &camera->up;
         float ut = up->z * dir.z;
@@ -690,13 +691,13 @@ void ParallelShadow::Prepare(RenderDevice* device, void* unused, DrawContext* co
             c.x = camera->position.x;
             c.y = camera->position.y;
             c.z = camera->position.z;
-            c += *up * (camera->boxMax[1] + 0.01f);
+            c += *(Vec3*)&(*(ScenePoint*)up * (camera->boxMax[1] + 0.01f));
         } else {
             DAT_00509510 = -*up;
             c.x = camera->position.x;
             c.y = camera->position.y;
             c.z = camera->position.z;
-            c += *up * (camera->boxMin[1] - 0.01f);
+            c += *(Vec3*)&(*(ScenePoint*)up * (camera->boxMin[1] - 0.01f));
         }
         DAT_0050951c = DAT_00509510.z * c.z + DAT_00509510.y * c.y + c.x * DAT_00509510.x;
 
@@ -711,13 +712,13 @@ void ParallelShadow::Prepare(RenderDevice* device, void* unused, DrawContext* co
             c.x = camera->position.x;
             c.y = camera->position.y;
             c.z = camera->position.z;
-            c += *right * (camera->boxMax[0] + 0.01f);
+            c += *(Vec3*)&(*(ScenePoint*)right * (camera->boxMax[0] + 0.01f));
         } else {
             DAT_00509520 = -*right;
             c.x = camera->position.x;
             c.y = camera->position.y;
             c.z = camera->position.z;
-            c += *right * (camera->boxMin[0] - 0.01f);
+            c += *(Vec3*)&(*(ScenePoint*)right * (camera->boxMin[0] - 0.01f));
         }
         Vec3 lo = *(Vec3*)camera->boxMin;
         DAT_0050952c = DAT_00509520.z * c.z + DAT_00509520.y * c.y + c.x * DAT_00509520.x;
@@ -734,8 +735,8 @@ void ParallelShadow::Prepare(RenderDevice* device, void* unused, DrawContext* co
             lo.y = low;
         lo.x -= 0.1f;
         hi.x += 0.1f;
-        Vec3 half;
-        half = lo + hi;
+        ScenePoint half;
+        half = *(ScenePoint*)&lo + *(ScenePoint*)&hi;
         half.x *= 0.5f;
         half.y *= 0.5f;
         half.z *= 0.5f;
@@ -807,14 +808,14 @@ void ParallelShadow::Prepare(RenderDevice* device, void* unused, DrawContext* co
         DAT_005096d8 = 0.5f / DAT_005096e0;
         DAT_005096d4 = 0.5f / DAT_005096dc;
         DAT_00509560 = -LightRow(1);
-        DAT_00509550 = DAT_00509570 * DAT_005096d8;
-        DAT_00509540 = DAT_00509560 * DAT_005096d4;
+        DAT_00509550 = *(Vec3*)&(*(ScenePoint*)&DAT_00509570 * DAT_005096d8);
+        DAT_00509540 = *(Vec3*)&(*(ScenePoint*)&DAT_00509560 * DAT_005096d4);
 
         int n = context->views.m_count;
         for (int v = 0; v < n; v++) {
             ShadowCaster* o = (ShadowCaster*)context->views.m_data[v];
-            if (o->IsCurrent() && o->type == 1 && (o->flags & 4) && o->faceTable != 0) {
-                Vec3 d(g_shadowSphere.centre.x - o->center.x, g_shadowSphere.centre.y - o->center.y, g_shadowSphere.centre.z - o->center.z);
+            if (((SceneNode*)o)->IsCurrent() && o->type == 1 && (o->flags & 4) && o->faceTable != 0) {
+                Vec3 d; d.x = g_shadowSphere.centre.x - o->center.x; d.y = g_shadowSphere.centre.y - o->center.y; d.z = g_shadowSphere.centre.z - o->center.z;
                 float r = g_shadowSphere.radius + o->radius;
                 float dist = d.z * dir.z; // chained: the original sums z, y, x in that association
                 dist = d.y * dir.y + dist;
@@ -863,9 +864,10 @@ void ParallelShadow::Prepare(RenderDevice* device, void* unused, DrawContext* co
                 fstp dword ptr [eax+4]
                 fstp dword ptr [eax+8]
             }
-            DAT_00509680.m[12] = g_shadowSphere.centre.x;
-            DAT_00509680.m[13] = g_shadowSphere.centre.y;
-            DAT_00509680.m[14] = g_shadowSphere.centre.z;
+            DAT_00509680.m[3] = 0.0f;
+            DAT_00509680.m[7] = 0.0f;
+            DAT_00509680.m[11] = 0.0f;
+            DAT_00509680.m[15] = 1.0f;
             DAT_00509640.m[0] = DAT_00509680.m[0];
             DAT_00509640.m[1] = DAT_00509680.m[4];
             DAT_00509640.m[2] = DAT_00509680.m[8];
@@ -875,21 +877,17 @@ void ParallelShadow::Prepare(RenderDevice* device, void* unused, DrawContext* co
             DAT_00509640.m[8] = DAT_00509680.m[2];
             DAT_00509640.m[9] = DAT_00509680.m[6];
             DAT_00509640.m[10] = DAT_00509680.m[10];
-            DAT_00509640.m[12] = -(g_shadowSphere.centre.x * DAT_00509680.m[0] + g_shadowSphere.centre.z * DAT_00509680.m[2] + g_shadowSphere.centre.y * DAT_00509680.m[1]);
-            DAT_00509640.m[13] = -(g_shadowSphere.centre.x * DAT_00509680.m[4] + g_shadowSphere.centre.z * DAT_00509680.m[6] + g_shadowSphere.centre.y * DAT_00509680.m[5]);
-            DAT_00509640.m[14] = -(g_shadowSphere.centre.x * DAT_00509680.m[8] + g_shadowSphere.centre.z * DAT_00509680.m[10] + g_shadowSphere.centre.y * DAT_00509680.m[9]);
-            DAT_00509680.m[3] = 0.0f;
-            DAT_00509680.m[7] = 0.0f;
-            DAT_00509680.m[11] = 0.0f;
-            DAT_00509680.m[15] = 1.0f;
             DAT_00509640.m[3] = 0.0f;
             DAT_00509640.m[7] = 0.0f;
             DAT_00509640.m[11] = 0.0f;
             DAT_00509640.m[15] = 1.0f;
-            spriteB.unk60[0] = DAT_00561af8;
-            spriteB.unk60[1] = DAT_00561afc;
-            spriteB.unk60[2] = DAT_00561b00;
-            spriteB.unk60[3] = DAT_00561b04;
+            DAT_00509680.m[12] = g_shadowSphere.centre.x;
+            DAT_00509680.m[13] = g_shadowSphere.centre.y;
+            DAT_00509680.m[14] = g_shadowSphere.centre.z;
+            DAT_00509640.m[12] = -(g_shadowSphere.centre.x * DAT_00509680.m[0] + g_shadowSphere.centre.z * DAT_00509680.m[2] + g_shadowSphere.centre.y * DAT_00509680.m[1]);
+            DAT_00509640.m[13] = -(g_shadowSphere.centre.x * DAT_00509680.m[4] + g_shadowSphere.centre.z * DAT_00509680.m[6] + g_shadowSphere.centre.y * DAT_00509680.m[5]);
+            DAT_00509640.m[14] = -(g_shadowSphere.centre.x * DAT_00509680.m[8] + g_shadowSphere.centre.z * DAT_00509680.m[10] + g_shadowSphere.centre.y * DAT_00509680.m[9]);
+            *(Quad4*)spriteB.unk60 = *(Quad4*)&DAT_00561af8;
             spriteB.unk60[0] *= 0.9f;
             spriteB.unk40[0] = 0.0f;
             spriteB.unk40[1] = 0.0f;
