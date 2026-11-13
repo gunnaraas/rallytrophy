@@ -255,24 +255,37 @@ TriVector::iterator TriVector::Erase(iterator first, iterator last) { return era
     __asm fstp dword ptr [eax+4] \
     __asm fstp dword ptr [eax+8]
 
+// File-scope matrix with an empty destructor and no constructor: the identity stores are written inline after the EH state store.
+struct RainMatrix {
+    ~RainMatrix() {}
+    float m[16];
+};
+
 // original: FUN_00473470
 // NONMATCHING: RALLYTROPHY 0x473470
 // 3318 vs 3324 bytes; same calls, EH states and FPU code. Open: register assignment (original this=ebx saved to
 // [ebp-0x124], vertex/device=edi; here this=edi) and the lo/hi/sphere setup and tri-pick temporaries of the splash part.
 // Tried 2026-10-30 night: local `r=&query.tris` pointer (449->443), step/right/world declaration orders, late step, size/begin locals in the tri pick; whole-function reg allocation still differs (orig spills this, size in ebx; wind slot 0x14 higher).
 // Re-pass 2026-11-01: float sums checked against the original (same fadd association, only fld/fmul operand order differs in the splash facing test); `RainEffect* volatile self = this;` read for threshold and splashSizeOld/New brought 443->348 insns differ (3323 vs 3324 bytes); tried self for other fields, px/py/pz or int-copied camera position before WorldMatrix, decl order of step/world, no r pointer; still differs: this in ebx with automatic spill vs ours volatile self push, WorldMatrix init order after camera loads, slot offsets.
+// Pass 2026-11-13: 344 -> 342 insns differ, 2773 -> 2629 differing bytes (3321 vs 3324). File-scope ctor-less RainMatrix + inline identity stores (EH state 0 before the stores), camera position copied as ints before the matrix, self declared after wind. Open: this=ebx w/o volatile self (439 insns), vertex=edi/camera=esi roles, lo/hi copy+Clear scheduling.
 void RainEffect::Update(RenderDevice* device, Camera* camera, int a, int b, float dt)
 {
     if (DAT_00501428 == 0) {
         return;
     }
-    RainEffect* volatile self = this;
     int step = FloatToInt(dt * 1000.0f);
-    WorldMatrix world;
-    world.m[12] = camera->position.x;
-    world.m[13] = camera->position.y;
-    world.m[14] = camera->position.z;
+    int* cpi = (int*)&camera->position;
+    int c0 = cpi[0], c1 = cpi[1], c2 = cpi[2];
+    RainMatrix world;
+    world.m[1] = world.m[2] = world.m[3] = 0.0f;
+    world.m[4] = world.m[6] = world.m[7] = 0.0f;
+    world.m[8] = world.m[9] = world.m[11] = 0.0f;
+    world.m[0] = world.m[5] = world.m[10] = world.m[15] = 1.0f;
+    ((int*)world.m)[12] = c0;
+    ((int*)world.m)[13] = c1;
+    ((int*)world.m)[14] = c2;
     Vec3 wind;
+    RainEffect* volatile self = this;
     if (camera->hasLens) {
         wind.x = world.m[12] - camera->lensPos[0];
         wind.y = world.m[13] - camera->lensPos[1];
