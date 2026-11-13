@@ -2145,6 +2145,10 @@ int NetRace::GetUnk844()
 // rule (NOTES "Stack slot sharing"): ansi/wide as one 0x200-byte struct (shares the 0x2e8 player-info slot, as
 // the original's addresses esp+0xa0 / esp+0x1a0 show), MsgState messages[8] (the original keeps it at the chat
 // line's 0x50 slot), and a BufferDesc/handle per sending block. Still 0x24 short, and `this` is in ebp, not ebx.
+// 2026-11-13: 330 -> 196 insns differ (this now in ebx like the original): the unk860/unk85c send loops read
+// m_players[i]->field directly (original reloads the element after each message byte store) and the clock loop
+// counts down from a hoisted size (no per-iteration size()/bounds check). Still missing: the original caches a
+// zero register (xor ebp,ebp) from the chat block through the host loop; we only cache it in sub-ranges.
 void NetRace::ServiceNetwork()
 {
     unsigned int i;
@@ -2204,8 +2208,8 @@ void NetRace::ServiceNetwork()
                 message.type = 0;
                 message.sub = 5;
                 int* name = (int*)RandomName(8);
-                int a = name[0];
                 int b = name[1];
+                int a = name[0];
                 *(int*)&message.name[0] = a;
                 *(int*)&message.name[4] = b;
                 message.end = 0;
@@ -2274,14 +2278,13 @@ void NetRace::ServiceNetwork()
             unk860 = 0;
             int count = m_players.size();
             for (i = 0; (int)i < count; i++) {
-                Player* player = m_players[i];
-                out->type = 0;
+                                out->type = 0;
                 out->sub = 1;
-                out->unk2c = player->unk2c;
-                out->unk24 = player->unk24;
-                out->id = player->id;
-                out->unk20 = player->unk20;
-                strcpy(out->name, player->name);
+                out->unk2c = m_players[i]->unk2c;
+                out->unk24 = m_players[i]->unk24;
+                out->id = m_players[i]->id;
+                out->unk20 = m_players[i]->unk20;
+                strcpy(out->name, m_players[i]->name);
                 out++;
             }
             Unlock();
@@ -2297,11 +2300,10 @@ void NetRace::ServiceNetwork()
             unk85c = 0;
             int count = m_players.size();
             for (i = 0; (int)i < count; i++) {
-                Player* player = m_players[i];
-                out->type = 0;
+                                out->type = 0;
                 out->sub = 0;
-                out->id = player->id;
-                out->state = player->state;
+                out->id = m_players[i]->id;
+                out->state = m_players[i]->state;
                 out++;
             }
             Unlock();
@@ -2323,9 +2325,10 @@ void NetRace::ServiceNetwork()
             buffer.size = sizeof(message);
             buffer.data = &message;
             Lock();
-            for (i = 0; i < m_players.size(); i++) {
-                Player* player = m_players[i];
-                if (!player->unk34) {
+            int count = m_players.size();
+            for (i = 0; (int)i < count; i++) {
+                if (!m_players[i]->unk34) {
+                    Player* player = m_players[i];
                     int offset = player->unk181c;
                     int other = player->unk1820;
                     int delta = abs(offset) - sum;
