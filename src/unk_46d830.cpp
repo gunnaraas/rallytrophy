@@ -60,6 +60,7 @@ inline void CopyBits(Vec3* dst, const Vec3& src)
 // Tried 2026-11-01 re-pass: 96->63 insns differ (1065 vs 1048 bytes, 482 differ) with SnowFall-style strided per-field cursors (declared v2,u2,v,u,normal,color), vertex loop wrapped in if (count > 0), triangle/vertexCount stores swapped, volatile indices reload; ~40 variants (v++ field form, u2/v2-first store orders, volatile u2/v2 cursors, int w, drops count via member/volatile, owner position) none better; still differs: vptr store and new-size lea/push hoisted to the top, original stores all u2/v2 pairs first through spilled [esp+28]/[esp+10] cursors with add [mem],0x2c, and the index-loop guard jumps into the second loop's cmp.
 // 2026-11-11: counts and array pointers read back through this->mesh (no volatile), vertex pointer loaded before the
 // guard, `while (j--)` vertex loop (the SnowFall/RainEffect form): 482 -> 435 bytes differ, 1065 vs 1048.
+// 2026-11-13: triangleCount stored before vertexCount (original order): 59 -> 55 insns differ, 435 -> 423 bytes. Tried ~35 more: u2/v2 hoisted first (3 pairs, split 4th), EffectVertex* u2/v2 cursors, cursor order permutations (all worse); still differs: frame 8 bytes larger than the original (stack slots), vptr/new-size/state=9 hoisted to the top, spilled u2/v2 cursor stores.
 CarRain::CarRain(int count)
 {
     savedTrunk.m[5] = savedTrunk.m[10] = savedTrunk.m[15] = savedTrunk.m[0] = 1.0f;
@@ -94,8 +95,8 @@ CarRain::CarRain(int count)
     m->vertices = new EffectVertex[count * 4];
     m->indices = new WORD[count * 6];
     mesh->unk24 = 0;
-    mesh->vertexCount = (WORD)(dropCount * 4);
     mesh->triangleCount = (WORD)(dropCount * 2);
+    mesh->vertexCount = (WORD)(dropCount * 4);
     mesh->owner = 0;
     WORD* ix = mesh->indices;
     int i;
