@@ -297,9 +297,7 @@
 <rect x="910.3" y="120" width="0.6" height="36" fill="#e3b341"/>
 <rect x="910.9" y="120" width="2.3" height="36" fill="#3fb950"/>
 <rect x="913.2" y="120" width="0.7" height="36" fill="#e3b341"/>
-<rect x="914.0" y="120" width="0.6" height="36" fill="#3fb950"/>
-<rect x="914.0" y="120" width="0.6" height="36" fill="#e3b341"/>
-<rect x="914.5" y="120" width="0.9" height="36" fill="#3fb950"/>
+<rect x="914.0" y="120" width="1.5" height="36" fill="#3fb950"/>
 <rect x="915.4" y="120" width="16.4" height="36" fill="#e3b341"/>
 <rect x="931.9" y="120" width="13.4" height="36" fill="#3fb950"/>
 <rect x="945.5" y="120" width="1.7" height="36" fill="#3fb950"/>
@@ -948,9 +946,9 @@
 <text x="1018" y="2112" fill="#e6edf3">29% exact / 100% written</text>
 <text x="260" y="2138" text-anchor="end" fill="#e6edf3">74. Player</text>
 <rect x="270" y="2124" width="740" height="18" rx="2" fill="#484f58"/>
-<rect x="270" y="2124" width="535.3" height="18" fill="#3fb950"/>
-<rect x="805.3" y="2124" width="204.7" height="18" fill="#e3b341"/>
-<text x="1018" y="2138" fill="#e6edf3">72% exact / 100% written</text>
+<rect x="270" y="2124" width="579.7" height="18" fill="#3fb950"/>
+<rect x="849.7" y="2124" width="160.3" height="18" fill="#e3b341"/>
+<text x="1018" y="2138" fill="#e6edf3">78% exact / 100% written</text>
 <text x="260" y="2164" text-anchor="end" fill="#e6edf3">75. Race session</text>
 <rect x="270" y="2150" width="740" height="18" rx="2" fill="#484f58"/>
 <rect x="270" y="2150" width="119.7" height="18" fill="#3fb950"/>
