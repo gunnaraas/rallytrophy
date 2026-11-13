@@ -2594,6 +2594,7 @@ public:
 // Tried 2026-11-01: shared zero `int k=0` as Draw arg + reset-loop counter (puts zero in esi like the original, 333->335 insns, this still ebp); m_editing volatile reads, step/switch/click tests against k, inline profiles, declaration swaps: no better. Still differs: this in ebp not ebx (m_editing CSE'd into bl takes ebx) and the later zeros (step, clickSel) share esi where the original has separate edi/ebp.
 // Pass 2026-11-13: dropped the volatile z slot (Draw gets shared zero k = reset-loop counter), clicked/clickSel declared before mouse, m_editing copied once for the first test: 1628 -> 1494 differing bytes (333 insns differ unchanged, 2768 vs 2766 bytes). Still: this in ebp not ebx (m_editing CSE'd into bl), step zero shares edi with unk24c=0 where the original uses esi.
 // Pass 2 2026-11-13: real std::string resize()/append(1,c) instead of the hand twins, with five dead `(void)M_TEXT.size();` calls at the end spending the inline budget (exactly 5: 4 or 6 blow the size up) so _Split/_Grow/_Eos stay calls like the original; literal Draw zero, editing copy dropped, unk240/result stores before ClearKeys, low/high branch flipped: 333 -> 125 insns differ, 1494 -> 960 differing bytes, 2762 vs 2766 bytes. Left: block scheduling of the Print/GetWidth argument pushes, one inline _Eos in append(1,c) (original calls it), prologue load order, step zero position.
+// Pass 3 2026-11-13: six dead size() calls (not five; with the first Print/GetWidth y as a named float, the name ternary inline in Print's arguments and `step = 0` assigned at `keys:` the budget needs 6) make the backspace _Eos a call: 125 -> 20 insns differ, 960 -> 74 differing bytes, 2766 = original size. Left: x/y temp frame slots in the label Print branches (orig shares edge's slot), prologue mouse-load order, textInput store order after profiles load, Print name-ternary arg order.
 // keyboard into m_text. Returns 1 when the menu is left.
 int RaceMode::NameMenu(int reset)
 {
@@ -2619,8 +2620,8 @@ int RaceMode::NameMenu(int reset)
     if (unk240 == 0) {
         if (!m_editing) {
             float edge = DAT_0056aea8 * 500.0f;
-            int step = 0;
             int low, high;
+            int step;
             if (mouse.x <= edge && DAT_0056aea8 * 100.0f <= mouse.x && DAT_0056aeac * 150.0f <= mouse.y
                 && DAT_0056aeac * 182.0f >= mouse.y) {
                 unk24c = 0;
@@ -2648,6 +2649,7 @@ int RaceMode::NameMenu(int reset)
                 clickSel = unk24c;
             }
         keys:
+            step = 0;
             if (DAT_0057ba28[VK_UP]) {
                 step = -1;
             }
@@ -2795,11 +2797,13 @@ int RaceMode::NameMenu(int reset)
         if (i == 0) {
             const char* label = FUN_00405380(0x19c);
             float x = DAT_0056aea8 * 500.0f - big->GetWidth(label, 0);
-            big->Print(DAT_0056b0ac, x, DAT_0056aeac * 150.0f, label, 0, 1.0f, 1.0f);
+            float y = DAT_0056aeac * 150.0f;
+            big->Print(DAT_0056b0ac, x, y, label, 0, 1.0f, 1.0f);
         } else if (i == 1) {
             const char* label = FUN_00405380(0x18);
             float x = DAT_0056aea8 * 500.0f - big->GetWidth(label, 0);
-            big->Print(DAT_0056b0ac, x, DAT_0056aeac * 520.0f, label, 0, 1.0f, 1.0f);
+            float y = DAT_0056aeac * 520.0f;
+            big->Print(DAT_0056b0ac, x, y, label, 0, 1.0f, 1.0f);
         } else {
             float x = DAT_0056aea8 * 524.0f;
             float y = ((float)(i - 2) * 38.0f + 205.0f) * DAT_0056aeac;
@@ -2819,8 +2823,7 @@ int RaceMode::NameMenu(int reset)
                     ((CaretDrawer*)((char*)DAT_0056b0c8 + 0x2008))->FUN_00450a70(DAT_0056b0ac, caretX, y, rowColor.value);
                 }
             } else {
-                const char* name = m_slots[i - 2].empty ? FUN_00405380(0x27) : m_slots[i - 2].name;
-                big->Print(DAT_0056b0ac, x, y, name, 0, 1.0f, 1.0f);
+                big->Print(DAT_0056b0ac, x, y, m_slots[i - 2].empty ? FUN_00405380(0x27) : m_slots[i - 2].name, 0, 1.0f, 1.0f);
             }
         }
     }
@@ -2841,6 +2844,7 @@ int RaceMode::NameMenu(int reset)
     float* position = ((MouseView*)DAT_0056b0c0)->GetPosition();
     FUN_0048e4c0(*(HudPoint*)position);
     // Dead calls: they spend VC6's per-function inline budget so the string helpers above stay calls (see NOTES).
+    (void)M_TEXT.size();
     (void)M_TEXT.size();
     (void)M_TEXT.size();
     (void)M_TEXT.size();
