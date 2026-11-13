@@ -251,8 +251,41 @@ def ternary_sub(lines, rng):
     return lines
 
 
+OPERAND = re.compile(r"(?<![\w.>])([A-Za-z_]\w*(?:(?:\.|->)\w+|\[[^\[\]]+\])*(?:\+\+|--)?)(?![\w(]|\s*\(|\.|->)")
+# An inlined function's parameter is a copy of its argument: VC6 emits `mov reg,reg` for it (0x425e50 matched so).
+PRELUDE = "template<class RtT> inline RtT rt_id(RtT x) { return x; }\n"
+
+
+def wrap_id(lines, rng):
+    """Wrap one operand (variable, member, element, x++) in the inline identity rt_id()."""
+    cand = []
+    for i, l in enumerate(lines):
+        code = l.split("//")[0]
+        if code.lstrip().startswith("#"):
+            continue
+        for m in OPERAND.finditer(code):
+            word, after, before = m.group(1), code[m.end(1):].lstrip(), code[:m.start(1)].rstrip()
+            if word.split("[")[0].split(".")[0].split("->")[0] in KEYWORDS:
+                continue
+            if re.match(r"(=[^=]|[-+*/|&^]=|,\s*\w+\s*=)", after) and not word.endswith(("++", "--")):
+                continue  # an assigned lvalue
+            if re.search(r"(\w|\*|&)$", before) and not re.search(r"\b(return|case)$", before):
+                continue  # a declared name (`int x`, `T* p`) or part of a type
+            cand.append((i, m.span(1)))
+    if not cand:
+        return None
+    i, (a, b) = rng.choice(cand)
+    lines[i] = lines[i][:a] + "rt_id(" + lines[i][a:b] + ")" + lines[i][b:]
+    return lines
+
+
+KEYWORDS = {"return", "int", "unsigned", "char", "float", "double", "void", "if", "else", "while", "do", "break",
+            "continue", "delete", "new", "sizeof", "const", "struct", "short", "long", "BYTE", "WORD", "DWORD",
+            "this", "true", "false", "goto", "case", "default", "switch", "static", "volatile", "rt_id"}
+
+
 MUTATORS = [swap_adjacent, swap_adjacent, move_decl, commute, flip_if, inline_temp, loop_form,
-            counter_loop, counter_loop, typed_copy, split_decl, expand_compound, ternary_sub]
+            counter_loop, counter_loop, typed_copy, split_decl, expand_compound, ternary_sub, wrap_id]
 
 
 def mutate(body, rng, steps):
@@ -275,7 +308,7 @@ def score(source, address, bodies, workdir, jobs):
     paths = []
     for n, b in enumerate(bodies):
         p = os.path.join(workdir, f"v{n:04}.cpp")
-        open(p, "w").write(b)
+        open(p, "w").write((PRELUDE if "rt_id(" in b else "") + b)
         paths.append(p)
     out = subprocess.run([sys.executable, "-I", os.path.join(ROOT, "tools", "try_variants.py"), "-j", str(jobs),
                           source, f"0x{address:x}", *paths], stdin=subprocess.DEVNULL, capture_output=True, text=True, cwd=ROOT, env={**os.environ, "RT_TRY_DIR": os.path.join(workdir, "try")}).stdout
