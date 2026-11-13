@@ -135,7 +135,6 @@ inline void Rot(float* o, const float* p, const float* m)
     }
 }
 
-struct P3 { float x, y, z; P3 operator*(float s) const; }; // 0x40b0c0
 extern float DAT_004e134c;
 extern float DAT_004e1348;
 
@@ -474,16 +473,17 @@ void SegmentInfo::Update()
 // NONMATCHING: RALLYTROPHY 0x4ba620
 // Semantics complete (inline-asm Xform/Rot, EBP frame). 66->47 insns differ: i-indexed loop over planes/tplanes + if/else idx stores.
 // Tried 2026-10-31 re-pass: ~35 variants (param-slot counter, q-pointer vs indexed, ternary vs if/else, 6 dot orders (original y,z,x kept), while/!= loops, t hoisted, a/c tail forms, volatile self); still differs: original has one induction pointer q with jmp-to-test loop and lea of P/T after the first Xform, esi/edi prologue swapped, tail a/c in stack temps.
+// 2026-11-13 pass: 44 -> 16 insns differ (500 -> 505 vs 523 bytes): ScenePoint (header) operator* for the 0x40b0c0 call, P/T locals declared after XformSelf and Rot called with &tplanes[4*i] inline. Remaining: Rot slot stores in m,p,o order (ours p,m,o; param permutations did not change it), a/c tail kept in stack temps in the original (volatile/array/ref/address-taken forms all worse).
 void ViewFrustum::Init(FrustumDevice* device)
 {
     ViewFrustum* self = this;
     device->SetupFrustum(this);
     camera = device->GetCameraMatrix();
     for (int i = 0; i < 6; i++) {
-        float* P = &planes[4*i]; float* T = &tplanes[4*i];
-        P3 t = *(P3*)P * P[3];
+        ScenePoint t = *(ScenePoint*)&planes[4*i] * planes[4*i+3];
         XformSelf(&t.x, &t.x, self->camera);
-        Rot(T, P, self->camera);
+        float* P = &planes[4*i]; float* T = &tplanes[4*i];
+        Rot(&tplanes[4*i], P, self->camera);
         float q = t.y * T[1];
         q = t.z * T[2] + q;
         q = t.x * T[0] + q;
