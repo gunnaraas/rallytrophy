@@ -3951,6 +3951,7 @@ extern DWORD DAT_0056543c;             // pause-menu entry colour
 // as sub-states in unk244/unk240. `reset` selects the first entry and moves
 // the mouse onto it. Returns 1 to resume, -1 to restart, -2 to quit, else 0.
 // Tried 2026-11-12 (size 1640 vs 1684): the three cursor-position sites as RM_Pt temporaries / block-local objects in
+// Tried 2026-11-13 round 2: x as block-scope `const float x` initialised per case before its Print (was function-scope assigned) gives size 1684 = original, insns 97 -> 75. Left: register allocation (original ebx = zero/unk244 cache and edi = loop counter i; ours swapped, eax re-xored) and first-Print device load hoist. Round 1 (no gain): shared Print tail, int w local, decl orders, result-compare tricks, first-Print arg orders.
 // all 12 combinations give 1628..1708 bytes, never 1684, and more differing bytes; setter title is worse too.
 int RaceMode::FUN_00489300(int reset)
 {
@@ -4060,29 +4061,28 @@ menu:
         for (int i = 0; i < 4; i++) {
             if (showRestart || i != 2) {
                 Color color(i == unk24c ? DAT_00565444 : DAT_0056543c);
-                float x;
                 big->color = color.value;
                 switch (i) {
                 case 0:
-            x = DAT_0056b0ac->GetWidth() * 0.5f - big->GetWidth(FUN_00405380(0x17), 0) * 0.5f;
-            big->Print(DAT_0056b0ac, x, y, FUN_00405380(0x17), 0, 1.0f, 1.0f);
+            { const float x = DAT_0056b0ac->GetWidth() * 0.5f - big->GetWidth(FUN_00405380(0x17), 0) * 0.5f;
+ big->Print(DAT_0056b0ac, x, y, FUN_00405380(0x17), 0, 1.0f, 1.0f); }
                     break;
                 case 1:
-            x = DAT_0056b0ac->GetWidth() * 0.5f - big->GetWidth(FUN_00405380(0x2c), 0) * 0.5f;
-            big->Print(DAT_0056b0ac, x, y, FUN_00405380(0x2c), 0, 1.0f, 1.0f);
+            { const float x = DAT_0056b0ac->GetWidth() * 0.5f - big->GetWidth(FUN_00405380(0x2c), 0) * 0.5f;
+ big->Print(DAT_0056b0ac, x, y, FUN_00405380(0x2c), 0, 1.0f, 1.0f); }
                     break;
                 case 2:
                     if (DAT_00501464 != 1 && DAT_00501464 != 0) {
-                        x = DAT_0056b0ac->GetWidth() * 0.5f - big->GetWidth(FUN_00405380(0x153), 0) * 0.5f;
-                        big->Print(DAT_0056b0ac, x, y, FUN_00405380(0x153), 0, 1.0f, 1.0f);
+                        { const float x = DAT_0056b0ac->GetWidth() * 0.5f - big->GetWidth(FUN_00405380(0x153), 0) * 0.5f;
+ big->Print(DAT_0056b0ac, x, y, FUN_00405380(0x153), 0, 1.0f, 1.0f); }
                     } else {
-                        x = DAT_0056b0ac->GetWidth() * 0.5f - big->GetWidth(FUN_00405380(0x154), 0) * 0.5f;
-                        big->Print(DAT_0056b0ac, x, y, FUN_00405380(0x154), 0, 1.0f, 1.0f);
+                        { const float x = DAT_0056b0ac->GetWidth() * 0.5f - big->GetWidth(FUN_00405380(0x154), 0) * 0.5f;
+ big->Print(DAT_0056b0ac, x, y, FUN_00405380(0x154), 0, 1.0f, 1.0f); }
                     }
                     break;
                 case 3:
-            x = DAT_0056b0ac->GetWidth() * 0.5f - big->GetWidth(FUN_00405380(0x1e), 0) * 0.5f;
-            big->Print(DAT_0056b0ac, x, y, FUN_00405380(0x1e), 0, 1.0f, 1.0f);
+            { const float x = DAT_0056b0ac->GetWidth() * 0.5f - big->GetWidth(FUN_00405380(0x1e), 0) * 0.5f;
+ big->Print(DAT_0056b0ac, x, y, FUN_00405380(0x1e), 0, 1.0f, 1.0f); }
                     break;
                 }
                 y += step;
