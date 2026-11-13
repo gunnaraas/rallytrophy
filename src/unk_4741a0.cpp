@@ -74,6 +74,7 @@ struct SkStr {
 // original clones it three times. inline_depth 2-255, inline_recursion, auto_inline, optimize pragmas and /Ob, /Ox
 // flag sets do not change that (inline_depth(4): 640 bytes, other shape). 0x404100 shows the reverse (original
 // jumps, this build clones), also with the real std::string, so the difference is not in the string emulations.
+// Tried 2026-11-13: 12 more variants, all 43 insns/635 bytes (no-return done-flag form, store-order swaps, pragma optimize a/g/t/y; w/s worse). Remaining: epilogue cloned per arm in the original, ours merges; final block stores ptr[n] before len and `mov edi,eax` before `mov esi,src`.
 SkidMarks::SkidMarks()
 {
     int q = DAT_00501428;
@@ -277,6 +278,7 @@ __forceinline void SkCopy(Vec3& d, const Vec3& r)
 // Ring-advance, corner-base CSE, and Cross/Scale argument homes remain different (PE observations).
 // Tried 2026-10-30 night: 30+ variants; local width + __forceinline SkCopy(dst, a+side) (copies straight from the call's eax pointer) took 90->58 insns; still differs: ebx kept as zero reg in the original (ours hoists lea ebx,&s->b / xor edx later), inv/side scale fld order, fst/fstp pair order, p->b copy scheduling.
 // Tried 2026-10-31 re-pass: 18 more variants (volatile zero reg zz for isNew/linked/v, componentwise delta, scale order permutations, double reciprocal, volatile cur/width, pos copied via Vec3 local, local pointer to s->b, side decl moved into branch); none beat 58 insns differ (several worse, up to 82); mesh volatile/WORD idioms do not apply (no mesh pointers). Still 58 insns, too far for permute.py.
+// Tried 2026-11-13: `Vec3 side;` declared before `delta -= s->a` (55 -> 42 insns, 970 -> 966 bytes; side no longer gets the byte EH-state store). No effect: store-order swaps of v[0].v/v[1].v, pragma optimize s/t/g/y/a, `Z = 0` zero-register local (constant folded, worse 52), inv-scale forms, side before delta (62).
 // Appends one tyre-mark quad at pos; pos == 0 closes the current mark.
 void SkidMarks::AddSegment(Vec3* pos, Vec3* axis, Vec3* fallback, float alpha, int newId)
 {
@@ -335,8 +337,8 @@ void SkidMarks::AddSegment(Vec3* pos, Vec3* axis, Vec3* fallback, float alpha, i
         s->v[3].u = s->v[0].u = u + 0.25f;
     }
     Vec3 delta(s->b);
-    delta -= s->a;
     Vec3 side;
+    delta -= s->a;
     float q = delta.y * delta.y;
     q = delta.x * delta.x + q;
     q = delta.z * delta.z + q;
