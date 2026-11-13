@@ -319,6 +319,7 @@ inline int FloatToInt(float f)
 
 // NONMATCHING: RALLYTROPHY 0x458b30
 // Tried 2026-10-30 night: 200->111 insns via float-ramp-rate externs (K on left), `unk0` (not button24) gate for the gear path (behaviour fix), fireA address-taken to keep bools in memory, stack-copy of throttle/handbrake; still differs: x87 sum order of the 0.3/0.2 terms, fld/fstp float copies (feedback, spring x), bool store order, Spring helper/bool-order variants and Spring forceinline made it worse. Re-pass 2026-11-01: 111->104 via volatile dtMs reads in the timer subtracts, chained 0.3/0.2 sum (matches asm order), and a fresh car->f1c910 reload for the feedback store (matches). Still differs: timer bool-store order/dtMs single load, x/y float copies via fld/fstp (volatile, dtMs-slot reference, +0.0f tried), frame 4 bytes bigger.
+// Pass 2026-11-13: 104->65 insns (1379->1394 bytes vs 1393): `(0, v)` comma copies for spring x/y and steerAnalog-style float copies via fld/fstp, own float temp for the rumble level, FloatToInt for rumble, period via a temp int; only the timer block (single dtMs load, bool stores after the cmp) still differs.
 // The p2 blend uses the inline-asm FloatToInt as in the original (225 -> 201 differing instructions).
 // Same code shape and constants (builds 1358 bytes, original 1393); the original keeps `car` in ebx and zero in edi and
 // copies floats through the FPU (fld/fstp), which the source below does not reproduce.
@@ -340,12 +341,11 @@ IC_Car* car = (IC_Car*)carPtr;
     step = 0;
     gearRequest = -10;
     if (DAT_0056b0b4) {
+        int a = timerA - *(volatile int*)&dtMs;
         bool fireA = false;
         bool fireB = false;
         bool* pa = &fireA;
-        *(volatile char*)pa = 0;
-        int a = timerA - *(volatile int*)&dtMs;
-        int b = timerB - *(volatile int*)&dtMs;
+        int b = timerB - dtMs;
         timerA = a;
         timerB = b;
         if (a <= 0) {
@@ -370,12 +370,12 @@ IC_Car* car = (IC_Car*)carPtr;
             } else if (w < 0) {
                 w = 0;
             }
-            float x = car->fd40;
+            float x = (0, car->fd40);
             float lateral = (car->fd34 - x) * car->fd28;
             if (BITS(x) < BITS(car->fd48)) {
                 lateral += (car->fd48 - x) * car->fd4c;
             }
-            float y = car->fd0c;
+            float y = (0, car->fd0c);
             float lateral2 = (car->fd00 - y) * car->fcf4;
             if (BITS(y) < BITS(car->fd14)) {
                 lateral2 += (car->fd14 - y) * car->fd18;
@@ -414,12 +414,8 @@ IC_Car* car = (IC_Car*)carPtr;
             } else {
                 level = suspension;
             }
-            tmp = level * 10000.0f;
-            int rumble;
-            __asm {
-                fld tmp
-                fistp rumble
-            }
+            float tmpR = level * 10000.0f;
+            int rumble = FloatToInt(tmpR);
             if (rumble < 0) {
                 rumble = 0;
             } else if (rumble > 10000) {
@@ -432,10 +428,12 @@ IC_Car* car = (IC_Car*)carPtr;
                     k = 1.0f;
                 }
                 tmp = (0.2f - k * 0.175f) * 1000000.0f;
+                int pi;
                 __asm {
                     fld tmp
-                    fistp period
+                    fistp pi
                 }
+                period = pi;
             }
             int p1 = rumble;
             int p2 = period;
@@ -508,7 +506,7 @@ IC_Car* car = (IC_Car*)carPtr;
         handbrake = 1.0f;
     }
     if (steerAnalog) {
-        car->steerAnalog = steering;
+        car->steerAnalog = (0, steering);
         car->analog = 1;
     } else {
         float s = 0;
