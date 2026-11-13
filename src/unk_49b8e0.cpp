@@ -1490,6 +1490,7 @@ __forceinline static void Copy(Vec3& d, const Vec3& s) { d.x = s.x; d.y = s.y; d
 // ahead of it, evaluates the racing line (Catmull-Rom through the segment's nodes/corner points) at the car and 1.25
 // units ahead, offsets the p sideways by the road width and derives the steering offset (unk34).
 // Tried 2026-11-01 re-pass: lazy dist2 sqrt inside the && compares and 0.0f read as DAT_004e134c for v0/v1/v2/gap/unk14c .y (787->698 insns, 3502->3543 bytes vs 3592); ~30 variants (other .y sites, p.y, unk28, dist order, local pointer/declaration order) no better; still differs: original keeps player in edi/path in ebp (ours ebp/ebx) so the whole register allocation and several fst/fstp reloads of the n/v components differ.
+// Pass 2026-11-13: 720 -> 594 insns differ (3545 -> 3532 bytes vs 3592): u0/u1 as #define expressions not locals (-55), body cached via CarBody* + int-copied velocity, p.y=0 in the cap branch, v0.y/v1.y literal 0.0f at two sites, t2<=1 branch order in cases 1-2. Not fixed: player/index register split (index reloaded from player->unk1a7c; orig keeps it in ebx), x87 preloads in dist0/dist1 Length.
 float AIDriver::FUN_0049e3d0()
 {
     Vec3 n;
@@ -1499,19 +1500,20 @@ float AIDriver::FUN_0049e3d0()
 #define sp (*(AiSpline*)&unk134)
     unk28 = 0;
     AiPath* path = player->FUN_00491e10();
-    int index = player->unk1a7c;
-    AiSegment* cur = path->At(index);
-    AiSegment* next = path->At(index + 1);
-    AiSegment* prev = path->At(index - 1);
+    AiSegment* cur = path->At(player->unk1a7c);
+    AiSegment* next = path->At(player->unk1a7c + 1);
+    AiSegment* prev = path->At(player->unk1a7c - 1);
 
     // Where the car will be in 1.43 seconds (horizontal speed capped at 15).
-    p.x = car->body->velocity[0];
-    p.y = car->body->velocity[1];
-    p.z = car->body->velocity[2];
+    CarBody* body = car->body;
+    p.x = body->velocity[0];
+    p.y = body->velocity[1];
+    p.z = body->velocity[2];
     p.y = 0;
-    float speed = (float)sqrt(p.z * p.z + p.x * p.x);
+    float speed = (float)sqrt(p.x * p.x + p.z * p.z);
     if (speed > DAT_00500d08) {
         float k = DAT_00500d08 / speed;
+        p.y = 0;
         p.x = k * p.x;
         p.z = k * p.z;
     }
@@ -1533,8 +1535,8 @@ float AIDriver::FUN_0049e3d0()
         i++;
     } while (dCur > dNext);
 
-    Vec3* u0 = (Vec3*)&cur->unk28[0];
-    Vec3* u1 = (Vec3*)&cur->unk28[1];
+#define u0 ((Vec3*)&cur->unk28[0])
+#define u1 ((Vec3*)&cur->unk28[1])
 
     // The segment is three pieces: a -> u0, u0 -> u1, u1 -> b; find the n p on each.
     Vec3 v0;
@@ -1547,7 +1549,7 @@ float AIDriver::FUN_0049e3d0()
     v0.y = DAT_004e134c;
     Vec3 v1;
     v1.x = u1->x - u0->x;
-    v1.y = DAT_004e134c;
+    v1.y = 0.0f;
     v1.z = u1->z - u0->z;
     float len1 = (float)sqrt(v1.z * v1.z + v1.x * v1.x);
     FUN_004b3dd0(&p, u0, &v1, &n);
@@ -1580,7 +1582,7 @@ float AIDriver::FUN_0049e3d0()
         v0.y = p.y + v0.y;
         v0.z = p.z + v0.z;
         v0 -= *(Vec3*)cur->a;
-        v0.y = DAT_004e134c;
+        v0.y = 0.0f;
         SubV(u0, cur->a, &n);
         float nl = n.x * n.x + n.z * n.z;
         nl = nl + n.y * n.y;
@@ -1593,7 +1595,13 @@ float AIDriver::FUN_0049e3d0()
         unk140.x = sp.Eval(prev->unk28[1].x, ((Vec3*)cur->a)->x, u0->x, u1->x);
         unk140.z = sp.Eval(prev->unk28[1].z, ((Vec3*)cur->a)->z, u0->z, u1->z);
         float t2 = t + step0;
-        if (t2 > DAT_004e1348) {
+        if (t2 <= DAT_004e1348) {
+            sp.t = t2;
+            sp.t2 = t2 * t2;
+            sp.t3 = sp.t2 * t2;
+            unk14c.x = sp.Eval(prev->unk28[1].x, ((Vec3*)cur->a)->x, u0->x, u1->x);
+            unk14c.z = sp.Eval(prev->unk28[1].z, ((Vec3*)cur->a)->z, u0->z, u1->z);
+        } else {
             t2 = (t2 - DAT_004e1348) * len0; // original chains ((t2-1)*len)*step through one temp
             t2 = t2 * step1;
             sp.t = t2;
@@ -1601,12 +1609,6 @@ float AIDriver::FUN_0049e3d0()
             sp.t3 = sp.t2 * t2;
             unk14c.x = sp.Eval(((Vec3*)cur->a)->x, u0->x, u1->x, ((Vec3*)cur->b)->x);
             unk14c.z = sp.Eval(((Vec3*)cur->a)->z, u0->z, u1->z, ((Vec3*)cur->b)->z);
-        } else {
-            sp.t = t2;
-            sp.t2 = t2 * t2;
-            sp.t3 = sp.t2 * t2;
-            unk14c.x = sp.Eval(prev->unk28[1].x, ((Vec3*)cur->a)->x, u0->x, u1->x);
-            unk14c.z = sp.Eval(prev->unk28[1].z, ((Vec3*)cur->a)->z, u0->z, u1->z);
         }
     } else if ((float)sqrt(v2.x * v2.x + v2.z * v2.z) > dist1) {
         // Nearest to the middle piece.
@@ -1629,7 +1631,13 @@ float AIDriver::FUN_0049e3d0()
         unk140.x = sp.Eval(((Vec3*)cur->a)->x, u0->x, u1->x, ((Vec3*)cur->b)->x);
         unk140.z = sp.Eval(((Vec3*)cur->a)->z, u0->z, u1->z, ((Vec3*)cur->b)->z);
         float t2 = t + step1;
-        if (t2 > DAT_004e1348) {
+        if (t2 <= DAT_004e1348) {
+            sp.t = t2;
+            sp.t2 = t2 * t2;
+            sp.t3 = sp.t2 * t2;
+            unk14c.x = sp.Eval(((Vec3*)cur->a)->x, u0->x, u1->x, ((Vec3*)cur->b)->x);
+            unk14c.z = sp.Eval(((Vec3*)cur->a)->z, u0->z, u1->z, ((Vec3*)cur->b)->z);
+        } else {
             t2 = (t2 - DAT_004e1348) * len1; // original chains ((t2-1)*len)*step through one temp
             t2 = t2 * step2;
             sp.t = t2;
@@ -1637,12 +1645,6 @@ float AIDriver::FUN_0049e3d0()
             sp.t3 = sp.t2 * t2;
             unk14c.x = sp.Eval(u0->x, u1->x, ((Vec3*)cur->b)->x, ((Vec3*)&next->unk28[0])->x);
             unk14c.z = sp.Eval(u0->z, u1->z, ((Vec3*)cur->b)->z, ((Vec3*)&next->unk28[0])->z);
-        } else {
-            sp.t = t2;
-            sp.t2 = t2 * t2;
-            sp.t3 = sp.t2 * t2;
-            unk14c.x = sp.Eval(((Vec3*)cur->a)->x, u0->x, u1->x, ((Vec3*)cur->b)->x);
-            unk14c.z = sp.Eval(((Vec3*)cur->a)->z, u0->z, u1->z, ((Vec3*)cur->b)->z);
         }
     } else {
         // Nearest to the last piece.
@@ -1726,6 +1728,8 @@ float AIDriver::FUN_0049e3d0()
     ((Vec3*)&unkd4)->y = 0;
     return DAT_004e134c;
 }
+#undef u0
+#undef u1
 
 #undef sp
 
