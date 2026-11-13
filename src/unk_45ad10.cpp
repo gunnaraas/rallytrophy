@@ -1675,6 +1675,7 @@ void Car::ApplySuspensionForces()
     }
 }
 
+inline float W6_Rd(const float* p) { return *p; }
 // NONMATCHING: RALLYTROPHY 0x45c700
 // original: FUN_0045c700. Current candidate: 1128/1144 bytes, 868 differing bytes outside relocations. Loading the
 // target's 1.0f at 0x4e1c1c through a volatile read reproduces its `fld [constant]; fadd rideTop` order; reading
@@ -1683,6 +1684,7 @@ void Car::ApplySuspensionForces()
 // and hoisting zero in ECX for the contact flag. Evidence: ev_af5f5586f35ae18eb2ec962f2895369e53df17277d2c787e5bd8b75f92d812f0.
 // Tried 2026-10-30 night: Surface() args fixed to nz-2/nz+0x78/4/nz+0x48/4 (original disasm: base-8,+0x48,+0x78; was off by 8 bytes); rideHeight int-copy, lx/lz int-copy loads, local/world hoisted, dir default-ctor, swapped surfP/nz decls, nz-2 cast forms: no gain (176 insns); still differs: orig keeps only nz (not nz-2) as loop pointer, EH state 3 at Trace (ours 2), dist<rideTop branch layout without hoisted xor ecx.
 // Tried 2026-11-01 re-pass: W6_Body::depth was at 0x234 (bogus pad), fixed to 0x230; volatile loop pointers surfP/nz (original reloads both from slots, no hoisted nz-2) and a volatile int copy of rideHeight after rideTop took 176->136 insns; ~35 variants of body->depth/comp order, empty-dtor locals, dist flag layout, rideHeight/radius slot forms gave no more; still differs: radius/loadForce slot numbers, EH state 3 at Trace (ours 2), original loads depth first in comp (fld depth; fld st(1)), dist<rideTop branch without hoisted xor ecx.
+// Pass 2026-11-13: 114 -> 103 insns differ (1134 -> 1152 bytes, orig 1144): W6_Rd() inline read of r[-3] reproduces the original's `fld min; fld ly; fsub st,st(1)`, local.y set after the t compute (local.x/z first), `dir.x *= (k = -t)`, vNew = V - (s*dt)*invMass. Open: a variant dropping the `ly` local (use wp[-1]) and caching Surface's nz in a local is structurally closer (582 vs 670 differing bytes, 1140 bytes) but shifts one frame slot (127 raw insns); original keeps vNew and t in separate slots.
 // Per wheel: ground ray cast, suspension integration step (explicit spring/damper/bump stop), surface lookup.
 void Car::UpdateWheelContact()
 {
@@ -1698,9 +1700,9 @@ void Car::UpdateWheelContact()
         int rhi = *(volatile int*)&c->rideHeight;
         Vec3 local;
         local.x = wp[-2];
-        local.y = wp[-1] + radius;
         local.z = wp[0];
         float t = *(volatile float*)0x004e1c1c + rideTop;
+        local.y = wp[-1] + radius;
         const float* matrix = c->body->rotation;
         const float* point = (const float*)&local;
         Vec3 world;
@@ -1708,8 +1710,8 @@ void Car::UpdateWheelContact()
         float* result = (float*)&world;
         W6_XFORM_ROW();
         Vec3 dir = *(Vec3*)&c->body->rotation[4];
-        float k = -t;
-        dir.x *= k;
+        float k;
+        dir.x *= (k = -t);
         dir.y *= k;
         dir.z *= k;
         world.x += c->body->position[0];
@@ -1742,32 +1744,30 @@ void Car::UpdateWheelContact()
         }
         s += loadForce;
         float prev = wp[-0x114 / 4];
-        float q = s * c->dt;
-        q = q * c->invMass;
-        float vNew = V - q;
+        float vNew = V - (s * c->dt) * c->invMass;
         float pNew = vNew * c->dt + prev;
         float ly = wp[-1];
         float t2 = ly - x;
         float a = (t2 - prev) * c->invDt;
         float vel;
         if (t2 < pNew) {
-            if (pNew <= ly - r[-3]) {
+            if (pNew <= ly - W6_Rd(&r[-3])) {
                 t2 = pNew;
                 ((int*)wp)[0x16c / 4] = 0;
                 vel = vNew;
             } else {
                 ((int*)wp)[0x16c / 4] = 0;
                 vel = (float)fabs(vNew) * -0.7f;
-                t2 = ly - r[-3];
+                t2 = ly - W6_Rd(&r[-3]);
             }
         } else {
-            if (t2 > ly - r[-3]) {
+            if (t2 > ly - W6_Rd(&r[-3])) {
                 if (a < 0.0f) {
                     a = 0.0f;
                 } else if (a > 10.0f) {
                     a = 10.0f;
                 }
-                t2 = ly - r[-3];
+                t2 = ly - W6_Rd(&r[-3]);
             }
             if (hFrac == 1.0f) {
                 a = 0.0f;

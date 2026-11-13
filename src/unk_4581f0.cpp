@@ -110,6 +110,13 @@ inline void Extend(const Vec3& e, Vec3& mn, Vec3& mx)
     if (sign & *(unsigned int*)&e.z) mn.z += e.z; else mx.z += e.z;
 }
 
+inline void Scale(Vec3& v, float s)
+{
+    v.x *= s;
+    v.y *= s;
+    v.z *= s;
+}
+
 // Registers the car's world box (the body's local box, enlarged, rotated into the world) with the stage.
 // NONMATCHING: RALLYTROPHY 0x4581f0
 // 931 vs 923 bytes. Logic and EH state order (lo, hi, ax, ay, az, mn, mx, h, sphere) match; the frame layout (h sits above ay in
@@ -117,16 +124,16 @@ inline void Extend(const Vec3& e, Vec3& mn, Vec3& mx)
 // Tried 2026-10-30 night: Extend rewritten as e+mn, local sign words, ptr-select, pre-branch sums, volatile mn/sign (none closer); ay/az sign tests still use test [mem],eax + fld mn/fadd e where the original does mov ecx,[e]; fld e; test; fadd mn, and the frame layout (h above ay) still differs.
 // Tried 2026-10-31 pass 2 (30 variants): h declared at every position/as float[3]/split floats/aliased on sphere.center/via pointer/volatile h.x, Extend with named floats, int sign words, by-value forceinline helpers, e+mn forms; none below 167 insns (stack slot of h never moves: it stays below lo; original stores h.x*0.5 to memory and Length reloads all three, ours keeps h.x on the FPU).
 // Tried 2026-11-01 pass 3 (~65 variants): per-component Extend for ay/az as `unsigned sa=*(unsigned*)&e.c; float a=e.c; if (sg&sa){float t=a; t=t+mn.c; mn.c=t;}` DOES give the original's mov ecx,[e]; fld e; test; fadd mn shape (size 931->925) but h stays at the frame bottom; h declared before every local, h as float[3]+Vec3& (922 bytes, lo/hi slots then match but ay/az swap, h EH state lost), all 6 orders of ay/az/h, float[3] ay/az, qq volatile slot, volatile h.x store, volatile-view loads: slot order is not declaration-driven, so h above ay is unresolved.
+// Pass 2026-11-13: Scale() helper for ay/az, matrix declared before box, trans after the scaling, Length as z*z+y*y+x*x: 167 -> 134 insns differ, 931 -> 925 bytes. Left: ay/az scale shape (original fld st(0); fmul mem), h slot above ay, EH-state/Collect tail order.
 // original: FUN_004581f0
 void Car::FUN_004581f0()
 {
     M2_Car* v = (M2_Car*)this;
     M2_Body* body = v->body;
+    const float* matrix = (const float*)body + 8;
     M2_Box* box = body->box;
     Vec3 lo(*(Vec3*)box->lo);
     Vec3 hi(*(Vec3*)box->hi);
-    const float* matrix = (const float*)body + 8;
-    const float* trans = body->pos;
     lo.x -= 1.0f;
     lo.y -= 1.5f;
     lo.z -= 1.0f;
@@ -140,14 +147,9 @@ void Car::FUN_004581f0()
     ax.x *= dx;
     ax.y *= dx;
     ax.z *= dx;
-    float dy = hi.y - lo.y;
-    ay.x *= dy;
-    ay.y *= dy;
-    ay.z *= dy;
-    float dz = hi.z - lo.z;
-    az.x *= dz;
-    az.y *= dz;
-    az.z *= dz;
+    Scale(ay, hi.y - lo.y);
+    Scale(az, hi.z - lo.z);
+    const float* trans = body->pos;
     Vec3 mn;
     {
         const float* point = (const float*)&lo;
@@ -166,7 +168,7 @@ void Car::FUN_004581f0()
     h.y *= 0.5f;
     h.z *= 0.5f;
     M2_Sphere sphere;
-    sphere.radius = h.Length();
+    sphere.radius = (float)sqrt(h.z * h.z + h.y * h.y + h.x * h.x);
     h.x += mn.x;
     h.y += mn.y;
     h.z += mn.z;

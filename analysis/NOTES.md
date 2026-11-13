@@ -510,3 +510,12 @@ followed by M calls to an inline function:
   (0x443790 DrawSelector).
 - **Re-read the member, do not cache it in a local**: `MakeTexture(F(int,0))` per call instead of `int f = F(int,0)`
   fixed BinkVideo::BinkVideo's register map (0x4097a0 MATCHED).
+- **Color by value puts -1 in edi**: `DrawQuad(pos, uv, color, 1, 1)` with a `Color color(0xffffffff)` local passed by
+  value reproduces the original's shared -1 register (0x40a0f0 MATCHED, lead from MenuScreen::DrawIconCell via idiom.py).
+- **Expressions written out per use let VC6 make its own CSE temps** (`w * 0.5f` at every use instead of an `x` local):
+  that is where the original's fld/fst temp slots come from (0x40a0f0).
+- **Budget padding, re-swept**: one discarded value-returning inline call pushes the first throw's string copy out of
+  line (0x4b91c0 MATCHED with K=1 after struct copies were added; K was 10 before). Re-sweep K after any change that
+  adds or removes inline calls.
+- **Struct copies of a ScenePoint give the original's two-pointer induction** (d and d+0x14) and the for-increment
+  order (`d++, sa++, sb++, n++`) can swap two spilled registers in a loop tail (0x4b91c0).

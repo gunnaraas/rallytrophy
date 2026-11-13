@@ -5,6 +5,7 @@
 #include "rallytrophy.h"
 #include "unk_47c460.h"
 #include "unk_47b4c0.h"
+#include "scene_object.h"
 #include <math.h>
 #include <stdlib.h>
 extern float DAT_004e225c, DAT_004e1348, DAT_004e134c, DAT_004e13ec, DAT_004e1ec8, DAT_004e228c, DAT_004e1eb8, DAT_004e1eac;
@@ -202,6 +203,7 @@ extern float DAT_00561d78[];
 // the camera in esi, device in edi, the view matrix only in memory) and several commutative fadd/fmul operand orders are flipped.
 // Tried 2026-10-30 night: dropped the alias local for GetViewMatrix (224->170 insns), ~20 variants (camera/device locals, nearZ/farZ hoists, scale=DAT_004e1348, depth term order); still differs: original keeps device in edi/camera in esi before the virtual calls, scale lives on the FPU stack into 0.03f/scale (fld 1.0 / fdiv st,st(1)) and k in the dead camera param slot [ebp+0xc].
 // Tried 2026-11-01 re-pass: 0.03125f is the global DAT_004e225c (fld K; fadd v, 170->166 insns, applied); ~25 more variants (volatile or address-taken view/viewB, camera/device locals, nearZ/farZ hoists, double k) did not move edi=device/esi=camera or the memory-resident view pointers; the register allocation follows use counts and no source form changed it.
+// Tried 2026-11-13: ScenePoint (not Vec3) for all point locals/temps so the five out-of-line operator* calls are the original's (??DScenePoint), ScenePoint::operator+= added; scale = DAT_004e1348 in the else arm (218 -> 173 insns differ, size 2115 vs 2113). Still differs: device/camera registers (edi/esi at the top), k in the dead camera slot [ebp+0xc], scale kept on the FPU stack (fld/fst), lens copy load schedule, depth term order.
 // Draws every live particle as a streak (a quad stretched along its screen-space velocity).
 void CarEmitterC::Render(RenderDevice* device, Camera* camera)
 {
@@ -266,7 +268,7 @@ void CarEmitterC::Render(RenderDevice* device, Camera* camera)
         scale = camera->lensScale;
     } else {
         cam = *(const ViewMat*)view;
-        scale = 1.0f;
+        scale = DAT_004e1348;
     }
     float k = 0.03f / scale;
     int nearZ = camera->nearBits;
@@ -278,14 +280,14 @@ void CarEmitterC::Render(RenderDevice* device, Camera* camera)
         depth = p->position.x * view[2] + depth;
         depth += view[14];
         if (*(int*)&depth > nearZ && *(int*)&depth < farZ) {
-            Vec3 w1, w2, pt;
+            ScenePoint w1, w2, pt;
             const float* in = (const float*)pos;
             float* out = (float*)&w1;
             TRANSFORM44(in, view, out);
             pt.x = pos->x;
             pt.y = pos->y;
             pt.z = pos->z;
-            pt -= p->velocity * scale;
+            pt -= (*(const ScenePoint*)&p->velocity) * scale;
             in = (const float*)&pt;
             const float* mat = (const float*)&cam;
             out = (float*)&w2;
@@ -296,7 +298,7 @@ void CarEmitterC::Render(RenderDevice* device, Camera* camera)
             w2.x = w1.x - dx;
             w2.y = w1.y - dy;
             w2.z = w1.z - dz;
-            Vec3 ra, rb;
+            ScenePoint ra, rb;
             float len2 = dy * dy + dx * dx;
             if (len2 < 0.0001f) {
                 ra.x = camera->right.x;
@@ -309,14 +311,14 @@ void CarEmitterC::Render(RenderDevice* device, Camera* camera)
                 float inv = 1.0f / (float)sqrt(len2);
                 float nx = inv * dx;
                 float ny = inv * dy;
-                Set(ra, camera->right * nx);
-                ra += camera->up * ny;
+                ra = (*(const ScenePoint*)&camera->right) * nx;
+                ra += (*(const ScenePoint*)&camera->up) * ny;
                 const float* fwd = (const float*)&camera->forward;
                 const float* pra = (const float*)&ra;
                 float* prb = (float*)&rb;
                 CROSS_ASM(fwd, pra, prb);
             }
-            Vec3 pc, q;
+            ScenePoint pc, q;
             pc.x = pos->x;
             pc.y = pos->y;
             pc.z = pos->z;
@@ -324,9 +326,9 @@ void CarEmitterC::Render(RenderDevice* device, Camera* camera)
             in = (const float*)&w2;
             TRANSFORM44(in, viewB, out);
             float size = p->size;
-            Vec3 t1 = rb * size;
-            Vec3 t2 = ra * size;
-            Vec3 e, f;
+            ScenePoint t1 = rb * size;
+            ScenePoint t2 = ra * size;
+            ScenePoint e, f;
             e.x = t1.x + t2.x;
             e.y = t1.y + t2.y;
             e.z = t1.z + t2.z;

@@ -15,12 +15,12 @@ _Updated 2026-11-13 by `tools/progress.py` (game code `0x401000`–`0x4bcfc6`)._
 
 | | Functions | Code bytes |
 |---|---|---|
-| Byte-exact | 1917 / 2084 (91.99%) | 423,358 / 742,276 (57.04%) |
-| Written, not yet exact | 167 | 318,918 |
+| Byte-exact | 1919 / 2084 (92.08%) | 425,178 / 742,276 (57.28%) |
+| Written, not yet exact | 165 | 317,098 |
 | Written in total | 2084 / 2084 (100.00%) | 742,276 / 742,276 (100.00%) |
 
 ```
-exact   █████████████████░░░░░░░░░░░░░ 57.04% of code bytes
+exact   █████████████████░░░░░░░░░░░░░ 57.28% of code bytes
 written ██████████████████████████████ 100.00% of code bytes
 ```
 
@@ -33,7 +33,7 @@ Progress by module (ranges in `analysis/modules.csv`):
 | Startup helpers | `0x401000`–`0x404d50` | 60 / 65 / 65 | 71.1% | 100.0% | `████████████` |
 | Language / text table | `0x404d50`–`0x405580` | 13 / 13 / 13 | 100.0% | 100.0% | `████████████` |
 | Config files | `0x405580`–`0x409690` | 34 / 34 / 34 | 100.0% | 100.0% | `████████████` |
-| Stage scene and collision | `0x409690`–`0x420490` | 172 / 201 / 201 | 26.1% | 100.0% | `████████████` |
+| Stage scene and collision | `0x409690`–`0x420490` | 173 / 201 / 201 | 27.2% | 100.0% | `████████████` |
 | StageTable/control/credits screens | `0x420490`–`0x4266c0` | 32 / 39 / 39 | 31.9% | 100.0% | `████████████` |
 | Mode select screen | `0x4266c0`–`0x427600` | 9 / 9 / 9 | 100.0% | 100.0% | `████████████` |
 | Game settings screen | `0x427600`–`0x4295c0` | 11 / 11 / 11 | 100.0% | 100.0% | `████████████` |
@@ -123,7 +123,7 @@ Progress by module (ranges in `analysis/modules.csv`):
 | Keyboard/mouse input hooks | `0x4b6ac0`–`0x4b7390` | 13 / 13 / 13 | 100.0% | 100.0% | `████████████` |
 | Timer / string / registry helpers | `0x4b7390`–`0x4b7790` | 15 / 15 / 15 | 100.0% | 100.0% | `████████████` |
 | View object | `0x4b77b0`–`0x4b7a40` | 7 / 7 / 7 | 100.0% | 100.0% | `████████████` |
-| Draw context, mesh, shadow and sky | `0x4b7a40`–`0x4bbdf0` | 47 / 54 / 54 | 63.5% | 100.0% | `████████████` |
+| Draw context, mesh, shadow and sky | `0x4b7a40`–`0x4bbdf0` | 48 / 54 / 54 | 68.9% | 100.0% | `████████████` |
 | Renderer plugin loader | `0x4bbdf0`–`0x4bc210` | 5 / 5 / 5 | 100.0% | 100.0% | `████████████` |
 | Command line | `0x4bc210`–`0x4bc360` | 3 / 3 / 3 | 100.0% | 100.0% | `████████████` |
 | Draw queue and vector helpers | `0x4bc360`–`0x4bcfc7` | 10 / 10 / 10 | 100.0% | 100.0% | `████████████` |
