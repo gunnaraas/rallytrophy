@@ -286,6 +286,7 @@ extern float DAT_00500cfc;
 // not matched.
 // Tried 2026-10-31: ~15 variants (member-wise A/B/C init 809->804, z-first init, reads, scoped/reused n1-n3, flat as floats, CopyXZ for A/B/C, D moved into last arm, dead diff removed); original (frame 0x94 vs our 0xb8, ~46 bytes longer) reloads the A/B/C components from memory for each sqrt and shares slots among the Vec3 temps, which no declaration/scoping change reproduced.
 // Tried 2026-11-01 re-pass: dC is computed lazily inside the compares (inline sqrt, original has 2-comp sqrt only on the dA<dB path), 1.0f/0.0f read as DAT_004e1348/DAT_004e134c (C.y, D.y use the global 0, 3 compare/fsub sites), insns 804->777; ~20 more variants (Len2D helper, component reads, shared zero, D field order, double ls for il1-3, q0/q1 placement, total order) did not help or moved size away. Still differs: original reloads A/B/C z from memory (fstp+fld) where we fst, shares zero in st(0) across C.y/D.y, and keeps il sqrt on FPU stack (fdiv st,st(1)).
+// Pass 2026-11-13: SetV member-wise copies for unk60/unkc8/unkd4 (+player->car->body for unkd4), unk134.x=t after f2, len1 local before 1/len, lateral x,z,y store order, sideways z before x: insns differ 176->144, size 2540->2588 (orig 2631); open: k1 lives in ebx (orig memory; volatile pk1 read gives 142 but rejected), vel2 spill layout, sl dup (fld st0/st1) before t, Eval arg pushes hoisted above len2.
 // Tried 2026-11-01 pm: 0.0/1.0/5.0/36.0 compares as DAT_ globals (no change in insns), double ls for acc and segLen/t (matches the original's FPU-resident sqrt; fixes those sequences), k as plain int with k1 read via a pointer: 319->314; ~30 variants (declaration orders of vel/fwd/vel2/dir/dir2, phase/k, full dir2 copy, dir2.y early) no better; the original has dir/dir2/k below pts/w and acc/phase/k1 above, ours puts dir2 above w and phase low, and it reads dir.y from memory in segLen (ours folds).
 // Tried 2026-11-13: q0/q1 locals removed (seg->unk28[i] CSE'd lazily like the original: this/seg registers swap, z read at seg+0x30/0x3c), A/B/C/D y stored after z (C.y init literal 0, DAT_004e134c after SubV), D by members: insns differ 652->411, bytes 3210->2899, size 3802->3819 (orig 3877); original keeps dA/dB on the FPU stack (fst/fxch/fcomp), shares the DAT zero via st(0) for C.y/D.y, and has flat as Vec3 (EH state 6; r2 variant gets size 3868 but scores 433), tail n1/n2/n3/P share one Vec3 slot.
 #define POS ((Vec3*)&((CarBodyV*)car->body)->position)
@@ -1263,6 +1264,7 @@ float AIDriver::FUN_0049d950(float unused)
 }
 
 __forceinline static void CopyXZ(Vec3& d, const Vec3& s) { d.x = s.x; d.z = s.z; }
+__forceinline static void SetV(Vec3& d, const Vec3& s) { d.x = s.x; d.y = s.y; d.z = s.z; }
 
 extern float DAT_004e1348, DAT_004e27c0;
 // NONMATCHING: RALLYTROPHY 0x49d970
@@ -1412,10 +1414,10 @@ float AIDriver::FUN_0049d970()
         break;
     }
     float f1 = (float)(DAT_00500cfc / sl);
-    unk134.x = t;
     float l2q = dir2.z * dir2.z; l2q = dir2.x * dir2.x + l2q; l2q = *(volatile float*)&dir2.y * *(volatile float*)&dir2.y + l2q;
     float len2 = (float)sqrt(l2q);
     float f2 = DAT_00500cfc / len2;
+    unk134.x = t;
     PathSpline* spline = (PathSpline*)&unk134;
     spline->t2 = t * t;
     spline->t3 = t * t * t;
@@ -1440,13 +1442,14 @@ float AIDriver::FUN_0049d970()
     }
     unk24 = seg->a->unk24;
     unkec = seg->unk14;
-    SubV(&unk14c, &unk140, &unk60);
+    SetV(*(Vec3*)&unk60, *(Vec3*)&unk14c - *(Vec3*)&unk140);
     // perpendicular of the path direction, normalised in the plane
+    lateral.x = unk60.z;
     lateral.z = -unk60.x;
     lateral.y = 0;
-    lateral.x = unk60.z;
     unk48.y = 0;
-    float inv = 1.0f / (float)sqrt(lateral.z * lateral.z + lateral.x * lateral.x);
+    float len1 = (float)sqrt(lateral.z * lateral.z + lateral.x * lateral.x);
+    float inv = 1.0f / len1;
     lateral.x = inv * lateral.x;
     lateral.z = inv * lateral.z;
     float m;
@@ -1458,16 +1461,16 @@ float AIDriver::FUN_0049d970()
     unk48.x = m * lateral.x + unk140.x;
     unk48.z = m * lateral.z + unk140.z;
     sideways.y = 0;
-    sideways.x = unk48.z - ((CarBodyV*)car->body)->position.z;
     sideways.z = -(unk48.x - ((CarBodyV*)car->body)->position.x);
+    sideways.x = unk48.z - ((CarBodyV*)car->body)->position.z;
     float inv2 = 1.0f / (float)sqrt(sideways.z * sideways.z + sideways.x * sideways.x);
     sideways.x = inv2 * sideways.x;
     sideways.z = inv2 * sideways.z;
     float u34 = *(volatile float*)&sideways.y * forward.y; u34 = sideways.z * forward.z + u34; u34 = sideways.x * forward.x + u34;
     unk34 = u34;
-    *(Vec3*)&unkc8 = *(Vec3*)&unk3c - ((CarBodyV*)car->body)->position;
+    SetV(*(Vec3*)&unkc8, *(Vec3*)&unk3c - ((CarBodyV*)car->body)->position);
     unkc8.y = 0;
-    *(Vec3*)&unkd4 = *(Vec3*)&unk140 - ((CarBodyV*)car->body)->position;
+    SetV(*(Vec3*)&unkd4, *(Vec3*)&unk140 - ((CarBodyV*)player->car->body)->position);
     unkd4.y = 0;
     return 0.0f;
 }

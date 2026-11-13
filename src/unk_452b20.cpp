@@ -112,6 +112,7 @@ struct F_CarView {
     { F_Vec* r = c->body->FUN_004204f0(&t, &w); (dst).x = r->x; (dst).y = r->y; (dst).z = r->z; }
 
 // NONMATCHING: RALLYTROPHY 0x452b20
+// Pass 2026-11-13: insdiff lines 489->229, size 5077->4994 (orig 5036): H_Normalize tail as v[0]*(1/len), (1/len)*v[1], (1/len)*v[2] (indicators match; H_Normalize1 keeps inv local for v[0]); part2020/2024 build the difference as block-local H_V3 dir2 = B - A (result written in place, no copy into a function-scope dir); part2020 A first then A.x -= t before A.z. Still differs: A/B frame offsets (orig A=-0x50, B=-0x40 with 4-byte gap; a pad subclass did not help), sum-chain scheduling (mov/faddp order), hood m[9] = -m[6] reload (fstp;fld;fchs), the first Normalize1 extra fld st(0).
 // Tried 2026-10-30 night: ~80 variants (struct copy, += forms, x as one expression, volatile on copy/add/expr per axis); best is x as a
 // Re-pass 2026-11-01: sums rewritten in the asm's fadd order (chained temps in H_Normalize/H_Normalize1/lenSq, loc.* dot as z,y,x chain written into loc directly), H_AddPos as fld o; fadd p via a temp, one function-scope H_V3 dir puts the float temps in the original's -0x34 slot (insdiff 362->237 lines); still differs: dir/A/B Vec copy order at the part2020/2024 blocks, normalise tail (fld st(0); fmul mem vs fld mem; fmul st,st(1)), lea/pointer-setup order in H_Cross sites, EH-state init order at 0xd8/0xc8.
 // volatile expression + volatile y/z adds (23->17); the original delays the y/z fstp past the argument setup, which no form reproduces.
@@ -668,10 +669,7 @@ inline void H_Normalize(float* v)
     s = s + v[1] * v[1];
     s = s + v[2] * v[2];
     float len = (float)sqrt(s);
-    float inv = 1.0f / len;
-    v[0] *= inv;
-    v[1] *= inv;
-    v[2] *= 1.0f / len;
+    v[0] = v[0] * (1.0f / len); v[1] = (1.0f / len) * v[1]; v[2] = (1.0f / len) * v[2];
 }
 inline void H_Normalize1(float* v)
 {
@@ -679,10 +677,7 @@ inline void H_Normalize1(float* v)
     s = s + v[1] * v[1];
     s = s + v[2] * v[2];
     float len = (float)sqrt(s);
-    float inv = 1.0f / len;
-    v[0] = v[0] * inv;
-    v[1] *= 1.0f / len;
-    v[2] *= 1.0f / len;
+    float inv = 1.0f / len; v[0] = v[0] * inv; v[1] = (1.0f / len) * v[1]; v[2] = (1.0f / len) * v[2];
 }
 
 // NONMATCHING: RALLYTROPHY 0x453940
@@ -962,23 +957,23 @@ scaled:
         }
         if (V->part2020) {
             H_Part* q = V->part2020;
-            H_Vec B(q->pos);
             H_Vec A(q->pos);
-            A.z = q->boxMin;
+            H_Vec B(q->pos);
             A.x -= t;
+            A.z = q->boxMin;
             B.z = q->boxMax;
             A.y = A.y - loc.y * 0.024f;
-            dir = B - A;
-            float lp = dir.x * dir.x;
-            lp = dir.z * dir.z + lp;
-            lp = dir.y * dir.y + lp; // original: (x*x + z*z) + y*y
+            H_V3 dir2 = B - A;
+            float lp = dir2.x * dir2.x;
+            lp = dir2.z * dir2.z + lp;
+            lp = dir2.y * dir2.y + lp; // original: (x*x + z*z) + y*y
             float inv = 1.0f / (float)sqrt(lp);
-            dir.x = dir.x * inv;
-            dir.y = dir.y * inv;
-            dir.z = dir.z * inv;
-            *(H_V3*)&q->matrix.m[8] = dir;
-            H_Cross(&up.x, &dir.x, &q->matrix.m[0]);
-            H_Cross(&dir.x, &V->part2020->matrix.m[0], &V->part2020->matrix.m[4]);
+            dir2.x = dir2.x * inv;
+            dir2.y = dir2.y * inv;
+            dir2.z = dir2.z * inv;
+            *(H_V3*)&q->matrix.m[8] = dir2;
+            H_Cross(&up.x, &dir2.x, &q->matrix.m[0]);
+            H_Cross(&dir2.x, &V->part2020->matrix.m[0], &V->part2020->matrix.m[4]);
             V->part2020->pos.z = V->part2020->pos.z - loc.z * 0.008f;
             H_AddPos(&V->part2020->pos, &V->iniOffset);
         }
@@ -991,17 +986,16 @@ scaled:
             B.z = q->boxMax;
             A.y = A.y - loc.y * 0.024f;
             H_V3 dir2 = B - A;
-            dir = dir2;
-            float lq = dir.z * dir.z;
-            lq = dir.y * dir.y + lq;
-            lq = dir.x * dir.x + lq; // original: (z*z + y*y) + x*x on the dir slots
+            float lq = dir2.z * dir2.z;
+            lq = dir2.y * dir2.y + lq;
+            lq = dir2.x * dir2.x + lq; // original: (z*z + y*y) + x*x on the dir slots
             float inv = 1.0f / (float)sqrt(lq);
-            dir.x = dir.x * inv;
-            dir.y = dir.y * inv;
-            dir.z = dir.z * inv;
-            *(H_V3*)&q->matrix.m[8] = dir;
-            H_Cross(&up.x, &dir.x, &q->matrix.m[0]);
-            H_Cross(&dir.x, &V->part2024->matrix.m[0], &V->part2024->matrix.m[4]);
+            dir2.x = dir2.x * inv;
+            dir2.y = dir2.y * inv;
+            dir2.z = dir2.z * inv;
+            *(H_V3*)&q->matrix.m[8] = dir2;
+            H_Cross(&up.x, &dir2.x, &q->matrix.m[0]);
+            H_Cross(&dir2.x, &V->part2024->matrix.m[0], &V->part2024->matrix.m[4]);
             V->part2024->pos.z = V->part2024->pos.z - loc.z * 0.008f;
             H_AddPos(&V->part2024->pos, &V->iniOffset);
         }
