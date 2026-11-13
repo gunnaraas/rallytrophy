@@ -479,3 +479,11 @@ followed by M calls to an inline function:
 - FillCells 0x40f390: the inline-asm RoundF costs register allocation (plain casts free esi/edi/ebx but call
   __ftol, which the original lacks). `/QIfist` on the cast form does not reproduce the original either (2128 bytes
   vs 2101 without); how the original rounds inline without asm demoting registers is open.
+- x87 operand order (toy compiles, 0x470940): VC6 canonicalises commutative fmul/fadd operands; local-struct x
+  global always emits `fld global; fmul local`, whatever the source order, helper or alias. A one-expression sum is
+  emitted z,y,x; a statement chain (`t = c.x*D.x; t += c.z*D.z; t += c.y*D.y`) keeps source order. Where the original
+  is local-first, the local term is probably a different kind of node (e.g. produced by an inline `+=` through a member
+  path); unresolved.
+- Unrolled loops: where the original has N copies of a small search with no loop counter, write N copies (a macro is
+  fine); `while (1) { if (a) break; if (b) break; e++; }` stays top-tested where `for (; cond;)` gets rotated
+  (0x419f30, 490 -> 362 insns with the e[] fixup also unrolled).
