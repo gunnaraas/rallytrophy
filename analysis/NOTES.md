@@ -487,3 +487,11 @@ followed by M calls to an inline function:
 - Unrolled loops: where the original has N copies of a small search with no loop counter, write N copies (a macro is
   fine); `while (1) { if (a) break; if (b) break; e++; }` stays top-tested where `for (; cond;)` gets rotated
   (0x419f30, 490 -> 362 insns with the e[] fixup also unrolled).
+- **`/Oa` caches a plain pointer field across calls**: a `m->name` load is CSE'd through a chain of strcmp calls.
+  Reading it through a string-like sub-object (`struct { const char* ptr; int len; ...; c_str() { return ptr ? ptr : ""; } }`)
+  reloads it per use as the original does (0x45e480, ~300 insns of the glow/window chain).
+- **Right-to-left setters**: `fld b; fld a; fstp d0; fstp d1` is an inline `Set2f(d, a, b)` call (arguments evaluated
+  right to left), not two stores (0x45e480).
+- **Identity matrices**: a struct without a constructor, stores written inline right after the declaration, puts the
+  EH state store before the identity stores as in the original (0x493650 IdentityMatrix, 0x473470 RainMatrix).
+- **Stale volatiles keep paying**: removing `volatile BYTE* hit` aliasing in 0x45cc30 was its biggest single gain.
