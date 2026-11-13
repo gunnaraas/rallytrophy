@@ -1818,6 +1818,7 @@ void Car::SetupBrakes()
 // original: FUN_0045cc30 (Car::Reset / PlaceOnTrack: clear the per-race state, place the car at `start` with the
 // orientation `world`, drop it onto the terrain and settle the suspension with 100 physics steps)
 // NONMATCHING: RALLYTROPHY 0x45cc30
+// Pass 2026-11-13: 251 -> 178 insns differ (1912 -> 1025 bytes, 3635 -> 3631/3623). hit[] is a plain local BYTE array (the world-slot volatile alias was wrong: it also aliased the original's dword load + test al/ah), dir.x *= (k = -kRay) keeps k in the x87 stack as the original, `float top` local before g = localY - top, q->mode store non-volatile. Rejected: rideHeight local (worse, 197-237), spring top as double expression (194), rr/normalZ/q decl moves, trans/pos store orders, v1408 non-volatile (180).
 // Current candidate: 3635/3623 bytes, 1947 differing bytes outside relocations (baseline: 3581/3623, 2573 differences).
 // Tried 2026-10-30 night: k1414/v1408 store order swapped, wheel-reset loop forms (ptr/dec/block counter), hoisting best/h/mn/mx/rr decls (worse), sphere decl moved after pos (262->253 insns); first-loop counter still gets its own slot (orig shares ebp-0x14 with the h pointer) and query-box store schedule still differs.
 // A volatile induction pointer to &hitNormal[0].z (passing normalZ-2) aligns the final wheel loop and target frame;
@@ -1918,7 +1919,7 @@ void Car::FUN_0045cc30(StartPosition* start, void* world)
     mx.z = sphere.center.z + r;
     W7_Query* q = &v->query;
     q->Erase(v->query.first, v->query.last);
-    *(volatile int*)&q->mode = 0x11;
+    q->mode = 0x11;
     *(W7_Sphere* volatile*)((BYTE*)this + 0x145c) = &sphere;
     q->minX = mn.x;
     q->maxX = mx.x;
@@ -1932,7 +1933,7 @@ void Car::FUN_0045cc30(StartPosition* start, void* world)
         float best = W7_kRay + W7_kRay;
         float lowDrop = 0.0f;
         float h[4];
-        volatile BYTE* hit = (volatile BYTE*)&world;
+        BYTE hit[4];
         for (i = 0; i < 4; i++) {
             Vec3 wp;
             {
@@ -1945,8 +1946,8 @@ void Car::FUN_0045cc30(StartPosition* start, void* world)
             wp.y += body->pos.y;
             wp.z += body->pos.z;
             Vec3 dir(body->up);
-            float k = -W7_kRay;
-            dir.x *= k;
+            float k;
+            dir.x *= (k = -W7_kRay);
             dir.y *= k;
             dir.z *= k;
             float r = q->Cast(v->rideHeight, &wp, &dir, 0, 0);
@@ -2019,8 +2020,8 @@ void Car::FUN_0045cc30(StartPosition* start, void* world)
         wp.y += body->pos.y;
         wp.z += body->pos.z;
         Vec3 dir(body->up);
-        float k = -W7_kRay;
-        dir.x *= k;
+        float k;
+        dir.x *= (k = -W7_kRay);
         dir.y *= k;
         dir.z *= k;
         float r = q->Cast(v->rideHeight, &wp, &dir, 0, 0);
@@ -2075,7 +2076,8 @@ void Car::FUN_0045cc30(StartPosition* start, void* world)
                 e = 0.0f;
         }
         float f = w->localY - e;
-        float g = w->localY - v->spring[i].top;
+        float top = v->spring[i].top;
+        float g = w->localY - top;
         if (f > g)
             f = g;
         v->spring[i].lower = w->localY - f;
