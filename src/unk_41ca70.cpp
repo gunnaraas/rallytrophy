@@ -55,16 +55,18 @@ static __forceinline bool In(float a, float b, float lo, float hi) { return a >=
 
 // original: FUN_0041ca70
 // NONMATCHING: RALLYTROPHY 0x41ca70
-// NONMATCHING: +19 bytes; frame is 12 bytes smaller (a Vec3 local missing), early-return epilogue and register allocation differ
+// NONMATCHING: size now equal (3423) but frame is 8 bytes smaller (0x170 vs 0x178) and register roles differ (original keeps &ax in edi and &pos in a spill slot, t in memory, hit in esi)
+// 2026-11-13: flat `while (it != end)` + `if (head == 0) return 0;` (early epilogue now inline like the original), mask pass fixed (c0/c1 = Mask result, `while (cur)`), top-level `int result`, hit/mt/nTris/t/cnt/gen decl order: +47 -> 0 bytes, 711 -> 695 insns differ; pl[] stays at -0xfc vs -0x100, op*/op+ plane code still differs
 // Tried 2026-10-31: base pointer bp=&box->mn for mn/mx/ctr/rad (b+4 as in the original), mn/mx select-then-store form, extra Vec3 (EH state 5 before pl), decl-order sweeps of mn/mx/ex/ey/ez/bp; 772->752 insns; still differs: frame 12 bytes smaller (original keeps sphR, one more spill, locals at different slots), early b==0 return is an inline epilogue (original has 4 separate return epilogues, ours merges them).
 // 2026-11-04: EH stores/calls now identical to the original: sph is a CPlane (sph.d = bp[9] is kept), Tri3 has an empty ctor/dtor + Init() so ta/tb are states 15/16 declared before the loop, pt is a ScenePoint (operator+ = 0x419f00 ScenePoint), `if (head == 0) return 0;` before the model pass. Remaining: frame 0x170 vs 0x178 (result/cnt/t slot reuse), epilogue/register roles.
 // Tried 2026-11-01 re-pass: overlap test as `a >= lo && b <= hi` through a forceinline In() (752->751, +13 bytes); the original preloads the second vertex value (fld tv4->y; fld tv6->y; jb pops it) which no helper signature, temp pair, double args, & or ! forms reproduced; ey/ez chains (original hoists fld ey before the sign test, mov ecx,[ey]) unchanged by float/unsigned temps; x87 mnemonic streams otherwise agree.
 int ColBody::Collide(TriCollector* q, int unused)
 {
     CBox* b = box;
-    nHits = 0;
+    int result = 0;
+    nHits = result;
     if (b == 0) {
-        return 0;
+        return result;
     }
     float* bp = b->mn;
     Vec3 ex = ax;
@@ -159,16 +161,19 @@ int ColBody::Collide(TriCollector* q, int unused)
             do {
                 unsigned int c0 = *(unsigned int*)cur->v[0];
                 if (c0 == 0) {
-                    *(unsigned int*)cur->v[0] = CPMask::Mask(&pl[0].n.x, &cur->v[0]->x) | 0x100;
+                    c0 = CPMask::Mask(&pl[0].n.x, &cur->v[0]->x);
+                    *(unsigned int*)cur->v[0] = c0 | 0x100;
                 } else {
                     c0 &= 0x3f;
                 }
                 unsigned int c1 = *(unsigned int*)cur->v[1];
                 if (c1 == 0) {
-                    *(unsigned int*)cur->v[1] = CPMask::Mask(&pl[0].n.x, &cur->v[1]->x) | 0x100;
+                    c1 = CPMask::Mask(&pl[0].n.x, &cur->v[1]->x);
+                    *(unsigned int*)cur->v[1] = c1 | 0x100;
                 } else {
                     c1 &= 0x3f;
                 }
+                c0 &= c1;
                 unsigned int c2 = *(unsigned int*)cur->v[2];
                 if (c2 == 0) {
                     c2 = CPMask::Mask(&pl[0].n.x, &cur->v[2]->x);
@@ -177,7 +182,8 @@ int ColBody::Collide(TriCollector* q, int unused)
                     c2 &= 0x3f;
                 }
                 CTri* next = cur->next;
-                if ((c0 & c1 & c2) == 0) {
+                c0 &= c2;
+                if (c0 == 0) {
                     cur->next = 0;
                     tail = cur;
                     if (head != 0) {
@@ -190,18 +196,17 @@ int ColBody::Collide(TriCollector* q, int unused)
             } while (cur != 0);
 
             if (head == 0) {
-                return 0;
+                return result;
             }
             ColModel* model = box->model;
             model->Transform(&ax.x, &pos.x);
             model->ClearInts();
             DAT_00508510_.Clear();
-            CTri* t = head;
-            int result = 0;
             Tri3 ta, tb;
+            CHit* hit = hits;
             CTri* mt = (CTri*)model->tris;
             int nTris = model->nTris;
-            CHit* hit = hits;
+            CTri* t = head;
             int cnt = 0;
             int gen = 1;
             do {
@@ -288,5 +293,5 @@ int ColBody::Collide(TriCollector* q, int unused)
             return result;
         }
     }
-    return 0;
+    return result;
 }
