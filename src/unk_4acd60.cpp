@@ -239,15 +239,18 @@ struct QuadPoints {
     ~QuadPoints() {}
 };
 
+extern "C" size_t __cdecl FUN_004c2414(const unsigned short* s);   // wcslen
+
 // NONMATCHING: RALLYTROPHY 0x4aa690
 // Wrapping and draw dispatch are complete; local lifetimes, stack layout and x87 scheduling differ (818 vs 816 bytes).
 // Tried 2026-10-30 night: memcpy(char-count) for the three word copies (now 816 bytes, 141->114 insns differ); memmove/char_traits/std::copy/wcsncpy/<<1/unsigned sizes, all 24 decl orders of positions/uvs/tint/alpha, POD/volatile tint; still differs: original copy is shr ecx,1/rep movsd/adc/rep movsw (we get shr 2/movsb), ColorArg EH state 2 vs original 1, register assignment ebp/ebx swapped.
 // 2026-11-04: FUN_004a94c0 is the dtor of a 0x28-byte quad {HudPoint positions[2]; uvs[2]; tint; alpha} (QuadPoints, ctor sets tint/alpha): 529->371 differing, frame 0x40 and EH states 0,1,2 now match; left: memcpy word form (shr 1/movsd/adc/movsw) and ebx/ebp swap.
+// 2026-11-13 pass: wcslen is FUN_004c2414; the three copies are plain `for (k=start;k<i;k++) DAT_00577bcc[out++]=text[k];` loops with no `if (start<i)` (VC6 turns them into shr1/movsd/adc/movsw): 371 -> 319 bytes differ, 78 -> 17 insns, 818 vs 816 bytes. Left: color loaded before quad ctor (orig after), fcom vs fld/fcomp on word+advance, fadd placement, trailing push.
 // Tried 2026-11-01 re-pass: wmemcpy/wmemmove/wcsncpy, memcpy(n*2 / n<<1 / unsigned / n+n / char*), 8-byte tint+alpha struct with dtor (837 bytes, 102 insns) or volatile POD tint/alpha in 7 layouts (806-820 bytes), all 6 start/out/i orders; none beat 114 insns differ. Original has tint(0x48)+alpha(0x4c) as dead stores above the arrays, EH state 1 as DWORD store (ours BYTE), i in ebp and out in ebx.
 void WrappedGlyphFont::PrintWrapped(RenderDevice* device, float x, float y,
                                    const unsigned short* text, int flags, float sx, float sy)
 {
-    int n = wcslen((const wchar_t*)text);
+    int n = (int)FUN_004c2414(text);
     if (n) {
         device->vf35((Sprite*)((char*)this + 0x48));
         QuadPoints quad(color);
@@ -273,10 +276,7 @@ void WrappedGlyphFont::PrintWrapped(RenderDevice* device, float x, float y,
                 float lw;
                 if (word + fa >= wrapWidth) {
                     word = 0.0f;
-                    if (start < i) {
-                        memcpy(DAT_00577bcc + out, text + start, (i - start) * sizeof(unsigned short));
-                        out += i - start;
-                    }
+                    for (int k = start; k < i; k++) DAT_00577bcc[out++] = text[k];
                     DAT_00577bcc[out++] = 10;
                     start = i;
                     --i;
@@ -287,20 +287,14 @@ void WrappedGlyphFont::PrintWrapped(RenderDevice* device, float x, float y,
                 } else {
                     line = lw + fa;
                     word = 0.0f;
-                    if (start < i) {
-                        memcpy(DAT_00577bcc + out, text + start, (i - start) * sizeof(unsigned short));
-                        out += i - start;
-                    }
+                    for (int k = start; k < i; k++) DAT_00577bcc[out++] = text[k];
                     DAT_00577bcc[out++] = text[i];
                     start = i + 1;
                 }
             } else word += (float)advance;
         }
         if (word + line >= wrapWidth) DAT_00577bcc[out++] = 10;
-        if (start < i) {
-            memcpy(DAT_00577bcc + out, text + start, (i - start) * sizeof(unsigned short));
-            out += i - start;
-        }
+        for (int k = start; k < i; k++) DAT_00577bcc[out++] = text[k];
         DAT_00577bcc[out] = 0;
         wrapping = 0;
         PrintWide(device, x, y, DAT_00577bcc, flags, sx, sy);

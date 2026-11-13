@@ -519,3 +519,4 @@ followed by M calls to an inline function:
   adds or removes inline calls.
 - **Struct copies of a ScenePoint give the original's two-pointer induction** (d and d+0x14) and the for-increment
   order (`d++, sa++, sb++, n++`) can swap two spilled registers in a loop tail (0x4b91c0).
+- **Word copy loops**: `shr ecx,1; rep movsd; adc ecx,ecx; rep movsw` is VC6 turning a plain `for (k...) dst[out++] = src[k];` loop over unsigned shorts into a string copy; no memcpy form gives it (0x4aa690, lead from FillTriangle 0x472710).
