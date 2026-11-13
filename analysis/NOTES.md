@@ -495,3 +495,8 @@ followed by M calls to an inline function:
 - **Identity matrices**: a struct without a constructor, stores written inline right after the declaration, puts the
   EH state store before the identity stores as in the original (0x493650 IdentityMatrix, 0x473470 RainMatrix).
 - **Stale volatiles keep paying**: removing `volatile BYTE* hit` aliasing in 0x45cc30 was its biggest single gain.
+- **A named local/helper can renumber `_$E` static initialisers** (0x45bc20: `Vec3 f = vel * -down;` or a helper broke
+  two matched `_$E` functions in unk_45ad10.cpp). Always rerun match.py on the whole file, not only the target.
+- **Vector-style `size()` stops VC6 hoisting a base pointer** (`first == 0 ? 0 : last - first` as an inline member):
+  0x417540 got the original's register map. Arrays instead of scalar locals give the original's real frame slots
+  (0x4ad1d0 r[9]/a[9]).
