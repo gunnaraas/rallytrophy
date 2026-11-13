@@ -500,3 +500,13 @@ followed by M calls to an inline function:
 - **Vector-style `size()` stops VC6 hoisting a base pointer** (`first == 0 ? 0 : last - first` as an inline member):
   0x417540 got the original's register map. Arrays instead of scalar locals give the original's real frame slots
   (0x4ad1d0 r[9]/a[9]).
+- **Inline budget mystery solved (0x443790)**: `#pragma inline_depth(1)` forbids the second level a by-value struct
+  copy needs (implicit copy ctor -> string copy ctor). With depth 2 VC6 inlines _Tidy + assign as the original does
+  (standalone probe confirms). Check any file that sets inline_depth(1) where the original inlines string copies.
+- **Tail merging of identical leaves**: VC6 cross-jumps textually different but identical-code blocks. Regrouping with
+  parens (`(e + e + dist) + c`, same value) stops a merge without changing bytes elsewhere (0x4b3800); a cast on a
+  late arm (`(float)(v1 - v0)`) does the same (0x4b59b0).
+- **bool vs int parameters**: an `int` parameter receiving a bool emits `and edx,0xff; push edx`, a `bool` one does not
+  (0x443790 DrawSelector).
+- **Re-read the member, do not cache it in a local**: `MakeTexture(F(int,0))` per call instead of `int f = F(int,0)`
+  fixed BinkVideo::BinkVideo's register map (0x4097a0 MATCHED).

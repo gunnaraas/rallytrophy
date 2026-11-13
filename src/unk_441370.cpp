@@ -277,10 +277,24 @@ struct TSE_Str16 {
     BYTE data[16];
 };
 
+struct TSE_StrCp {
+    TSE_StrCp(const TSE_StrCp& o)
+    {
+        alloc[0] = o.alloc[0];
+        Tidy(false);
+        Assign(o, 0, std::string::npos);
+    }
+    ~TSE_StrCp();
+    void Tidy(bool b);                                       // 0x402700
+    void Assign(const TSE_StrCp& o, unsigned int p, unsigned int n); // 0x4024f0
+    BYTE alloc[4];
+    char* ptr;
+    unsigned int len, res;
+};
 // RallyInfo (include/unk_441370.h) with the seven string arrays as TSE_Str16: same layout, used for the by-value call.
 struct TSE_RallyInfo {
-    std::string name;
-    std::string description;
+    TSE_StrCp name;
+    TSE_StrCp description;
     int numStages, numNovice, numIntermediate, numExpert, numArcade, firstArcade;
     float length[12];
     TSE_Str16 stageName[12];
@@ -3792,9 +3806,13 @@ public:
     };
 };
 
-// Inlining depth 1 (std::string helpers stay out of line as in the original; 437 -> 432 differing instructions).
-#pragma inline_depth(1)
+// Inlining depth 2: depth 1 kept the by-value RallyInfo name/description copies out of line (nested copy ctor = depth 2).
+#pragma inline_depth(2)
 // NONMATCHING: RALLYTROPHY 0x443790
+// 2026-11-13 (idiom/calls/sizegap): 95 -> 8 insns differ, size gap closed (5296/5296). inline_depth(2) lets the by-value copy's
+// name/description expand (TSE_StrCp: hand copy ctor = alloc byte, Tidy(false), Assign(o, 0, npos)); DrawSelector's `selected`
+// param is int (the `and edx,0xff` promote). Left: lea operand order in the five TSE_Str::Append sites ([len+n] vs [n+len],
+// no source form flips it) and the name-print block (original stores text->color after the scaleX store; we hoist it).
 // 2026-11-12 (sizegap.py): item colour and (1, 1) scale assigned in both arms of `if (selected)` (plain bool),
 // colour stored, then `std::string buf` declared: 387 -> 95 insns differ. Whole remaining size gap (-45 bytes) is the
 // DrawRally copy below.
@@ -4052,11 +4070,13 @@ int TrackSelectMenu::Run()
                 }
                 y = TSE_STEP * sy + y;
             }
-            float oldX = text->scaleX;
             float oldY = text->scaleY;
-            text->scaleX = oldX * 0.85f;
+            float oldX = text->scaleX;
+            float nx = oldX * 0.85f;
             text->color = DAT_00508c14.value;
-            text->scaleY = oldY * 0.85f;
+            float ny = oldY * 0.85f;
+            text->scaleX = nx;
+            text->scaleY = ny;
             text->Print(DAT_0056b0ac, TSE_NAMEX * sx, TSE_NAMEY * sy, rally[curRally].name.c_str(), 0, 1.0f, 1.0f);
             text->scaleX = oldX;
             text->scaleY = oldY;

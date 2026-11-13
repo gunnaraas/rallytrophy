@@ -75,7 +75,7 @@ public:
     void DrawRally(RallyInfo info);    // 0x445870 (ret 0x5e8: the copy is destroyed by the callee)
     void DrawTrackBook();              // 0x445c90
     // MenuScreen methods, declared here like the sibling screens do
-    void DrawSelector(TextRenderer* text, std::string* value, float x, float y, float width, bool selected, int current,
+    void DrawSelector(TextRenderer* text, std::string* value, float x, float y, float width, int selected, int current,
                       int lo, int hi); // 0x438dc0
     void FUN_00438c40(int* value, int delta, int lo, int hi); // 0x438c40
     void FUN_00438d00();               // 0x438d00
