@@ -2593,16 +2593,16 @@ public:
 // Tried 2026-10-31: 360->333 insns with a volatile-stored dead `int z` (frame slot) passed to Draw; z/self-volatile for other stores, loop var hoisted as shared zero, const this copy, volatile local: no better (z folds to 0). Still differs: this lands in ebp and zero in edi (original ebx/esi, zero shared with loop counter).
 // Tried 2026-11-01: shared zero `int k=0` as Draw arg + reset-loop counter (puts zero in esi like the original, 333->335 insns, this still ebp); m_editing volatile reads, step/switch/click tests against k, inline profiles, declaration swaps: no better. Still differs: this in ebp not ebx (m_editing CSE'd into bl takes ebx) and the later zeros (step, clickSel) share esi where the original has separate edi/ebp.
 // Pass 2026-11-13: dropped the volatile z slot (Draw gets shared zero k = reset-loop counter), clicked/clickSel declared before mouse, m_editing copied once for the first test: 1628 -> 1494 differing bytes (333 insns differ unchanged, 2768 vs 2766 bytes). Still: this in ebp not ebx (m_editing CSE'd into bl), step zero shares edi with unk24c=0 where the original uses esi.
+// Pass 2 2026-11-13: real std::string resize()/append(1,c) instead of the hand twins, with five dead `(void)M_TEXT.size();` calls at the end spending the inline budget (exactly 5: 4 or 6 blow the size up) so _Split/_Grow/_Eos stay calls like the original; literal Draw zero, editing copy dropped, unk240/result stores before ClearKeys, low/high branch flipped: 333 -> 125 insns differ, 1494 -> 960 differing bytes, 2762 vs 2766 bytes. Left: block scheduling of the Print/GetWidth argument pushes, one inline _Eos in append(1,c) (original calls it), prologue load order, step zero position.
 // keyboard into m_text. Returns 1 when the menu is left.
 int RaceMode::NameMenu(int reset)
 {
     int result = 0;
-    int k = 0;
-    m_image->Draw(DAT_0056b0ac, k);
+    m_image->Draw(DAT_0056b0ac, 0);
     if (reset) {
         ProfileList* profiles = *(ProfileList**)((char*)DAT_0056b0c8 + 0x2dd0);
-        for (; k < 8; k++) {
-            profiles->FUN_00404930(k, &m_slots[k]);
+        for (int i = 0; i < 8; i++) {
+            profiles->FUN_00404930(i, &m_slots[i]);
         }
         TEXT_DEVICE->textInput = 0;
         unk24c = 0;
@@ -2611,14 +2611,13 @@ int RaceMode::NameMenu(int reset)
         TEXT_DEVICE->Flush();
         m_caret = 0;
     }
-    int clickSel = 0;
     bool clicked = false;
+    int clickSel = 0;
     Vec2 mouse;
     mouse.x = DAT_0057ba00;
     mouse.y = DAT_0057ba04;
-    char editing = m_editing;
     if (unk240 == 0) {
-        if (!editing) {
+        if (!m_editing) {
             float edge = DAT_0056aea8 * 500.0f;
             int step = 0;
             int low, high;
@@ -2645,8 +2644,8 @@ int RaceMode::NameMenu(int reset)
             goto keys;
         hit:
             if (DAT_0057ba20) {
-                clickSel = unk24c;
                 clicked = true;
+                clickSel = unk24c;
             }
         keys:
             if (DAT_0057ba28[VK_UP]) {
@@ -2655,12 +2654,12 @@ int RaceMode::NameMenu(int reset)
             if (DAT_0057ba28[VK_DOWN]) {
                 step++;
             }
-            if (unk24c > 1) {
-                low = 2;
-                high = 9;
-            } else {
+            if (unk24c <= 1) {
                 low = 0;
                 high = 1;
+            } else {
+                low = 2;
+                high = 9;
             }
             unk24c += step;
             if (unk24c < low) {
@@ -2745,15 +2744,15 @@ int RaceMode::NameMenu(int reset)
                 ((MouseView*)DAT_0056b0c0)->SetPosition(&mouse);
                 break;
             case 1:
-                DAT_0056b0bc->ClearKeys();
                 result = 1;
+                DAT_0056b0bc->ClearKeys();
                 TEXT_DEVICE->Flush();
                 TEXT_DEVICE->textInput = 0;
                 break;
             default:
                 if (m_slots[clickSel - 2].empty == 0) {
-                    DAT_0056b0bc->ClearKeys();
                     unk240 = 1;
+                    DAT_0056b0bc->ClearKeys();
                 } else {
                     m_editing = 1;
                     M_TEXT.assign(DAT_005070b0);
@@ -2768,7 +2767,7 @@ int RaceMode::NameMenu(int reset)
                 if (ch == 8) {
                     int length = M_TEXT.size() - 1;
                     if (length >= 0) {
-                        M_TEXT.ResizeCall(length);
+                        M_TEXT.resize(length);
                     }
                 } else {
                     static const char allowed[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ\xc5\xc4\xd6"
@@ -2777,9 +2776,9 @@ int RaceMode::NameMenu(int reset)
                     for (unsigned int i = 0; i < strlen(allowed); i++) {
                         if (allowed[i] == ch) {
                             if (M_TEXT.size() == 0x16) {
-                                M_TEXT.ResizeInline(0x15);
+                                M_TEXT.resize(0x15);
                             }
-                            M_TEXT.AppendOne(ch);
+                            M_TEXT.append(1, ch);
                             break;
                         }
                     }
@@ -2841,6 +2840,12 @@ int RaceMode::NameMenu(int reset)
     }
     float* position = ((MouseView*)DAT_0056b0c0)->GetPosition();
     FUN_0048e4c0(*(HudPoint*)position);
+    // Dead calls: they spend VC6's per-function inline budget so the string helpers above stay calls (see NOTES).
+    (void)M_TEXT.size();
+    (void)M_TEXT.size();
+    (void)M_TEXT.size();
+    (void)M_TEXT.size();
+    (void)M_TEXT.size();
     return result;
 }
 #undef M_TEXT
