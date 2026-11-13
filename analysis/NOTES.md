@@ -444,6 +444,19 @@ followed by M calls to an inline function:
 - `tools/idiom.py` indexes the 1500 byte-exact functions (original instruction -> source line, from `/FAcs`
   listings) so a NONMATCHING hunk can be looked up instead of guessed: e.g. `lea R,[R+N]; mov R2,R` (the copy
   0x461a40 lacks) comes from `SpeechItem item = queue.front();` and from `for (int j = 0; j < 7; j++)` loops.
+- Corpus survey over all 169 NONMATCHING functions (shape-aligned hunks): 5721 hunks, 2595 with an exact-text hit in
+  the corpus; the big "size" functions get the most leads (Stage::Stage 119 of 262 hunks, StageScreen::Layout 98/164).
+- **Runs of four identical stores are an inline helper** (`static inline void Quad(float* v, float f)`): that is what
+  hoists the next allocation's `push <size>` above the quad stores (0x486240 LoadOverlays matched, from the corpus hit
+  on G4_Quad in unk_4303e0.cpp). Swept over the other six functions with such runs: no change, so it only matters next
+  to a `new`.
+- **Stale `volatile` workarounds**: a `*(volatile T*)&x = e` or `T volatile x` added in an earlier pass can be what
+  blocks the function now (0x469a20: plain `float kk = ...` 17 -> 6 bytes). Swept over all 57 NONMATCHING functions
+  that carry one (one site at a time and all at once): closer in 8 (applied), same or worse elsewhere.
+- Local NAMES do not matter either: 12 random renamings of 0x436250's locals gave identical bytes.
+- Neutral reference-count rewrites swept mechanically (`if (A || B)` -> `if (A) {} else if (B) {}` with the same
+  body; `v = e;` moved into both arms of a following if/else) over the 38 functions that have such sites: no match,
+  noise-level gains only in two 5-10 KB functions. These forms matter only where the slot order is the last difference.
 - Declaration count is NOT a general lever: forcing 1..32 extra global typedefs into unk_4303e0, unk_43a390,
   unk_452b20 and unk_490950 changed no byte in any of their 19 NONMATCHING functions. The winmain flip was a
   one-off.
