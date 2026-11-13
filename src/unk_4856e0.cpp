@@ -154,11 +154,16 @@ RaceMode::~RaceMode()
 UIRect::~UIRect() {}
 #pragma auto_inline(on)
 
-// NONMATCHING: RALLYTROPHY 0x486240
-// Same size (848); only the order of the stores to the sprite fields and the hoisted `push` of the next
-// allocation size differ (74 bytes). Permutations of the field-store order did not change that.
-// Tried 2026-10-30 night: volatile on unk1c (worse, 10 insns) or unk40[0] (no change) stores, permute.py -r 20 (no match); the push of the next new size sinks after the unk40 stores in all four blocks instead of sitting before them.
-// Tried 2026-10-31 re-pass: volatile reads of unk40[0..3] (cursor) or replay unk40[3] (moves the push later still), `RaceMode* volatile self` (reloads this+field before every store, far worse), permute.py -r 40 (best 4 insns, no match); 4 diffs = the next-alloc `push` (0xd4,0xd4,0x68 sits after unk40 stores, original has it right after unk1c; replay block 0x48 original is after the unk40 stores, ours before).
+static inline void RM_Quad(float* v, float f)
+{
+    v[0] = f;
+    v[1] = f;
+    v[2] = f;
+    v[3] = f;
+}
+
+// FUNCTION: RALLYTROPHY 0x486240
+// The colour/scale quads are an inline four-store helper (as in G4_Quad); that is what hoists the next `push` of the allocation size.
 // Loads the cursor, the on-screen bar sprites, the replay buttons and the in-game image.
 void RaceMode::LoadOverlays()
 {
@@ -168,15 +173,9 @@ void RaceMode::LoadOverlays()
     m_cursor->unk9c = 2;
     m_cursor->unk98 = 15;
     m_cursor->unk18 = 5;
-    m_cursor->unk60[0] = 1.0f;
-    m_cursor->unk60[1] = 1.0f;
-    m_cursor->unk60[2] = 1.0f;
-    m_cursor->unk60[3] = 1.0f;
+    RM_Quad(m_cursor->unk60, 1.0f);
     m_cursor->unk1c = 6;
-    m_cursor->unk40[0] = 1.0f;
-    m_cursor->unk40[1] = 1.0f;
-    m_cursor->unk40[2] = 1.0f;
-    m_cursor->unk40[3] = 1.0f;
+    RM_Quad(m_cursor->unk40, 1.0f);
     m_cursor->unk24 = 2;
 
     m_bars = new Sprite("OnScreenBars");
@@ -185,15 +184,9 @@ void RaceMode::LoadOverlays()
     m_bars->unk9c = 6;
     m_bars->unk98 = 15;
     m_bars->unk18 = 5;
-    m_bars->unk60[0] = 1.0f;
-    m_bars->unk60[1] = 1.0f;
-    m_bars->unk60[2] = 1.0f;
-    m_bars->unk60[3] = 1.0f;
+    RM_Quad(m_bars->unk60, 1.0f);
     m_bars->unk1c = 6;
-    m_bars->unk40[0] = 1.0f;
-    m_bars->unk40[1] = 1.0f;
-    m_bars->unk40[2] = 1.0f;
-    m_bars->unk40[3] = 1.0f;
+    RM_Quad(m_bars->unk40, 1.0f);
     m_bars->unk24 = 2;
 
     m_barsLeft = new Sprite("OnScreenBarsLeft");
@@ -202,29 +195,17 @@ void RaceMode::LoadOverlays()
     m_barsLeft->unk9c = 6;
     m_barsLeft->unk98 = 15;
     m_barsLeft->unk18 = 5;
-    m_barsLeft->unk60[0] = 1.0f;
-    m_barsLeft->unk60[1] = 1.0f;
-    m_barsLeft->unk60[2] = 1.0f;
-    m_barsLeft->unk60[3] = 1.0f;
+    RM_Quad(m_barsLeft->unk60, 1.0f);
     m_barsLeft->unk1c = 6;
-    m_barsLeft->unk40[0] = 1.0f;
-    m_barsLeft->unk40[1] = 1.0f;
-    m_barsLeft->unk40[2] = 1.0f;
-    m_barsLeft->unk40[3] = 1.0f;
+    RM_Quad(m_barsLeft->unk40, 1.0f);
     m_barsLeft->unk24 = 2;
 
     m_replaySprite.texture = new Texture("data/extras/replaybuttons.tga", 0x41, 1);
     m_replaySprite.texture->Upload(DAT_0056b0ac);
-    m_replaySprite.unk60[0] = 1.0f;
-    m_replaySprite.unk60[1] = 1.0f;
-    m_replaySprite.unk60[2] = 1.0f;
-    m_replaySprite.unk60[3] = 1.0f;
+    RM_Quad(m_replaySprite.unk60, 1.0f);
     m_replaySprite.unk9c = 2;
     m_replaySprite.unk98 = 15;
-    m_replaySprite.unk40[0] = 1.0f;
-    m_replaySprite.unk40[1] = 1.0f;
-    m_replaySprite.unk40[2] = 1.0f;
-    m_replaySprite.unk40[3] = 1.0f;
+    RM_Quad(m_replaySprite.unk40, 1.0f);
     m_replaySprite.unk18 = 5;
     m_replaySprite.unk1c = 6;
     m_replaySprite.unk24 = 2;
