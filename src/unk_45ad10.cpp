@@ -1046,12 +1046,12 @@ struct W7_Car {
 
 // ---- functions in address order ----
 // NONMATCHING: RALLYTROPHY 0x45ad40
-// Best tested form: 1402/1404 bytes, 696 differing bytes. Making Camber's rear reference height volatile improves
-// the FPU/stack schedule; volatile Toe reference/base/output values, a volatile one-time reference store, and factoring
+// Best tested form: 1402/1404 bytes, 696 differing bytes. Making Camber's rear reference height improves
+// the FPU/stack schedule; Toe reference/base/output values, a one-time reference store, and factoring
 // the Toe base after its branch are worse. Other differences remain in the toe
 // blocks, wheel-matrix stack slots, and the target's hoisted 1.0f register. Evidence: ev_44efd80de74fa57abbe051afd7c89aabb5cbbfca52bc9ff6c566f2d37ba828ec.
 // Tried 2026-10-30 night: hand-inlined Toe/Camber using the dt param slot as the ref temp (matches orig [ebp+8]) with base/spring1 copied to locals, and reloading wheel damage per use (114->73 insns differ); still differs: orig keeps x and spring0/base on the FPU stack across the steer math (slot/frame 0x20 vs 0x1c), a/x/y declaration order and wheel-ptr hoisting had no effect.
-// Tried 2026-11-01 re-pass: volatile loads of spring0/toeBase into locals (all-operands-first fld) plus reusing tb as the y accumulator (y stored in the toe-base slot) 73->53 insns differ; still differs: orig interleaves the tb/sp1 int spills with the flds, frame 0x20 vs 0x1c, and wheel-matrix temp slots.
+// Tried 2026-11-01 re-pass: loads of spring0/toeBase into locals (all-operands-first fld) plus reusing tb as the y accumulator (y stored in the toe-base slot) 73->53 insns differ; still differs: orig interleaves the tb/sp1 int spills with the flds, frame 0x20 vs 0x1c, and wheel-matrix temp slots.
 void Car::UpdateSteering(float dt)
 {
     W3_CarView* v = (W3_CarView*)this;
@@ -1081,7 +1081,7 @@ void Car::UpdateSteering(float dt)
     float x;
     float tb = v->toeBase;
     float sp1 = v->spring[1].value;
-    float s0 = *(volatile float*)&v->spring[0].value; float tb0 = *(volatile float*)&v->toeBase;
+    float s0 = v->spring[0].value; float tb0 = v->toeBase;
     dt = v->frontRef[v->tuning];
     if (s0 < dt) x = (dt - s0) * v->frontIn[v->tuning] * v->toeIn + tb0;
     else x = (s0 - dt) * v->frontOut[v->tuning] * v->toeOut + tb0;

@@ -284,9 +284,9 @@ extern float DAT_00500cfc;
 // NONMATCHING: RALLYTROPHY 0x49c130
 // Target point and lateral offset along the AI path. Logic complete; instruction scheduling and stack slots
 // not matched.
-// Tried 2026-10-31: ~15 variants (member-wise A/B/C init 809->804, z-first init, volatile reads, scoped/reused n1-n3, flat as floats, CopyXZ for A/B/C, D moved into last arm, dead diff removed); original (frame 0x94 vs our 0xb8, ~46 bytes longer) reloads the A/B/C components from memory for each sqrt and shares slots among the Vec3 temps, which no declaration/scoping change reproduced.
-// Tried 2026-11-01 re-pass: dC is computed lazily inside the compares (inline sqrt, original has 2-comp sqrt only on the dA<dB path), 1.0f/0.0f read as DAT_004e1348/DAT_004e134c (C.y, D.y use the global 0, 3 compare/fsub sites), insns 804->777; ~20 more variants (Len2D helper, volatile component reads, shared zero, D field order, double ls for il1-3, q0/q1 placement, total order) did not help or moved size away. Still differs: original reloads A/B/C z from memory (fstp+fld) where we fst, shares zero in st(0) across C.y/D.y, and keeps il sqrt on FPU stack (fdiv st,st(1)).
-// Tried 2026-11-01 pm: 0.0/1.0/5.0/36.0 compares as DAT_ globals (no change in insns), double ls for acc and segLen/t (matches the original's FPU-resident sqrt; fixes those sequences), k as plain int with k1 read via a volatile pointer: 319->314; ~30 variants (declaration orders of vel/fwd/vel2/dir/dir2, volatile phase/k, full dir2 copy, dir2.y early) no better; the original has dir/dir2/k below pts/w and acc/phase/k1 above, ours puts dir2 above w and phase low, and it reads dir.y from memory in segLen (ours folds).
+// Tried 2026-10-31: ~15 variants (member-wise A/B/C init 809->804, z-first init, reads, scoped/reused n1-n3, flat as floats, CopyXZ for A/B/C, D moved into last arm, dead diff removed); original (frame 0x94 vs our 0xb8, ~46 bytes longer) reloads the A/B/C components from memory for each sqrt and shares slots among the Vec3 temps, which no declaration/scoping change reproduced.
+// Tried 2026-11-01 re-pass: dC is computed lazily inside the compares (inline sqrt, original has 2-comp sqrt only on the dA<dB path), 1.0f/0.0f read as DAT_004e1348/DAT_004e134c (C.y, D.y use the global 0, 3 compare/fsub sites), insns 804->777; ~20 more variants (Len2D helper, component reads, shared zero, D field order, double ls for il1-3, q0/q1 placement, total order) did not help or moved size away. Still differs: original reloads A/B/C z from memory (fstp+fld) where we fst, shares zero in st(0) across C.y/D.y, and keeps il sqrt on FPU stack (fdiv st,st(1)).
+// Tried 2026-11-01 pm: 0.0/1.0/5.0/36.0 compares as DAT_ globals (no change in insns), double ls for acc and segLen/t (matches the original's FPU-resident sqrt; fixes those sequences), k as plain int with k1 read via a pointer: 319->314; ~30 variants (declaration orders of vel/fwd/vel2/dir/dir2, phase/k, full dir2 copy, dir2.y early) no better; the original has dir/dir2/k below pts/w and acc/phase/k1 above, ours puts dir2 above w and phase low, and it reads dir.y from memory in segLen (ours folds).
 #define POS ((Vec3*)&((CarBodyV*)car->body)->position)
 // original sums |nearest|^2 as (x*x + z*z) + y*y
 #define NLEN(v) ((float)sqrt(((v).x * (v).x + (v).z * (v).z) + (v).y * (v).y))
@@ -447,7 +447,7 @@ float AIDriver::FUN_0049c130()
     n1.x *= il1;
     n1.z *= il1;
     n1.x *= w;
-    n1.y = *(volatile float*)&n1.y * w; // original multiplies the stored 0
+    n1.y = n1.y * w; // original multiplies the stored 0
     n1.z *= w;
     n1.x += unk140.x;
     n1.y += unk140.y;
@@ -462,7 +462,7 @@ float AIDriver::FUN_0049c130()
     n2.x *= il2;
     n2.z *= il2;
     n2.x *= w;
-    n2.y = *(volatile float*)&n2.y * w; // original multiplies the stored 0
+    n2.y = n2.y * w; // original multiplies the stored 0
     n2.z *= w;
     n2.x += unk140.x;
     n2.y += unk140.y;
@@ -488,14 +488,14 @@ float AIDriver::FUN_0049c130()
     // Unit sideways vector; the result is the (negated) heading component along it.
     Vec3 n3;
     n3.x = unk54.z;
-    *(volatile float*)&n3.y = 0;
+    n3.y = 0;
     n3.z = -unk54.x;
     float il3 = DAT_004e1348 / (float)sqrt(n3.x * n3.x + n3.z * n3.z);
     n3.x *= il3;
     n3.z *= il3;
     unk3c.y = 0;
     // original keeps the n3.y (= 0) term
-    float rs = n3.z * forward.z; rs = *(volatile float*)&n3.y * forward.y + rs; rs = n3.x * forward.x + rs;
+    float rs = n3.z * forward.z; rs = n3.y * forward.y + rs; rs = n3.x * forward.x + rs;
     float result = -rs;
     unk78 = unk7c;
     unk3c.x = n3.x * unk7c + unk140.x;

@@ -93,8 +93,8 @@ struct AnimTrace {                                      // the hit collector at 
 #define REC(i) ((float*)(F(0x13ac, int) + (i) * 0x24))
 
 // NONMATCHING: RALLYTROPHY 0x417540
-// Tried 2026-10-30 night: int tests for rec[8], <=0 / !(<) guards, d > inner, dz*dz+dx*dx order (423->410), volatile off, int idx, car decl position; original keeps idx in ebx and i in edi with no record-pointer strength reduction, ours spills idx and hoists edi, so the whole register map and frame (0x90 vs 0xa0) differ.
-// Tried 2026-11-01 re-pass: volatile spill of r2, int/unsigned i, px/pz load order and int-copy, local decl orders (car/idx/local30), indexed record pointer, Bal(1) sweep 1-10 at start (no effect, nothing inlined differently); all stay 409-413 insns differ (410 base) since the original has no hoisted record pointer and a different lo/hi/trace store order.
+// Tried 2026-10-30 night: int tests for rec[8], <=0 / !(<) guards, d > inner, dz*dz+dx*dx order (423->410), off, int idx, car decl position; original keeps idx in ebx and i in edi with no record-pointer strength reduction, ours spills idx and hoists edi, so the whole register map and frame (0x90 vs 0xa0) differ.
+// Tried 2026-11-01 re-pass: spill of r2, int/unsigned i, px/pz load order and int-copy, local decl orders (car/idx/local30), indexed record pointer, Bal(1) sweep 1-10 at start (no effect, nothing inlined differently); all stay 409-413 insns differ (410 base) since the original has no hoisted record pointer and a different lo/hi/trace store order.
 // 2256 vs 2332 bytes; the nine calls and the cleanup states (0, 3, 5, 8 stored; nine Vec3-like locals in the
 // original's order: dv, lo, hi, sphere, a, b, n1, n2, down) match, and the record lerp / box / sample points are
 // vector operations as in the original. Left: register allocation (the original keeps the record pointer in edi
@@ -203,9 +203,9 @@ tail:
         // the original rounds the phase to float in the dead dt slot ([ebp+0x10]) before subtracting floor
         float& ph = *(float*)&dt;
         f4 = (f5 * F(0x23c, float) * rate) / F(0x234, float) + F(0x13a0, float);
-        *(volatile float*)&ph = f4;
+        ph = f4;
         F(0x13a0, float) = f4;
-        F(0x13a0, float) = (float)(*(volatile float*)&ph - floor(f4));
+        F(0x13a0, float) = (float)(ph - floor(f4));
         f5 = f5 * rate + F(0x139c, float);
         f4 = r[6];
         F(0x139c, float) = f5;

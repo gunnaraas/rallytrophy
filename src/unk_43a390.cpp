@@ -509,7 +509,7 @@ void Screen1378::Layout()
 // original: FUN_0043b1d0 (vtable slot 3, Draw)
 void Screen1378::Slot3(int noPresent)
 {
-    Screen1378* volatile self = this;
+    Screen1378* self = this;
     MenuGame* game = m_game;
     TextRenderer* big = *(TextRenderer**)((BYTE*)game + 0x1390bc);
     TextRenderer* text = game->text;

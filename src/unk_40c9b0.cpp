@@ -267,7 +267,7 @@ Stage::Stage(int a, int b, int c, int d)
     StPath line;                                     // function-scope strings: destroyed at the end
     StPath text;
     StNetInfo* net = (StNetInfo*)DAT_00501450;
-    *(volatile int*)&a = net->raceIndex;
+    a = net->raceIndex;
     int idx = a;
     text += FUN_00405380(idx + 0xb4);
     text += " - ";
