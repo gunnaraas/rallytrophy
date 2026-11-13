@@ -432,3 +432,16 @@ followed by M calls to an inline function:
   added before the final return (empty inline calls are not counted at all). So the standalone rule does not by
   itself explain why the original calls _Tidy(true) at the fail exit; something else (exit kind, EH state, or the
   order the compiler visits exits) decides there. Unresolved.
+- Issue pass 2026-11-12: #3's one-hunk functions (0x4ae4b0 `lea ebx,[ecx]` vs `mov`, 0x4b0180 load+test vs
+  `cmp [esi],0`, 0x4b0e90 and 0x4b13c0 deferred stores) are all scheduling/encoding choices with 100-220 recorded
+  variants each; a small sizegap hunk count does not mean an easy function. 0x42d710's out-of-line size() in the last
+  push_back is unaffected by `#pragma inline_depth` 8..255. 0x43df70: 52 -> 48 via SetScale for the final restore.
+- sizegap.py limits: it disassembles switch jump tables after `ret` as code (bogus top hunk on 0x43df70) and can
+  misalign a hunk onto a matching EH-state store (0x4b0e90); confirm a hunk with insdiff before acting on it.
+
+## Inlined-parameter copies (2026-11-12)
+- An original `mov reg,reg` right before an indexed load, with no counterpart in our build, can be the copy VC6 makes of
+  an inlined function's argument. 0x425e50 matched by indexing through `rt_id`-style inline helper:
+  `DAT_00508944[s] = CreditAt(DAT_005089a8++)` (and computing the slot `s` first, so the helper's load follows the idiv).
+  A generic `template<class T> inline T rt_id(T x) { return x; }` around the operand gives the same copy.
+- permute.py has a `wrap_id` mutation that wraps a random operand in `rt_id()` (the prelude is added to the variant).
