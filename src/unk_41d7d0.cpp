@@ -17,8 +17,8 @@ struct BodyTail {                      // contact bookkeeping at the end of a bo
 #define FL(p, o) (*(float*)((char*)(p) + (o)))
 
 // DOT2: the original chains dot2 z,y,x for the shA edges and x,z,y for the shB edges.
-#define DOT2_ZYX float dot2 = nd.z * B->n[2]; dot2 = nd.y * B->n[1] + dot2; dot2 = nd.x * B->n[0] + dot2;
-#define DOT2_XZY float dot2 = nd.x * B->n[0]; dot2 = nd.z * B->n[2] + dot2; dot2 = nd.y * B->n[1] + dot2;
+#define DOT2_ZYX float dot2 = dv.z * B->n[2]; dot2 = dv.y * B->n[1] + dot2; dot2 = dv.x * B->n[0] + dot2;
+#define DOT2_XZY float dot2 = dv.x * B->n[0]; dot2 = dv.z * B->n[2] + dot2; dot2 = dv.y * B->n[1] + dot2;
 #define RECORD(DOT2) \
     { \
         Vec3 va = ((CPointVel*)this)->PointVel(hit); \
@@ -26,24 +26,24 @@ struct BodyTail {                      // contact bookkeeping at the end of a bo
         va.x = va.x + v1.x; va.y = va.y + v1.y; va.z = va.z + v1.z; \
         vb.x = vb.x + v2.x; vb.y = vb.y + v2.y; vb.z = vb.z + v2.z; \
         Vec3 dv = va; dv.x = va.x - vb.x; dv.y = va.y - vb.y; dv.z = va.z - vb.z; \
-        float dot = dv.z * A->n[2]; dot = dv.y * A->n[1] + dot; dot = dv.x * A->n[0] + dot; \
+        float dot = dv.z * An[2]; dot = dv.y * An[1] + dot; dot = dv.x * An[0] + dot; \
         if (*(unsigned int*)&dot & 0x80000000) { \
-            c1->pt = hit; \
-            c1->n.x = A->n[0]; c1->n.y = A->n[1]; c1->n.z = A->n[2]; \
+            *(int*)&c1->pt.x = *(int*)&hit.x; *(int*)&c1->pt.y = *(int*)&hit.y; *(int*)&c1->pt.z = *(int*)&hit.z; \
+            c1->n.x = An[0]; c1->n.y = An[1]; c1->n.z = An[2]; \
             c1->tri = A; \
-            c1->v.x = dv.x; c1->v.y = dv.y; c1->v.z = dv.z; \
+            *(int*)&c1->v.x = *(int*)&dv.x; *(int*)&c1->v.y = *(int*)&dv.y; *(int*)&c1->v.z = *(int*)&dv.z; \
             c1->v.x = f1 * c1->v.x; c1->v.y = f1 * c1->v.y; c1->v.z = f1 * c1->v.z; \
             B1(this)->cnt = B1(this)->cnt + 1; \
             c1++; \
         } \
         if (flag != 0) { \
-            Vec3 nd = -dv; \
+            dv = -dv; \
             DOT2 \
             if (*(unsigned int*)&dot2 & 0x80000000) { \
                 c2->tri = B; \
-                c2->pt = hit; \
+                c2->pt.x = hit.x; c2->pt.y = hit.y; c2->pt.z = hit.z; \
                 c2->n.x = B->n[0]; c2->n.y = B->n[1]; c2->n.z = B->n[2]; \
-                c2->v.x = nd.x; c2->v.y = nd.y; c2->v.z = nd.z; \
+                c2->v.x = dv.x; c2->v.y = dv.y; c2->v.z = dv.z; \
                 c2->v.x = f2 * c2->v.x; c2->v.y = f2 * c2->v.y; c2->v.z = f2 * c2->v.z; \
                 B1(other)->cnt = B1(other)->cnt + 1; \
                 c2++; \
@@ -103,58 +103,55 @@ inline void XformT(float* o, const float* p, const float* m, const float* t)
 // NONMATCHING: centre-point Xform x87 block (box+0x1c through mat, pos) now inline asm like the original; frame matches; rest (plane build, triangle loop, register/stack allocation) differs (5502 of 6021 bytes, 5419 differing).
 // Tried 2026-10-31: plane n/d via Vec3 view with the original d sum load order, Vec3 cc/p + 2 dead Vec3 (EH state 3), rad next to cc, cull compare as int bits (dx*dx+dz*dz+dy*dy) 1399->1348 insns; still differs: this/box register roles (orig ebx/esi), EH state-0 store before plane ctor, temps at -0xd0/-0xe0, loop induction vars, frame 0x284.
 // Tried 2026-11-01 re-pass: x87 stream now identical to the original (532 ops): contact dots are z,y,x order, plane2 d is x,y,z, both cull sums are x,z,y chained, dd compare as int bits, dv built field-wise with dot chained, v1/v2 velocities copied as ints; 1348->1323 insns; still differs: this/box register roles, frame 0x284 vs 0x278, EH states, temps at -0xd0/-0xe0, loop induction vars.
+// Pass 2026-11-13: this=ebx/box=esi via direct this->mat/pos paths (no row/pos aliases); dv = -dv in place (6 unary-minus temps like the original); A->n kept in An; contact v/pt copied int/member-wise (struct copies made &c->pt induction vars); no cx/cy/cz locals; tmp declared after q. 1348 -> 1058 insns differ, size 5700 -> 5842 of 6021. Still differs: An/B-pointer register roles (orig edi=An, ebx=c1, esi=c2, B pointers on stack), plane-stage load scheduling, frame 0x278 vs 0x284.
 int U40A850Body::FUN_0041d7d0(U40A850Body* other, int flag)
 {
     float* bx = (float*)box;
     if (bx == 0) {
         return 0;
     }
-    Vec3& pos_ = *(Vec3*)&this->pos[0];
-    Vec3& row0 = *(Vec3*)&this->mat[0][0];
-    Vec3& row1 = *(Vec3*)&this->mat[1][0];
-    Vec3& row2 = *(Vec3*)&this->mat[2][0];
     Vec3 cc;
     float rad;
     Plane planes[6];
     ScenePoint p;
     Vec3 q;
+    Vec3 tmp;
     XformT(&cc.x, bx + 7, &this->mat[0][0], this->pos);
-    float cx = cc.x, cy = cc.y, cz = cc.z;
-    rad = bx[10];
+        rad = bx[10];
     {
-        p = *(ScenePoint*)&(bx[3] * row2) + *(ScenePoint*)&pos_;
+        p = *(ScenePoint*)&(bx[3] * (*(Vec3*)&this->mat[2][0])) + *(ScenePoint*)&this->pos[0];
         Vec3& N = *(Vec3*)planes[0].n;
-        N = row2;
+        N = (*(Vec3*)&this->mat[2][0]);
         planes[0].d = N.y * p.y + N.z * p.z + N.x * p.x;
     }
     {
-        p = *(ScenePoint*)&(bx[6] * row2) + *(ScenePoint*)&pos_;
+        p = *(ScenePoint*)&(bx[6] * (*(Vec3*)&this->mat[2][0])) + *(ScenePoint*)&this->pos[0];
         Vec3& N = *(Vec3*)planes[1].n;
-        N = -row2;
+        N = -(*(Vec3*)&this->mat[2][0]);
         planes[1].d = N.y * p.y + N.z * p.z + N.x * p.x;
     }
     {
-        p = *(ScenePoint*)&(bx[1] * row0) + *(ScenePoint*)&pos_;
+        p = *(ScenePoint*)&(bx[1] * (*(Vec3*)&this->mat[0][0])) + *(ScenePoint*)&this->pos[0];
         Vec3& N = *(Vec3*)planes[2].n;
-        N = row0;
+        N = (*(Vec3*)&this->mat[0][0]);
         planes[2].d = N.x * p.x + N.y * p.y + N.z * p.z;
     }
     {
-        p = *(ScenePoint*)&(bx[4] * row0) + *(ScenePoint*)&pos_;
+        p = *(ScenePoint*)&(bx[4] * (*(Vec3*)&this->mat[0][0])) + *(ScenePoint*)&this->pos[0];
         Vec3& N = *(Vec3*)planes[3].n;
-        N = -row0;
+        N = -(*(Vec3*)&this->mat[0][0]);
         planes[3].d = N.y * p.y + N.z * p.z + N.x * p.x;
     }
     {
-        p = *(ScenePoint*)&(bx[2] * row1) + *(ScenePoint*)&pos_;
+        p = *(ScenePoint*)&(bx[2] * (*(Vec3*)&this->mat[1][0])) + *(ScenePoint*)&this->pos[0];
         Vec3& N = *(Vec3*)planes[4].n;
-        N = row1;
+        N = (*(Vec3*)&this->mat[1][0]);
         planes[4].d = N.y * p.y + N.z * p.z + N.x * p.x;
     }
     {
-        p = *(ScenePoint*)&(bx[5] * row1) + *(ScenePoint*)&pos_;
+        p = *(ScenePoint*)&(bx[5] * (*(Vec3*)&this->mat[1][0])) + *(ScenePoint*)&this->pos[0];
         Vec3& N = *(Vec3*)planes[5].n;
-        N = -row1;
+        N = -(*(Vec3*)&this->mat[1][0]);
         planes[5].d = N.y * p.y + N.z * p.z + N.x * p.x;
     }
 
@@ -173,9 +170,9 @@ int U40A850Body::FUN_0041d7d0(U40A850Body* other, int flag)
     for (i = 0; i < ntris; i++) {
         CTri* t = &tris[i];
         float r2 = (rad + t->r) * (rad + t->r);
-        float dx = cx - t->c[0];
-        float dy = cy - t->c[1];
-        float dz = cz - t->c[2];
+        float dx = cc.x - t->c[0];
+        float dy = cc.y - t->c[1];
+        float dz = cc.z - t->c[2];
         float d2 = dx * dx; d2 = dz * dz + d2; d2 = dy * dy + d2;
         if (*(int*)&d2 <= *(int*)&r2) {
             unsigned int m0, m1, m2;
@@ -210,15 +207,16 @@ int U40A850Body::FUN_0041d7d0(U40A850Body* other, int flag)
     int hits = 0;
     int gen = 1;
     float f = DAT_004e1348 / (FL(this, 0x130) + FL(other, 0x130));
-    float f1 = FL(this, 0x130) * f;
     float f2 = FL(other, 0x130) * f;
+    float f1 = FL(this, 0x130) * f;
     CShape shA, shB;
     for (CTri* A = head; A != 0; A = A->next, gen++) {
         CTri* bt = (CTri*)tm->tris;
+        float* An = A->n;
         float* a0 = (float*)(A->v[0] + 1);
         float* a1 = (float*)(A->v[1] + 1);
         float* a2 = (float*)(A->v[2] + 1);
-        shA.Init(a0, a1, a2, A->n, A->d);
+        shA.Init(a0, a1, a2, An, A->d);
         for (int k = tm->nTris; k != 0; k--, bt++) {
             CTri* B = bt;
             float rr = (B->r + A->r) * (B->r + A->r);
@@ -229,7 +227,7 @@ int U40A850Body::FUN_0041d7d0(U40A850Body* other, int flag)
                 float* b1 = (float*)(B->v[1] + 1);
                 float* b2 = (float*)(B->v[2] + 1);
                 if (shA.Test(b0, b1, b2, B->n, B->d)) {
-                    Vec3 tmp, hit;
+                    Vec3 hit;
                     if ((int)*B->e[0] != gen && shA.Edge(b0, b1, (float*)&hit, (float*)&tmp) < DAT_004e1348) {
                         *B->e[0] = gen;
                         RECORD(DOT2_ZYX)
