@@ -235,7 +235,8 @@ struct QuadPoints {
     HudPoint uvs[2];
     DWORD tint;
     float alpha;
-    QuadPoints(DWORD c) { tint = c; alpha = 1.0f; }
+    QuadPoints() {}
+    void Init(DWORD c) { tint = c; alpha = 1.0f; }
     ~QuadPoints() {}
 };
 
@@ -245,7 +246,7 @@ extern "C" size_t __cdecl FUN_004c2414(const unsigned short* s);   // wcslen
 // Wrapping and draw dispatch are complete; local lifetimes, stack layout and x87 scheduling differ (818 vs 816 bytes).
 // Tried 2026-10-30 night: memcpy(char-count) for the three word copies (now 816 bytes, 141->114 insns differ); memmove/char_traits/std::copy/wcsncpy/<<1/unsigned sizes, all 24 decl orders of positions/uvs/tint/alpha, POD/volatile tint; still differs: original copy is shr ecx,1/rep movsd/adc/rep movsw (we get shr 2/movsb), ColorArg EH state 2 vs original 1, register assignment ebp/ebx swapped.
 // 2026-11-04: FUN_004a94c0 is the dtor of a 0x28-byte quad {HudPoint positions[2]; uvs[2]; tint; alpha} (QuadPoints, ctor sets tint/alpha): 529->371 differing, frame 0x40 and EH states 0,1,2 now match; left: memcpy word form (shr 1/movsd/adc/movsw) and ebx/ebp swap.
-// 2026-11-13 pass: wcslen is FUN_004c2414; the three copies are plain `for (k=start;k<i;k++) DAT_00577bcc[out++]=text[k];` loops with no `if (start<i)` (VC6 turns them into shr1/movsd/adc/movsw): 371 -> 319 bytes differ, 78 -> 17 insns, 818 vs 816 bytes. Left: color loaded before quad ctor (orig after), fcom vs fld/fcomp on word+advance, fadd placement, trailing push.
+// 2026-11-13 pass: wcslen is FUN_004c2414; copies are `for (k=start;k<i;k++) DAT_00577bcc[out++]=text[k];` loops without `if (start<i)` (371 -> 319 bytes); QuadPoints has a no-arg ctor + Init(color) (colour read after ctor) and decl order `int out, start, i` (-> 12 insns differ, 818 vs 816). Left: word-zero store uses esi not ebp, `fcom [mem]` vs `fld st; fcomp` on word+advance (sum temps, inverted conds, ops swaps all no gain), 2 bytes (orig has trailing push -1 = next function?).
 // Tried 2026-11-01 re-pass: wmemcpy/wmemmove/wcsncpy, memcpy(n*2 / n<<1 / unsigned / n+n / char*), 8-byte tint+alpha struct with dtor (837 bytes, 102 insns) or volatile POD tint/alpha in 7 layouts (806-820 bytes), all 6 start/out/i orders; none beat 114 insns differ. Original has tint(0x48)+alpha(0x4c) as dead stores above the arrays, EH state 1 as DWORD store (ours BYTE), i in ebp and out in ebx.
 void WrappedGlyphFont::PrintWrapped(RenderDevice* device, float x, float y,
                                    const unsigned short* text, int flags, float sx, float sy)
@@ -253,8 +254,8 @@ void WrappedGlyphFont::PrintWrapped(RenderDevice* device, float x, float y,
     int n = (int)FUN_004c2414(text);
     if (n) {
         device->vf35((Sprite*)((char*)this + 0x48));
-        QuadPoints quad(color);
-        int start = 0, out = 0, i = 0;
+        QuadPoints quad; quad.Init(color);
+        int out = 0, start = 0, i = 0;
         float line = DAT_004e134c;
         float word = 0.0f;
         for (; i < n; ++i) {
@@ -285,9 +286,9 @@ void WrappedGlyphFont::PrintWrapped(RenderDevice* device, float x, float y,
                     DAT_00577bcc[out++] = 10;
                     line = DAT_004e134c;
                 } else {
-                    line = lw + fa;
                     word = 0.0f;
                     for (int k = start; k < i; k++) DAT_00577bcc[out++] = text[k];
+                    line = lw + fa;
                     DAT_00577bcc[out++] = text[i];
                     start = i + 1;
                 }
