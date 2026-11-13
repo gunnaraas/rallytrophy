@@ -278,6 +278,12 @@ struct LightView {
     int mirror;                        // 0x138
 };
 // A material of the model (node data of the three material lists).
+struct MatName {
+    const char* ptr;
+    int len;
+    BYTE res[8];
+    const char* c_str() const { return ptr ? ptr : ""; }
+};
 struct MatView {
     void* texture;                     // 0x00
     int unk4;                          // 0x04
@@ -295,14 +301,14 @@ struct MatView {
     int f98;                           // 0x98
     int flags;                         // 0x9c
     BYTE unka0[0xa8 - 0xa0];
-    const char* name;                  // 0xa8
-    int fac;                           // 0xac
-    BYTE unkb0[0xb8 - 0xb0];
+    MatName name;                      // 0xa8: std::string-like (ptr, length, reserve)
     int fb8;                           // 0xb8
     int fbc;                           // 0xbc
     int fc0;                           // 0xc0
-    const char* Name() const { return name ? name : ""; }
+    const char* Name() const { return name.c_str(); }
 };
+static inline void Set2f(float* d, float a, float b) { d[0] = a; d[1] = b; }
+static inline void Set3f(float* d, float a, float b, float c) { d[0] = a; d[1] = b; d[2] = c; }
 struct TexView {
     BYTE unk0[0x60];
     int f60;                           // 0x60
@@ -317,6 +323,7 @@ struct TexView {
 // CarString/PtrVec/ModelObject helpers (see the declarations above).
 // Tried 2026-10-30 night: 11 variants moving/scoping `number` (top, before dir, int[10], block-scoped), sized probes, hoisting driverDir; frame is 0x1d8 vs 0x1bc because `number` sits at ebp-0xe4 (below driverDir) while the original has it at -0x70 right under dir, sharing space with later scalars; block scope moves it to the bottom (-0x1e4) with no frame shrink, declaration order has no effect; still 1124 insns differ.
 // Tried 2026-11-01 re-pass: `number` was too big; VC6 sorts large locals to the bottom, so char number[0x28] sat below driverDir and grew the frame by 0x1c; char number[12] (the _itoa max for an int) matches the frame size 0x1bc and the ModelFile slots (1124->1102 insns, 13556 bytes); still differs: number sits at -0x88 not -0x70 (orig has it above the 12-byte Vec3 slots), plus const-store register choice and Bal/inline budget. Block-scoping number or the CarPath temps, driverDir hoisting, int[3] views change nothing.
+// 2026-11-13 pass: 1102 -> 1047 insns differ, 13556 -> 13606 bytes (orig 13705). Material names are a std::string-like sub-object (MatName::c_str(), so VC6 reloads the pointer at each strcmp instead of CSE'ing it into edi); wheel inertia/1-over-inertia through a local float (fld/fst/fdiv st,st(1) shape); setup[2]-indexed copies through Set2f/Set3f inline setters (args evaluated right to left = original's fld/fld/fstp/fstp pairs). Open: setup[2] reloaded between single copies, dead-param slot order (a18/c1c/w/bodyPart), tyreLod base 8 bytes high, 1ec4 |= folded to mov.
 // SYMBOL: ??0CarObject@@QAE@PAVCarTextureCache@@HHHHHI@Z
 CarObject::CarObject(CarTextureCache* a, int b, int c, int d, int e, int f, unsigned int g)
 {
@@ -730,38 +737,30 @@ CarObject::CarObject(CarTextureCache* a, int b, int c, int d, int e, int f, unsi
         wheel[2].touching = 1;
         CF(int, 0x1ec4) |= 1;
     }
-    wheel[0].inertia = CF(float, 0x112c);
-    wheel[0].unk274 = 1.0f / CF(float, 0x112c);
-    wheel[1].inertia = CF(float, 0x112c);
-    wheel[1].unk274 = 1.0f / CF(float, 0x112c);
-    wheel[3].inertia = CF(float, 0x11f0);
-    wheel[3].unk274 = 1.0f / CF(float, 0x11f0);
-    wheel[2].inertia = CF(float, 0x11f0);
-    wheel[2].unk274 = 1.0f / CF(float, 0x11f0);
-    CF(float, 0xcf8) = CF(float, 0x11b8 + setup[2] * 4);
-    CF(float, 0xcfc) = CF(float, 0x11cc + setup[2] * 4);
-    CF(float, 0xd2c) = CF(float, 0x11b8 + setup[2] * 4);
-    CF(float, 0xd30) = CF(float, 0x11cc + setup[2] * 4);
-    CF(float, 0xd94) = CF(float, 0x127c + setup[2] * 4);
-    CF(float, 0xd98) = CF(float, 0x1290 + setup[2] * 4);
-    CF(float, 0xd60) = CF(float, 0x127c + setup[2] * 4);
-    CF(float, 0xd64) = CF(float, 0x1290 + setup[2] * 4);
+    float in1 = CF(float, 0x112c);
+    wheel[0].inertia = in1;
+    wheel[0].unk274 = 1.0f / in1;
+    float in2 = CF(float, 0x112c);
+    wheel[1].inertia = in2;
+    wheel[1].unk274 = 1.0f / in2;
+    float in3 = CF(float, 0x11f0);
+    wheel[3].inertia = in3;
+    wheel[3].unk274 = 1.0f / in3;
+    float in4 = CF(float, 0x11f0);
+    wheel[2].inertia = in4;
+    wheel[2].unk274 = 1.0f / in4;
+    Set2f(&CF(float, 0xcf8), CF(float, 0x11b8 + setup[2] * 4), CF(float, 0x11cc + setup[2] * 4));
+    Set2f(&CF(float, 0xd2c), CF(float, 0x11b8 + setup[2] * 4), CF(float, 0x11cc + setup[2] * 4));
+    Set2f(&CF(float, 0xd94), CF(float, 0x127c + setup[2] * 4), CF(float, 0x1290 + setup[2] * 4));
+    Set2f(&CF(float, 0xd60), CF(float, 0x127c + setup[2] * 4), CF(float, 0x1290 + setup[2] * 4));
     CF(float, 0xcf4) = CF(float, 0x114c + setup[2] * 4);
     CF(float, 0xd28) = CF(float, 0x114c + setup[2] * 4);
     CF(float, 0xd90) = CF(float, 0x1210 + setup[2] * 4);
     CF(float, 0xd5c) = CF(float, 0x1210 + setup[2] * 4);
-    CF(float, 0xd00) = CF(float, 0x1138 + setup[2] * 4);
-    CF(float, 0xd04) = CF(float, 0x1130);
-    CF(float, 0xd08) = CF(float, 0x1134);
-    CF(float, 0xd34) = CF(float, 0x1138 + setup[2] * 4);
-    CF(float, 0xd38) = CF(float, 0x1130);
-    CF(float, 0xd3c) = CF(float, 0x1134);
-    CF(float, 0xd9c) = CF(float, 0x11fc + setup[2] * 4);
-    CF(float, 0xda0) = CF(float, 0x11f4);
-    CF(float, 0xda4) = CF(float, 0x11f8);
-    CF(float, 0xd68) = CF(float, 0x11fc + setup[2] * 4);
-    CF(float, 0xd6c) = CF(float, 0x11f4);
-    CF(float, 0xd70) = CF(float, 0x11f8);
+    Set3f(&CF(float, 0xd00), CF(float, 0x1138 + setup[2] * 4), CF(float, 0x1130), CF(float, 0x1134));
+    Set3f(&CF(float, 0xd34), CF(float, 0x1138 + setup[2] * 4), CF(float, 0x1130), CF(float, 0x1134));
+    Set3f(&CF(float, 0xd9c), CF(float, 0x11fc + setup[2] * 4), CF(float, 0x11f4), CF(float, 0x11f8));
+    Set3f(&CF(float, 0xd68), CF(float, 0x11fc + setup[2] * 4), CF(float, 0x11f4), CF(float, 0x11f8));
     CF(int, 0xd14) = CF(int, 0x11b0);
     CF(float, 0xd18) = CF(float, 0x11b4);
     CF(float, 0xd4c) = CF(float, 0x11b4);
@@ -940,7 +939,7 @@ CarObject::CarObject(CarTextureCache* a, int b, int c, int d, int e, int f, unsi
         if (m->fb8 != -1) {
             m->f98 = 15;
         }
-        if (m->fac) {
+        if (m->name.len) {
             if (strstr(m->Name(), "#E")) {
                 MaterialSprite* tmp = (MaterialSprite*)m;
                 ((PtrVectorOps*)&vec1bcd4)->Insert(vec1bcd4.end(), 1, &tmp);
