@@ -86,6 +86,7 @@ inline void CrossAsm(float* o, const float* a, const float* b)
 // NONMATCHING: Xform (this+0x15c) and cross-product x87 blocks now inline asm like the original (shape matches); frame already matched; first loop/EH-state structure and slot allocation still differ (1719 of 1861 bytes, 1634 differing).
 // Tried 2026-10-30 night: 17 variants (function-scope Vec3 for EH state 1, v write-back in loop 1, Vec3 copies of n/v/imp/pt, n passed as *(Vec3*)c->n, dot/decl/loop-form changes) only moved 393 to 387-402 insns; original keeps loop-1 accumulators on the FPU stack, copies n/v/imp/pt through Vec3 temps (EH states 5,7,0xa) and is 185 bytes larger, needs a whole-function Vec3-operator rewrite.
 // Tried 2026-11-01 re-pass: fixed dot/pen/denominator/lp/ln/torque sums and the spd data (imp, not v) to the original's fadd order and fields, n passed as c->n; 10 more loop-1 v-copy/writeback variants (Vec3 copies, int-routed v1/v2, holder Vec3, volatile reads) stayed at 379-393 insns; still needs the whole-function Vec3 rewrite (built 1677 vs 1861 bytes).
+// Tried 2026-11-13 pass: kept neg.y = neg.z = DAT and lp/ln as constructed Vec3(x,y,z) (397 -> 385 insns, 1732 -> 1727 bytes); r2/j as Vec3 copy of pt/n then scaled in place gives bigger size (1749-1755) but 408+ insns; rejected loop-count forms (i = cnt; i--), k<cnt loop 2, Vec3 copy of v, unsigned/int/float-compare tests on dot, k134c local (all 393-404 insns).
 void U40A850Body::FUN_0041fc60(void* stage, void* unused)
 {
     unsigned cnt = *(unsigned*)((char*)this + 0x23c);
@@ -95,7 +96,7 @@ void U40A850Body::FUN_0041fc60(void* stage, void* unused)
     ImpStage* st = (ImpStage*)stage;
     Vec3 pos, neg;
     pos.x = 0.0f; pos.y = 0.0f; pos.z = 0.0f;
-    neg.x = 0.0f; neg.y = DAT_004e134c; neg.z = DAT_004e134c;
+    neg.x = 0.0f; neg.y = neg.z = DAT_004e134c;
     float thresh = (st == 0) ? 1000.0f : F(st, 0x1080);
     ImpContact* base = *(ImpContact**)((char*)this + 0x238);
     ImpContact* c = base;
@@ -158,15 +159,14 @@ void U40A850Body::FUN_0041fc60(void* stage, void* unused)
         if (st != 0) {
             float spd = c->n[1] * c->imp[1]; spd = c->n[0] * c->imp[0] + spd; spd = c->n[2] * c->imp[2] + spd; spd = -spd;
             if (thresh < spd) {
-                Vec3 d(*(Vec3*)c->pt), lp;
+                Vec3 d(*(Vec3*)c->pt);
                 d.x -= F(this, 0x14); d.y -= F(this, 0x18); d.z -= F(this, 0x1c);
-                lp.x = d.z * F(this, 0x28) + d.y * F(this, 0x24) + d.x * F(this, 0x20);
-                lp.y = d.z * F(this, 0x38); lp.y = d.y * F(this, 0x34) + lp.y; lp.y = d.x * F(this, 0x30) + lp.y;
-                lp.z = d.z * F(this, 0x48); lp.z = d.y * F(this, 0x44) + lp.z; lp.z = d.x * F(this, 0x40) + lp.z;
-                Vec3 ln;
-                ln.x = F(this, 0x24) * c->n[1] + F(this, 0x28) * c->n[2] + c->n[0] * F(this, 0x20);
-                ln.y = F(this, 0x34) * c->n[1]; ln.y = F(this, 0x38) * c->n[2] + ln.y; ln.y = c->n[0] * F(this, 0x30) + ln.y;
-                ln.z = F(this, 0x44) * c->n[1]; ln.z = F(this, 0x48) * c->n[2] + ln.z; ln.z = c->n[0] * F(this, 0x40) + ln.z;
+                Vec3 lp(d.z * F(this, 0x28) + d.y * F(this, 0x24) + d.x * F(this, 0x20),
+                        d.x * F(this, 0x30) + (d.y * F(this, 0x34) + d.z * F(this, 0x38)),
+                        d.x * F(this, 0x40) + (d.y * F(this, 0x44) + d.z * F(this, 0x48)));
+                Vec3 ln(F(this, 0x24) * c->n[1] + F(this, 0x28) * c->n[2] + c->n[0] * F(this, 0x20),
+                        c->n[0] * F(this, 0x30) + (F(this, 0x38) * c->n[2] + F(this, 0x34) * c->n[1]),
+                        c->n[0] * F(this, 0x40) + (F(this, 0x48) * c->n[2] + F(this, 0x44) * c->n[1]));
                 st->AddContact(&lp.x, &ln.x, spd);
                 if (F(this, 0x240) < spd * inv) {
                     F(this, 0x25c) = c->n[0];
