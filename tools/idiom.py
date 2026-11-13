@@ -210,7 +210,7 @@ def lookup_hunks(address, n, k):
 def grep(pattern, context, k, window):
     """Instructions matching PATTERN; `a;b;c` means three consecutive instructions matching a, b and c.
     With -w N the pattern is one regex over N consecutive instructions joined by newlines, so a group
-    can tie registers across instructions: `lea\s+(e..),.*\nmov\s+e..,\1$`."""
+    can tie registers across instructions: lea\\s+(e..),.*\\nmov\\s+e..,\\1$ ."""
     corpus = load()
     rxs = [re.compile(p) for p in pattern.split(";")] if not window else [re.compile(pattern, re.M)]
     width = window or len(rxs)
