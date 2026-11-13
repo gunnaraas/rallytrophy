@@ -153,6 +153,7 @@ void WindowRain::vf6(RenderDevice* device, Camera* camera, int unused)
 // 955 vs 955 bytes; 72 -> 36 insns differ (cursor/idiom pass 2026-11-01).
 // Tried 2026-10-30 night: dy as a local, int copy of the vertex into a Vec3* w = &s->world (gets the ecx=&world.z base, frame size now matches; 127->72 insns); separate angle pointers, store reorders, indexed spots[j] did not add the original second induction pointer (edx=s) or its imm 100.0 stores; bounds-copy register rotation still differs.
 // Tried 2026-11-01: cursor float* cz=&s->world.z re-derived in the for-increment (keeps edx=s and ecx separate), dy declared after the right/up constant stores, drops loop as indexed dr=&drops[j]; 72->36 insns, size 955 matches. Left: bounds-copy register rotation (orig starts eax, ours edx; bounds.w/struct copy/vmd/reverse order no help), zero/imm store order in loop, add ecx,0x2c vs lea ecx,[edx+0x10]; volatile barriers on cz stores only reach 34.
+// Pass 2026-11-13: for-increment `cz = &(s + 1)->world.z, s++, src++` (8 -> 7 insns differ, 45 -> 41 bytes). ~120 store-order permutations, loop-init placement, `cz += 11`/char* strides (949 bytes), `cz += 0` tried: no better.
 void WindowRain::Init(RainScene* scene)
 {
     int i = 0;
@@ -210,7 +211,7 @@ void WindowRain::Init(RainScene* scene)
     float* cz = &s->world.z;
     Vec3* src = md->vertices;
     int j;
-    for (j = 0; j < n; j++, s++, src++, cz = &s->world.z) {
+    for (j = 0; j < n; j++, cz = &(s + 1)->world.z, s++, src++) {
         cz[-2] = src->x; cz[-1] = src->y; cz[0] = src->z;
         cz[3] = 0.0f;
         cz[6] = 0.0f;
