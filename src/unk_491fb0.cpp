@@ -217,14 +217,6 @@ void RaceSession::DrawCountdown(RaceMode* mode)
 // The 4x4 identity matrix the session passes to the car placement (0x45cc30);
 // built inline, with an empty destructor (EH state 0 of the loop).
 struct IdentityMatrix {
-    IdentityMatrix()
-    {
-        m[3] = m[2] = m[1] = 0.0f;
-        m[7] = m[6] = m[4] = 0.0f;
-        m[11] = m[9] = m[8] = 0.0f;
-        m[14] = m[13] = m[12] = 0.0f;
-        m[15] = m[10] = m[5] = m[0] = 1.0f;
-    }
     ~IdentityMatrix() {}
     float m[16];
 };
@@ -261,13 +253,12 @@ inline void SetViewColor(RaceDeviceSlots* device, float x, float y, float z)
 // are counted in the 5605 listed size (tables at 0x494c38 / 0x494c4c follow the code).
 // Tried 2026-10-31: ~30 variants, 597->534 insns differ: one shared `if (awards) state = 8;` after the single/loop award branches (597->551), state 1 as switch(r) (->540), first=0 before SetVolume in its -2/-1 arms (->534). Frame (0x204) already matches; declaration order of locals has no effect on slots (usage-count driven), so quit/result, wait/accum, phase/timer/ringIndex slots stay swapped; state 9 as switch and arm reorders did not help; orig keeps per-arm SetVolume/first=0 tails and interleaves quit/result stores between push 0x7f and the call.
 // Tried 2026-11-01 re-pass: Bal(1) 0-3 at start x 0-3 at end (no effect, no std::string inlining here), volatile self, volatile m_view target/local/quit stores, zero-local z, local decl reorders (all 534-557 insns differ, built 5696 vs 5672); the ~534 differing insns are structural (state-1/9 ladder copies, slot order), not scheduling.
+// Pass 2026-11-13: 548 -> 496 insns differ, 5724 -> 5672 bytes (size now exact). IdentityMatrix ctor-less + stores inline (EH state before the stores), states 1/9 as 3-case switch (1,-2,-1,default so VC6 emits a compare chain) , ringIndex before memset, m_view stores after the car loads. Remaining: slot order (quit/result, wait/accum/phase/timer), register choice (eax/cl vs ecx/al for m_active loads), IsJoined edi pre-load.
 int RaceSession::FUN_00493650(int demo)
 {
     int quit = 0;
     int result = 1;
     int wait = 0;
-    m_view->target = 0;
-    m_view->local = 1;
     Car* car = m_car;
     DAT_00508db4 = car->unkff4;
     DAT_00508db8 = car->unkff8;
@@ -275,8 +266,15 @@ int RaceSession::FUN_00493650(int demo)
     DAT_00508d94 = car->unk1000;
     DAT_00508d98 = car->unk1004;
     DAT_00508d9c = car->unk1008;
+    m_view->local = 1;
+    m_view->target = 0;
     m_view->FUN_00458150(car->unk100c);
     IdentityMatrix world;
+    world.m[1] = world.m[2] = world.m[3] = 0.0f;
+    world.m[4] = world.m[6] = world.m[7] = 0.0f;
+    world.m[8] = world.m[9] = world.m[11] = 0.0f;
+    world.m[12] = world.m[13] = world.m[14] = 0.0f;
+    world.m[0] = world.m[5] = world.m[10] = world.m[15] = 1.0f;
     car->FUN_0048e660();
     car->FUN_0045cc30(Vec3(0.0f, 5.0f, 3.0f), (struct IdentityMatrix*)&world);
 
@@ -299,9 +297,9 @@ int RaceSession::FUN_00493650(int demo)
     DEVICE->Slot42(4);
     DEVICE->Slot23(1.0f);
 
+    int ringIndex = 0;
     float ring[8];
     memset(ring, 0, sizeof(ring));
-    int ringIndex = 0;
     DAT_0056b0bc->ClearKeys();
     Player* local = m_mode->m_localPlayer;
     m_unk34->unk0 = local->unk24;
@@ -822,18 +820,6 @@ int RaceSession::FUN_00493650(int demo)
                         }
                         int r = m_mode->FUN_00489300(first);
                         switch (r) {
-                        case -2:
-                            quit = 1;
-                            result = -2;
-                            first = 0;
-                            DAT_0056b0b0->SetVolume(0x7f);
-                            break;
-                        case -1:
-                            quit = 1;
-                            result = -1;
-                            first = 0;
-                            DAT_0056b0b0->SetVolume(0x7f);
-                            break;
                         case 1:
                             m_unk34->FUN_00458940();
                             m_unk18 = 0;
@@ -841,18 +827,26 @@ int RaceSession::FUN_00493650(int demo)
                             if (demo) {
                                 quit = 1;
                                 result = 1;
-                                DAT_0056b0b0->SetVolume(0x7f);
-                                first = 0;
-                            } else {
-                                DAT_0056b0b0->SetVolume(0x7f);
-                                first = 0;
                             }
+                            DAT_0056b0b0->SetVolume(0x7f);
+                            first = 0;
                             break;
-                        case 0:
+                        case -2:
+                            quit = 1;
+                            result = -2;
+                            DAT_0056b0b0->SetVolume(0x7f);
+                            first = 0;
+                            break;
+                        case -1:
+                            quit = 1;
+                            result = -1;
+                            DAT_0056b0b0->SetVolume(0x7f);
                             first = 0;
                             break;
                         default:
-                            DAT_0056b0b0->SetVolume(0x7f);
+                            if (r != 0) {
+                                DAT_0056b0b0->SetVolume(0x7f);
+                            }
                             first = 0;
                             break;
                         }
@@ -864,17 +858,8 @@ int RaceSession::FUN_00493650(int demo)
                         }
                         m_unk18 = 0;
                         int r = m_mode->PauseMenu(first, DAT_00565500);
-                        if (r == -2) {
-                            quit = 1;
-                            result = -2;
-                            DAT_0056b0b0->SetVolume(0x7f);
-                            first = 0;
-                        } else if (r == -1) {
-                            quit = 1;
-                            result = -1;
-                            DAT_0056b0b0->SetVolume(0x7f);
-                            first = 0;
-                        } else if (r == 1) {
+                        switch (r) {
+                        case 1:
                             m_unk34->FUN_00458940();
                             m_unk18 = 0;
                             state = 0;
@@ -884,11 +869,25 @@ int RaceSession::FUN_00493650(int demo)
                             }
                             DAT_0056b0b0->SetVolume(0x7f);
                             first = 0;
-                        } else if (r == 0) {
-                            first = 0;
-                        } else {
+                            break;
+                        case -2:
+                            quit = 1;
+                            result = -2;
                             DAT_0056b0b0->SetVolume(0x7f);
                             first = 0;
+                            break;
+                        case -1:
+                            quit = 1;
+                            result = -1;
+                            DAT_0056b0b0->SetVolume(0x7f);
+                            first = 0;
+                            break;
+                        default:
+                            if (r != 0) {
+                                DAT_0056b0b0->SetVolume(0x7f);
+                            }
+                            first = 0;
+                            break;
                         }
                         break;
                     }
