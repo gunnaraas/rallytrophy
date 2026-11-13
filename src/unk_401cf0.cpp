@@ -41,8 +41,9 @@ struct MsgError : std::exception {                   // std::logic_error layout:
     MsgError(const MsgStr& s) : std::exception(""), str(s) {}
     virtual ~MsgError();
     struct Copy {
-        Copy(const MsgStr& x) : alloc(x.alloc) { ptr = 0; len = 0; res = 0; Assign(x, 0, std::string::npos); }
+        Copy(const MsgStr& x) : alloc(x.alloc) { ptr = 0; len = 0; res = 0; Tidy(false); Assign(x, 0, std::string::npos); }
         ~Copy();
+        void Tidy(bool built);                       // 0x402700
         Copy& Assign(const MsgStr& x, unsigned int pos, unsigned int n);   // 0x4024f0
         std::allocator<char> alloc;
         char* ptr;
@@ -55,6 +56,7 @@ struct MsgError : std::exception {                   // std::logic_error layout:
 // in a slot and re-reads `frames` for every allocation) and the frame layout (0x48 vs 0x40).
 // Tried 2026-10-30 night: LoadBal(1) inline-budget calls N=2..20 (no effect: Tidy/Grow/_Xlen/Assign are already calls here, the string is not the cause); volatile `frames` reads (hoisting `new MV[fr]` size and `nf` via `*(volatile int*)&frames` -> 1207 bytes, count loop and prologue then match but 234 insns differ); count/pp/k loop-form variants. Still differs: this/file registers (esi/edi in original, `this` spilled at [esp+0x18]), pp[k] not strength-reduced in original (index + [esp+0x1c]), second-loop temporaries in stack slots, EH-state store position inside the message string build, frame 0x48.
 // Tried 2026-11-01 re-pass: 20 variants (MeshSetLoader* volatile self with frames re-read via self for nf and both new MV[] sizes, volatile pp, count = count + t temp, nf via volatile pointer, elems re-read, decl order); best 1209 vs 1213 bytes, 227 insns differ (from ~235), not within permuter range; prologue (fs:0 load after the pushes), esi/edi roles and the 0x48 frame still differ.
+// Pass 2026-11-13: MsgError::Copy calls Tidy(false) before Assign (the original's _Tidy + assign pair); MSSub* local per subs[i] in both vertex loops (236 -> 200 insns differ, 1186 -> 1183 bytes). 25 variants of frames/nf/pp/count/elems forms gave nothing more.
 void MeshSetLoader::Load(MSModelFile* file)
 {
     frames = file->parts.size();
@@ -83,8 +85,9 @@ void MeshSetLoader::Load(MSModelFile* file)
         }
         MeshElem* e = el;
         for (i = 0; i < sl->subs.size(); i++) {
-            MSVert* v = sl->subs[i]->verts;
-            int m = sl->subs[i]->n;
+            MSSub* sb = sl->subs[i];
+            MSVert* v = sb->verts;
+            int m = sb->n;
             for (; m > 0; m--) {
                 e->dst = (float*)v;
                 e++;
@@ -109,8 +112,9 @@ void MeshSetLoader::Load(MSModelFile* file)
                 MSSubList* s = p->meshes.At(0);
                 MeshElem* d = el;
                 for (i = 0; i < s->subs.size(); i++) {
-                    float* v = (float*)s->subs[i]->verts;
-                    int m = s->subs[i]->n;
+                    MSSub* sb = s->subs[i];
+                    float* v = (float*)sb->verts;
+                    int m = sb->n;
                     if (m > 0)
                         do {
                             MeshVec* a = &d->a[idx];
