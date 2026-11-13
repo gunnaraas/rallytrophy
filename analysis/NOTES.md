@@ -476,3 +476,6 @@ followed by M calls to an inline function:
   original's `fld [const]; fmul [local]` order and stop folding of `25 + 575` (0x421fa0).
 - Unexplained: in 0x411600 the score moves with the number of unused `__forceinline` helpers defined in the file
   (0, 2 -> 124 insns; 1, 3 -> 127; 4 -> 121). Same family as the winmain declaration-count flip; not used.
+- FillCells 0x40f390: the inline-asm RoundF costs register allocation (plain casts free esi/edi/ebx but call
+  __ftol, which the original lacks). `/QIfist` on the cast form does not reproduce the original either (2128 bytes
+  vs 2101 without); how the original rounds inline without asm demoting registers is open.
