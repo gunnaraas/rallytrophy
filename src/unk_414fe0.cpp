@@ -363,7 +363,8 @@ struct PlaceRec {
 
 __forceinline const char* CS(PlaceStr* s) { return s->ptr ? s->ptr : ""; }
 
-// NONMATCHING: RALLYTROPHY 0x4150b0
+// FUNCTION: RALLYTROPHY 0x4150b0
+// 2026-11-18: MATCH. pd declared after the scale (store lands one gap early), then `double inv = 1.0f / len; rec->dir *= (float)inv;` moves it one gap later = original.
 // 2026-11-17 (Claude): dst before ext.x (all 120 orders of the five setup statements tried) and pd declared before the scale: 1 insn left - the pd slot store is hoisted into the dir -= start block (orig: after fmul [eax+4]). pd via a ScaleRet helper, SetP helper, decl/assign splits, inv local: no better.
 // Tried 2026-10-31: CS() forceinline helper (reloads the name pointer), no pos local, ext.z before ext.y, n+1 temp: 72 -> 31 insns.
 // Tried 2026-10-31 re-pass: ~30 variants (ext init order, brace init, pos/dir copy forms, Length as named double/temps, n+1 forms, inline-order); only pos copy via PlaceVec* p/q helped, 31 -> 29. Remaining: inlined-asm arg slot order, dir copy via mov ecx,eax, ext.y/z kept on FPU across Length.
@@ -400,9 +401,10 @@ void StageSounds::FUN_004150b0(PlaceObj* o)
     rec->dir -= rec->start;
     float len = rec->dir.Length();
     rec->length = len;
-    float* pd = &rec->dir.x;
-    rec->dir *= 1.0f / len;
+    double inv = 1.0f / len;
+    rec->dir *= (float)inv;
     PlaceVec up;
+    float* pd = &rec->dir.x;
     float* pu = &up.x;
     up.x = 0.0f;
     up.y = 1.0f;
