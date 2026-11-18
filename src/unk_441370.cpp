@@ -3809,6 +3809,9 @@ public:
 // Inlining depth 2: depth 1 kept the by-value RallyInfo name/description copies out of line (nested copy ctor = depth 2).
 #pragma inline_depth(2)
 // NONMATCHING: RALLYTROPHY 0x443790
+// 2026-11-18 r3: ~18 more on the scaleX/scaleY load order (ny-before-nx, grouped/swapped stores, double oldX/oldY/products, int copy for restore, oldY-first): none below the current 4 bytes; int-copy restore and double oldY change size.
+// 2026-11-18 r2: `double yd = TSE_LISTY * sy; float y = (float)yd;` fixes the esi/ebp reload hunk (raw 6 -> 2). Remaining: scaleX/scaleY load order; double/accumulator/const-first forms of nx/ny all worse (4-10).
+// 2026-11-18: ~25 more compiles, none below 6 raw lines (3 insns): int-typed oldX/oldY views (+560 lines, size shifts), HudPoint struct copy (+300), oldY-first (12), y init commuted/split/temp, sel-before-x, i hoist, text/this touch after DrawRallyV: no change on the esi/ebp reload order or eax/ecx order.
 // 2026-11-16 round 11: inline getters for scaleX/scaleY, earlier oldY reads, a refetch of text through a helper after DrawRallyV and accumulator/commuted y forms: none below 3 insns.
 // 2026-11-16 (F8, ~140 variants): `float ny = 0.85f; ny *= oldY;` (accumulator, constant first) 4 -> 3 insns (10 -> 8 bytes; fixes the lea-after-fmul hunk). No gain: accumulator/const-first forms of nx, LISTY y, NAMEX/NAMEY (b1-b3 add 4 bytes), read-both-first orders, y hoisted before DrawRallyV/DrawTrackBook. Left: esi/ebp reload order after DrawRallyV, eax/ecx order of scaleX/scaleY loads.
 // 2026-11-16 (F2): still 4 insns / 10 bytes. Tried oldY-first/oldX-first read orders (7-27 insns), colour-first/last, m_selected cached, y/i hoists, cond swap, text alias after DrawRallyV, tools/reorder.py (49 orders): none beat 4 insns.
@@ -4027,7 +4030,8 @@ int TrackSelectMenu::Run()
             text->SetScale(DAT_0056aea8, DAT_0056aeac);
             DrawTrackBook();
             ((TSE_View*)this)->DrawRallyV(*(TSE_RallyInfo*)&rally[curRally]);
-            float y = TSE_LISTY * sy;
+            double yd = TSE_LISTY * sy;
+            float y = (float)yd;
             for (int i = 0; i < 4; i++) {
                 if (DAT_00501464 < 2 && i == 1) {
                     y = TSE_STEP * sy + y;

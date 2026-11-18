@@ -859,3 +859,22 @@ address add (c2.dll, the routine that builds `[base+index]`), instead of more so
   shows 96 raw lines for ONE real hunk (2 bytes early). Count the hunks, not the lines, before ranking.
 - A by-value `SinCos(float a, float& s, float& c)` helper does not lower the angle's slot rank (UpdateSteering: no slot
   moved); merging two disjoint scratch floats into one variable does move the homes but changes the size.
+
+## The double-temp lever on last-instruction residuals (2026-11-18, iteration 6; matched StageSounds 0x4150b0)
+
+- When ONE int instruction (a pointer local's home store, a reload after a call) sits one x87 gap too EARLY, compute
+  the neighbouring float expression in a `double` local and store it through a `(float)` cast:
+  `double inv = 1.0f / len; v *= (float)inv;` (StageSounds, match) and `double yd = K * sy; float y = (float)yd;`
+  (TrackSelectMenu::Run, reload order after a call fixed). The x87 instructions do not change. The one-expression
+  product form works; accumulator-style doubles (`yd = sy; yd *= K`) and doubles on the wrong operand do not.
+- Combine it with moving the int's source statement: declaring the pointer local AFTER the float statement put its
+  store one gap early, the double then moved it into place. Neither change alone matched.
+- A statement written before a function-static's declaration sinks past the guard test to just before its `jne`
+  (store-placement rule), and the guard byte load still hoists: Car 0x454d10's original order is scale, then
+  `static axis`.
+- A pointer local declared after the inline helper that stores through the same object puts its home store after the
+  member stores (0x454d10 H3).
+- `fld st(0); fmulp st(1),st` for a square (0x454d10, AIDriver 0x49f1f0) is still unreproduced: mixed local/member
+  products, copy locals, doubles and accumulators all give `fmul [mem]` or `fmul st,st(1)`.
+- Helpers in budget-padded functions: a new `__forceinline` helper costs about one unit of inline budget; raise the
+  trailing `Bal(1)` count (ReadMesh: 5 -> 6 or more restores the string-function shape) before judging the helper.

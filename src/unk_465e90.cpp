@@ -295,9 +295,10 @@ static __forceinline void Put3(float* d, const TyreF3& r, const float* k)
 static __forceinline void Put3x(float* d, const TyreF3& r, const float* k)
 {
     *(int*)&d[0] = r.i[0];
-    { float c_ = k[0]; d[0] = c_ * d[0]; }
+    float v0 = k[0] * d[0];
     *(int*)&d[1] = r.i[1];
     *(int*)&d[2] = r.i[2];
+    d[0] = v0;
     { float c_ = k[1]; d[1] = c_ * d[1]; }
     { float c_ = k[2]; d[2] = c_ * d[2]; }
 }
@@ -317,6 +318,7 @@ static __forceinline void Put2x(float* d, const TyreF2& r, const float* k)
     { float c_ = d[1]; d[1] = k[1] * c_; }
 }
 // NONMATCHING: RALLYTROPHY 0x465e90
+// 2026-11-18: Put3x holds the x[0] product in a local (`float v0 = k[0]*d[0]; copy1; copy2; d[0] = v0;`): x[0] fstp now precedes the next lea; raw 4 -> 2 lines (1 insn: copy1/copy2 stores swapped, ours copy2 first). No change from: double temp + (float) cast (worse 12-26), x0 store helper, named/by-value temp, Bal(1) 3/6/9, copy-order/scale-order permutations (all >= 2, mostly worse).
 // 2026-11-17 (Claude): zFriction through Put2x (copy0, k-first scale0, copy1, d-first scale1): 4 -> 2 insns. Left: x[0] fstp after the next GetVector2 temp lea in ours (orig stores first); all 90 legal Put3x statement orders and a Put2c helper for c: no change.
 // 1649 vs 1644 bytes. Strings (PathString: out-of-line _Tidy, inline assign), the nine key-template copies, the
 // digit patching and the per-surface fld/fmul/fstp sequence match; open: the induction pointer is biased to record+0x10
