@@ -471,6 +471,7 @@ fail:
 // 2026-11-16 r25: `in += 0x28` before the AI stats copy-out, `s` alias hoisted above the size test in buffer blocks 1/2, player stats loop through `int t = vt[k]` (128 -> 119 insns, 1270 -> 1281 bytes; failure exits still merge, 3 separate epilogues = the 40 byte gap).
 // 2026-11-16 r28: block 0 as `int n = s->size[0]` (test/new/memcpy) with `in += s->size[0] * 4` reloaded, `int u8 = unk8c` before the flags store, level/stage stores hoisted (DAT_00501464 = 1; DAT_0050132c = ...->level before the rally/stage loads): 75 -> 31 insns, 1317 -> 1320 bytes. Left: tail level load uses eax not ecx (mov eax,1 order) and the frame is 4 bytes smaller (0x50 vs 0x54).
 // 2026-11-16 r30 (no gain, 31 insns/1320 bytes): tail eax/ecx unchanged by `one` local, level local, `return DAT_00501472`, chain assignment, r=1 reuse; cipher at function scope/top (72-75 insns), race hoisted before cipher (53-64), cipher scope widened over memcpy/in (89 insns) all worse. Orig EH: cipher shares its slot with later buffer1 temp; orig has 3 temp slots (-60,-56 cipher,-52) where ours has 2.
+// 2026-11-18: ~25 slot/tail variants, no gain (14 norm lines, frame 0x44 vs 0x48 stays): per-block new alias (p=new;member=p) on blocks 0/1/2 and combos (22-146 insns, worse), cipher unscoped/words local, player/loop/AI temp forms, return DAT=1 / one local / level local before delete[].
 int SlotStore::LoadRelay()
 {
     DAT_00501472 = 0;

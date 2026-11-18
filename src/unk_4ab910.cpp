@@ -268,6 +268,8 @@ static __forceinline void ClampChannel(float& v)
 // Tried 2026-11-01 re-pass: 4 j=ix+(ix<w-1) forms (if/else, ++, int k; 160-196 worse) and 6 hi/lo clamp-local declaration orders (140-142, no gain); remaining 140 insns are slot allocation of hi/lo/weights, sum order and hoisted y-loop regs, too many for local edits.
 // Tried 2026-11-01 Bal sweep: Bal(1) x0-12 at start crossed with end 0,1,2,3,4,6 (77 variants) all identical 140 insns/1074 bytes (no std::string in this function, so no inline budget to move); sum order c3..c0 with 7 hi/lo declaration orders, and 24 weight declaration permutations (151+ worse, 1067 bytes): no gain; original stores w0->-8,w1->-0x14,w2->-0x1c with w3 on the x87 stack and sums terms in w3,w2,w1,w0 order.
 // 2026-11-16 pass: sums c3..c0, branch 'one' + byte-offset j4=(ix+one)<<2 for c1/c3, dst via img->pixels (140 -> 4 normalised hunk lines, 1085 vs 1080); left: y-loop head reloads edi=height (orig restores it with mov edi,ecx at the loop tail).
+// 2026-11-18: y-loop edi reload unchanged (4 lines, 1085) by: do/while+guard, goto loop, while loop, hh/H copy in cond or body or everywhere, register h, rows countdown, height>y, y++, y declared outside, extra height use; hm=height-1 with y<=hm 54 worse.
+// 2026-11-18 round 2 (slot order): 256 variants of 'blue=lo0/hi0' assigned-from-local (extra refs) = identical code (const-folded); 24 hi-perms, 24 lo-perms, 24 c0..c3 declaration orders: raw insdiff never below 216 (c orders worse, up to 410).
 void __fastcall FUN_004ac920(ImgW5* img, int edx, unsigned int width, unsigned int height, unsigned int format)
 {
     struct PxQ { unsigned char b,g,r,a; };

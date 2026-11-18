@@ -1761,25 +1761,30 @@ static __forceinline float Len(AiVelocity v) { return (float)sqrt(v.z * v.z + v.
 // 2026-11-17: 58 -> 53 insns (496 bytes vs 522; insdiff 114 -> 104 lines): a from float locals ax/ay + by-value Len(a) (a.x stays on the FPU
 // as in the original); b side now matches. Residual: original loads a.y via fld and stores it twice ([34], temp [14]) and a.z via int to
 // [38] then [10]; ours moves y with ints. Older tries: x*x temps, double y/z locals, sqrt(expr), ref copies, Len for b too (514 bytes).
+// 2026-11-18: 64 -> 41 insdiff lines (534 bytes): Player* me=player then other->car (prologue order matches); AiVelocity t=a; t.y=ay before Len(t) (y fld'd, stored twice); q1 uses a.y.
+// Round 2: chained t.y = a.y = ay = 43 lines/+7 bytes; Sq/Len2 helpers for distance, b-copy reorders, Len term orders, unshared ax: no gain (43-53).
 int AIDriver::FUN_0049f1f0(Player* other)
 {
     int result = 0;
-    Car* theirs = other->car;
     AiVelocity offset;
-    ((S414Vec3*)&((CarBodyV*)theirs->body)->position)->Sub(&offset.x, (float*)&((CarBodyV*)player->car->body)->position);
+    Player* me = player;
+    Car* theirs = other->car;
+    Car* mine = me->car;
+    ((S414Vec3*)&((CarBodyV*)theirs->body)->position)->Sub(&offset.x, (float*)&((CarBodyV*)mine->body)->position);
     offset.y = 0;
-    float distance = (float)sqrt(offset.x * offset.x + offset.z * offset.z);
+    float dz = offset.z; float dx = offset.x;
+    float distance = (float)sqrt(dz * dz + dx * dx);
     float closeness = 15.0f - distance;
     if (closeness < DAT_004e1348) {
         closeness = 1.0f;
     }
-    float* va = player->car->body->velocity;
+    float* va = me->car->body->velocity;
     float ax = va[0]; float ay = va[1]; AiVelocity a; a.y = ay; a.z = va[2]; a.x = ax;
     AiVelocity b = *(AiVelocity*)theirs->body->velocity;
-    float speed1 = Len(a);
+    AiVelocity t = a; t.y = ay; float speed1 = Len(t);
     float speed2 = b.Length();
     float ratio = speed1 / speed2;
-    float q1 = ay * ay + a.z * a.z + ax * ax;
+    float q1 = a.y * a.y + a.z * a.z + ax * ax;
     float q2 = b.y * b.y + b.z * b.z + b.x * b.x;
     if (q1 * 2.5f > q2 || other->local && distance < 12.0f && q1 * 1.5f > q2) {
         result = 1;

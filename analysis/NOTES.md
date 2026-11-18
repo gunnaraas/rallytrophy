@@ -798,3 +798,18 @@ holder twin and on a class derived from the real string with the real fields (`#
 same 10 bytes; plain `path = dir; path += "x";` statements expand all eight appends (3805 bytes), one inline helper
 called eight times expands too few (3540). Next step with a real chance: read how c2 orders the operands of an
 address add (c2.dll, the routine that builds `[base+index]`), instead of more source variants.
+
+## Inline by-value members keep stores and FPU values (2026-11-18; matched ViewFrustum::Init 0x4ba620)
+
+- When the original STORES components of a local vector that our build keeps on the x87 stack (`fstp [m]` / `fst [m]`
+  missing on our side) and squares a value with no multiply that produced it (`fld st(2); fmul st,st(3)` for z*z), the
+  local is an object whose INLINE MEMBERS do the work: a ctor taking floats, `operator*=(float s)` scaling all three
+  components, and an inline length. The this-pointer makes the object address-taken, so every component statement
+  stores; a component initialised to 1.0f and scaled folds to the scale itself (`z = 1.0f; z *= f` -> f).
+- The length's term order is not free: `float l = y*y + z*z; return l + x*x;` matched; `y*y + z*z + x*x` and
+  `x*x + y*y + z*z` in one expression gave 10 lines, a three-statement `l +=` chain 15.
+- A dead store to a parameter that the original keeps in memory (`mov [param],0`, read back later) can be written
+  through an existing alias of that slot (PauseMenu: `float& y = *(float*)&reset; y = 0.0f;`), which the compiler
+  cannot fold; no volatile needed.
+- `insdiff --norm` hides frame offsets: a function at "4 lines" can still have its whole frame permuted (FUN_004ac920:
+  216 raw lines). Check the raw diff before calling something a near miss.

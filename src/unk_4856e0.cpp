@@ -2341,6 +2341,7 @@ extern float DAT_0057ba00, DAT_0057ba04;   // mouse position
 extern int DAT_0057ba20, DAT_0057ba24;     // left / right button pressed
 
 // NONMATCHING: RALLYTROPHY 0x48cf80
+// 2026-11-18: `float& y = *(float*)&reset;` at function top and the dead store written `y = 0.0f;` (was `reset = 0;`) keeps the zero in the parameter slot and `enter` reads it back: 23 -> 7 insdiff lines, exact size 2145. Left: the delta chain keeps the constant 1 in ecx (orig `mov ecx,1; cmp eax,ecx; ... mov eax,ecx; mov [24c],ecx`); ~28 forms (separate arms 12, switch 8, `unk24c = delta` tails 7-12, ternary 130) either lose the shared tail or get no register.
 // Tried 2026-11-01 re-pass: result declared first (fixes prologue + EH state stores), delta chain as goto-shared tail, y step through two temps (fixes fld order) cut the diff from about 216 to 21 diff lines (about 10 insns). Still differs: dead reset=0 store plus enter read from that slot (any volatile access of reset blows regalloc, folded otherwise), mov ecx,1 constant register in the delta chain, the byte copy of noRestart / EH temp in the noRestart slot (ours uses reset slot). permute -r 40: no match.
 // Tried 2026-10-30 night: reading the second stage array via [unk28] instead of [stage] defeats CSE (121 -> 91 insns); volatile reset store/read made it worse (400+ lines diff); still differs in the dead reset=0 store, the setne enter ternary and cross-jumped sel=1 tails.
 // 2121 vs 2145 bytes, 96% of the instruction stream aligns. Open: the original keeps a never-folded zero in
@@ -2357,6 +2358,7 @@ int RaceMode::PauseMenu(int reset, int noRestart)
     LapString text;
     int atBest = 0;
     Vec2 pos;
+    float& y = *(float*)&reset;
     if (reset) {
         unk24c = 0;
         pos.x = DAT_0056aea8 * 512.0f;
@@ -2385,7 +2387,7 @@ int RaceMode::PauseMenu(int reset, int noRestart)
     if (DAT_00501454 || DAT_00501472) {
         showSecond = 0;
     }
-    reset = 0;
+    y = 0.0f;
     if (unk240 == 0) {
         int delta = 0;
         if (DAT_0057ba28[VK_UP]) {
@@ -2471,7 +2473,7 @@ int RaceMode::PauseMenu(int reset, int noRestart)
     }
     m_image->Draw(DAT_0056b0ac, 0);
     {
-        float& y = *(float*)&reset; y = DAT_0056aeac * 262.0f;  // original keeps y in the dead parameter slot
+        y = DAT_0056aeac * 262.0f;  // original keeps y in the dead parameter slot
         float step = DAT_0056aeac * 42.0f;
         int sel = unk24c;
         for (int i = 0; i < 3; i++) {
