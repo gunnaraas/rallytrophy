@@ -887,3 +887,8 @@ address add (c2.dll, the routine that builds `[base+index]`), instead of more so
   (CarLight::Render depth).
 - Register roles of two chained int values (`c`, then `g = c | c << 8`) flip when ONE variable is reused for both
   (`g = F(...) & 0xff; g = g | (g << 8);`) instead of two locals; that removed CarLight::Render's volatile.
+- (audit, 2026-11-18) Three scores can disagree: normalised insdiff lines, raw insdiff lines, and match.py's
+  "differing bytes". A 1-byte size change shifts every later jump target (raw lines and bytes explode while the
+  hunk count drops), and agents' reported sizes were wrong twice today. Before merging a partial, read the
+  `built N bytes, original M; K differing bytes` line from match.py yourself and compare all three with the previous
+  state; keep a change only if the size gap does not grow and the differing bytes do not rise, or say explicitly why.

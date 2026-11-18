@@ -1044,13 +1044,11 @@ struct W7_Car {
 
 // ---- functions in address order ----
 // NONMATCHING: RALLYTROPHY 0x45ad40
+// 2026-11-18 (nothing kept, 4 agent rounds): frame is `sub esp,0x1c` vs the original's 0x20 (not exact). Homes: original sx/sy in the dead dt slot [ebp+8], a1 [ebp-0xc], l1 [ebp-0x10]; ours a1 [ebp+8], l1 [ebp-0xc], sx [ebp-0x10]. Merging sx/sy into one variable gives the original homes for a1/sx but 1396-1400 bytes. Wheel-1 sin-before-cos lowered the raw line count 62 -> 59 but RAISED differing bytes 79 -> 89, so it was reverted. No effect: by-value SinCos helpers (5 forms), double a1/l1/sx/sy (QWORD slots the original lacks), double temps on the angle products, extra sx uses, declaration orders.
 // Round 18 (2026-11-17): rear block reuses front sp1/tb variables (one slot each, frame now 0x20 = orig; y2 accumulates in tb) 38 -> 26 insns. Left: orig a1 at -0xc/l1 at -0x10 (ours a1 takes dead dt slot +8, l1 at -0xc); decl order, scopes, ref-local, steer-test placement did not move it.
 // Tried 2026-10-30 night: hand-inlined Toe/Camber using the dt param slot as the ref temp (matches orig [ebp+8]) with base/spring1 copied to locals, and reloading wheel damage per use (114->73 insns differ); still differs: orig keeps x and spring0/base on the FPU stack across the steer math (slot/frame 0x20 vs 0x1c), a/x/y declaration order and wheel-ptr hoisting had no effect.
 // Tried 2026-11-01 re-pass: loads of spring0/toeBase into locals (all-operands-first fld) plus reusing tb as the y accumulator (y stored in the toe-base slot) 73->53 insns differ; still differs: orig interleaves the tb/sp1 int spills with the flds, frame 0x20 vs 0x1c, and wheel-matrix temp slots.
 // Round 17 (2026-11-15): rear block mirrors front (cb, sp2 int spills, then s3/cb0 fld; sp1 loaded before tb) 53 -> 41 insns, size 1404 = orig; left: frame 0x20 vs 0x1c (orig keeps sp1 slot reserved, l1 at -0x10, a1 at -0xc; declaration/scope/ref-local variants did not move it).
-// 2026-11-18: wheel 1 sin(a1) before cos(a1) 62 -> 59 raw (size/frame exact). Reusing ONE variable for sx and sy puts them in dt slot +8 and a1 at -0xc (orig homes, 55-58 raw) but size drops to 1396-1400 (wheel-1 sin/cos fpu order changes); sx/sy 4-use bumps, a1/l1 decl order, ternary locks, l1/l0 swap: no effect or worse.
-// 2026-11-18 r2: SinCos-style __forceinline helpers (void/ref outs, ptr outs, return-sine, cos-first, double param) on wheel 0/1/both: raw stays 59, a1 still in dt slot +8 (helper does not lower a1's slot priority); double param costs +2 bytes.
-// 2026-11-18 r3: double-slot/L1 levers, 59 raw stays (size 1404): a1/l1/sx/sy/steer/x/y as double (frame 0x1c or worse, 63-153); double temps on angle products, cos/sin results, sx*ca0 (identical code); row2[2]=ca0 moved across 3 statements (compiler keeps the int store before fsin); wheel0 sin-before-cos no change.
 void Car::UpdateSteering(float dt)
 {
     W3_CarView* v = (W3_CarView*)this;
@@ -1117,8 +1115,8 @@ void Car::UpdateSteering(float dt)
     }
 
     w = &v->wheel[1];
-    float sa1 = (float)sin(a1);
     float ca1 = (float)cos(a1);
+    float sa1 = (float)sin(a1);
     w->row2[0] = sa1;
     w->row2[1] = 0;
     w->row2[2] = ca1;

@@ -1136,10 +1136,10 @@ inline void F2_Cross(const F2_V* a, const F2_V* b, F2_V* dst)
     }
 }
 
-__forceinline void F2_Copy4(F2_V& d, const F2_V& s) { d.x = s.x; d.y = s.y; d.z = s.z; }
 __forceinline void F2_Copy3(F2_V& d, const F2_V& s) { *(int*)&d.y = *(int*)&s.y; *(int*)&d.z = *(int*)&s.z; d.x = s.x; }
 
 // NONMATCHING: RALLYTROPHY 0x454d10
+// 2026-11-18 (not kept; merged in iteration 6 and reverted after a byte audit): `static axis` declared AFTER `d.z = d.z * inv` puts the scale between the guard test and its jne like the original (store-placement rule) and keeps the guard load hoisted; with `F2_Copy4(R->r1, d); F2_V* r1 = &R->r1;` (pointer local declared after the helper) the member/home store order is also right: ONE hunk left, but the build is 842 bytes (orig 843) and 231 differing bytes instead of 49, because z*z then compiles to `fmul [mem]` where the original has `fst [d.z]; fld st(0); fmulp st(1),st`. ~25 forms for that square (z*d.z, copy locals, member re-read, doubles, accumulators) failed. Whoever finds the fld st(0)/fmulp form should apply these two changes with it.
 // 867 vs 843 bytes, 512 differing bytes. Separate x/y/z square accumulation recovers the target's x, y, z
 // component loads and initial square sequence. Remaining differences include the x87 addition/normalization order,
 // and the first part's y/z position stores; the function static (0x508c60, atexit 0x455060) is in place.
@@ -1147,7 +1147,6 @@ __forceinline void F2_Copy3(F2_V& d, const F2_V& s) { *(int*)&d.y = *(int*)&s.y;
 // Tried 2026-10-31 re-pass: reusing len2 as the sqrt-branch scale k (original keeps it in the len2 slot [ebp-4]) 49->47 insns; ~15 more variants (len2 reuse in the 1/Length branch, sum orders, double len, operand order) no better; x87 order of the normalise/rotate sums and the F2_Cross edi/lea call form still differ.
 // 2026-11-16 r24: plain float local k in the 1/Length branch (len2 reuse there let VC6 cross-jump into the sqrt branch tail; the sqrt branch keeps len2), F2_Rot* R = &q->rot with per-component r1 copy: 34 -> 13 insns, 830 -> 843 bytes. Left: static-guard byte load (mov cl) is scheduled after d.z instead of between the part-B pos adds; r1 pointer spill order.
 // 2026-11-16 r25: `static axis` moved before the d.z scale (guard load now hoisted as in the original), d.z scale no longer volatile: 13 -> 12 insns. ~60 variants (static at 12 other positions, d.z forms, r1/r2 pointer forms) no better; original has the d.z fmul between the guard test and jne.
-// 2026-11-18: `static axis` moved back AFTER the d.z scale (original order): the d.z fld/fmul/fstp now sink between the guard test and jne as in the original and the guard load stays hoisted; norm 10 -> 5, raw 41. Round 2: F2_Copy4 helper + r1 pointer local declared AFTER it fixes the store swap (norm 3, raw 39); z*z (fmul [mem] vs fld st0;fmulp, 842 bytes) still open after ~25 more forms (z*d.z, z*z2, zz=d.z, doubles, sq accumulators). Left: z*z as fmul [mem] (original fld st0;fmulp) and the r1 pointer-spill/store swap; ~30 variants (z forms, static positions, r1/r2/r0 pointer locals, Copy helpers) no better.
 void Car::FUN_00454d10()
 {
     F2_CarView* c = (F2_CarView*)this;
@@ -1204,12 +1203,14 @@ void Car::FUN_00454d10()
         float inv = 1.0f / (float)sqrt(z * z + x * x + 1.0f);
         d.x = x * inv;
         d.y = inv;
-        d.z = d.z * inv; // original reloads the stored (rounded) d.z here
         static Vec3 axis(0.0f, 0.0f, 1.0f);
+        d.z = d.z * inv; // original reloads the stored (rounded) d.z here
         F2_Rot* R = &q->rot;
         F2_Cross(&d, (const F2_V*)&axis, &R->r0);
-        F2_Copy4(R->r1, d);
-        F2_V* r1 = &R->r1; // pointer local assigned after the member stores (original store order)
+        F2_V* r1 = &R->r1;
+        r1->x = d.x;
+        r1->y = d.y;
+        r1->z = d.z;
         F2_Cross(&R->r0, r1, &R->r2);
     }
 }
