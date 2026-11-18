@@ -844,3 +844,14 @@ address add (c2.dll, the routine that builds `[base+index]`), instead of more so
   off the original per site (ShadowUpdater: `a` is x*x + y*y + z*z into z, `u` is x*x + z*z + y*y into y).
 - The x87-stack signature scan (`fld st(N)` original-only lines) also flags quad-vertex UV stores (WindowRain ctor),
   where no vector scale exists; read the hunk before assigning the lever.
+- (iteration 4) **Mixed vector copies are per component.** Where the original loads one component as a float and
+  int-copies the others (`fld [src]; fsub r; mov y; mov z; fstp x`), write exactly that: the float component from the
+  SOURCE (`lo.x = pos[0] - r;`) or from a float local held across the copy (`float rx = r.x; ... r.x = s * rx;`),
+  the others as int copies followed by in-place `-=`/`*=`. A whole-struct copy constructor lets VC6 fuse the y/z
+  loads and deletes their stores (TriCollector::Contact lost 20-40 bytes that way).
+- `fld s; fld st(0); fmul [x]` for only the x term of a scale while y/z use `fld [y]; fmul st,st(1)`: x is multiplied
+  by a second float COPY of the scale (`float k = size; float k2 = k; u.x = k2 * u.x; u.y = u.y * k; ...`), the same
+  shape as `double k; float kf = (float)k` in the normalise form.
+- A chained zero store `a.x = a.y = a.z = 0.0f` emits z, y, x (reverse of the written order).
+- AIDriver 0x49ffa0: a this/other register swap was cured by REMOVING uses of `this` (caching forward.x/y/z in
+  locals), not by adding uses of the other pointer; the size then moved away, so it was not kept.

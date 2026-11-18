@@ -100,6 +100,7 @@ static inline SubPod* SubP(const Vec3& a, const Vec3& b, SubPod* out)
 
 // NONMATCHING: RALLYTROPHY 0x49ffa0
 // 2026-11-18 (not kept, two rounds): call sequences already equal (calls.py: 7 calls each side). dir normalise as `float dx = forward.x; ... double dl = sqrt(dir.z*dir.z + dir.y*dir.y + dx*dx); float inv = (float)(DAT_004e1348 / dl);` clears the first sqrt hunk (norm 365 -> 364, raw 420 unchanged). Second Sub result used in place (`dq->y = 0`, no Vec3 diff) + otherFwd declared after `along`: norm 314 but raw 421 and size 1142 -> 1105 (orig 1149), rejected. Open lead: `t0.y = 0` with direct t0 reads gives raw 412 but swaps this/ocb (esi/edi). Original has a 10-insn block at 0x4a0111 (reloads oc->body, a +/Sub pair) and a 4-insn block at 0x4a0183 that ours folds away.
+// 2026-11-18 (ws4, 30 compiles; raw counted as +/- lines of insdiff, base 294/norm 268, 1142 B): (a) kept: norm 266, raw 294, 1142 B. (a)+(b) (t0.y=0, direct t0 reads): frame 0xc0 exact but 1121 B, raw 309/norm 329, this=esi/oc=edi. Swap is cured NOT by extra oc uses/ocb hoist/own-position local/ocb first (all still swapped) but by cutting this uses: cache forward.x/y/z into locals fx,fy,fz at loop top (dir and along read them): this=edi, norm 275, raw 299, 1116 B; plus obstacles[i] indexing instead of ob++ (strength-reduced pointer, base +4, original +8): raw 287, norm 233, 1109 B (best; not kept, size 40 under). Original ob pointer is this+0x1b0 (=&obstacles[0]+8), keeps the dead unk0.y store; ours drops it. Not kept: size further from 1149.
 // 2026-11-04 (ws-I): EH map now exact (states 4,5,6,7,8,6,9,10 as the original). Cause: the out-of-line Sub (0x414330) returns a plain struct (SubPod, no unwind state) read through the returned pointer; rel/r3/v4 are three function-scope Vec3 declared before ownVel (states 0-2), dir/diff in-loop, `other` is re-derived from the Car pointer (oc->body) at every use. Left: this in esi vs edi, frame 0xc4 vs 0xc0.
 // Tried 2026-10-30 night: ~25 variants; 215->170 insns by declaring rel/diff Vec3 outside the loop (assigned per pass) and copying forward into dir field by field; original still has frame 0xc0 (ours 0xd8), EH state 4 before the loop and this in edi/i in ecx with the dir inverse sharing i's slot.
 // Tried 2026-11-01: ~18 more variants (dir/r3/v4/otherFwd hoisted out of the loop, extra dummy Vec3, int i, double length, result=0); only hoisting otherFwd up to after 'other' helped, 170->168; still frame 0xd8 vs 0xc0 and EH state 3 vs 4 at loop entry.
@@ -123,8 +124,10 @@ void AIDriver::FUN_0049ffa0()
     for (unsigned i = 0; i < listeners.size(); i++) {
         Car* oc = listeners[i]->car;
         AiBody* ownBody = (AiBody*)ownCar->body;
-        Vec3 dir; dir.x = forward.x; dir.y = forward.y; dir.z = forward.z;
-        float inv = 1.0f / dir.Length();
+        float dx = forward.x;
+        Vec3 dir; dir.y = forward.y; dir.z = forward.z; dir.x = dx;
+        double dl = sqrt(dir.z * dir.z + dir.y * dir.y + dx * dx);
+        float inv = (float)(DAT_004e1348 / dl);
         dir.x *= inv;
         dir.y *= inv;
         dir.z *= inv;

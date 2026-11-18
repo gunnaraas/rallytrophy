@@ -143,6 +143,7 @@ inline float Dot(const Vec3& a, const Vec3& b) { return (a.y * b.y + a.z * b.z) 
 // 2026-11-15 r13 pass: u scaled through a local copy `float k = size; ScaleVec(u, k)` (36 -> 35 insns, 1121 -> 1125 bytes; u.y/u.z now `fld y; fmul st,st(1)` like the original); rejected: no-volatile alpha (removes the volatile round trip but 49-54 insns), p/r/u reorder, compound/commuted scale forms, prologue camera/eye refs. Left: v prologue schedule, r.x kept on FPU (`fld s; fmul st,st(1)`), c in ecx/col in eax, volatile round trip.
 // 2026-11-17 ws7: ~35 variants no gain (35 insns, 1125 B): prologue v split/hoist/eye ref, p/r/u declaration order, ScaleVec forms (size arg, commuted, *=), colour expr forms, non-volatile alpha (49 insns).
 // 2026-11-18: r/u as local `struct SV3 : Vec3` with inline by-value `operator*=(float s)`, `r *= s; u *= size;` (80 -> 66 norm insdiff lines, 1125 -> 1121 B): second vector now holds size on the FPU (fld; fld st(0); fmul). Still differs: x term `fld s; fmul st,st(1)` + pop of held r.x, u.y/u.z `fld y; fmul st,st(1)` + final pop (ours dups st(0) / consumes it), double-param/double-local/const float& /return *this/body operand orders all same or worse.
+// 2026-11-18 (rx lead): r copied as Vec3 with float rx = r.x held, `r.x = s * rx; r.y *= s; r.z *= s;` BEFORE `Vec3 p(Position())`, then `float k = size; float k2 = k;` and `u.x = k2 * u.x; u.y = u.y * k; u.z = u.z * k;` (u matches fully; the k2 alias flips the x term to fld-dup form): norm 66 -> 44, raw 70 -> 62, 1121 -> 1129 B. Left: volatile alpha round trip (non-volatile: raw 72), colour reg alloc, quad c/g order. Failed: SV3 r/u variants, k*u.x/u.x*k/size direct (no dup), p declared before r.y/z or after r.x (p loads and EH store misplaced).
 // Same algorithm and constants (1101 vs 1124 bytes; 614 differing bytes). The positive near-plane branch
 // emits the target's unordered-aware status-mask test; alpha storage, stack slots, and quad construction
 // still differ.
@@ -194,11 +195,15 @@ void CarLight::Render(RenderDevice* device, Camera* camera)
             if (*(int*)&z <= *(int*)&n) {
                 z = n;
             }
-            SV3 r(Right());
-            SV3 u(Up());
+            Vec3 r(Right());
+            float rx = r.x;
+            Vec3 u(Up());
             float s = size;
+            r.x = s * rx;
+            r.y *= s; r.z *= s;
+            float k = size; float k2 = k;
+            u.x = k2 * u.x; u.y = u.y * k; u.z = u.z * k;
             Vec3 p(Position());
-            r *= s; u *= size;
             volatile float alphaScaled = a * 255.0f;
             int c = FloatToInt(alphaScaled) & 0xff;
             DWORD g = c | (c << 8);

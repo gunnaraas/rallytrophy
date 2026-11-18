@@ -1763,6 +1763,7 @@ static __forceinline float Len(AiVelocity v) { return (float)sqrt(v.z * v.z + v.
 // [38] then [10]; ours moves y with ints. Older tries: x*x temps, double y/z locals, sqrt(expr), ref copies, Len for b too (514 bytes).
 // 2026-11-18: 64 -> 41 insdiff lines (534 bytes): Player* me=player then other->car (prologue order matches); AiVelocity t=a; t.y=ay before Len(t) (y fld'd, stored twice); q1 uses a.y.
 // Round 2: chained t.y = a.y = ay = 43 lines/+7 bytes; Sq/Len2 helpers for distance, b-copy reorders, Len term orders, unshared ax: no gain (43-53).
+// 2026-11-18 round 3: float dz2 = dz*dz local in distance: raw 81 -> 77 (norm 39 unchanged, still 534 bytes). Failed: Len3(z,y,x) floats (full CSE, 109 raw), LenYZ(AiYZ,x) / *(AiYZ*)&a.y (y,z CSE'd with q1), t.x=ax variants (87), q1 via t.x/a.x (87-120), shared xx local (92), distance orderings (no change).
 int AIDriver::FUN_0049f1f0(Player* other)
 {
     int result = 0;
@@ -1772,8 +1773,7 @@ int AIDriver::FUN_0049f1f0(Player* other)
     Car* mine = me->car;
     ((S414Vec3*)&((CarBodyV*)theirs->body)->position)->Sub(&offset.x, (float*)&((CarBodyV*)mine->body)->position);
     offset.y = 0;
-    float dz = offset.z; float dx = offset.x;
-    float distance = (float)sqrt(dz * dz + dx * dx);
+    float dz = offset.z; float dz2 = dz * dz; float distance = (float)sqrt(dz2 + offset.x * offset.x);
     float closeness = 15.0f - distance;
     if (closeness < DAT_004e1348) {
         closeness = 1.0f;

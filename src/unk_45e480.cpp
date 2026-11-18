@@ -2219,6 +2219,7 @@ static __forceinline void Ones60(FlareSprite* s)
 
 // NONMATCHING: RALLYTROPHY 0x463940
 // 2026-11-18: light sprite: color60 x4 stored BEFORE unk98/unka0 (was after): 63 -> 60 insns, still 2923 bytes. Failed: unk9c right after unka0 (69, 0xf/2 swap regs); original order is 18,1c,98,a0,9c,60..6c but source in that order gives wrong reg assignment.
+// 2026-11-18 round 3: meters MeterInit placed between unk24 and the 98/9c stores (flat order 24, MeterInit, color40, 98, 9c): raw 36 -> 32, norm 50 unchanged, size 2926. Failed (~28 compiles): extra helpers (MBU/MO60/MO40/MR splits) shift size and wreck the function (norm ~250-300; helper count matters); 9 other meter orders (norm 50-66); Front flare reorders of color60 zeros/blend/unk98/unk9c (norm 50-58). Meter 18/1c/20 all sink after the cmp together with 24/98/9c; original keeps 18,1c,20 and the 1.0f stores before it.
 // 2026-11-18 round 2: light sprite as __forceinline helpers Ones60(color60 x4) THEN LightState(18,1c,98,a0,9c literals) + meters MeterInit(blend 5/6, color60, unk20): 60 -> 48 insns (reverse order LightState-first: 67; 98/a0 and 9c in separate helpers: 67). Meters 18/1c/20 still sink below the cmp even inside helpers; Ones40 helper on any flare breaks the block (266); SetBlend helper on flares no change.
 // 2026-11-17 (~30 compiles, unchanged): meters sites store 0x18/0x1c/0x20 in source order in the original (ours sinks them before the jne); whole-block and partial __forceinline helpers do not pin them here; light sprite 0xf CSE and 0x9c position unchanged by 9 orders.
 // 2026-11-15 pass: light sprite unk9c store moved after the color stores (before unk20): 66 -> 63 insns, 1115 -> 1101 bytes, 2923 bytes. Tried: meters store reorders (m1-m6, 64-70), volatile on blendSrc/Dst, unk9c at end / after lightSprite (no better).
@@ -2371,28 +2372,14 @@ void Car::LoadTextures(const std::string& dir)
         s = (FlareSprite*)new Sprite;
         v->metersKmh = s;
         s->texture = v->cache->Load(b.c_str(), 0x441);
-        MeterInit(s);
-        s->color40[0] = 1.0f;
-    s->color40[1] = 1.0f;
-    s->color40[2] = 1.0f;
-    s->color40[3] = 1.0f;
-        s->unk24 = 2;
-        s->unk98 = 0xf;
-        s->unk9c = 2;
+        s->unk24 = 2; MeterInit(s);s->color40[0] = 1.0f; s->color40[1] = 1.0f; s->color40[2] = 1.0f; s->color40[3] = 1.0f;s->unk98 = 0xf; s->unk9c = 2;
         ADD_SPRITE(v, s);
 
         AssignStd(b, dir + "OverlayMetersMph.tga");
         s = (FlareSprite*)new Sprite;
         v->metersMph = s;
         s->texture = v->cache->Load(b.c_str(), 0x441);
-        MeterInit(s);
-        s->color40[0] = 1.0f;
-    s->color40[1] = 1.0f;
-    s->color40[2] = 1.0f;
-    s->color40[3] = 1.0f;
-        s->unk24 = 2;
-        s->unk98 = 0xf;
-        s->unk9c = 2;
+        s->unk24 = 2; MeterInit(s);s->color40[0] = 1.0f; s->color40[1] = 1.0f; s->color40[2] = 1.0f; s->color40[3] = 1.0f;s->unk98 = 0xf; s->unk9c = 2;
         ADD_SPRITE(v, s);
     }
 

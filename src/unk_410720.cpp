@@ -31,6 +31,7 @@ static __forceinline void S2(int* m, int a, int b, int v) { m[a] = v; m[b] = v; 
 // 2026-11-17 (89 insns, unchanged): hunks are a consequence of kind not in edi (ours puts const 5 in edi in river2); no lever: store-group helpers (Z4/F2/Z2/T/O4), early t0/t1 loads, kind re-read/reassign/merged with kind0, m[] group reorders, (kind^5)==0 all 89-104.
 // 2026-11-18: H2/H1 retried: `register int kind`, split decl/assign, `kind = kindv; kindv = kind`, switch(kind) all 192/192/193/499 vs baseline 192 (no gain); H3 not reached.
 // 2026-11-18 round 2: S1/S2/S4 __forceinline store-group helpers (1.0 x4, 0xf x2, zero x4, zero x2; water 3 groups; waterfall left flat, helpers there +2) 192 -> 166 (raw 172); source order of independent stores is ignored by VC6 (all 120 permutations equal); remaining = kind-in-edi, m[0]/m[1] load + 0xf reg (ecx vs eax), water/waterfall tail merge.
+// 2026-11-18 water-tail pass (30 compiles): the two tails are not identical in the original (A: reload,store; B: reload,xor,store) so VC6 cannot merge them; ours merges the water store into the shared STORE tail. Direct PV[5]=new, p[5]=, typed/volatile store casts, StageAnimator* w, MkW forceinline helper, return/goto END in arm, explicit if(w)/else store 0 (+11..+33 bytes, epilogue duplicated), hand-expanded operator new, own PV[5]=new per scroller site (+33): all 172 raw/-17 or worse. Gap unchanged.
 void StageScene::LoadEffect(int* p)
 {
     int* m = (int*)p[0];                               // the mesh's material

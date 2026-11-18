@@ -652,6 +652,7 @@ float TriCollector::Closest(float r, float* pos, float* out, float* nrm)
     } while (0)
 
 // NONMATCHING: RALLYTROPHY 0x419770
+// 2026-11-18: lo.x = pos[0]-r from the SOURCE with only y,z int-copied (`ScenePoint lo; lo.x = pos[0] - r; {int* d..; d[1]=sp[1]; d[2]=sp[2];} lo.y -= r; lo.z -= r;`), hi stays all-int-copy + `+= r`, dv likewise (x from source, y,z int-copied): raw 360 -> 314, norm 410 -> 380, size 1128 kept. The `ScenePoint lo(*(ScenePoint*)pos)` ctor form drops to 1088-1109 bytes (fuses y,z loads); sepC alone 358/382/1120; int-copy x too in dv 361/331/1132; e1/e2 int-copy+fsub per field worsens size (+26..+41); i kept in memory via address-taken pointer (compiler still enregisters), ED{unsigned i} member, or separate EI struct: slots shift but raw 375-444, not adopted. Remaining: i/n in memory (orig [esp+0x5c], P/rr/d2 slots 4 lower).
 // 2026-11-18: ContactList-form tail (double zv/yv held, l=y*y+x*x then +z*z, zv=sqrt(l), float len, double k, float kf; also struct s, term orders) emits the held loads but fsqrt lands AFTER the fstp st(2)/st(0) pops: 410->416 norm, 360->366 raw, rejected. lo/hi as `ScenePoint lo(*(ScenePoint*)pos); lo.x = pos[0]-r;` (original's fld [edi]; fsub; int-copy y,z shape): norm 410->346 but raw 360->406, size 1096-1119, rejected (either one alone: 344/404).
 // Pass 2026-11-16: size 1094 -> 1128 (orig 1130), differing bytes 1000 -> 944 (insns differ 164 -> 182, alignment shift): lo/hi copied as int bits then -= r (original int-copies pos, as P); open: original i in memory + q bits in ebp (ours i in ebx), no ED::~ED call at exit (local-class dtor never inlines; file-scope ED/Sph419 variants lose the 4th saved register: 204/197), pop-before-je epilogue, e1/e2/dv int-copy variants (+20 bytes, worse), tail sqrt keeps y,z on the FPU. Statement-order, while/for(;;) and struct-held i variants compile identically.
 // Pass 2026-11-13: 170 -> 164 insns differ (1090 -> 1094 bytes, orig 1130): TriClosest4b call (as orig), x/y/z bounds as nested ifs with local float pairs (xb,xa loaded before the first compare, as the original's two-fld pattern); open: orig keeps i in memory and q bits in ebp (ours i in ebx, q in memory -> e1/e2/dv z-copies fuse), ss ScenePoint (no ED::~ED) always worse (205+), Near419 forceinline puts q in a reg but adds and eax,0xff/bool store (893 bytes differ but 184 insns).
@@ -665,7 +666,7 @@ int TriCollector::Contact(float r, float* pos, float* a_, float* b, float* c, in
     s[2] = s[1] = s[0] = 0.0f;
     int n = 0;
     Sph419 P(pos, r);
-    ScenePoint lo; {int* d=(int*)&lo; const int* sp=(const int*)pos; d[0]=sp[0]; d[1]=sp[1]; d[2]=sp[2];} lo.x -= r; lo.y -= r; lo.z -= r;
+    ScenePoint lo; lo.x = pos[0] - r; {int* d=(int*)&lo; const int* sp=(const int*)pos; d[1]=sp[1]; d[2]=sp[2];} lo.y -= r; lo.z -= r;
     ScenePoint hi; {int* d=(int*)&hi; const int* sp=(const int*)pos; d[0]=sp[0]; d[1]=sp[1]; d[2]=sp[2];} hi.x += r; hi.y += r; hi.z += r;
     for (unsigned i = 0;
  hits.begin() != 0 && i < hits.size(); i++) {
@@ -676,7 +677,7 @@ int TriCollector::Contact(float r, float* pos, float* a_, float* b, float* c, in
         int ok = *(int*)&d2 <= *(int*)&q;
         if (ok) {
             TVert* a = t->v[0];
-            ScenePoint dv(*(ScenePoint*)pos); dv.x = pos[0] - a->x; dv.y -= a->y; dv.z -= a->z;
+            ScenePoint dv; {int* d=(int*)&dv; const int* sp=(const int*)pos; d[1]=sp[1]; d[2]=sp[2];} dv.x = pos[0] - a->x; dv.y -= a->y; dv.z -= a->z;
             if (DAT_004e134c <= dv.z * t->nz + dv.y * t->ny + dv.x * t->nx) {
                 unsigned s_ = t->sel;
                 float xb = t->v[s_ & 3]->x; float xa = t->v[(s_ >> 2) & 3]->x;
@@ -715,6 +716,7 @@ int TriCollector::Contact(float r, float* pos, float* a_, float* b, float* c, in
 
 
 // NONMATCHING: RALLYTROPHY 0x419be0
+// 2026-11-18 (iter 4): `Tri* t = head;` hoisted above `Sph419 P` (head load early, as original) and `ss.x = ss.y = ss.z = 0.0f` (emits the original's store order z,y,x): raw 73 -> 63, norm 49 -> 47, size 738. Failed: Sph419 ctor via ScenePoint copy-ctor (identical), dropping the volatile q store (norm 60), float qq[2]/spare float/char locals instead of it (58+), SubP by-value / SubQ return-value / `e1 = *p1; e1 -= *pa` (assignment, pre-declared) / copies-then-subs ordering (746 bytes but raw 85) / field-wise subs; POD P3 struct-assign copy of e1/e2 (all three int-copied as original, but scheduler interleaves the x fsub into the copy: raw 63 norm 49-59, 753 bytes).
 // Pass 2026-11-13: 72 -> 50 insns differ (726 -> 730 bytes, orig 748): e1/e2 operands hoisted as ScenePoint* pa/p1/p2 before the copies (same form as Closest).
 // reason: first draft; SEH/temp layout unchecked.
 // Tried 2026-10-30 night: pos copy as Sph419 (ScenePoint+r, dtor) for EH state, ScenePoint -= for plane/edge vectors, forceinline sphere test, chained sx=sy=sz=0, rr hoisted (163->136); still differs: original frame is 4 bytes bigger, e1/e2 are int-copied before the fsub (ours fuses the z fld), sphere d2 temp lives in a dead param slot, EH state numbering ends 5/1 vs ours 4/0 (v4 gets 5 with extra ScenePoint tmp but scores 141).
@@ -724,12 +726,12 @@ int TriCollector::ContactList(float r, float* pos, float* a_, float* b, float* c
 {
     ScenePoint ss;
     float rr = r * r;
-    ss.z = ss.y = ss.x = 0.0f;
+    ss.x = ss.y = ss.z = 0.0f;
     float q;
     *(volatile float*)&q = 0.0f;
+    Tri* t = head;
     int n = 0;
     Sph419 P(pos, r);
-    Tri* t = head;
     if (t != 0) {
         do {
             q = (r + t->r) * (r + t->r);
