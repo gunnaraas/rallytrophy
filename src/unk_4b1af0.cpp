@@ -34,6 +34,7 @@ struct PStr {
 // NONMATCHING: RALLYTROPHY 0x4b1af0 (inlined std::string/throw construction differs from original)
 // Tried 2026-10-31 re-pass: if(i<n) for(q=...;;) guard loops bloat (+100 bytes) here, only the plain for(i=n,q=v+5;i>0;i--,q+=11) form works; ntris read through an address-taken pointer (ntris spilled like the original) 91->67; still differs: file/ntris-counter ebx/ebp swapped (file gets ebp), mov ecx,esi/lea d placement vs jle, r[7]/r[8] reload rotation, tri-loop store interleave; per-store block temps, p[0..2], p+=3 and PStr/BStr variants no effect.
 // Tried 2026-11-01 twin-idiom re-pass: ReadBatchSmall's named temp for vertex word 6 + volatile first two tri stores, plain ntris (no address-taken pn) 67->34 (969 vs 970 bytes); still differs: file/ntris registers swapped (original file=ebx, ntris=ebp; ours reversed; cnt copies, f aliases, countdown loop, volatile file no effect), lea esi/mov ecx,esi before jle, third add esi,2 one slot early; permute -r 40 found nothing better.
+// 2026-11-18: ReadBatchSmall's explicit guards (if (nverts > 0) on loop 1; i = 0; if (ntris > 0) for (p = idx; ...) on loop 2) 70 -> 62 and fixes the jle/mov ecx,esi and third add esi,2 scheduling hunks; file/ntris ebx/ebp swap remains (nt copy, ntris*3*2, declaration order, mid-ctor decls no effect).
 void ModelFile::ReadBatch(File* file, ModelOut* out)
 {
     int mat = FUN_004af230(file);
@@ -44,13 +45,13 @@ void ModelFile::ReadBatch(File* file, ModelOut* out)
     unsigned short* idx = (unsigned short*)operator new(ntris * 6);
     TmpN<11> tmp; unsigned int* r = tmp.r;
     int i; unsigned int* q;
-    for (i = nverts, q = (unsigned int*)v + 5; i > 0; i--, q += 11) {
+    if (nverts > 0) for (i = nverts, q = (unsigned int*)v + 5; i > 0; i--, q += 11) {
         file->Read(r, 0x2c);
         q[-5] = r[0]; q[-4] = r[1]; q[-3] = r[2]; q[-2] = r[3]; q[-1] = r[4]; q[0] = r[5];
         unsigned int c = r[6] | 0xff000000; q[1] = c; q[2] = r[7]; q[3] = r[8]; q[4] = r[7]; q[5] = r[8];
     }
-    unsigned short* p = idx;
-    for (i = 0; i < ntris; i++) {
+    unsigned short* p;
+    i = 0; if (ntris > 0) for (p = idx; i < ntris; i++) {
         unsigned short t[4];
         file->Read(t, 8);
         *(volatile unsigned short*)p = t[0]; p++; *(volatile unsigned short*)p = t[1]; p++; *p = t[2]; p++;
