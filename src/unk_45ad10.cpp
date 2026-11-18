@@ -1048,6 +1048,8 @@ struct W7_Car {
 // Tried 2026-10-30 night: hand-inlined Toe/Camber using the dt param slot as the ref temp (matches orig [ebp+8]) with base/spring1 copied to locals, and reloading wheel damage per use (114->73 insns differ); still differs: orig keeps x and spring0/base on the FPU stack across the steer math (slot/frame 0x20 vs 0x1c), a/x/y declaration order and wheel-ptr hoisting had no effect.
 // Tried 2026-11-01 re-pass: loads of spring0/toeBase into locals (all-operands-first fld) plus reusing tb as the y accumulator (y stored in the toe-base slot) 73->53 insns differ; still differs: orig interleaves the tb/sp1 int spills with the flds, frame 0x20 vs 0x1c, and wheel-matrix temp slots.
 // Round 17 (2026-11-15): rear block mirrors front (cb, sp2 int spills, then s3/cb0 fld; sp1 loaded before tb) 53 -> 41 insns, size 1404 = orig; left: frame 0x20 vs 0x1c (orig keeps sp1 slot reserved, l1 at -0x10, a1 at -0xc; declaration/scope/ref-local variants did not move it).
+// 2026-11-18: wheel 1 sin(a1) before cos(a1) 62 -> 59 raw (size/frame exact). Reusing ONE variable for sx and sy puts them in dt slot +8 and a1 at -0xc (orig homes, 55-58 raw) but size drops to 1396-1400 (wheel-1 sin/cos fpu order changes); sx/sy 4-use bumps, a1/l1 decl order, ternary locks, l1/l0 swap: no effect or worse.
+// 2026-11-18 r2: SinCos-style __forceinline helpers (void/ref outs, ptr outs, return-sine, cos-first, double param) on wheel 0/1/both: raw stays 59, a1 still in dt slot +8 (helper does not lower a1's slot priority); double param costs +2 bytes.
 void Car::UpdateSteering(float dt)
 {
     W3_CarView* v = (W3_CarView*)this;
@@ -1114,8 +1116,8 @@ void Car::UpdateSteering(float dt)
     }
 
     w = &v->wheel[1];
-    float ca1 = (float)cos(a1);
     float sa1 = (float)sin(a1);
+    float ca1 = (float)cos(a1);
     w->row2[0] = sa1;
     w->row2[1] = 0;
     w->row2[2] = ca1;

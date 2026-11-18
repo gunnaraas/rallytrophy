@@ -855,3 +855,7 @@ address add (c2.dll, the routine that builds `[base+index]`), instead of more so
 - A chained zero store `a.x = a.y = a.z = 0.0f` emits z, y, x (reverse of the written order).
 - AIDriver 0x49ffa0: a this/other register swap was cured by REMOVING uses of `this` (caching forward.x/y/z in
   locals), not by adding uses of the other pointer; the size then moved away, so it was not kept.
+- (iteration 5) Raw insdiff counts on exact-size functions are dominated by shifted jump targets: PlayerNameMenu::Run
+  shows 96 raw lines for ONE real hunk (2 bytes early). Count the hunks, not the lines, before ranking.
+- A by-value `SinCos(float a, float& s, float& c)` helper does not lower the angle's slot rank (UpdateSteering: no slot
+  moved); merging two disjoint scratch floats into one variable does move the homes but changes the size.

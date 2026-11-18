@@ -282,6 +282,7 @@ void ModelFile::ReadBlock(File* file, unsigned int* size)
 // Tried 2026-11-01 re-pass: 25 more variants of the first position copy (int/float field-wise, block temps, per-store volatile on x/y/z, reordered stores, moved after the matrix copy, volatile record, hoisted flags temp) all worse (71-175 insns) or unchanged at 7; permute -r 40 stayed at 7; still differs: y store [ebp+0x18] of the first position copy deferred past rep movs.
 // Tried 2026-11-01 pass 3: matrix copy through a block-local `Matrix* d` (also memcpy/int[16]-struct/raw offsets: no change) moves the y store before the rep movs (74->36 bytes, still 7 insns) but VC6 then stores x,y,z where the original stores x,z,y; ~45 variants (inline helpers in all 6 field orders for both copies, per-field volatile, Bal 0-8) either keep 7 or break the edx reuse of y in the second copy (+3 bytes); permute -r 20 from the Matrix* d form stayed at (7,36); the remaining 5-store shift in the w[0x28..] run tracks the same edx/ecx allocation.
 // Tried 2026-11-16 r20: 4 more first/second position-copy forms (float locals x,z,y; const ScenePoint& field copy; first copy after matrix copy; second copy field-wise) all worse (71-143 insns vs 7); unchanged at 7 insns / 74 bytes.
+// 2026-11-18: forceinline helpers around the position copy (ptr/ref/by-value/int forms, x,z,y or x,y,z store order, one or both sites, only-y or only-xz store split) all raise raw insdiff 14 -> 240-460; unchanged at 14.
 void ModelFile::ReadMesh(File* file)
 {
     ModelPartRecord* record = FUN_004af730(file);
