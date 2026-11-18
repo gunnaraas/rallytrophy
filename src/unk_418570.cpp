@@ -765,8 +765,8 @@ int TriCollector::ContactList(float r, float* pos, float* a_, float* b, float* c
         } while (t != 0);
     }
     if (n != 0) {
-        float k = DAT_004e1348 / (float)sqrt(ss.z * ss.z + ss.x * ss.x + ss.y * ss.y);
-        ss.x = k * ss.x; ss.y = ss.y * k; ss.z = ss.z * k;
+        double zv = ss.z, yv = ss.y; float len; double l = yv * yv + zv * zv; l = l + ss.x * ss.x; zv = sqrt(l); len = (float)zv; double k = DAT_004e1348 / len; float kf = (float)k;
+        ss.x = kf * ss.x; ss.y = ss.y * k; ss.z = ss.z * k;
     }
     a_[0] = ss.x; a_[1] = ss.y; a_[2] = ss.z;
     return n;

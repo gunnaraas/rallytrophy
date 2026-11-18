@@ -131,12 +131,18 @@ __forceinline void ScaleVec(Vec3& v, float k)
     v.z = v.z * k;
 }
 
+struct SV3 : Vec3 {
+    SV3(const Vec3& o) : Vec3(o) {}
+    void operator*=(float s) { x *= s; y *= s; z *= s; }
+};
+
 inline float Dot(const Vec3& a, const Vec3& b) { return (a.y * b.y + a.z * b.z) + b.x * a.x; }
 // NONMATCHING: RALLYTROPHY 0x46ea20
 // Tried 2026-10-30 night: one float t reused for facing/depth/z, float n copy of near/far bits, ScaleVec/Dot helpers (146->52 insns); still differs: v copy/EH-store schedule, normalise y/z fld order, r.x kept on FPU stack, quad p+r operand order, alpha volatile round trip; operand-order swaps in source had no effect.
 // Tried 2026-11-01 re-pass: field-wise quad += u via ta/tb temps, yy/zz plain-local copies in normalise, Dot last term b.x*a.x, r.x+p.x (52->36 insns); ~25 other variants (u scale operand orders, alpha without volatile, prologue v.x split, normalise orders) did not help; still differs: prologue v copy/EH schedule, size kept on FPU for ScaleVec(r)/ScaleVec(u), alpha volatile round trip, colour reg allocation.
 // 2026-11-15 r13 pass: u scaled through a local copy `float k = size; ScaleVec(u, k)` (36 -> 35 insns, 1121 -> 1125 bytes; u.y/u.z now `fld y; fmul st,st(1)` like the original); rejected: no-volatile alpha (removes the volatile round trip but 49-54 insns), p/r/u reorder, compound/commuted scale forms, prologue camera/eye refs. Left: v prologue schedule, r.x kept on FPU (`fld s; fmul st,st(1)`), c in ecx/col in eax, volatile round trip.
 // 2026-11-17 ws7: ~35 variants no gain (35 insns, 1125 B): prologue v split/hoist/eye ref, p/r/u declaration order, ScaleVec forms (size arg, commuted, *=), colour expr forms, non-volatile alpha (49 insns).
+// 2026-11-18: r/u as local `struct SV3 : Vec3` with inline by-value `operator*=(float s)`, `r *= s; u *= size;` (80 -> 66 norm insdiff lines, 1125 -> 1121 B): second vector now holds size on the FPU (fld; fld st(0); fmul). Still differs: x term `fld s; fmul st,st(1)` + pop of held r.x, u.y/u.z `fld y; fmul st,st(1)` + final pop (ours dups st(0) / consumes it), double-param/double-local/const float& /return *this/body operand orders all same or worse.
 // Same algorithm and constants (1101 vs 1124 bytes; 614 differing bytes). The positive near-plane branch
 // emits the target's unordered-aware status-mask test; alpha storage, stack slots, and quad construction
 // still differ.
@@ -188,13 +194,11 @@ void CarLight::Render(RenderDevice* device, Camera* camera)
             if (*(int*)&z <= *(int*)&n) {
                 z = n;
             }
-            Vec3 r(Right());
-            Vec3 u(Up());
+            SV3 r(Right());
+            SV3 u(Up());
             float s = size;
             Vec3 p(Position());
-            ScaleVec(r, s);
-            float k = size;
-            ScaleVec(u, k);
+            r *= s; u *= size;
             volatile float alphaScaled = a * 255.0f;
             int c = FloatToInt(alphaScaled) & 0xff;
             DWORD g = c | (c << 8);

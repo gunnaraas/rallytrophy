@@ -20,6 +20,8 @@ extern "C" int __cdecl FUN_004ce290(const char* a, const char* b);   // case-ins
 #define LOADER ((TextureLoader*)((BYTE*)this + 0xd4))
 #define AT(T, o) (*(T*)((BYTE*)this + (o)))
 
+static __forceinline void S4(int* m, int a, int b, int c, int d, int v) { m[a] = v; m[b] = v; m[c] = v; m[d] = v; }
+static __forceinline void S2(int* m, int a, int b, int v) { m[a] = v; m[b] = v; }
 // original: FUN_00410720
 // NONMATCHING: RALLYTROPHY 0x410720
 #define PV (*(int* volatile*)&p)
@@ -27,6 +29,8 @@ extern "C" int __cdecl FUN_004ce290(const char* a, const char* b);   // case-ins
 // Tried 2026-11-01 re-pass: kind re-read as local in waterfall cmp, shared goto STORE tail for the 3 TexScroller blocks (126->106); address-taken/volatile-ptr kind, volatile-store kind, water-block tail variants no help; still differs: kind not in edi in prologue/cascade, 2/3-river store order (zero stores sit before ds loads in original), water block own store tail merges here, name-string ctor Vec2 copy order.
 // 2026-11-16 r26: water loop `int lo = i % 10;` first + `slot[i] =` (idiom: remainder before quotient, no slot++) 106->89 insns, loop now exact; reorder.py found nothing; river2 local texture loads, kind0/kindv init orders (3+3 variants) worse.
 // 2026-11-17 (89 insns, unchanged): hunks are a consequence of kind not in edi (ours puts const 5 in edi in river2); no lever: store-group helpers (Z4/F2/Z2/T/O4), early t0/t1 loads, kind re-read/reassign/merged with kind0, m[] group reorders, (kind^5)==0 all 89-104.
+// 2026-11-18: H2/H1 retried: `register int kind`, split decl/assign, `kind = kindv; kindv = kind`, switch(kind) all 192/192/193/499 vs baseline 192 (no gain); H3 not reached.
+// 2026-11-18 round 2: S1/S2/S4 __forceinline store-group helpers (1.0 x4, 0xf x2, zero x4, zero x2; water 3 groups; waterfall left flat, helpers there +2) 192 -> 166 (raw 172); source order of independent stores is ignored by VC6 (all 120 permutations equal); remaining = kind-in-edi, m[0]/m[1] load + 0xf reg (ecx vs eax), water/waterfall tail merge.
 void StageScene::LoadEffect(int* p)
 {
     int* m = (int*)p[0];                               // the mesh's material
@@ -92,12 +96,12 @@ void StageScene::LoadEffect(int* p)
             DAT_00508418 = *(EffectUV*)&cfg.GetVector2("Fx1UVScale");
             DAT_00508410 = *(EffectUV*)&cfg.GetVector2("Fx1UVSpeed");
         }
-        m[0x18] = 0x3f800000; m[0x19] = 0x3f800000; m[0x1a] = 0x3f800000; m[0x1b] = 0x3f800000;
-        m[0x26] = 0xf; m[0xe] = 0xf;
-        m[0x1c] = 0; m[0x1d] = 0; m[0x10] = 0; m[0x11] = 0;
+        S4(m, 0x18, 0x19, 0x1a, 0x1b, 0x3f800000);
+        S2(m, 0x26, 0xe, 0xf);
+        S4(m, 0x1c, 0x1d, 0x10, 0x11, 0);
         m[0] = AT(int, 0x86c);
         m[1] = AT(int, 0x870);
-        m[0x1e] = 0; m[0x1f] = 0;
+        S2(m, 0x1e, 0x1f, 0);
         m[0x27] = 2; m[6] = 5; m[7] = 6; m[9] = 4; m[0x28] = 0; m[0x12] = 0; m[0x13] = 0x3f000000;
         float sx, sy, vx, vy;
         sx = DAT_00508418.x; sy = DAT_00508418.y; vx = DAT_00508410.x; vy = DAT_00508410.y;
@@ -114,12 +118,12 @@ void StageScene::LoadEffect(int* p)
             DAT_00508408 = *(EffectUV*)&cfg.GetVector2("Fx1UVScale");
             DAT_00508400 = *(EffectUV*)&cfg.GetVector2("Fx1UVSpeed");
         }
-        m[0x18] = 0x3f800000; m[0x19] = 0x3f800000; m[0x1a] = 0x3f800000; m[0x1b] = 0x3f800000;
-        m[0x26] = 0xf; m[0xe] = 0xf;
-        m[0x1c] = 0; m[0x1d] = 0; m[0x10] = 0; m[0x11] = 0;
+        S4(m, 0x18, 0x19, 0x1a, 0x1b, 0x3f800000);
+        S2(m, 0x26, 0xe, 0xf);
+        S4(m, 0x1c, 0x1d, 0x10, 0x11, 0);
         m[0] = AT(int, 0x878);
         m[1] = AT(int, 0x87c);
-        m[0x1e] = 0; m[0x1f] = 0;
+        S2(m, 0x1e, 0x1f, 0);
         m[0x27] = 2; m[6] = 5; m[7] = 6; m[9] = 4; m[0x28] = 0; m[0x12] = 0; m[0x13] = 0x3f000000;
         float sx, sy, vx, vy;
         sx = DAT_00508408.x; sy = DAT_00508408.y; vx = DAT_00508400.x; vy = DAT_00508400.y;
@@ -145,9 +149,9 @@ void StageScene::LoadEffect(int* p)
             DAT_005083e8 = *(EffectUV*)&cfg.GetVector2("Fx2UVSpeed");
             DAT_005083e0 = cfg.GetFloat("FxAnimSpeed");
         }
-        m[0x19] = 0x3f800000; m[0x18] = 0x3f800000; m[0x1a] = 0x3f800000; m[0x1b] = 0x3f800000;
-        m[0x1d] = 0; m[0x1c] = 0; m[0x1e] = 0; m[0x1f] = 0;
-        m[0x11] = 0x3f800000; m[0x10] = 0x3f800000; m[0x12] = 0x3f800000; m[0x13] = 0x3f800000;
+        S4(m, 0x19, 0x18, 0x1a, 0x1b, 0x3f800000);
+        S4(m, 0x1d, 0x1c, 0x1e, 0x1f, 0);
+        S4(m, 0x11, 0x10, 0x12, 0x13, 0x3f800000);
         m[0x26] = 0xf; m[0x27] = 2; m[6] = 5; m[7] = 6; m[9] = 4; m[0x28] = 0; m[0xe] = 0x18;
         m[1] = AT(int, 0x904);
         WaterAnimator* w = new WaterAnimator((DynamicMesh*)PV, (WaterOwner*)this, DAT_005083e0,

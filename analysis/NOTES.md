@@ -813,3 +813,28 @@ address add (c2.dll, the routine that builds `[base+index]`), instead of more so
   cannot fold; no volatile needed.
 - `insdiff --norm` hides frame offsets: a function at "4 lines" can still have its whole frame permuted (FUN_004ac920:
   216 raw lines). Check the raw diff before calling something a near miss.
+
+## Normalise tails and store groups (2026-11-18, iteration 2)
+
+- **Normalise with values held on the x87 stack** (`fld z; fld y; fld st(0); fmul st,st(1); fld st(2); fmul st,st(3);
+  faddp; fld x; fmul x; faddp; fsqrt; fstp st(2); fstp st(0)` then `fdivr; fld st(0); fmul [x]; fstp [x]; fld [y];
+  fmul st,st(1); fstp [y]; fld [z]; fmul st,st(1); fstp [z]; fstp st(0)`), exact in TriCollector::ContactList:
+  `double zv = v.z, yv = v.y; double l = yv*yv + zv*zv; l = l + v.x*v.x; zv = sqrt(l); float len = (float)zv;
+  double k = K / len; float kf = (float)k; v.x = kf * v.x; v.y = v.y * k; v.z = v.z * k;`. Float locals for y/z fold
+  back into the members (no change); the held values need `double`. `double k` alone gives y/z right, the float copy
+  `kf` gives x its `fld st(0); fmul [x]`.
+- **A scale through an inline by-value member** (`struct SV3 : Vec3 { void operator*=(float s) {..} }`, `u *= size`)
+  holds the scale on the stack (`fld s; fld st(0); fmul [x]`); operand order inside the member body is ignored (all
+  commuted bodies compile alike).
+- **Store-group helpers need the right grouping, not the right order.** Source order of independent constant stores is
+  ignored (LoadEffect: 120 permutations identical); what moves them is which stores share a `__forceinline` helper.
+  Groups that worked: four equal stores (`S4`), pairs (`S2`), and in LoadTextures `Ones60` called BEFORE `LightState`
+  although the original emits the state stores first. A helper does not stop stores sinking below a following `cmp`
+  (LoadTextures meters), and a helper on one more block can wreck the function (Ones40 on a flare: 266 lines).
+- **A statement after a destructible local's scope** (`{ ...ScenePoint p...; } i++;`) puts its store after the EH
+  state reset, as the original does (StageGrid::Build).
+- `add eax,-4` in an insert expansion is the template's `_Last - _M` pushed as a call argument (last use of the
+  register); the real copy_backward loop gives `lea eax,[edx-4]`, a hand loop `sub eax,4`. StageGrid::Build's
+  `mov ecx,eax; add eax,-4; cmp` matches neither (20 forms).
+- Judge agent results by the RAW insdiff too: two changes this iteration lowered the normalised count while the raw
+  count rose (frame permuted or a call moved); both were rejected.

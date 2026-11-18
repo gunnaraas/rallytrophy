@@ -2184,7 +2184,42 @@ static inline void AssignStd(NameString& n, const std::string& s)
     n.Assign(*(const TmpString*)&s, 0, std::string::npos);
 }
 
+static __forceinline void SetBlend(FlareSprite* s, int a, int b)
+{
+    s->blendSrc = a;
+    s->blendDst = b;
+}
+
+static __forceinline void MeterInit(FlareSprite* s)
+{
+    s->blendSrc = 5;
+    s->blendDst = 6;
+    s->color60[0] = 1.0f;
+    s->color60[1] = 1.0f;
+    s->color60[2] = 1.0f;
+    s->color60[3] = 1.0f;
+    s->unk20 = 2;
+}
+
+static __forceinline void LightState(FlareSprite* s)
+{
+    s->blendSrc = 2;
+    s->blendDst = 2;
+    s->unk98 = 0xf;
+    s->unka0 = 0xf;
+    s->unk9c = 2;
+}
+static __forceinline void Ones60(FlareSprite* s)
+{
+    s->color60[0] = 1.0f;
+    s->color60[1] = 1.0f;
+    s->color60[2] = 1.0f;
+    s->color60[3] = 1.0f;
+}
+
 // NONMATCHING: RALLYTROPHY 0x463940
+// 2026-11-18: light sprite: color60 x4 stored BEFORE unk98/unka0 (was after): 63 -> 60 insns, still 2923 bytes. Failed: unk9c right after unka0 (69, 0xf/2 swap regs); original order is 18,1c,98,a0,9c,60..6c but source in that order gives wrong reg assignment.
+// 2026-11-18 round 2: light sprite as __forceinline helpers Ones60(color60 x4) THEN LightState(18,1c,98,a0,9c literals) + meters MeterInit(blend 5/6, color60, unk20): 60 -> 48 insns (reverse order LightState-first: 67; 98/a0 and 9c in separate helpers: 67). Meters 18/1c/20 still sink below the cmp even inside helpers; Ones40 helper on any flare breaks the block (266); SetBlend helper on flares no change.
 // 2026-11-17 (~30 compiles, unchanged): meters sites store 0x18/0x1c/0x20 in source order in the original (ours sinks them before the jne); whole-block and partial __forceinline helpers do not pin them here; light sprite 0xf CSE and 0x9c position unchanged by 9 orders.
 // 2026-11-15 pass: light sprite unk9c store moved after the color stores (before unk20): 66 -> 63 insns, 1115 -> 1101 bytes, 2923 bytes. Tried: meters store reorders (m1-m6, 64-70), volatile on blendSrc/Dst, unk9c at end / after lightSprite (no better).
 // 2026-11-13 pass: spriteCount non-volatile, tail store before ++count, SpriteName temp via pointer, AssignStd(b, dir + "x") (std::string temp, inline dtor): 1532->1115 bytes, 119->66 insns, 2936->2924. Left: meters stores 18/1c/20 scheduled late (2 sites), light sprite 2-in-edx/test dl, Brake/Reverse eax/edi load order; 300 store permutations per site found nothing better; QuadF helper and stale-volatile removal were worse.
@@ -2299,20 +2334,13 @@ void Car::LoadTextures(const std::string& dir)
     v->lightsBraking = v->cache->Load(a.c_str(), 0x40);
     s = (FlareSprite*)new Sprite;
     s->texture = lit;
-    s->blendSrc = 2;
-    s->blendDst = 2;
-    s->unk98 = 0xf;
-    s->unka0 = 0xf;
-    s->color60[0] = 1.0f;
-    s->color60[1] = 1.0f;
-    s->color60[2] = 1.0f;
-    s->color60[3] = 1.0f;
+    Ones60(s);
+    LightState(s);
     s->unk3c = -1;
     s->color70[0] = 0;
     s->color70[1] = 0;
     s->color70[2] = 0;
     s->color70[3] = 0;
-    s->unk9c = 2;
     s->unk20 = 4;
     v->lightSprite = s;
     s->color40[0] = 1.0f;
@@ -2343,13 +2371,7 @@ void Car::LoadTextures(const std::string& dir)
         s = (FlareSprite*)new Sprite;
         v->metersKmh = s;
         s->texture = v->cache->Load(b.c_str(), 0x441);
-        s->blendSrc = 5;
-        s->blendDst = 6;
-        s->color60[0] = 1.0f;
-    s->color60[1] = 1.0f;
-    s->color60[2] = 1.0f;
-    s->color60[3] = 1.0f;
-        s->unk20 = 2;
+        MeterInit(s);
         s->color40[0] = 1.0f;
     s->color40[1] = 1.0f;
     s->color40[2] = 1.0f;
@@ -2363,13 +2385,7 @@ void Car::LoadTextures(const std::string& dir)
         s = (FlareSprite*)new Sprite;
         v->metersMph = s;
         s->texture = v->cache->Load(b.c_str(), 0x441);
-        s->blendSrc = 5;
-        s->blendDst = 6;
-        s->color60[0] = 1.0f;
-    s->color60[1] = 1.0f;
-    s->color60[2] = 1.0f;
-    s->color60[3] = 1.0f;
-        s->unk20 = 2;
+        MeterInit(s);
         s->color40[0] = 1.0f;
     s->color40[1] = 1.0f;
     s->color40[2] = 1.0f;
