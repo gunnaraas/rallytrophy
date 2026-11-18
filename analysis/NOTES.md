@@ -878,3 +878,12 @@ address add (c2.dll, the routine that builds `[base+index]`), instead of more so
   products, copy locals, doubles and accumulators all give `fmul [mem]` or `fmul st,st(1)`.
 - Helpers in budget-padded functions: a new `__forceinline` helper costs about one unit of inline budget; raise the
   trailing `Bal(1)` count (ReadMesh: 5 -> 6 or more restores the string-function shape) before judging the helper.
+- (iteration 7) Limits of the double-temp lever: it moves an int instruction LATER only; where the original has the
+  int EARLIER than ours (FUN_00491c10) every double pushes it further away. It does nothing to a volatile read's
+  position (AIDriver 0x4a1050), to an `fstp` of a held value among int copies (ModelLoader::ReadMesh), or to slot
+  homes (a `double` local gets a QWORD slot the original does not have).
+- A `(float)(double)(a * b)` cast on ONE term of a sum makes that term the first one loaded (PhysBody 0x41c540), and
+  `double d = a * b; t = (float)(d + c * e) + ...` sets the term order of a sum that plain reordering cannot change
+  (CarLight::Render depth).
+- Register roles of two chained int values (`c`, then `g = c | c << 8`) flip when ONE variable is reused for both
+  (`g = F(...) & 0xff; g = g | (g << 8);`) instead of two locals; that removed CarLight::Render's volatile.

@@ -521,6 +521,7 @@ float AIDriver::FUN_004a0e60(Obstacle* ob, Vec3* unused)
 
 
 // NONMATCHING: RALLYTROPHY 0x4a1050
+// 2026-11-18 lever7 (~25 compiles, no gain, stays 24 norm/26 raw): double temp on c.z add, on perp.x/perp.z, on the return expression (34-38 worse); idx read after/between perp stores (26-36 worse: perp/EH stores hoist before ebx); point declared after matrix / assigned after / (Vec3*)&c.x / BodyMatrix inline helper / matrix hoisted above c.y (78 worse): lea still emitted before the matrix home store.
 // 2026-11-15 reg sweep (~25 compiles): side branch matrix before point 18 -> 17 insns (49 bytes unchanged); else-branch swap, hoists, own/car chains, c.* load order all worse; matrix/point temps still edx/eax vs original ecx/ecx.
 // 2026-11-13 pass: (float) cast on the return expression 14 -> 13 insns (return fld still one slot early elsewhere). No effect: matrix/point decl order, per-branch slot order (side: point first), const/DWORD/void* types, pos/matrix per-use or via car/own (worse), idx placement before/after/in perp or loop head (ebx hoist moves perp stores), named result.
 // Logic complete (819 bytes, 70 -> 18 insns differ). Tried 2026-10-31 re-pass: f scale via `double ls = sqrt(..); float inv2 = (float)(DAT_004e1348 / ls);` (fld dword K; fdiv st,st(1)), ez/ey temps with e.x read directly, idx read after perp. Fixed: `best` assigned after the z add in the side branch

@@ -1050,6 +1050,7 @@ struct W7_Car {
 // Round 17 (2026-11-15): rear block mirrors front (cb, sp2 int spills, then s3/cb0 fld; sp1 loaded before tb) 53 -> 41 insns, size 1404 = orig; left: frame 0x20 vs 0x1c (orig keeps sp1 slot reserved, l1 at -0x10, a1 at -0xc; declaration/scope/ref-local variants did not move it).
 // 2026-11-18: wheel 1 sin(a1) before cos(a1) 62 -> 59 raw (size/frame exact). Reusing ONE variable for sx and sy puts them in dt slot +8 and a1 at -0xc (orig homes, 55-58 raw) but size drops to 1396-1400 (wheel-1 sin/cos fpu order changes); sx/sy 4-use bumps, a1/l1 decl order, ternary locks, l1/l0 swap: no effect or worse.
 // 2026-11-18 r2: SinCos-style __forceinline helpers (void/ref outs, ptr outs, return-sine, cos-first, double param) on wheel 0/1/both: raw stays 59, a1 still in dt slot +8 (helper does not lower a1's slot priority); double param costs +2 bytes.
+// 2026-11-18 r3: double-slot/L1 levers, 59 raw stays (size 1404): a1/l1/sx/sy/steer/x/y as double (frame 0x1c or worse, 63-153); double temps on angle products, cos/sin results, sx*ca0 (identical code); row2[2]=ca0 moved across 3 statements (compiler keeps the int store before fsin); wheel0 sin-before-cos no change.
 void Car::UpdateSteering(float dt)
 {
     W3_CarView* v = (W3_CarView*)this;

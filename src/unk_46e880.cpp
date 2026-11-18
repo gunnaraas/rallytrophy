@@ -144,14 +144,17 @@ inline float Dot(const Vec3& a, const Vec3& b) { return (a.y * b.y + a.z * b.z) 
 // 2026-11-17 ws7: ~35 variants no gain (35 insns, 1125 B): prologue v split/hoist/eye ref, p/r/u declaration order, ScaleVec forms (size arg, commuted, *=), colour expr forms, non-volatile alpha (49 insns).
 // 2026-11-18: r/u as local `struct SV3 : Vec3` with inline by-value `operator*=(float s)`, `r *= s; u *= size;` (80 -> 66 norm insdiff lines, 1125 -> 1121 B): second vector now holds size on the FPU (fld; fld st(0); fmul). Still differs: x term `fld s; fmul st,st(1)` + pop of held r.x, u.y/u.z `fld y; fmul st,st(1)` + final pop (ours dups st(0) / consumes it), double-param/double-local/const float& /return *this/body operand orders all same or worse.
 // 2026-11-18 (rx lead): r copied as Vec3 with float rx = r.x held, `r.x = s * rx; r.y *= s; r.z *= s;` BEFORE `Vec3 p(Position())`, then `float k = size; float k2 = k;` and `u.x = k2 * u.x; u.y = u.y * k; u.z = u.z * k;` (u matches fully; the k2 alias flips the x term to fld-dup form): norm 66 -> 44, raw 70 -> 62, 1121 -> 1129 B. Left: volatile alpha round trip (non-volatile: raw 72), colour reg alloc, quad c/g order. Failed: SV3 r/u variants, k*u.x/u.x*k/size direct (no dup), p declared before r.y/z or after r.x (p loads and EH store misplaced).
+// 2026-11-18 ws7-46ea20 round 2 (no gain, 10/16 kept): quad[0].y/z operand order: slots are identical (p.y -0x44, r.y -0x38), plain-copy float locals (py/ry) +1 B and raw 200, r*1.0f/p - -r worse; p/r order in source is canonicalised. Int pair (quad[2].x copy) : double temps on quad[1].x/y/z adds, moving quad[2] statements all worse (raw 20-211).
 // Same algorithm and constants (1101 vs 1124 bytes; 614 differing bytes). The positive near-plane branch
 // emits the target's unordered-aware status-mask test; alpha storage, stack slots, and quad construction
 // still differ.
 // Draws the glow quad when the light is in front of the camera and faces it.
 void CarLight::Render(RenderDevice* device, Camera* camera)
 {
-    Vec3 v(Position());
-    v.x = v.x - camera->eyePosition.x;
+    Vec3 v;
+    v.x = position[0] - camera->eyePosition.x;
+    *(int*)&v.y = *(int*)&position[1];
+    *(int*)&v.z = *(int*)&position[2];
     v.y = v.y - camera->eyePosition.y;
     v.z = v.z - camera->eyePosition.z;
     float nearPlane = *(float*)&camera->nearBits;
@@ -185,7 +188,8 @@ void CarLight::Render(RenderDevice* device, Camera* camera)
             return;
         }
         const float* m = device->GetViewMatrix();
-        t = position[0] * m[2] + position[1] * m[6] + position[2] * m[10] + m[14];
+        double d2 = position[2] * m[10];
+        t = (float)(d2 + position[1] * m[6]) + position[0] * m[2] + m[14];
         float& depth = t;
         float n = *(float*)&camera->nearBits;
         if (*(int*)&depth > *(int*)&n && (n = *(float*)&camera->farBits, *(int*)&depth < *(int*)&n)) {
@@ -204,17 +208,18 @@ void CarLight::Render(RenderDevice* device, Camera* camera)
             float k = size; float k2 = k;
             u.x = k2 * u.x; u.y = u.y * k; u.z = u.z * k;
             Vec3 p(Position());
-            volatile float alphaScaled = a * 255.0f;
-            int c = FloatToInt(alphaScaled) & 0xff;
-            DWORD g = c | (c << 8);
-            DWORD col = g | (g << 16);
+            double ad = a * 255.0f;
+            DWORD g = FloatToInt((float)ad) & 0xff;
+            g = g | (g << 8);
+            DWORD col = g;
+            col |= col << 16;
             s_quad[0].color = col;
             s_quad[1].color = col;
             s_quad[2].color = col;
             s_quad[3].color = col;
             s_quad[0].position.x = r.x + p.x;
-            s_quad[0].position.y = p.y + r.y;
-            s_quad[0].position.z = p.z + r.z;
+            s_quad[0].position.y = r.y + p.y;
+            s_quad[0].position.z = r.z + p.z;
             s_quad[0].position.x += u.x;
             { float ta = s_quad[0].position.y; ta = ta + u.y; s_quad[0].position.y = ta; }
             { float ta = s_quad[0].position.z; ta = ta + u.z; s_quad[0].position.z = ta; }

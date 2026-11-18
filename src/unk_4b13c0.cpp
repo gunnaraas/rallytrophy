@@ -16,6 +16,7 @@ static inline int Bal(int a) { return a; }
 // Tried 2026-11-01 re-pass: 19 more variants (f[0..5] store reorders, volatile on single stores, int-temp copy, c.x/c.y/c.z read orders, c=*pc); source store order is ignored, stays at 4 insns (volatile f[0] or f[1] gives 7-8, volatile pc->x 20); permute -r 40 best also 4.
 // Tried 2026-11-01 structural pass: ~180 variants (volatile on every single store and every pair of the 11 f[] stores in two orders, all 24 group orders of a/s/b/c stores, inline SetM(f,a,s,b,c) helper, chained c.x=cx=pc->x, plain float c copies, scoped pc, flag tests before stores, int temps for c.y/c.z); only source order "a, s, b, c" keeps 4; volatile f[2] puts fstp in place but moves add esp/f[1]/f[2] (6). VC6's scheduler places the fstp of the live x87 c.x independently of source order once the int-mov stores are fixed; no source construct found that delays it.
 // Tried 2026-11-16 (round 19): 10 more variants (c.x/cx assigned after int copies, before them, c.y/c.z as float copies, f[3] stored last or in order, all-float cx/cy/cz temps); all 4 insns (or worse, 58), nothing kept.
+// 2026-11-18: double cx = pc->x with c.x/f[3] via (float)cx, in 9 placements (f[3] in place/last/after flag test, int copies before c.x, pc/f declared in other orders, f[0..2] stored before pc read): all stay at 8 raw insdiff lines, fstp [e+0xc] still early; early f stores 69-178. Nothing kept.
 SceneEntry* ModelLoader::ReadMesh(File* file, unsigned int size)
 {
     SceneEntry* e = new SceneEntry;
