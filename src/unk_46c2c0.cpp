@@ -310,6 +310,7 @@ void Wheel::Reset()
 
 static inline void WheelAddTorque(float* t, const Vec3& v) { float x = t[0]; t[0] = x + v.x; t[1] = v.y + t[1]; t[2] = v.z + t[2]; }
 // NONMATCHING: RALLYTROPHY 0x46c790
+// 2026-11-18 (not kept): lon normalise in the double-held form (double zv/yv before the lon compare, l = yv*yv + zv*zv + lx2, zv = sqrt(l), double k / float kf): norm 779 -> 744 and 3509 -> 3512 bytes, but raw 1190 -> 1200 and lonLen2 would be compared at double precision; same form on lat is worse (818-841). Largest size hunks: torque add (orig has no fstp [ebp-0xc4] group / EH state 0xd store), peakLat2 fstp+fld vs fst.
 // original: FUN_0046c790
 // Pass 2026-11-16 (L1): lon sqrt argument written as y*y+z*z+lx2 (not CSE'd with lonLen2, which is z*z+y*y then +lx2; same sums, commuted operands); 388->385 insns differ, 3501->3509 bytes. Tried: lat sqrt recompute (insns 387-391, bytes 3525), g4 reassociated sum (rejected, changes order).
 // Pass 2026-11-13: ld assigned inside the && condition, torque add via inline WheelAddTorque(FUN_004203e0(...)) (uses the returned eax), arm built as a Vec3 argument temp; 412->388 insns differ, 3511->3501 bytes.

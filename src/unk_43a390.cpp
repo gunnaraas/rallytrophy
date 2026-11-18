@@ -137,12 +137,15 @@ Screen1378::~Screen1378()
     Release();
 }
 
+static __forceinline void G4(float* m, float v) { m[0] = v; m[1] = v; m[2] = v; m[3] = v; }
+
 // NONMATCHING: RALLYTROPHY 0x43a490
 // Setup resource initialization and the two Sprite layouts are reconstructed; VC6 EH-state, field-store order,
 // and register allocation remain different (432 bytes, same as original; 12 insns differ).
 // Tried 2026-10-30 night: ~300 store-order/volatile-cast variants; size now matches, but original interleaves the 0xe/0xf/5/6 immediate stores with the second sprite early and VC6 sinks them.
 // Tried 2026-10-31 re-pass: interleaved first/second 9c/98/60/18/1c store order (16 insns, size 426); permute.py -r 40 best stayed at 12 insns, no MATCH; orig emits second->9c right after first->9c and spills ebp to [esp+1c] between, which VC6 scheduling keeps sinking.
 // Tried 2026-11-16 (round 20): ~17 more order/volatile/alias variants (original store order incl. s->9c early, member-cast second, local-from-new aliases): none below 12 insns / 97 bytes; the EH state=-1 store (ebp spill) is what VC6 hoists above first->9c, orig keeps it after.
+// 2026-11-18: ~40 helper/chain/two-object variants (P2(first,second,v), G4 four-store, per-sprite Sa/Sb/Sc/Sd groups, per-field pair helpers, chained 9c): all flat/helper forms 28-35 raw lines; best = original-emission order + G4 helper + volatile only on first->18/1c/24, 24 -> 23 raw (432 bytes).
 void Screen1378::Setup(MenuGame* game)
 {
     if (m_state) {
@@ -156,30 +159,18 @@ void Screen1378::Setup(MenuGame* game)
     Sprite* first = static_cast<Sprite*>(unk24);
     Sprite* second = static_cast<Sprite*>(unk28);
     first->unk9c = 0xe;
-    first->unk98 = 0xf;
-    first->unk60[0] = 1.0f;
-    first->unk60[1] = 1.0f;
-    first->unk60[2] = 1.0f;
-    first->unk60[3] = 1.0f;
-    ((volatile Sprite*)first)->unk18 = 5;
-    ((volatile Sprite*)first)->unk1c = 6;
-    first->unk40[0] = 1.0f;
-    first->unk40[1] = 1.0f;
-    first->unk40[2] = 1.0f;
-    first->unk40[3] = 1.0f;
-    ((volatile Sprite*)first)->unk24 = 2;
     second->unk9c = 0xe;
+    first->unk98 = 0xf;
+    G4(first->unk60, 1.0f);
+    ((volatile Sprite*)first)->unk18 = 5;
     second->unk98 = 0xf;
-    second->unk60[0] = 1.0f;
-    second->unk60[1] = 1.0f;
-    second->unk60[2] = 1.0f;
-    second->unk60[3] = 1.0f;
+    G4(second->unk60, 1.0f);
+    G4(first->unk40, 1.0f);
+    ((volatile Sprite*)first)->unk1c = 6;
+    G4(second->unk40, 1.0f);
     second->unk18 = 5;
     second->unk1c = 6;
-    second->unk40[0] = 1.0f;
-    second->unk40[1] = 1.0f;
-    second->unk40[2] = 1.0f;
-    second->unk40[3] = 1.0f;
+    ((volatile Sprite*)first)->unk24 = 2;
     second->unk24 = 2;
     first->texture->Upload(DAT_0056b0ac);
     second->texture->Upload(DAT_0056b0ac);

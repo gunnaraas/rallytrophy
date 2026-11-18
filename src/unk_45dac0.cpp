@@ -75,6 +75,7 @@ struct SunMeshV { BYTE unk0[0x30]; std::vector<SunPart*> parts; };
 // 2026-11-16 (round 21): cand stored z, x, then y (y computed first) 44 -> 43 insns, 106 -> 105 bytes. No gain: ny via q[-5]
 // (66 insns), cursor recomputed per iteration, q/tri/idx increment order, unsigned short/for(;;)/--n>0 count, eps hoisted,
 // signed i, hit field-wise, cand = p.
+// 2026-11-18: h as h = z*q[-4]; h += y*ny; h += x*nx (op= statements) 74 -> 72 raw, 921 bytes. No gain: ny via q[-5] (124, size changes), cand x/z-first or cand = p (76-114), cy after c, literal eps (174), while(n-- >1) (150).
 float Car::SunFactor(void* models)
 {
     SunModels* list = (SunModels*)models;
@@ -131,8 +132,9 @@ float Car::SunFactor(void* models)
                         float tx = p.x - q[-2];
                         float tz = p.z - q[0];
                         if (!(tx * tx + tz * tz > r * r)) {
-                            float h = p.z * q[-4] + p.y * tri->ny;
-                            h = h + p.x * tri->nx;
+                            float h = p.z * q[-4];
+                            h += p.y * tri->ny;
+                            h += p.x * tri->nx;
                             h = h - q[-3];
                             if (!(*(unsigned*)&h & 0x80000000)) {
                                 float t = h / q[-5];

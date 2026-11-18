@@ -838,3 +838,9 @@ address add (c2.dll, the routine that builds `[base+index]`), instead of more so
   `mov ecx,eax; add eax,-4; cmp` matches neither (20 forms).
 - Judge agent results by the RAW insdiff too: two changes this iteration lowered the normalised count while the raw
   count rose (frame permuted or a call moved); both were rejected.
+- (iteration 3) The double-held normalise needs the accumulator's kind to match too: with a plain `float s[3]`
+  accumulator (TriCollector::Contact) the same source puts `fsqrt` after the `fstp st(2); fstp st(0)` pops; with a
+  `ScenePoint` (EH object) it comes first as in the original. Term order and which double receives the sqrt are read
+  off the original per site (ShadowUpdater: `a` is x*x + y*y + z*z into z, `u` is x*x + z*z + y*y into y).
+- The x87-stack signature scan (`fld st(N)` original-only lines) also flags quad-vertex UV stores (WindowRain ctor),
+  where no vector scale exists; read the hunk before assigning the lever.

@@ -23,6 +23,7 @@ extern "C" void fun_004c1998();
 // 2026-11-11: counts, owner and array pointers through this->mesh (no volatile reloads) and the tail stores in the
 // original order (unk70[2] and viewCount right after the unk60 block): 357 -> 344 bytes differ; the head now matches
 // up to the quad loop, whose FPU/store interleaving is the remaining difference.
+// 2026-11-18: double u0/v0 -> raw 95->146; double u1/v1 -> 161; u1/v1 swapped or u0 copy -> 95 (no gain); *v before *u -> 127. No stack-held-scale form applies here.
 WindowRain::WindowRain(int count)
 {
     drops = 0;
