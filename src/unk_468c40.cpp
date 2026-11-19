@@ -330,6 +330,8 @@ void Car::FUN_004691e0(int cockpit)
 // 2026-11-16 weight pass 2: 16 more (a pre-loop test, a split a0/a, do-while, early next, b break-in-loop, cond via break either order, o declared outside, b->data in test); none better (a2 while(b){if(!a)break;} gives 16 insns but 20 bytes).
 // 2026-11-16 pass 3 (~45 compiles): kept while(b){if(!a)break;} (16 insns, 20 bytes, same size; was 17/18). Also none better: flat int stores for quads, shared a/b decls, early next, chained 1/2 stores, for(;;) breaks, a-first/b-first orders. Original ranks b>1>2>a; a stays above 2.
 // 2026-11-16 pass 4 (~45 compiles): const locals one/two in all 24 def orders, duplicate stores, inline-helper stores (St4/St6/St7): zero effect (16 insns/20 bytes). Original tests a (nodes1) first and loads it first; `while(a){if(!b)break;}` with the else branch loading b first gives that shape but 17 insns/18 bytes (same rotation), so kept while(b){if(!a)break;}. With the else branch loading a first the nodes1 load is hoisted above the damaged test (537 bytes).
+// 2026-11-18: a-driven loops (while(a){if(!b)break;}, for, if(a)do..while(a), a&&b) all worse (46-61 raw vs 34; b load hoisted above damaged test); a-first decl with while(b){if(!a)break;} stays 34.
+// 2026-11-18 (lever8): A-driven while(a){if(!b)break;} works once the ELSE branch loads b then a (a-then-b there CSEs nodes1 above the damaged test: 537 bytes); now 543/18 bytes (was 20), 36 raw lines; ~20 more variants (if(a){while}, do-while, o first, next order, a?b:0) same 18; volatile still needed (40 bytes without).
 void Car::FUN_004693a0(int mode)
 {
     CarModelView* v = (CarModelView*)this;
@@ -337,10 +339,10 @@ void Car::FUN_004693a0(int mode)
         return;
     v->damaged = mode;
     if (mode) {
-        ModelNode* b = v->nodes2;
         ModelNode* a = v->nodes1;
-        while (b) {
-            if (!a) break;
+        ModelNode* b = v->nodes2;
+        while (a) {
+            if (!b) break;
             ModelMaterial* m = a->data;
             m->quad40.a = 1.0f;
             m->quad40.b = 1.0f;
@@ -378,8 +380,8 @@ void Car::FUN_004693a0(int mode)
             m->unk98 = 0xf;
         }
     } else {
-        ModelNode* a = v->nodes1;
         ModelNode* b = v->nodes2;
+        ModelNode* a = v->nodes1;
         while (a && b) {
             ModelMaterial* m = a->data;
             ModelMaterial* o = b->data;

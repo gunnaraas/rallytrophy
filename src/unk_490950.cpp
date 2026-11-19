@@ -307,6 +307,7 @@ extern int DAT_00501454;
 extern int DAT_00501458;
 
 // NONMATCHING: RALLYTROPHY 0x491130
+// 2026-11-18: ~60 variants (decl order a,mode,b; flag=(int)setup / chained zero stores; mode=flag-derived; extra real uses of setup via ||!setup; mode/setup types; setup += forms; setup-first/mode-first decls) all stay 38 bytes or worse (39-157); mode/setup stay swapped.
 // 2026-11-17 (Claude): all 6 orders of the local-branch assignments x 4 orders of the unk40==2 block: 14-15 insns, mode/setup stay esi<->ebp swapped.
 // 2026-11-17: new Car in a local (Car* c; car = c; c->player = this) 17 -> 14 insns; ~25 more (setup/mode decl order, += setup, ternary mode, self copy, helper) keep setup/mode swapped (ebp/esi).
 // 2026-11-12: all 16 placements of the a/b/mode/flag initialisers (declaration vs both branches) tried; the declaration form (17 insns) stays best.
@@ -483,6 +484,7 @@ int Player::FUN_00491f70()
 // Tried 2026-10-30 night: bool/int copy of copyFrom, inline slopes (worse), ternary offset temps (worse), volatile copy (worse); the mov ecx,[esp+30h]/test still sits after the fsub/fmul pair instead of before them.
 // Tried 2026-10-31 re-pass: volatile copyFrom read at 8 positions (best case moves mov+test one slot too early, 2 insns), split slope decls, plain int copy; permute.py -r 40 found nothing better than the (2,8) baseline.
 // 2026-11-16 (round 32): ~45 more variants (copyFrom copy local at every statement boundary incl. const/!!/unsigned/const param, slopes inline/declared per store, product order, two-if split, goto): all stay at 2 insns; the test position never moves.
+// 2026-11-18: double-temp lever (L1) on s0..s4 / inv as double (invd, 3 casts) / interleaved stores / ~14 accumulator shapes / inv declaration position: ~700 compiles, none below 1 pair (2 lines, raw 2); double forms only push the pair later (4-9 lines).
 // 473 vs 473 bytes, 8 bytes differ: the original loads and tests copyFrom (mov ecx,[esp+30h]; test)
 // one FPU op earlier than any source ordering tried (temps, copy local, reordered stores).
 // Turns the u8 fields of two samples into per-field slopes (per ms) and offsets. cdecl.

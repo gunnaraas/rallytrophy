@@ -470,7 +470,12 @@ void SegmentInfo::Update()
 
 // original: 0x4ba620 etc. follow
 
-// NONMATCHING: RALLYTROPHY 0x4ba620
+struct FrW { float x, y, z; FrW(float a, float b, float c) { x = a; y = b; z = c; }
+    void operator*=(float s) { x *= s; y *= s; z *= s; }
+    float Len() { float l = y * y + z * z; return l + x * x; } };
+
+// FUNCTION: RALLYTROPHY 0x4ba620
+// 2026-11-18: MATCH. FrW (ctor z=1.0f, inline operator*= scaling x,y,z, Len() `float l = y*y + z*z; return l + x*x;`) then f = sqrt(w.Len()); radius = f.
 // 2026-11-17: `f = sqrt(..); radius = f;` gives the original's fstp st(N) tail (7 -> 6 insns); left: w.x/w.y stored (w address-taken in the original); pointer/ref/reused-t forms no better.
 // 2026-11-16 pass 3: ~40 more tail variants (x-first sums, w.z=f, float locals, inline helpers, double r, FrLen helper) gave no gain; the original keeps w.x/w.y stores (fstp/fst) that ours drops. double r reaches 6 insns but 39 bytes, still 517 vs 523.
 // Semantics complete (inline-asm Xform/Rot, EBP frame). 66->47 insns differ: i-indexed loop over planes/tplanes + if/else idx stores.
@@ -497,10 +502,10 @@ void ViewFrustum::Init(FrustumDevice* device)
     }
     farD = -planes[7];
     nearD = planes[3];
-    ScenePoint w(planes[10], planes[18], 0.0f);
+    FrW w(planes[10], planes[18], 1.0f);
     float f = farD;
-    w.x = w.x * f; w.y = w.y * f;
-    f = (float)sqrt(w.y * w.y + f * f + w.x * w.x);
+    w *= f;
+    f = (float)sqrt(w.Len());
     radius = f;
 }
 

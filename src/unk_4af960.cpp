@@ -40,6 +40,14 @@ static __forceinline void Ins0(BStr* d, const std::string& x)
         }
     }
 }
+struct MatStr : std::string { void AssignStd(const char* s) { assign(s); } };
+struct InsStr : std::string {
+    bool Grow(unsigned int n, bool trim);
+    void Eos(unsigned int n);
+    void InsReal(const std::string& x) { insert(0, x); }
+};
+#pragma comment(linker, "/alternatename:?Eos@InsStr@@QAEXI@Z=?_Eos@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAEXI@Z")
+#pragma comment(linker, "/alternatename:?Grow@InsStr@@QAE_NI_N@Z=?_Grow@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAE_NI_N@Z")
 struct MatView { char pad[0xa4]; std::string name; };
 static __forceinline void Set3(float* d, float x, float y, float z) { d[0] = x; d[1] = y; d[2] = z; }
 static __forceinline void Set4(float* d, float x, float y, float z, float w) { d[0] = x; d[1] = y; d[2] = z; d[3] = w; }
@@ -115,7 +123,8 @@ void ModelFile::ReadMaterialList(File* file)
     }
 }
 
-// NONMATCHING: RALLYTROPHY 0x4b0180
+// FUNCTION: RALLYTROPHY 0x4b0180
+// 2026-11-18: MATCHED. Texture3 prefix insert is the real std::string::insert(0, s) on InsStr (derived from std::string, Grow/Eos out of line, inline InsReal wrapper) instead of hand Ins0; trailing Bal(1) x3 -> x2 (N sweep: 0:1639B 1:1639B 2:MATCH 3:1478B 4,5:1433B 6+:1414B).
 // Static string setup, material color copies, and texture path insertion code generation differ.
 // Tried 2026-10-31: 231->46 insns (size 1628 vs 1626): Vector3 c0..c3 locals before the statics (empty dtors give EH state 3/4), Set3/Set4 forceinline row copies (fld z,y,x / fstp x,y,z), Bal(1) x5 at end, Assign args via a pointer local (call before npos load), MatView for the node->name compare, Ins0 hand-written insert with out-of-line BStr::Eos/Grow; still differs: stack slots of the five FUN_004af230 results (orig b,c,d,e ascending 0x10..0x1c, ours permuted; declaration order and q[4] array did not move them), `mov [ebp+0x7c]/0x6c/0x5c,ebx` store placement, `textures` null test form, new-Node else-xor.
 // Tried 2026-11-01 re-pass: 46->28 (size 1625 vs 1626): stores into result ordered a,b,c,d,e (stack slots of the FUN_004af230 results follow first-use order), duplicate dead WORD(0x1f)=0 removed, WORD 0x1b/0x17 zero stores placed after their row copies, volatile read of f; 20+ variants for the `textures` null test (locals, volatile, casts, !x else, self ptr) and permute -r 40 all keep `cmp [esi],0` where the original has `mov eax,[esi]; test eax,eax`, which is the only real insn left.
@@ -190,7 +199,7 @@ Sprite* BmfReader::ReadMaterial(File* file)
             WORD(result,1) = (unsigned int)textures->Load(texture2.c_str(), 0x40);
         }
         if ((DAT_0057b95c & 1) && texture3 != "") {
-            Ins0((BStr*)&texture3, path.Str());
+            ((InsStr*)&texture3)->InsReal(path.Str());
             WORD(result,2) = (unsigned int)textures->LoadSpecial(texture3.c_str(), 0x40);
         }
     }
@@ -211,7 +220,7 @@ Sprite* BmfReader::ReadMaterial(File* file)
     else materials->m_head = node;
     materials->m_tail = node;
     ++materials->m_count;
-    Bal(1); Bal(1); Bal(1);
+    Bal(1); Bal(1);
     return result;
 }
 
@@ -282,6 +291,9 @@ void ModelFile::ReadBlock(File* file, unsigned int* size)
 // Tried 2026-11-01 re-pass: 25 more variants of the first position copy (int/float field-wise, block temps, per-store volatile on x/y/z, reordered stores, moved after the matrix copy, volatile record, hoisted flags temp) all worse (71-175 insns) or unchanged at 7; permute -r 40 stayed at 7; still differs: y store [ebp+0x18] of the first position copy deferred past rep movs.
 // Tried 2026-11-01 pass 3: matrix copy through a block-local `Matrix* d` (also memcpy/int[16]-struct/raw offsets: no change) moves the y store before the rep movs (74->36 bytes, still 7 insns) but VC6 then stores x,y,z where the original stores x,z,y; ~45 variants (inline helpers in all 6 field orders for both copies, per-field volatile, Bal 0-8) either keep 7 or break the edx reuse of y in the second copy (+3 bytes); permute -r 20 from the Matrix* d form stayed at (7,36); the remaining 5-store shift in the w[0x28..] run tracks the same edx/ecx allocation.
 // Tried 2026-11-16 r20: 4 more first/second position-copy forms (float locals x,z,y; const ScenePoint& field copy; first copy after matrix copy; second copy field-wise) all worse (71-143 insns vs 7); unchanged at 7 insns / 74 bytes.
+// 2026-11-18: forceinline helpers around the position copy (ptr/ref/by-value/int forms, x,z,y or x,y,z store order, one or both sites, only-y or only-xz store split) all raise raw insdiff 14 -> 240-460; unchanged at 14.
+// 2026-11-18 (helper x Bal sweep 0-10): any new PosCopy helper needs Bal>=6 (Bal 0-5 give 240-344 raw); at Bal 6-10 x,y,z/assign helper = 14 (same as baseline, y store still sunk), x,z,y direct helper both sites = 26 (loads z before y), single site 46; y/z-split, zy, local-first forms 44-300. No variant below 14.
+// 2026-11-18: real std::string assign on a derived AsgStr (assign(x,0,npos), assign(x), c_str forms; Bal 0-14) for the object->name Assign: same 1328 B / 74 differing bytes at Bal 5-7,9-14 (1414/1368/1362 elsewhere; c_str forms 1380-1477); no change to the position-copy hunk, reverted. The other "Insert" is meshes.Insert (vector, not a string).
 void ModelFile::ReadMesh(File* file)
 {
     ModelPartRecord* record = FUN_004af730(file);

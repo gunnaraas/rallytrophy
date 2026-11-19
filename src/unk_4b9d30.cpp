@@ -19,6 +19,7 @@ struct V3Sub { float x, y, z; float* Sub(float* out, const float* o) const; }; /
 // Tried 2026-10-30 night: cam/body matrices via local pointers (cm), 4 early + 5 late dtor objects (V3E w/tmp/X5) gives sp 0x224, EH state 3 and 1748 bytes (326->316 insns; cm alone 308); operand order of the translation products ignores source order, matrix slots ignore declaration order (original: invBody -0x230, invProd -0x1f0, clip -0x1b0, invCam -0x170, invAxes -0x130, prod -0xf0); X5 candidates u/a/d/up all worse.
 // Tried 2026-11-01 re-pass: vertex loop and pre-loop scaling rewritten to the original's fadd association (clip scaled in place after the q copy; u=(g3+g1)+(f4+ang), v=(f8-g2)-g4; a rounding fix, 316->319 insns only because of slot cascade); matrix declaration order (6 orders, incl. original slot order) and q.m[16] position make no difference to slots; temps/volatile on g2/g4 and bm-sum temp variants worse; 313-331 insns differ, too far for permute.
 // Pass 2026-11-13: cam via cam->matB for x/z, (float)sqrt in all DAT/sqrt (fdivr mem form), up[] declared then assigned (269 -> 260 insns differ, 1278 -> 1228 bytes, size 1713 -> 1710); declaration order of tmp/d/up/u and operand order of the invBody/invCam translation sums change nothing; len stays on the x87 stack (original spills it to a temp), pointer-local hoist before len interleaves like the original but loses insns.
+// 2026-11-18: a/u normalises in ContactList form (double held y/z, sqrt assigned back into the first-loaded double, float copy ukf for u[0]) reproduce the original's fsqrt/fstp st(2)/fstp st(0) cores: raw 596 -> 580, 1710 -> 1722 bytes. Failed: same form or inline Len/operator*= members or by-value Len3 on d (598-607), swapped len term order and double zl for len (no gain).
 void ShadowUpdater::Update(ShadowBody* body, ShadowBody* cam, const float* centre, float radius)
 {
     Mat4Local invBody, invCam, prod, invProd;
@@ -120,16 +121,27 @@ void ShadowUpdater::Update(ShadowBody* body, ShadowBody* cam, const float* centr
     d[2] = d[2] * s;
     up[0] = 0.0f; up[1] = 1.0f; up[2] = 0.0f;
     X87Cross(a, up, d);
-    s = DAT_004e1348 / (float)sqrt(a[2] * a[2] + a[1] * a[1] + a[0] * a[0]);
-    a[0] = a[0] * s;
-    a[1] = a[1] * s;
-    a[2] = a[2] * s;
+    double az = a[2], ay = a[1];
+    double al = a[0] * a[0];
+    al = al + ay * ay;
+    al = al + az * az;
+    az = sqrt(al);
+    double ak = DAT_004e1348 / (float)az;
+    a[0] = a[0] * ak;
+    a[1] = a[1] * ak;
+    a[2] = a[2] * ak;
     X87Cross(u, d, a);
     float c0 = cam->pos[0], c2 = cam->pos[2], c1 = cam->pos[1];
-    s = DAT_004e1348 / (float)sqrt(u[1] * u[1] + u[2] * u[2] + u[0] * u[0]);
-    u[0] = s * u[0];
-    u[1] = u[1] * s;
-    u[2] = u[2] * s;
+    double uy = u[1], uz = u[2];
+    double ul = u[0] * u[0];
+    ul = ul + uz * uz;
+    ul = ul + uy * uy;
+    uy = sqrt(ul);
+    double uk = DAT_004e1348 / (float)uy;
+    float ukf = (float)uk;
+    u[0] = ukf * u[0];
+    u[1] = u[1] * uk;
+    u[2] = u[2] * uk;
     invAxes.SetInverseOf(a);
     invAxes.m[12] = -(a[0] * c0 + a[2] * c2 + a[1] * c1);
     invAxes.m[13] = -(u[2] * c1 + u[1] * c2 + u[0] * c0);

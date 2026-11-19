@@ -1388,6 +1388,8 @@ public:
     UIRect*& Get(int index); // 0x4242f0
 };
 
+struct G6_RectVec { std::vector<UIRect*> rects; };
+
 class G6_Sound {
 public:
     void FUN_0049b730();
@@ -1399,7 +1401,7 @@ public:
     void FUN_00437040(int);
 };
 
-// NONMATCHING: RALLYTROPHY 0x432e10
+// FUNCTION: RALLYTROPHY 0x432e10
 // 2026-11-16 pass (round 19): 11 more variants (UIRect** array + index, plain/all-volatile/partial-volatile receivers, float temps, named receiver pointer); none beat 10 insns (54 bytes), same size 1031.
 // Tried 2026-10-30 night: while-loop + goto-six, Get() returns UIRect*&, volatile rect reloads (mask search of 64), x*width/y*height fix, permute -r 20; 10 insns left: ecx load/push/EH-state store order around the six rect calls (original loads are plain but not CSE'd).
 // Tried 2026-10-31 re-pass: 30+ variants (volatile/plain mask on the six rect loads, volatile/plain local receiver pointers, sequential float temps, HudPoint temps, rv/off decl order, one-expression forms) plus permute -r 40; none beat 10 insns (all-volatile 14); original orders ecx load, lea, push, EH store per rect call while VC6 sinks the ecx load past the EH-state store.
@@ -1485,12 +1487,11 @@ int __fastcall GameG6::FUN_00432e10()
             else if (*(int*)((BYTE*)this + 0x139078) >= 7)
                 *(int*)((BYTE*)this + 0x139078) = 0;
 
-            BYTE* rv = *(BYTE**)((BYTE*)this + 0x139464);
-            int off = *(int*)((BYTE*)this + 0x139078) * 4;
-            x = (int)((*(UIRect* volatile*)(rv + off))->GetTopLeft().x +
-                          ((*(UIRect* volatile*)(rv + off))->GetBottomRight().x - (*(UIRect* volatile*)(rv + off))->GetTopLeft().x) * 0.5f);
-            y = (int)((*(UIRect**)(rv + off))->GetTopLeft().y +
-                          ((*(UIRect* volatile*)(rv + off))->GetBottomRight().y - (*(UIRect* volatile*)(rv + off))->GetTopLeft().y) * 0.5f);
+            std::vector<UIRect*>& rects = ((G6_RectVec*)((BYTE*)this + 0x139460))->rects;
+            x = (int)((*(UIRect**)((BYTE*)&*rects.begin() + *(int*)((BYTE*)this + 0x139078) * 4))->GetTopLeft().x +
+                          ((*(UIRect**)((BYTE*)&*rects.begin() + *(int*)((BYTE*)this + 0x139078) * 4))->GetBottomRight().x - (*(UIRect**)((BYTE*)&*rects.begin() + *(int*)((BYTE*)this + 0x139078) * 4))->GetTopLeft().x) * 0.5f);
+            y = (int)((*(UIRect**)((BYTE*)&*rects.begin() + *(int*)((BYTE*)this + 0x139078) * 4))->GetTopLeft().y +
+                          ((*(UIRect**)((BYTE*)&*rects.begin() + *(int*)((BYTE*)this + 0x139078) * 4))->GetBottomRight().y - (*(UIRect**)((BYTE*)&*rects.begin() + *(int*)((BYTE*)this + 0x139078) * 4))->GetTopLeft().y) * 0.5f);
 #undef RV
             SetCursorPos((int)(x * widthScale), (int)(y * heightScale));
         }
@@ -3761,9 +3762,11 @@ struct G13_WarpPoint {
 // volatile stores, separate init statements, permute -r 20): declaring choice first fixes the back-edge `mov edi,1 / xor ebx,ebx` order but then the
 // prologue stores [esp+10]/[esp+1c] swap; the original has wait,choice order in the prologue and edi,ebx at the back-edge, which no single declaration order gives.
 // Tried 2026-11-01 re-pass: volatile init of wait/choice/first, volatile wait store-back, volatile first read, extra int local, result via temp, permute -r 40 (best 1 insn, no MATCH); still only the back-edge `mov edi,1 / xor ebx,ebx` order differs (VC6 re-materialises the two constants after the inlined G13_String dtor).
+// 2026-11-18: full decl-order x init-statement-order sweep (36 combos): prologue order follows the INIT STATEMENT order only (declaration order irrelevant); init order wait,choice,first gives the right prologue but always 6 bytes (back-edge xor/mov swapped), any other init order 4/5/8. Also 6 or worse: for(;;)/while(cond) loop (931), wait=0 moved after first block (15) or before the active test (20), bool first (925), first declared late (19), dtor zero stores seq/rev/mid (6/8/8). No form tried reaches both orderings.
 // Tried 2026-11-14: wait=0 moved to loop end (+first=1/choice=choice), trailing continue, for(;cond;) head, BeginScene if-wrap, string in inner block, first/choice/wait reorder: none beat 1 insn (back-edge swap).
 // Pass 2026-11-16 (agent, ~45 variants): the true diff is the two top stores [esp+1c]/[esp+10] (wait/choice) swapped; decl order wait,choice,first fixes it but flips the back-edge mov edi,1/xor ebx,ebx. Also no change: pointer/unsigned/bool types for wait/first/choice, init-from-another-local (!wait, first=choice, one=1), x/y/color decl moves, for(;;), extra locals, return !choice. Slots (slotmap) already equal.
 // Pass 2026-11-16 (inline-helper lever, ~200 compiles): Set0/Set1/Init helpers for wait/choice/first in all declaration x helper-order combos (147) plus in-loop helper stores: only three outcomes, prologue swap (4B), first store hoisted (5B), back-edge swap (6B); never combined, no gain over 1 insn.
+// 2026-11-18: real std::string members (class derived from std::string for the whole line: dtor becomes an out-of-line _Tidy(true) call, 1594 bytes/606 diff; cast view with real append() for the '/' and/or text(0x23) sites + Bal(1) padding N=8..10: exact size, same 4 differing bytes, N<=6 1608, N=14 1529): the string twins are not the cause of the prologue store swap.
 // Modal "question / Yes / No" dialog: Left/Right or the mouse pick the answer, Enter or a click confirms, Esc cancels.
 // Returns 1 for Yes (class Game in the merged header). original: FUN_00436250
 int GameObj::FUN_00436250(MenuScreen* screen)

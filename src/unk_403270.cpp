@@ -421,6 +421,7 @@ static inline int Bal(int a) { return a + 1; }  // discarded calls: inline-budge
 // 2026-11-16 round 27b: ~55 more variants, none better (10 insns). A float temp (`float q = rec.r.a2c; car->unk1a20 = q;`) gives the fld/fstp but shifts register choice (22 insns); car as t/car copy, if/else, hoisted car, const car, casts, Read(&rec.r), rec/car order, reorder.py: `mov esi,eax` stays before the Read pushes.
 // 2026-11-16 F10: inline helpers (Pick(car) after Read, SetCar, CopyF/CopyI/CopyD for the a2c and a20 copies): 8 variants, car helpers 10 insns unchanged (compiler still hoists mov esi,eax), CopyF(float&,const float&) stays mov/mov, CopyD(double) gives fld/fstp but 22 insns.
 // 2026-11-16 F13: group helpers (PickCar ternary, ReadRec/ReadCar/ReadGroup Read+ReadSetup, CopyRec field copies, PickInto out-param, New0/NewD arms), all 2^3 combinations + ~12 more: 10 insns unchanged, mov esi,eax still hoisted.
+// 2026-11-18: real std::string members tried, no gain: RpStd derived local with real ctor/append (1162-1075 bytes at every N 0..20, 744+ differing; real ctor calls assign out of line 0x404ba0 where the target expands Grow/memcpy/Eos); real append(s) via cast twin for the two AppendCall sites (N>=10-11 gives the identical 1117 bytes/27 differing, no change).
 bool ReplayHeader::Load(int index)
 {
     ReplayPath name("savegame/replay");

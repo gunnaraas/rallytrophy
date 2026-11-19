@@ -128,6 +128,7 @@ struct QuatTmp {
 // 2026-11-16 pass: 41 -> 4 insns differ (437 -> 159 bytes, size 987 exact): ScenePoint operator*/+ (out-of-line calls now match), v224 += off via a local Vec3* so the two passes stay unfused, pos copy after the 2nd Xform as DWORD moves, q products/adds through Quat* qp, normalize through a float* into q; remaining: lea ecx,&q sits right before the first q product in the original (ours hoisted after the v224 pass) and the dq EH state store (mov byte,2) follows the first product there.
 // 2026-11-16 r25 (60 compiles, still 4 insns): lea ecx,&q is hoisted to the first x87 gap after the ScenePoint call whatever the qp form (qp=&q in the first product, ref/const/char* forms, __asm{}, qp earlier/later); moving QuatTmp dq (or its helper) before the products makes dt*0.5 hoist to the front (30+ insns, 20 bytes smaller); forceinline DqCalc(dq,&q,w,dt) helper (value/ref/ptr dt) same.
 // Tried 2026-11-01 re-pass: Quat* qp=&q for the q+=dq adds (74->41 insns, ecx addressing now there), pos via Vec3* pp, views, qp for products/normalize, v224 unfusing via volatile/temps, pos copy after Xform; still differs: original does v224+=dv and +=off as two unfused passes and uses ecx for the dq products and normalize but esi for the n sum; any qp use in those places moves the lea or fuses the passes.
+// 2026-11-18: first product as (float)(double)(w.y * qp->w) fixes the swapped first two product terms (raw 8 -> 4 lines; lea ecx and EH state store still early). QuatTmp dq declared before the products puts lea+state after the first fmul like the original but hoists dt*0.5 to the front (56 lines); dq early + products stored through dq fields (dq.y=P;... dq.y*=k) keeps k late and lea/state right (27 lines, spill slots/regs differ); doubles on k/W pass/D/t2 no gain (~45 compiles).
 void PhysBody::FUN_0041c540()
 {
     Vec3 w = v1d8;
@@ -140,7 +141,7 @@ void PhysBody::FUN_0041c540()
     *V += *(Vec3*)&(*(ScenePoint*)v1cc * dt);
     { Vec3* W = (Vec3*)v224; W->x = off.x + W->x; W->y = off.y + W->y; W->z = off.z + W->z; }
     Quat* qp = &q;
-    float P = w.y * qp->w + w.x * qp->z - w.z * qp->x;
+    float P = (float)(double)(w.y * qp->w) + w.x * qp->z - w.z * qp->x;
     float t1 = w.y * qp->x + w.z * qp->w - w.x * qp->y;
     float t2 = -(w.x * qp->x) - w.y * qp->y - w.z * qp->z;
     float D = w.z * qp->y + w.x * qp->w - w.y * qp->z;

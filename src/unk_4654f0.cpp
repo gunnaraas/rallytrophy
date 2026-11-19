@@ -164,6 +164,7 @@ inline float ByteToUnitF(int b)
 
 // original: FUN_004658a0 (declared with PlayerSample*, the same packet seen from the player side)
 // NONMATCHING: RALLYTROPHY 0x4658a0
+// 2026-11-18 (not kept): all 240 orders of the front block (steer, gear, rpm, b0, steerSet volatile/plain): best raw 57 -> 55 but norm 79 -> 85. Hunks 3-6 are one cause: the original's strength-reduced hit-normal base is hitNormal[i]+8 (`lea ecx,[esi+0x1e0c]`, copies to [ebx-8],[ebx-4],[ebx]), ours +0; in-body `&hitNormal[i][2]` pointer, loop-carried hn += 3, int nz read first, int b3 local all change the size (924-949). No vector math here (packet unpack), so the x87 vector forms do not apply.
 // 2026-11-17 (~80 compiles, 24 insns unchanged): orig induction base is hitNormal[i]+8 (ours +0); normal-copy orders move the base but never to +8; 60 front-block orders: plain steerSet store hoists, volatile is the closest.
 // 2026-11-16 r22: 145->129 bytes differ, 45->24 insns: int b0 = state->body[0] hoisted above the steerSet store, position[1] stored before position[2], x/z ints + wheelY loaded before Vec3 local. No gain: steerSet/gear/rpm reorders, hn=&hitNormal[0][2] induction (+15..+36 bytes), b1/b2/b3 locals (spill, 949 bytes).
 // 2026-11-10: 926/926 bytes, 145 differ (was 913 bytes, 338). The 13 body dwords are assigned in the original's

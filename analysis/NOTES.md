@@ -798,3 +798,170 @@ holder twin and on a class derived from the real string with the real fields (`#
 same 10 bytes; plain `path = dir; path += "x";` statements expand all eight appends (3805 bytes), one inline helper
 called eight times expands too few (3540). Next step with a real chance: read how c2 orders the operands of an
 address add (c2.dll, the routine that builds `[base+index]`), instead of more source variants.
+
+## Inline by-value members keep stores and FPU values (2026-11-18; matched ViewFrustum::Init 0x4ba620)
+
+- When the original STORES components of a local vector that our build keeps on the x87 stack (`fstp [m]` / `fst [m]`
+  missing on our side) and squares a value with no multiply that produced it (`fld st(2); fmul st,st(3)` for z*z), the
+  local is an object whose INLINE MEMBERS do the work: a ctor taking floats, `operator*=(float s)` scaling all three
+  components, and an inline length. The this-pointer makes the object address-taken, so every component statement
+  stores; a component initialised to 1.0f and scaled folds to the scale itself (`z = 1.0f; z *= f` -> f).
+- The length's term order is not free: `float l = y*y + z*z; return l + x*x;` matched; `y*y + z*z + x*x` and
+  `x*x + y*y + z*z` in one expression gave 10 lines, a three-statement `l +=` chain 15.
+- A dead store to a parameter that the original keeps in memory (`mov [param],0`, read back later) can be written
+  through an existing alias of that slot (PauseMenu: `float& y = *(float*)&reset; y = 0.0f;`), which the compiler
+  cannot fold; no volatile needed.
+- `insdiff --norm` hides frame offsets: a function at "4 lines" can still have its whole frame permuted (FUN_004ac920:
+  216 raw lines). Check the raw diff before calling something a near miss.
+
+## Normalise tails and store groups (2026-11-18, iteration 2)
+
+- **Normalise with values held on the x87 stack** (`fld z; fld y; fld st(0); fmul st,st(1); fld st(2); fmul st,st(3);
+  faddp; fld x; fmul x; faddp; fsqrt; fstp st(2); fstp st(0)` then `fdivr; fld st(0); fmul [x]; fstp [x]; fld [y];
+  fmul st,st(1); fstp [y]; fld [z]; fmul st,st(1); fstp [z]; fstp st(0)`), exact in TriCollector::ContactList:
+  `double zv = v.z, yv = v.y; double l = yv*yv + zv*zv; l = l + v.x*v.x; zv = sqrt(l); float len = (float)zv;
+  double k = K / len; float kf = (float)k; v.x = kf * v.x; v.y = v.y * k; v.z = v.z * k;`. Float locals for y/z fold
+  back into the members (no change); the held values need `double`. `double k` alone gives y/z right, the float copy
+  `kf` gives x its `fld st(0); fmul [x]`.
+- **A scale through an inline by-value member** (`struct SV3 : Vec3 { void operator*=(float s) {..} }`, `u *= size`)
+  holds the scale on the stack (`fld s; fld st(0); fmul [x]`); operand order inside the member body is ignored (all
+  commuted bodies compile alike).
+- **Store-group helpers need the right grouping, not the right order.** Source order of independent constant stores is
+  ignored (LoadEffect: 120 permutations identical); what moves them is which stores share a `__forceinline` helper.
+  Groups that worked: four equal stores (`S4`), pairs (`S2`), and in LoadTextures `Ones60` called BEFORE `LightState`
+  although the original emits the state stores first. A helper does not stop stores sinking below a following `cmp`
+  (LoadTextures meters), and a helper on one more block can wreck the function (Ones40 on a flare: 266 lines).
+- **A statement after a destructible local's scope** (`{ ...ScenePoint p...; } i++;`) puts its store after the EH
+  state reset, as the original does (StageGrid::Build).
+- `add eax,-4` in an insert expansion is the template's `_Last - _M` pushed as a call argument (last use of the
+  register); the real copy_backward loop gives `lea eax,[edx-4]`, a hand loop `sub eax,4`. StageGrid::Build's
+  `mov ecx,eax; add eax,-4; cmp` matches neither (20 forms).
+- Judge agent results by the RAW insdiff too: two changes this iteration lowered the normalised count while the raw
+  count rose (frame permuted or a call moved); both were rejected.
+- (iteration 3) The double-held normalise needs the accumulator's kind to match too: with a plain `float s[3]`
+  accumulator (TriCollector::Contact) the same source puts `fsqrt` after the `fstp st(2); fstp st(0)` pops; with a
+  `ScenePoint` (EH object) it comes first as in the original. Term order and which double receives the sqrt are read
+  off the original per site (ShadowUpdater: `a` is x*x + y*y + z*z into z, `u` is x*x + z*z + y*y into y).
+- The x87-stack signature scan (`fld st(N)` original-only lines) also flags quad-vertex UV stores (WindowRain ctor),
+  where no vector scale exists; read the hunk before assigning the lever.
+- (iteration 4) **Mixed vector copies are per component.** Where the original loads one component as a float and
+  int-copies the others (`fld [src]; fsub r; mov y; mov z; fstp x`), write exactly that: the float component from the
+  SOURCE (`lo.x = pos[0] - r;`) or from a float local held across the copy (`float rx = r.x; ... r.x = s * rx;`),
+  the others as int copies followed by in-place `-=`/`*=`. A whole-struct copy constructor lets VC6 fuse the y/z
+  loads and deletes their stores (TriCollector::Contact lost 20-40 bytes that way).
+- `fld s; fld st(0); fmul [x]` for only the x term of a scale while y/z use `fld [y]; fmul st,st(1)`: x is multiplied
+  by a second float COPY of the scale (`float k = size; float k2 = k; u.x = k2 * u.x; u.y = u.y * k; ...`), the same
+  shape as `double k; float kf = (float)k` in the normalise form.
+- A chained zero store `a.x = a.y = a.z = 0.0f` emits z, y, x (reverse of the written order).
+- AIDriver 0x49ffa0: a this/other register swap was cured by REMOVING uses of `this` (caching forward.x/y/z in
+  locals), not by adding uses of the other pointer; the size then moved away, so it was not kept.
+- (iteration 5) Raw insdiff counts on exact-size functions are dominated by shifted jump targets: PlayerNameMenu::Run
+  shows 96 raw lines for ONE real hunk (2 bytes early). Count the hunks, not the lines, before ranking.
+- A by-value `SinCos(float a, float& s, float& c)` helper does not lower the angle's slot rank (UpdateSteering: no slot
+  moved); merging two disjoint scratch floats into one variable does move the homes but changes the size.
+
+## The double-temp lever on last-instruction residuals (2026-11-18, iteration 6; matched StageSounds 0x4150b0)
+
+- When ONE int instruction (a pointer local's home store, a reload after a call) sits one x87 gap too EARLY, compute
+  the neighbouring float expression in a `double` local and store it through a `(float)` cast:
+  `double inv = 1.0f / len; v *= (float)inv;` (StageSounds, match) and `double yd = K * sy; float y = (float)yd;`
+  (TrackSelectMenu::Run, reload order after a call fixed). The x87 instructions do not change. The one-expression
+  product form works; accumulator-style doubles (`yd = sy; yd *= K`) and doubles on the wrong operand do not.
+- Combine it with moving the int's source statement: declaring the pointer local AFTER the float statement put its
+  store one gap early, the double then moved it into place. Neither change alone matched.
+- A statement written before a function-static's declaration sinks past the guard test to just before its `jne`
+  (store-placement rule), and the guard byte load still hoists: Car 0x454d10's original order is scale, then
+  `static axis`.
+- A pointer local declared after the inline helper that stores through the same object puts its home store after the
+  member stores (0x454d10 H3).
+- `fld st(0); fmulp st(1),st` for a square (0x454d10, AIDriver 0x49f1f0) is still unreproduced: mixed local/member
+  products, copy locals, doubles and accumulators all give `fmul [mem]` or `fmul st,st(1)`.
+- Helpers in budget-padded functions: a new `__forceinline` helper costs about one unit of inline budget; raise the
+  trailing `Bal(1)` count (ReadMesh: 5 -> 6 or more restores the string-function shape) before judging the helper.
+- (iteration 7) Limits of the double-temp lever: it moves an int instruction LATER only; where the original has the
+  int EARLIER than ours (FUN_00491c10) every double pushes it further away. It does nothing to a volatile read's
+  position (AIDriver 0x4a1050), to an `fstp` of a held value among int copies (ModelLoader::ReadMesh), or to slot
+  homes (a `double` local gets a QWORD slot the original does not have).
+- A `(float)(double)(a * b)` cast on ONE term of a sum makes that term the first one loaded (PhysBody 0x41c540), and
+  `double d = a * b; t = (float)(d + c * e) + ...` sets the term order of a sum that plain reordering cannot change
+  (CarLight::Render depth).
+- Register roles of two chained int values (`c`, then `g = c | c << 8`) flip when ONE variable is reused for both
+  (`g = F(...) & 0xff; g = g | (g << 8);`) instead of two locals; that removed CarLight::Render's volatile.
+- (audit, 2026-11-18) Three scores can disagree: normalised insdiff lines, raw insdiff lines, and match.py's
+  "differing bytes". A 1-byte size change shifts every later jump target (raw lines and bytes explode while the
+  hunk count drops), and agents' reported sizes were wrong twice today. Before merging a partial, read the
+  `built N bytes, original M; K differing bytes` line from match.py yourself and compare all three with the previous
+  state; keep a change only if the size gap does not grow and the differing bytes do not rise, or say explicitly why.
+
+## Reload hacks are real containers; base/index via inline member reads (2026-11-18, matched GameG6 0x432e10)
+
+- `*(T* volatile*)(base + off)` reads repeated to stop CSE across calls: the original reads a `std::vector` element.
+  View the three-pointer block as `struct V { std::vector<T*> v; }` at its real offset (allocator byte at +0, begin at
+  +4) and index through `&*v.begin()`: every site reloads begin after the preceding call, exactly like the original,
+  and the receiver load lands before the temporary's EH state store.
+- Base/index order (NOTES "Base/index order of [a+b]"): with begin reloaded at the use it is the latest definition
+  and becomes the base (`[edi+esi]`). Reading the INDEX member inline at each site as well
+  (`... + *(int*)((BYTE*)this + N) * 4`, no `int sel` local) makes the index the later definition, giving the
+  original's `[esi+edi]`; VC6 still CSEs the index load into one register with one `shl`. A cached `sel` local, a
+  second local, comma-expression assignments and helpers all keep begin as the base.
+- `rects[sel]` with a plain index gives a scaled address (`[edi+esi*4]`); the original's unscaled `[esi+edi*1]` with a
+  separate `shl esi,2` is the byte-offset form `(BYTE*)begin + sel * 4`.
+- A volatile read that only keeps a float on the x87 stack across int copies is a `double` temp
+  (`double kd = mass; float k = (float)kd;`), byte-identical (Car::LoadCarIni).
+- (iteration 9) A member load hoisted above an earlier test can come from the OTHER branch reading the same member
+  first: both arms read it, VC6 merges the reads and hoists one. Reading a different member first in the other arm
+  removes the hoist (Car 0x4693a0).
+- Swapped append sites (LoadDriver, 2026-11-18 lab): at all five sites the instructions and the LOAD order already
+  equal the original's; only the operand order inside the two `lea`s differs. Insert/replace/iterator-range/explicit-
+  length forms change the call sequence (1650-1730 differing bytes). In a synthetic `Set(a, b) { s = a; s += b; }`
+  member the swap appears exactly when no destructible object is alive before the call; with one alive the only asm
+  difference is one EH state byte store scheduled into `_Grow`'s call setup. The original swaps with two ModelFiles
+  alive, so the construct is still unknown; register choice does not predict the order.
+
+## Plain-copy float locals set fld/fmul roles in dot products (2026-11-18; FUN_004ad1d0 129 -> 37 bytes)
+
+- In a sum of products over STACK-LOCAL vectors, operand swaps, parentheses, term order, statement chains, helpers
+  (value or reference parameters) and double casts all compile identically. Copying a SUBSET of the scalar factors
+  into plain float locals in a braced block flips which factor is `fld`'d per product and with it the term order:
+  `{ float ax = A.x, ay = A.y, az = A.z, bx = B.x; r = ay*B.y + (az*B.z + ax*bx); }`. The subset differs per site;
+  search all 2^6 subsets for one site (script it), keep the best, replicate to same-shaped sites.
+- For a single product `v.z * k`: `{ float c = v.z; v.z = c * k; }` gives `fld [v.z]; fmul [k]`; copying the scale
+  instead does nothing (AIDriver 0x4a0420).
+- It does NOT work when the operands are mixed locals, globals and pointer fields (ParallelShadow::Prepare: 460
+  compiles, roles never flip, many copies change the size), nor when one term is a volatile read (the volatile term
+  is always emitted first).
+- Centre/sum init interleaved with int copies: hold the float add in a double and store it after the neighbouring
+  struct copy (`double sx = c.x + b[3]; c.y += b[4]; Vec3 d = *src; c.x = (float)sx;`).
+- A copy-constructed struct (`Pos3 a = position;`) and a member-wise copy schedule their loads differently; use the
+  one whose load/lea interleave matches, per object (SingleRace::Slot6: a copy-constructed, b member-wise).
+
+## Swapped append sites: solved (2026-11-18, matched Car::LoadDriver 0x455070)
+
+The 14 `std::string::append` sites with `[m+len]` / `[ptr+len]` operand order (see "Base/index order") are the REAL
+template members, the 123 normal-order sites in NONMATCHING code are our hand-expanded twins. Recipe:
+- Declare the string as a class DERIVED from `std::string` (not a cast twin: any twin reached through a cast gives the
+  normal order), with the helpers the original calls out of line (`Grow`, `Eos`, `Tidy`, an out-of-line `Append`)
+  declared in the derived class, fields read through a raw `{char a; char* ptr; size_t len; size_t reserve;}` view.
+- At each swapped site call the real members through thin inline wrappers: `void AssignStd(const char* s)
+  { assign(s); }`, `void AppendStd(const char* s) { append(s); }`. Leave the normal-order sites of the same function
+  as the existing hand forms: the original source really mixes the two.
+- The real members would expand `_Eos`/`_Grow` inline (+83 bytes in LoadDriver). Spend the inline budget with
+  trailing `Bal(1);` calls at the END of the function (budget is consumed from the last statement backwards; padding
+  at the start or before the first string statement has no effect). LoadDriver: exact size for 2-6 `Bal(1)`, more
+  shrinks the function (appends stop expanding).
+- Model: `LDStd` in src/unk_452b20.cpp; `StageStr` in src/unk_420490.cpp flipped one RefreshUnits site the same way.
+- Still to convert: Stage::Stage (4 sites), StageScreen::RefreshUnits (3), StageScreen::LoadCars (1),
+  BmfReader::ReadMaterial (1).
+- (same day) BmfReader::ReadMaterial matched the same way with the real `insert(0, x)`: a hand-expanded std::string
+  member can distort code AROUND it (a null test's `mov/test` vs `cmp [m],0`, which register reloads `this`), not
+  only its own leas. Where a function still carries a hand-written string twin member, try the real member on a
+  derived class and re-sweep the trailing `Bal(1)` count (ReadMaterial: exact only at N = 2; 0-1 too big, 3+ far
+  too small) before chasing the neighbouring hunks.
+- (iteration 16, limits of the recipe) Swept on eight more near misses: where the original's string site is an
+  out-of-line call or a hand-shaped ctor/dtor, the real member at the right `Bal(1)` count compiles to exactly the
+  hand twin's bytes (0x436250, 0x443790, 0x44c580, 0x403ca0, 0x4b0e90, 0x4b1640). The recipe only pays where insdiff
+  shows a swapped `[m+len]` lea pair or a hunk INSIDE/adjacent to an inline-expanded member (ReadMaterial's null test
+  sat directly after the insert). Do not sweep it on residuals that are far from every string statement.
+- A by-value 8-byte struct copy of two adjacent float fields loads high-then-low (`mov ecx,[m+4]; mov eax,[m]`), but
+  the struct takes a different stack slot than two scalar floats (declaration position does not move it), and
+  float arguments of a forceinline helper are loaded left to right, not right to left.

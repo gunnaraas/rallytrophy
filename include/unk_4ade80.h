@@ -82,7 +82,8 @@ public:
         Node* node = m_head;
         Node* nx = node->next;
         m_head = nx;
-        if (node == m_tail) { Node* p = node->prev; m_tail = p; } else { Node* p = node->prev; node->next->prev = p; }
+        Node* p = node->prev;
+        if (node == m_tail) { m_tail = p; } else { Node* q = node->next; q->prev = p; }
         node->next = m_free;
         node->prev = 0;
         m_free = node;

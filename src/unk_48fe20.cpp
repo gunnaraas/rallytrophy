@@ -143,6 +143,7 @@ int RecordTable::FUN_00490050(ScoreRecord* record, int a, int b)
 // list expression give the original's first half (this in ebp); 35 -> 13 insns. The original recomputes the last
 // store from list and i (exact size with that form, but then this/record swap registers throughout); 128 ordering
 // combinations, all 720 declaration orders and eight zero-first forms did not combine the two.
+// 2026-11-18: flat second store records[list*10+i] (also via this-pointer, first-based, hoisted idx before/after first, flat compare, first[i].time compare without p) all regress 14 -> 56..96 insns (this/record swap, this in eax); no variant kept.
 // Pass 2026-11-16 (r21): fresh locals (l2/f2/p2/k) in the second loop, with or without a fresh counter, regress 13 -> 35 insns here (this form needs i reused); fresh f2/p2/l2 with i reused stay at 13; recomputing the last store from list+i gives exact size but 54 insns.
 int RecordTable::FUN_004901b0(ScoreRecord* record, int a, int b)
 {

@@ -1139,6 +1139,8 @@ inline void F2_Cross(const F2_V* a, const F2_V* b, F2_V* dst)
 __forceinline void F2_Copy3(F2_V& d, const F2_V& s) { *(int*)&d.y = *(int*)&s.y; *(int*)&d.z = *(int*)&s.z; d.x = s.x; }
 
 // NONMATCHING: RALLYTROPHY 0x454d10
+// 2026-11-18 iter8: volatiles stay. Removing them (any form: plain, inline MulYZ member, float* alias, (float)double temps, &v pointer) lets VC6 keep v.y/v.z on the x87 stack (no fstp/reload as in the original): 830 bytes/514 differing. On top of (i)+(ii) the z*z hunk resisted ~25 more forms (d.z member only, F2_Sq by-value helper, F2_SetZ store helper, SqZ member, CSE of z0*-0.2f, pz/pd aliases): all give fmul [mem] or reload.
+// 2026-11-18 (not kept; merged in iteration 6 and reverted after a byte audit): `static axis` declared AFTER `d.z = d.z * inv` puts the scale between the guard test and its jne like the original (store-placement rule) and keeps the guard load hoisted; with `F2_Copy4(R->r1, d); F2_V* r1 = &R->r1;` (pointer local declared after the helper) the member/home store order is also right: ONE hunk left, but the build is 842 bytes (orig 843) and 231 differing bytes instead of 49, because z*z then compiles to `fmul [mem]` where the original has `fst [d.z]; fld st(0); fmulp st(1),st`. ~25 forms for that square (z*d.z, copy locals, member re-read, doubles, accumulators) failed. Whoever finds the fld st(0)/fmulp form should apply these two changes with it.
 // 867 vs 843 bytes, 512 differing bytes. Separate x/y/z square accumulation recovers the target's x, y, z
 // component loads and initial square sequence. Remaining differences include the x87 addition/normalization order,
 // and the first part's y/z position stores; the function static (0x508c60, atexit 0x455060) is in place.
@@ -1383,7 +1385,63 @@ struct LoadDriverStr {
 };
 #define LD_STR(s) ((LoadDriverStr*)&(s))
 
-// NONMATCHING: RALLYTROPHY 0x455070
+static inline int Bal(int a) { return a; }
+struct LDRaw { char a; char* ptr; size_t len; size_t res; };
+struct LDStd : std::string {
+    LDRaw& R() { return *(LDRaw*)this; }
+    void Tidy(bool built);
+    bool Grow(size_t n, bool trim);
+    void Eos(size_t n);
+    void AppendOut(const char* s, size_t n);
+    size_t MaxSize() const;
+    void Copy(size_t n);
+    static unsigned char& Refcnt(const char* u) { return ((unsigned char*)u)[-1]; }
+    void AssignA(const char* s)
+    {
+        size_t n = strlen(s);
+        if (Grow(n, true)) { memcpy(R().ptr, s, n); Eos(n); }
+    }
+    void AssignB(const char* s)
+    {
+        size_t n = strlen(s);
+        if (Grow(n, true)) { memcpy(R().ptr, s, n); R().ptr[R().len = n] = 0; }
+    }
+    void AssignC(const char* s)
+    {
+        size_t n = strlen(s);
+        if (MaxSize() < n) std::_Xlen();
+        bool ok;
+        char*& ptr = R().ptr;
+        if (ptr != 0 && Refcnt(ptr) != 0 && Refcnt(ptr) != 255) {
+            if (n == 0) { --Refcnt(ptr), Tidy(false); ok = false; }
+            else { Copy(n); ok = true; }
+        } else if (n == 0) { Tidy(true); ok = false; }
+        else {
+            if (31 < R().res || R().res < n) { Tidy(true); Copy(n); }
+            ok = true;
+        }
+        if (ok) { memcpy(R().ptr, s, n); Eos(n); }
+    }
+    void AppendStd(const char* s) { append(s); }
+    void AssignStd(const char* s) { assign(s); }
+    void AppendA(const char* s)
+    {
+        size_t m = strlen(s);
+        if (std::string::npos - R().len <= m) std::_Xlen();
+        size_t n;
+        if (0 < m && Grow(n = m + R().len, false)) { memcpy(R().ptr + R().len, s, m); Eos(n); }
+    }
+    void AppendB(const char* s)
+    {
+        size_t m = strlen(s);
+        if (std::string::npos - R().len <= m) std::_Xlen();
+        size_t n;
+        if (0 < m && Grow(n = m + R().len, false)) { memcpy(R().ptr + R().len, s, m); R().ptr[R().len = n] = 0; }
+    }
+};
+
+// FUNCTION: RALLYTROPHY 0x455070
+// 2026-11-18 MATCH: path is an LDStd (class derived from std::string, Grow/Eos/AppendOut out of line, raw R() view); the 5 swapped sites use the REAL std::string::assign/append (AssignStd/AppendStd), the first three sites and the AssignC site keep the hand forms; four trailing Bal(1) (2..6 all work) spend the inline budget so _Eos/_Grow stay calls (3736 -> 3651 bytes, 0 differing).
 // 3651 vs 3651 bytes; 10 bytes differ: the operand order of five `lea ebp,[m+len]` / `lea edi,[ptr+len]` pairs in the
 // hand-expanded std::string::append sites (the original puts the old length in the index register). Everything else
 // (call sequence, EH states 0..0x12, string literals, scheduling) matches.
@@ -1392,13 +1450,14 @@ struct LoadDriverStr {
 // Tried 2026-11-16: AppendInl-style forms in AppendA/AppendB (tot local m+len / len+m / len-(0-m), dst local, &ptr[len], early len copy, tot before the 0<m test): all stay at 10 bytes (tot-before-test 50).
 // Tried 2026-11-16 (class layout): LoadDriverStr base-struct / nested ptr+len struct / union len / alloc sub-struct, local path as std::string subclass or reordered declaration, real std::string::append at the AppendB sites (399 bytes worse, same lea flip): all stay at 10 bytes.
 // Tried 2026-11-16 (late-def pass): by-value len helper params (2684 bytes worse, size -1), room=npos-len before strlen (463), n=(ptr+len+m)-ptr (50), copy dst ptr+(n-m) (1644, -17 bytes): none flip the lea order; still 10 bytes.
+// 2026-11-18: ~45 compiles, none flips the lea order (still 10 bytes): combined AssignB+AppendA __forceinline member; early/late len or m copies (B/A forms: size -6..-15, len then lives in a register); n/dst through cast reads of len/ptr; real `s += f`, `.append(f, strlen)`, insert/replace/iterator-append at one site (3 of them 70 bytes smaller, 2 same size, order unchanged). Synthetic lab: [m+len]/[ptr+len] appears for a combined real-std::string member only when no destructible object was constructed before it (an extra EH state store ahead of the site gives the normal order); LoadDriver has two ModelFiles alive.
 // Car::LoadDriver(dir): loads <dir>driver.bmf and co_driver.bmf (driver / co-driver body and head objects and their
 // pivots), then the optional arm and transmission models.
 void Car::LoadDriver(const char* dir)
 {
     LoadDriverView* c = (LoadDriverView*)this;
     int i;
-    std::string path;
+    LDStd path;
     {
         float* v = c->driverBodyPos;
         v[0] = v[1] = v[2] = 0;
@@ -1409,8 +1468,8 @@ void Car::LoadDriver(const char* dir)
         v = c->coHeadPos;
         v[0] = v[1] = v[2] = 0;
     }
-    LD_STR(path)->AssignA(dir);
-    LD_STR(path)->AppendOut("driver.bmf", strlen("driver.bmf"));
+    path.AssignA(dir);
+    path.AppendOut("driver.bmf", strlen("driver.bmf"));
     LoadDriverModelFile driver(path.c_str(), dir, c->cache, c->materials, 0);
     for (i = 0; i < (int)driver.parts.size(); i++) {
         LoadDriverPart* part = driver.parts[i];
@@ -1432,8 +1491,8 @@ void Car::LoadDriver(const char* dir)
     for (i = 0; i < (int)driver.objects.size(); i++) {
         delete driver.objects[i];
     }
-    LD_STR(path)->AssignA(dir);
-    LD_STR(path)->AppendOut("co_driver.bmf", strlen("co_driver.bmf"));
+    path.AssignA(dir);
+    path.AppendOut("co_driver.bmf", strlen("co_driver.bmf"));
     LoadDriverModelFile coDriver(path.c_str(), dir, c->cache, c->materials, 0);
     for (i = 0; i < (int)coDriver.parts.size(); i++) {
         LoadDriverPart* part = coDriver.parts[i];
@@ -1469,22 +1528,23 @@ void Car::LoadDriver(const char* dir)
             delete file.objects[i];                                                                  \
         }                                                                                            \
     }
-#define ASSIGN(s, d) LD_STR(s)->AssignA(d)
-#define APPEND(s, f) LD_STR(s)->AppendOut(f, strlen(f))
+#define ASSIGN(s, d) s.AssignA(d)
+#define APPEND(s, f) s.AppendOut(f, strlen(f))
     LOADDRIVER_OPTIONAL("arm_left_lo.bmf", armLeftLo)
 #undef ASSIGN
 #undef APPEND
-#define ASSIGN(s, d) LD_STR(s)->AssignB(d)
-#define APPEND(s, f) LD_STR(s)->AppendA(f)
+#define ASSIGN(s, d) s.AssignStd(d)
+#define APPEND(s, f) s.AppendStd(f)
     LOADDRIVER_OPTIONAL("arm_left_hi.bmf", armLeftHi)
     LOADDRIVER_OPTIONAL("arm_right_lo.bmf", armRightLo)
 #undef APPEND
-#define APPEND(s, f) LD_STR(s)->AppendB(f)
+#define APPEND(s, f) s.AppendStd(f)
     LOADDRIVER_OPTIONAL("arm_right_hi.bmf", armRightHi)
     LOADDRIVER_OPTIONAL("transmission_lo.bmf", transLo)
 #undef ASSIGN
-#define ASSIGN(s, d) LD_STR(s)->AssignC(d)
+#define ASSIGN(s, d) s.AssignC(d)
     LOADDRIVER_OPTIONAL("transmission_hi.bmf", transHi)
+    Bal(1); Bal(1); Bal(1); Bal(1); 
 }
 
 // ---- J: wiper and rain loaders ----

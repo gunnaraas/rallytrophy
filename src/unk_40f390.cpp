@@ -257,7 +257,8 @@ static __forceinline void GridInsert(GridPtrVec* v, int* P, const int& X)
         v->Ucopy(v->last - 1, v->last, v->last);
         int* f = v->last;
         int* d = f;
-        for (--f; P != f; )
+        f = f - 1;
+        for (; P != f; )
             *--d = *--f;
         for (int* p = P; p != P + 1; ++p)
             *p = X;
@@ -272,6 +273,8 @@ static __forceinline void GridInsert(GridPtrVec* v, int* P, const int& X)
 // Tried 2026-11-01 re-pass: ~25 variants (while/for-header/goto loop heads, volatile zero local for the ebx=0 compare, i/made/attached/ScenePoint/r,a declaration order, self pointer, ++i in progress expr, volatile flags, len-after-r2); none below 187 insns differ; still differs: loop-head layout (original unrotated, i in ecx, ebx=0 live) and GridInsert block layout.
 // 2026-11-13 pass: 187 -> 87 insns differ (1722 -> 1709 bytes): loops as `while (1)` + break (unrotated), `++k` in progress expr, GridInsert std::max(1,s) order, e/P!=f/last=e+1 forms, per-loop v=&c->records..; left: ecx/eax regs for nodeFirst[k]->node, branch-3 `mov ecx,eax; add eax,-4` vs lea.
 // 2026-11-17: 92 -> 84 insns (1709 -> 1710 bytes): k shares i (one loop var), allRefs.Ins direct, GridInsert f=last;--f. Left: i/made slot swap (made outranks i), orig `mov ebx,eax` nodeFirst copy, `add eax,-4` vs lea/sub (VC6 normalizes += -1 forms), j*0x48 operand order.
+// 2026-11-18: 21 -> 19 insdiff --norm lines: first-loop body wrapped in { } with `i++` after the closing brace (store lands after the ScenePoint dtor state reset, fixes H3). Failed: add -4 vs sub -4 (f-1, f+=-1, char/unsigned casts, M param, helper Adv, lea forms: VC6 always emits sub/lea), nodeFirst copy ebx (local nf, helper Front, g/n locals), Slot3 element reg (n/g locals), allRefs.Ins via local a/e (worse), made declared inside block (no change norm, raw worse).
+// 2026-11-18 round 2: real std::vector<int>::insert(end(),1,x) / push_back / std::copy_backward(P, last-M, last) / CB() helper / M param / static const 1: all keep `lea eax,[ecx-4]` or `sub eax,4` (real insert: 501 lines, push_back 316). `add eax,-4` appears in matched RecPool::Grow only for the Ucopy(last-M,..) call argument.
 // original: FUN_0040fcc0
 void StageGrid::Build()
 {
@@ -280,6 +283,7 @@ void StageGrid::Build()
     while (1) {
         if (objFirst == 0 || i >= (unsigned int)(objLast - objFirst))
             break;
+        {
         SceneNode* o = objFirst[i];
         unsigned int fl = o->flags;
         if ((fl & 0x10) == 0) {
@@ -314,6 +318,7 @@ void StageGrid::Build()
             allRefs.Ins((GridRef**)allRefs.last, 1, &made);
         }
         label->SetProgress((float)(int)(i + 1) / (float)(unsigned int)(objFirst == 0 ? 0 : objLast - objFirst) * DAT_0050846c + DAT_00508468);
+        }
         i++;
     }
     i = 0;

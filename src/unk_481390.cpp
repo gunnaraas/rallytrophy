@@ -1931,6 +1931,7 @@ void NetRace::OnReceive(Player* sender, const BYTE* data, DWORD size)
 }
 
 // NONMATCHING: RALLYTROPHY 0x482ce0
+// 2026-11-18 (not kept): the original keeps one int in ebp (loaded from the 2nd parameter at entry, `mov ebp,K ... mov eax,ebp` at each exit, timeGetTime result in ebp). Reusing the parameter (`size = K; return size;`, `size = timeGetTime()`) or a `length = size` local in every return shape (per-case return, break, goto, mixed tails; ~25 compiles) never enregisters it: norm 97 -> 88 but raw 167 -> 184, and the timer case would need size restored, so nothing kept.
 // 744 vs 739 bytes. The original keeps the result in ebp (loaded with `size`
 // on entry, set to each case's constant after Unlock, then `mov eax,ebp` in
 // duplicated epilogues); this build folds the constants into the returns.

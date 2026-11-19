@@ -99,6 +99,8 @@ static inline SubPod* SubP(const Vec3& a, const Vec3& b, SubPod* out)
 }
 
 // NONMATCHING: RALLYTROPHY 0x49ffa0
+// 2026-11-18 (not kept, two rounds): call sequences already equal (calls.py: 7 calls each side). dir normalise as `float dx = forward.x; ... double dl = sqrt(dir.z*dir.z + dir.y*dir.y + dx*dx); float inv = (float)(DAT_004e1348 / dl);` clears the first sqrt hunk (norm 365 -> 364, raw 420 unchanged). Second Sub result used in place (`dq->y = 0`, no Vec3 diff) + otherFwd declared after `along`: norm 314 but raw 421 and size 1142 -> 1105 (orig 1149), rejected. Open lead: `t0.y = 0` with direct t0 reads gives raw 412 but swaps this/ocb (esi/edi). Original has a 10-insn block at 0x4a0111 (reloads oc->body, a +/Sub pair) and a 4-insn block at 0x4a0183 that ours folds away.
+// 2026-11-18 (ws4, 30 compiles; raw counted as +/- lines of insdiff, base 294/norm 268, 1142 B): (a) kept: norm 266, raw 294, 1142 B. (a)+(b) (t0.y=0, direct t0 reads): frame 0xc0 exact but 1121 B, raw 309/norm 329, this=esi/oc=edi. Swap is cured NOT by extra oc uses/ocb hoist/own-position local/ocb first (all still swapped) but by cutting this uses: cache forward.x/y/z into locals fx,fy,fz at loop top (dir and along read them): this=edi, norm 275, raw 299, 1116 B; plus obstacles[i] indexing instead of ob++ (strength-reduced pointer, base +4, original +8): raw 287, norm 233, 1109 B (best; not kept, size 40 under). Original ob pointer is this+0x1b0 (=&obstacles[0]+8), keeps the dead unk0.y store; ours drops it. Not kept: size further from 1149.
 // 2026-11-04 (ws-I): EH map now exact (states 4,5,6,7,8,6,9,10 as the original). Cause: the out-of-line Sub (0x414330) returns a plain struct (SubPod, no unwind state) read through the returned pointer; rel/r3/v4 are three function-scope Vec3 declared before ownVel (states 0-2), dir/diff in-loop, `other` is re-derived from the Car pointer (oc->body) at every use. Left: this in esi vs edi, frame 0xc4 vs 0xc0.
 // Tried 2026-10-30 night: ~25 variants; 215->170 insns by declaring rel/diff Vec3 outside the loop (assigned per pass) and copying forward into dir field by field; original still has frame 0xc0 (ours 0xd8), EH state 4 before the loop and this in edi/i in ecx with the dir inverse sharing i's slot.
 // Tried 2026-11-01: ~18 more variants (dir/r3/v4/otherFwd hoisted out of the loop, extra dummy Vec3, int i, double length, result=0); only hoisting otherFwd up to after 'other' helped, 170->168; still frame 0xd8 vs 0xc0 and EH state 3 vs 4 at loop entry.
@@ -122,8 +124,10 @@ void AIDriver::FUN_0049ffa0()
     for (unsigned i = 0; i < listeners.size(); i++) {
         Car* oc = listeners[i]->car;
         AiBody* ownBody = (AiBody*)ownCar->body;
-        Vec3 dir; dir.x = forward.x; dir.y = forward.y; dir.z = forward.z;
-        float inv = 1.0f / dir.Length();
+        float dx = forward.x;
+        Vec3 dir; dir.y = forward.y; dir.z = forward.z; dir.x = dx;
+        double dl = sqrt(dir.z * dir.z + dir.y * dir.y + dx * dx);
+        float inv = (float)(DAT_004e1348 / dl);
         dir.x *= inv;
         dir.y *= inv;
         dir.z *= inv;
@@ -197,11 +201,13 @@ void AIDriver::FUN_0049ffa0()
 // Reading normalized vector fields directly reduced instruction-multiset delta 69->65 before the lifetime probes.
 // Tried 2026-10-31: ~30 variants; 288->250 insns differ by building vel field-wise as a Vec3 (not Vec3Slot copy); p-before-rel, Vec3Slot/ctor forms of dir/vel/axis, sqrt term order did not help; original has baseline EH state 3 (ours 2) and frame 0xb0 (ours 0xa4), i.e. one more function-scope Vec3 object we cannot identify.
 // Tried 2026-11-01 re-pass: 14 more variants (unused/dead-store/volatile/copy-init extra function-scope Vec3 at 6 positions, branchy `more` forms); best 250->243 insns (extra Vec3 pre with dead stores) but bytes grow and frame/EH states still differ; unreferenced Vec3 gets elided, and the 12-byte slot is still unidentified.
+// 2026-11-18 (lever8): first loop's dir init as x,z,y: 192 -> 187 differing bytes (size exact; raw 260 -> 276). Volatile vel.y: `*(int*)&vel.y = found` removes it at exact size but 313 bytes (zero register: ebx replaces ebp for the EH state store, i=0 sinks); pointer/inline-member/NormalizeXZ/Dot3 forms all fold ny*0. Dead: found/best store order (6 forms), operand swaps of k/k2, double k, extra car/rightSum decl moves.
+// 2026-11-18 (lever12): normalise products vel.z*k, axis.y*k2, axis.z*k2 as `{ float c = comp; comp = c * k; }` (plain-copy of the component) gives original's fld [comp]/fmul [k]: 187 -> 184 bytes, size exact. dotV1 plain-copy subsets (32) x term orders xyz/chain/zyx/yzx/xzy/yxz/zxy (224 compiles) and sqrt-sum term orders: no change at all (hunk 6 and the left-sum slot 0x20/0x1c unmoved).
 void AIDriver::FUN_004a0420()
 {
-    float rightSum = 0.0f;
     float best = 0.0f;
     float leftSum = 0.0f;
+    float rightSum = 0.0f;
     RotMatrix rot;
     SubPod rs;
     MulPod tmp;
@@ -218,7 +224,7 @@ void AIDriver::FUN_004a0420()
     float len = (float)sqrt(vel.z * vel.z + vel.x * vel.x);
     float k = 1.0f / len;
     vel.x = vel.x * k;
-    vel.z = vel.z * k;
+    { float c = vel.z; vel.z = c * k; }
     Vec3 axis(*(Vec3*)&unkd4);
     float q = axis.x * axis.x;
     q = axis.z * axis.z + q;
@@ -226,8 +232,8 @@ void AIDriver::FUN_004a0420()
     float len2 = (float)sqrt(q);
     float k2 = 1.0f / len2;
     axis.x = axis.x * k2;
-    axis.y = axis.y * k2;
-    axis.z = axis.z * k2;
+    { float c = axis.y; axis.y = c * k2; }
+    { float c = axis.z; axis.z = c * k2; }
     Obstacle* o = obstacles;
     for (i = 0; i < listeners.size(); i++, o++) {
         if (o->valid) {
@@ -266,9 +272,9 @@ void AIDriver::FUN_004a0420()
         }
     }
 
-    dir.y = 0.0f;
-    dir.z = unkd4.z;
     dir.x = unkd4.x;
+    dir.z = unkd4.z;
+    dir.y = 0.0f;
     do {
         again = 0;
         leftSum += FUN_004a1050(&obstacles[unk104], (Vec3*)&dir, 1);
@@ -517,6 +523,8 @@ float AIDriver::FUN_004a0e60(Obstacle* ob, Vec3* unused)
 
 
 // NONMATCHING: RALLYTROPHY 0x4a1050
+// 2026-11-18 lever8 (~25 compiles, no gain, stays 49 bytes): volatile removed -> 816 bytes/299 diff, ebx=side is hoisted to the top `test` (CSE of the two side reads) with idx declared at top/before branches/after perp/in loop head/`idx = side` per branch/address-taken side/`side != 0`; idx=side in both branches 818/356, idx=const 817/686. Dropping car/own locals for per-use player->car->body in loop or box reads 827-851 bytes (worse).
+// 2026-11-18 lever7 (~25 compiles, no gain, stays 24 norm/26 raw): double temp on c.z add, on perp.x/perp.z, on the return expression (34-38 worse); idx read after/between perp stores (26-36 worse: perp/EH stores hoist before ebx); point declared after matrix / assigned after / (Vec3*)&c.x / BodyMatrix inline helper / matrix hoisted above c.y (78 worse): lea still emitted before the matrix home store.
 // 2026-11-15 reg sweep (~25 compiles): side branch matrix before point 18 -> 17 insns (49 bytes unchanged); else-branch swap, hoists, own/car chains, c.* load order all worse; matrix/point temps still edx/eax vs original ecx/ecx.
 // 2026-11-13 pass: (float) cast on the return expression 14 -> 13 insns (return fld still one slot early elsewhere). No effect: matrix/point decl order, per-branch slot order (side: point first), const/DWORD/void* types, pos/matrix per-use or via car/own (worse), idx placement before/after/in perp or loop head (ebx hoist moves perp stores), named result.
 // Logic complete (819 bytes, 70 -> 18 insns differ). Tried 2026-10-31 re-pass: f scale via `double ls = sqrt(..); float inv2 = (float)(DAT_004e1348 / ls);` (fld dword K; fdiv st,st(1)), ez/ey temps with e.x read directly, idx read after perp. Fixed: `best` assigned after the z add in the side branch

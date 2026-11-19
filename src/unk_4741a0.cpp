@@ -274,6 +274,7 @@ __forceinline void SkCopy(Vec3& d, const Vec3& r)
 // Tried 2026-11-13: `Vec3 side;` declared before `delta -= s->a` (55 -> 42 insns, 970 -> 966 bytes; side no longer gets the byte EH-state store). No effect: store-order swaps of v[0].v/v[1].v, pragma optimize s/t/g/y/a, `Z = 0` zero-register local (constant folded, worse 52), inv-scale forms, side before delta (62).
 // 2026-11-15 r17: 42 -> 29 insns, 966 -> 972 bytes (size now exact): x87-kept double inv/w (double inv = 1.0f/len, ix copy for delta.x, double w, wx copy for side.x) give the original fld/fmul st,st(1) scaling; Cross args via a Vec3* pd local (delta pointer evaluated first). Open: zero register ebx (xor before isNew cmp), lea ebx,&s->b placed at the delta ctor not the b stores, fst/fstp order of v[0]/v[1].v copy; ~40 zero-reg/CSE variants no effect.
 // 2026-11-17: 29 -> 24 insns (size 972): u stores as v[1]=v[2], v[0]=v[3]; v[2].v=v[3].v order. No effect: SkCopy/local ref for s->b, v[0]/v[1].v order, pv local, `!= zero` local, delta componentwise. Open: zero reg ebx (xor after b stores, before isNew cmp).
+// 2026-11-18: ebx-pointer (&s->b hoisted to first b store) beats the zero reg (3 zero stores). No effect/worse: s->b = *pos (198), cur->b stores (55), delta from cur->b (61) or componentwise (78), b+-side componentwise (136), chained linked=v1=v0=0, linked-first order. v[0].v = v[1].v = p->v[3].v gives the original fst 0x64 / fstp 0x38 order but score stays 49.
 // Appends one tyre-mark quad at pos; pos == 0 closes the current mark.
 void SkidMarks::AddSegment(Vec3* pos, Vec3* axis, Vec3* fallback, float alpha, int newId)
 {
@@ -315,7 +316,7 @@ void SkidMarks::AddSegment(Vec3* pos, Vec3* axis, Vec3* fallback, float alpha, i
             BYTE pa = ((BYTE*)&p->v[3].color)[3];
             ((BYTE*)&s->v[0].color)[3] = pa;
             ((BYTE*)&s->v[1].color)[3] = pa;
-            s->v[1].v = s->v[0].v = p->v[3].v;
+            s->v[0].v = s->v[1].v = p->v[3].v;
             linked = 1;
         } else {
             s->a.x = pos->x;

@@ -525,6 +525,7 @@ ParallelShadow::~ParallelShadow()
 // original: FUN_00470610
 // NONMATCHING: RALLYTROPHY 0x470610
 // 2026-11-17: dropped volatile on unk60 (insdiff 16 -> 14 lines, 136 bytes, 7 insns); only unk70 stays volatile. Tried: Z4/SpInit/per-arg-return __forceinline store helpers, group reorders (all worse, 8-20 insns).
+// 2026-11-18: volatile unk70 removed = 168 bytes (worse than 136, kept); flat stores in any group order, per-group/whole-block __forceinline helpers, St() per-store helpers, Sprite inline members, stores as call-arg helper returns (232), tex/size arg forms, late factory decl (600) all give the same 168 or worse: the scheduler sinks every plain store below the call setup regardless of source position.
 // Same size (715); older best candidate had 131 differing bytes. Volatile unk60 and unk70 stores move the call-setup
 // schedule closer to the target's interleaving. Adding volatile unk40 stores regresses to 155 differences; volatile
 // unk40 alone gives 165, and volatile unk18/unk24 gives 182.
@@ -639,6 +640,7 @@ inline float Dot(const Vec3& a, const Vec3& b)
 
 struct Quad4 { float a, b, c, d; };
 // NONMATCHING: RALLYTROPHY 0x470940
+// 2026-11-18: plain-copy float-local subset search (all 64 subsets of the 6 scalars each for plane0 sum, s1 chain, first dot; plane0 also 6 term orders x 10 subsets): no subset beats baseline 388 (best 387 for s1 cx copy, hunk shape unchanged); fld/fmul roles do not flip for these sites. Source unchanged.
 // The sphere-centre and corner transforms are the X87Xform asm helper and the light basis uses inline-asm cross (437 -> 394 differing instructions).
 // 3490 vs 3336 bytes. Same calls, constants, EH states and data flow; the frame differs: the original keeps c at ebp-0x18
 // (ours -0x28), and its inlined point*matrix transforms and cross product keep their pointer arguments in stack temps
@@ -1169,6 +1171,7 @@ static const float kTwo = 2.0f;          // 0x4e1b44
 
 // original: FUN_004721b0
 // NONMATCHING: RALLYTROPHY 0x4721b0
+// 2026-11-18 (not kept): reading the vertex count in C++ (`int vc = mesh->vertexCount; if (vc <= 0) goto clear_done;`) with the asm clear loop then relying on vc being left in ecx puts the mesh/verts spills after the count load like the original, and with the p2 sums as statement chains (`qe = m[4]*v2->y; qe = m[0]*v2->x + qe; qe = m[8]*v2->z + qe; x = qe + m[12];`) reaches norm 2 / raw 42 - rejected because the asm block depends on a register the compiler happens to choose. Left in that state: `fadd [h]` one instruction before the At() `lea` (orig after); 13 double/accumulator/comma/local-pointer forms of the m[13] statement did not move it.
 // 2026-11-15 reg sweep (27 compiles, none better than 30 insns): mesh takes esi and the k-loop pointer edx (original: mesh edx, pointer esi). Immune to vc/idx/fc hoists, re-evaluation, pointer/while/do loop forms, mesh outside the loop.
 // Tried 2026-10-30 night: 159->43 insns differ (1372/1372 bytes): v0/v1/v2 pointers up front, then `Vec3 e1 = *v1; Vec3 e2 = *v2;`
 // (copy-constructed, e1 first), non-volatile h with volatile reads at its later uses and ((volatile float*)m)[12] += h.

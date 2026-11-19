@@ -2341,6 +2341,8 @@ extern float DAT_0057ba00, DAT_0057ba04;   // mouse position
 extern int DAT_0057ba20, DAT_0057ba24;     // left / right button pressed
 
 // NONMATCHING: RALLYTROPHY 0x48cf80
+// 2026-11-18: 35 more forms on the hidden-first delta chain, none beats 7 norm / 187 raw (raw is mostly a 1-byte jump shift): nested-if `if (delta != -1) {if (delta != 1) delta = 1; unk24c = delta;} else unk24c = 2` 15, `delta == -1 ? ... : else {if (delta != 1) delta = 1; unk24c = delta;}` 9 (stores eax, order of compares swapped), ternary/if-else after `if (delta != 1 && delta != -1) delta = 1` 127/21, switch fallthrough 15, goto tail storing delta 7 (stores eax, const stays immediate), `int one = 1` temps (cmp/assign/store) 7-12, extra 4th use of 1 7-9. The constant never leaves immediates; the value in eax is shared instead of ecx.
+// 2026-11-18: `float& y = *(float*)&reset;` at function top and the dead store written `y = 0.0f;` (was `reset = 0;`) keeps the zero in the parameter slot and `enter` reads it back: 23 -> 7 insdiff lines, 2134 -> 2148 bytes (orig 2145). Left: the delta chain keeps the constant 1 in ecx (orig `mov ecx,1; cmp eax,ecx; ... mov eax,ecx; mov [24c],ecx`); ~28 forms (separate arms 12, switch 8, `unk24c = delta` tails 7-12, ternary 130) either lose the shared tail or get no register.
 // Tried 2026-11-01 re-pass: result declared first (fixes prologue + EH state stores), delta chain as goto-shared tail, y step through two temps (fixes fld order) cut the diff from about 216 to 21 diff lines (about 10 insns). Still differs: dead reset=0 store plus enter read from that slot (any volatile access of reset blows regalloc, folded otherwise), mov ecx,1 constant register in the delta chain, the byte copy of noRestart / EH temp in the noRestart slot (ours uses reset slot). permute -r 40: no match.
 // Tried 2026-10-30 night: reading the second stage array via [unk28] instead of [stage] defeats CSE (121 -> 91 insns); volatile reset store/read made it worse (400+ lines diff); still differs in the dead reset=0 store, the setne enter ternary and cross-jumped sel=1 tails.
 // 2121 vs 2145 bytes, 96% of the instruction stream aligns. Open: the original keeps a never-folded zero in
@@ -2357,6 +2359,7 @@ int RaceMode::PauseMenu(int reset, int noRestart)
     LapString text;
     int atBest = 0;
     Vec2 pos;
+    float& y = *(float*)&reset;
     if (reset) {
         unk24c = 0;
         pos.x = DAT_0056aea8 * 512.0f;
@@ -2385,7 +2388,7 @@ int RaceMode::PauseMenu(int reset, int noRestart)
     if (DAT_00501454 || DAT_00501472) {
         showSecond = 0;
     }
-    reset = 0;
+    y = 0.0f;
     if (unk240 == 0) {
         int delta = 0;
         if (DAT_0057ba28[VK_UP]) {
@@ -2471,7 +2474,7 @@ int RaceMode::PauseMenu(int reset, int noRestart)
     }
     m_image->Draw(DAT_0056b0ac, 0);
     {
-        float& y = *(float*)&reset; y = DAT_0056aeac * 262.0f;  // original keeps y in the dead parameter slot
+        y = DAT_0056aeac * 262.0f;  // original keeps y in the dead parameter slot
         float step = DAT_0056aeac * 42.0f;
         int sel = unk24c;
         for (int i = 0; i < 3; i++) {
@@ -2597,6 +2600,8 @@ public:
 // Pass 3 2026-11-13: six dead size() calls (not five; with the first Print/GetWidth y as a named float, the name ternary inline in Print's arguments and `step = 0` assigned at `keys:` the budget needs 6) make the backspace _Eos a call: 125 -> 20 insns differ, 960 -> 74 differing bytes, 2766 = original size. Left: x/y temp frame slots in the label Print branches (orig shares (DAT_0056aea8 * 500.0f)'s slot), prologue mouse-load order, textInput store order after profiles load, Print name-ternary arg order.
 // Pass 4 2026-11-13: `edge` removed (the repeated DAT_0056aea8 * 500.0f is now a compiler CSE temp, which puts the label-branch x spill in its slot like the original), name ternary written `!empty ? name : FUN_00405380(0x27)`: 20 -> 19 insns differ, 74 -> 77 bytes. Left: the ternary's push/branch order in the slot-name Print, inline _Eos operand order in resize(0x15), prologue mouse-load order, textInput store order, `cmp eax,esi` for if (unk240).
 // Pass 5 2026-11-14: ~20 variants (mouse = *(Vec2*)&DAT_0057ba00, clicked/clickSel/mouse order, name ternary forms incl. if/else and named temp, textInput/m_editing store order, `unk240 != zz` zero in esi): none beats 77 bytes / 19 insns; no source change kept.
+// 2026-11-18: LEVER10 forms all failed, source unchanged (77 bytes): return-branch store order / profiles hoist (no change / 733 bytes); mouse declared before clicked/clickSel and ReadMouse helper (+0..3 pad) caches unk240 in eax, 2766-2768 bytes, 87+ bytes; ResizeInline/own _Eos order 2737-2763 bytes; SlotName helper (+0..3 pad) 2757 bytes; empty-first ternary/casts 78 bytes; unk240 test spellings no change. Original has no dead parameter-slot store (no mov [esp+N],0 on the original side).
+// 2026-11-18: no AppendN in this function (it already uses the real resize/append(1,c)/assign on LapString); budget padding N=0..12 exact only at 6-7 (77 bytes); erase(length)/erase(0x15)/both/erase(size()-1) in place of resize: 2795-2831 bytes, 727+ bytes at best N; resize(length, 0) and += ch identical (77). Unchanged.
 // keyboard into m_text. Returns 1 when the menu is left.
 int RaceMode::NameMenu(int reset)
 {

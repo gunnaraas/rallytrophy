@@ -634,6 +634,7 @@ extern char DAT_005014c8;
 extern int DAT_004f6150[];
 
 // NONMATCHING: RALLYTROPHY 0x421e30
+// 2026-11-18: LEVER10 F8/F9/F10 (~30 compiles): inline d reads (head order g,sel,d then matches but 368 bytes), g==0?d=..:{d=..;test} head (363 bytes, head insns match, sel still ecx), m temp at join (spills sel, 374-384 bytes), goto/else-if forms: none beat 364 bytes/39.
 // 365 vs 364 bytes, 230 differing bytes. Target assembly Evidence ev_a3f0f27b75ef6e88dbce2684f5a3cd4d41bc5620d3f3edfe7926bc80f165d91f
 // loads 0x501458 before 0x5014cc and keeps the mask in edx; volatile sequencing, a register sel hint, and their combination
 // did not improve it.
@@ -934,17 +935,70 @@ extern DWORD DAT_0050892c;
 extern void __cdecl FUN_00423670(StageScreen* s, short sel, StageEntry* e, float sy); // guess: argument meaning
 extern void __cdecl FUN_004239c0(StageScreen* s, short sel, StageEntry* e, int sy);   // guess
 
+struct StageStrRaw { char a; char* ptr; size_t len; size_t reserve; };
+struct StageStr : std::string {
+    StageStrRaw& R() { return *(StageStrRaw*)this; }
+    bool Grow(size_t n, bool trim);
+    void Eos(size_t n);
+    void Append(const char* s, size_t n);
+    void AppendCall(const char* s) { Append(s, strlen(s)); }
+    void AssignGrow(const char* s)
+    {
+        size_t n = strlen(s);
+        if (Grow(n, true)) {
+            memcpy(R().ptr, s, n);
+            Eos(n);
+        }
+    }
+    void AppendStd(const char* s) { append(s); }
+    void AppendInl(const char* s)
+    {
+        size_t n = strlen(s);
+        if (std::string::npos - R().len <= n) std::_Xlen();
+        if (0 < n) {
+            size_t tot = n + R().len;
+            if (Grow(tot, false)) {
+                memcpy(R().ptr + R().len, s, n);
+                Eos(tot);
+            }
+        }
+    }
+};
+static inline int Bal(int a) { return a; }
 // NONMATCHING: RALLYTROPHY 0x423b90
 // NONMATCHING: inline std::string append/assign expansions are approximated with string methods
 // Tried 2026-10-31: Load(path,1,0,0) was already right; dir/path as StagePathText, 2nd char buf[32], pointer loop, if/else per unit (tail-merged), Length/Width AppendCall + Height/Weight std append, float factors (228->132); still differs: local layout (orig order num,path,buf,ini,dir; ours num,buf,ini,path,dir, decl order has no effect) and Weight's inline-vs-call _Eos split.
 // Tried 2026-11-01: the 8th push_back is the StageInsert template (out-of-line Ucopy/Destroy/SizeCall, StageConstruct for the inlined Ufill with M=1; helper above C_ADD) on a StageIntVec view of m_items: 62->31 insns; still differs: ours spills the first-loop cursor and keeps s in a different slot (ebx taken by end), end/last stores order; volatile-read ra, r=&vec and begin-reload idioms alone did not help.
 // Tried 2026-11-01 re-pass: 16 more variants (all Append* combos per unit, num/buf order, e=entries+i, volatile count/entries, hoisted unit flag, v fp temp); none beat 132 insns; still differs: ebp/entries load placement in the prologue, EH-state stores (0x1/0x2) one call early, and inline _Eos/Append split in Height/Weight.
 // 2026-11-15: Weight unit as std::string::assign(buf) (inline _Eos, was AssignGrow) + AppendInl for its first append (keeps the later appends' _Eos as calls): 49 -> 16 insns differ, 1799 -> 1800 bytes. Open: ebp/entries load before the n>0 test, lea [n+len] operand order at 3 append sites, [ptr+len] order in the Weight assign.
+// 2026-11-18: entry strings through StageStr (class derived from the real std::string, Grow/Eos/Append out of line, raw len/ptr view; mirrors StagePathText): the AppendStd site after the merged FUN append flips to the original's [esi+edi] order (42 -> 41 bytes, size exact). Not flipped: Height DAT-append site (still [edi+esi]), Weight AppendInl (ours [esi+edi], orig [edi+esi]) and Weight assign eos ([eax+edx] vs [edx+eax]); a combined member (Height or Weight unit inside one inline member, also __forceinline) collapses the function (1488-1518 bytes); AppendInl with len/n order swapped or len cached: no change / +383 bytes; `if (n > 0) { e = entries; ...}` 1808 bytes.
+// 2026-11-18 (sweep 480+ compiles): Height + Weight DAT sites both real append(s) (StageStr::AppendStd) with one trailing Bal(1): 41 -> 35 bytes, size exact (1800). hand AppendInl at either site 41; N=0 or N>=2 breaks size; Weight AppendInl hand + real Height also 41. Entries-after-guard forms (if(n>0) e=entries; ternary init; for-init; nested block) never size-exact (1790/1808, +N steps of 70-100 bytes). Open: ebp/entries load before test, Weight assign eos [eax+edx] vs [edx+eax], Weight DAT lea [esi+edi] vs orig [edi+esi].
+// 2026-11-18 (iter 17, ~110 compiles): Weight assign already real; assign(buf,n)/stdcast same 35, assign(std::string)/assign(str,0,npos) 1677-1880 bytes, hand AssignGrow+inline Eos forms (ptr[len=n], ptr read first, len first) 1802-1803 bytes and flip other hunks; Weight DAT hand twins (AppendInl, len+n/n+len, cached len, cast twin StageTw, AppendCall) with Height real: 40-41 best (AI3 with cached len fixes the Weight lea but flips the Height lea [esi+edi] and adds a ecx/edx reload hunk); both hand 45-46; N=0..4 swept. No form beats 35. Prologue (C) untouched.
+//RU_CFG_BEGIN
+#define RU_HASSIGN(x) x.AssignGrow(buf)
+#define RU_HDAT(x) x.AppendStd(DAT_004f2e40)
+#define RU_WASSIGN(x) x.assign(buf)
+#define RU_WDAT(x) x.AppendStd(DAT_004f2e40)
+#define RU_GUARD 0
+#define RU_PAD Bal(1);
+//RU_CFG_END
 void StageScreen::RefreshUnits()
 {
     int n = count;
+#if RU_GUARD == 0
     StageEntry* e = entries;
+#else
+    StageEntry* e;
+#endif
+#if RU_GUARD == 1
+    if (n > 0) e = entries;
     for (int i = 0; i < n; i++, e++) {
+#elif RU_GUARD == 2
+    if (n > 0) { e = entries;
+    for (int i = 0; i < n; i++, e++) {
+#else
+    for (int i = 0; i < n; i++, e++) {
+#endif
         char buf[32];
         char num[32];
         IniFile ini;
@@ -955,7 +1009,7 @@ void StageScreen::RefreshUnits()
         StagePathOut path(dir, 0);
         path.AppendCall("/info.ini");
         ini.Load(path.c_str(), true, false, 0);
-#define S(f) (*(StagePathText*)&e->f)
+#define S(f) (*(StageStr*)&e->f)
 #define UNIT(field, key, mm, inch, AP, K)                       \
         { int v = ini.Find(key);                             \
         if (DAT_00501300[0] != 0) v = (int)((float)v * K); \
@@ -965,16 +1019,25 @@ void StageScreen::RefreshUnits()
         else S(field).AP(FUN_00405380(mm)); }
         UNIT(a, "Length", 0x12, 0x13, AppendCall, 0.0393701f)
         UNIT(b, "Width", 0x12, 0x13, AppendCall, 0.0393701f)
-        UNIT(c, "Height", 0x12, 0x13, AppendStd, 0.0393701f)
+        { int v = ini.Find("Height");
+        if (DAT_00501300[0] != 0) v = (int)((float)v * 0.0393701f);
+        FUN_004c1902(v, buf, 10);
+        RU_HASSIGN(S(c));
+        if (DAT_00501300[0] != 0) { RU_HDAT(S(c)); S(c).AppendStd(FUN_00405380(0x13)); }
+        else S(c).AppendStd(FUN_00405380(0x12)); }
         { int v = ini.Find("Weight");
         if (DAT_00501300[0] != 0) v = (int)((float)v * 2.2046225f);
         FUN_004c1902(v, buf, 10);
-        ((std::string*)&S(d))->assign(buf);
-        if (DAT_00501300[0] != 0) { S(d).AppendInl(DAT_004f2e40); S(d).AppendStd(FUN_00405380(0x11)); }
+        RU_WASSIGN(S(d));
+        if (DAT_00501300[0] != 0) { RU_WDAT(S(d)); S(d).AppendStd(FUN_00405380(0x11)); }
         else S(d).AppendStd(FUN_00405380(0x10)); }
 #undef UNIT
 #undef S
     }
+#if RU_GUARD == 2
+    }
+#endif
+    RU_PAD
 }
 
 extern float DAT_004e1480; // 25.0, added at run time to 575/798 in the original (not folded)
@@ -1400,6 +1463,7 @@ static __forceinline void StageInsert(LLVec* v, int* P, unsigned int M, const in
         m_items.push_back(rect); \
     } while (0)
 // NONMATCHING: RALLYTROPHY 0x422fc0
+// 2026-11-18: F9/lever10 pass (~35 compiles, all 11 B / 1700 or worse): direct sv->end = s + n / &s[n] / n+s / s+=n / (int)n / n cached again / e named twice / (char*) arith / m_items.end path / store through (int**) alias: n still lands in ecx (31 B when no named e). End-first-then-last reorders 26..324 B.
 // original: FUN_00422fc0. Loads the 8 hit-test rectangles from data/menu/carmenu.ini.
 // Tried 2026-10-30 night: three UIRect* locals (sites 5 and 6 use their own, as in the original) cut 158->62 insns; still differs: the 8th push_back is an inlined insert(end(),1,x) whose end() load is scheduled before the rect spill in the original, ours after (std::vector inline expansion; insert/end()/volatile/temp variants did not help).
 // 2026-11-12: 8th site grow arm hand-expanded in the function body, end stored before last (62 -> 3 insns differ, 1700 bytes; only an eax/ecx swap around the end store remains).

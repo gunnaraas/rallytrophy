@@ -11,16 +11,16 @@ conventions are in [`NOTES.md`](NOTES.md); the work queue and log are in
 ## Progress
 
 <!-- progress:begin -->
-_Updated 2026-11-17 by `tools/progress.py` (game code `0x401000`–`0x4bcfc6`)._
+_Updated 2026-11-18 by `tools/progress.py` (game code `0x401000`–`0x4bcfc6`)._
 
 | | Functions | Code bytes |
 |---|---|---|
-| Byte-exact | 1946 / 2084 (93.38%) | 455,829 / 742,276 (61.41%) |
-| Written, not yet exact | 138 | 286,447 |
+| Byte-exact | 1951 / 2084 (93.62%) | 463,357 / 742,276 (62.42%) |
+| Written, not yet exact | 133 | 278,919 |
 | Written in total | 2084 / 2084 (100.00%) | 742,276 / 742,276 (100.00%) |
 
 ```
-exact   ██████████████████░░░░░░░░░░░░ 61.41% of code bytes
+exact   ███████████████████░░░░░░░░░░░ 62.42% of code bytes
 written ██████████████████████████████ 100.00% of code bytes
 ```
 
@@ -33,14 +33,14 @@ Progress by module (ranges in `analysis/modules.csv`):
 | Startup helpers | `0x401000`–`0x404d50` | 61 / 65 / 65 | 74.2% | 100.0% | `████████████` |
 | Language / text table | `0x404d50`–`0x405580` | 13 / 13 / 13 | 100.0% | 100.0% | `████████████` |
 | Config files | `0x405580`–`0x409690` | 34 / 34 / 34 | 100.0% | 100.0% | `████████████` |
-| Stage scene and collision | `0x409690`–`0x420490` | 176 / 201 / 201 | 29.7% | 100.0% | `████████████` |
+| Stage scene and collision | `0x409690`–`0x420490` | 177 / 201 / 201 | 30.4% | 100.0% | `████████████` |
 | StageTable/control/credits screens | `0x420490`–`0x4266c0` | 34 / 39 / 39 | 49.7% | 100.0% | `████████████` |
 | Mode select screen | `0x4266c0`–`0x427600` | 9 / 9 / 9 | 100.0% | 100.0% | `████████████` |
 | Game settings screen | `0x427600`–`0x4295c0` | 11 / 11 / 11 | 100.0% | 100.0% | `████████████` |
 | Graphics options screen | `0x4295c0`–`0x42c2b0` | 12 / 12 / 12 | 100.0% | 100.0% | `████████████` |
 | High score screen | `0x42c2b0`–`0x42e930` | 12 / 12 / 12 | 100.0% | 100.0% | `████████████` |
 | Load game screen | `0x42e930`–`0x4303e0` | 10 / 10 / 10 | 100.0% | 100.0% | `████████████` |
-| Game object | `0x4303e0`–`0x437ea0` | 44 / 50 / 50 | 62.8% | 100.0% | `████████████` |
+| Game object | `0x4303e0`–`0x437ea0` | 45 / 50 / 50 | 66.1% | 100.0% | `████████████` |
 | MenuScreen base | `0x437ea0`–`0x439080` | 59 / 59 / 59 | 100.0% | 100.0% | `████████████` |
 | Rect helpers | `0x439080`–`0x439170` | 5 / 5 / 5 | 100.0% | 100.0% | `████████████` |
 | MenuScreenA48 | `0x439170`–`0x43a390` | 9 / 9 / 9 | 100.0% | 100.0% | `████████████` |
@@ -56,7 +56,7 @@ Progress by module (ranges in `analysis/modules.csv`):
 | Sound menu | `0x450ee0`–`0x452380` | 9 / 9 / 9 | 100.0% | 100.0% | `████████████` |
 | Bonus unlocks | `0x452380`–`0x452530` | 5 / 5 / 5 | 100.0% | 100.0% | `████████████` |
 | Front-end videos | `0x452530`–`0x452b20` | 4 / 4 / 4 | 100.0% | 100.0% | `████████████` |
-| Car animation and driver models | `0x452b20`–`0x4563e0` | 9 / 12 / 12 | 33.8% | 100.0% | `████████████` |
+| Car animation and driver models | `0x452b20`–`0x4563e0` | 10 / 12 / 12 | 59.2% | 100.0% | `████████████` |
 | Car camera | `0x4563e0`–`0x4581f0` | 21 / 22 / 22 | 53.7% | 100.0% | `████████████` |
 | Car collision | `0x4581f0`–`0x458700` | 4 / 5 / 5 | 27.2% | 100.0% | `████████████` |
 | Car input | `0x458700`–`0x459230` | 27 / 28 / 28 | 46.7% | 100.0% | `████████████` |
@@ -115,7 +115,7 @@ Progress by module (ranges in `analysis/modules.csv`):
 | Static-initialiser-only files | `0x4a16a0`–`0x4a1760` | 8 / 8 / 8 | 100.0% | 100.0% | `████████████` |
 | WinMain / setup | `0x4a1760`–`0x4a4b10` | 45 / 45 / 45 | 100.0% | 100.0% | `████████████` |
 | File / archive I/O | `0x4a4b10`–`0x4a6600` | 28 / 28 / 28 | 100.0% | 100.0% | `████████████` |
-| Engine image/font/model files | `0x4a9b60`–`0x4b2830` | 62 / 73 / 73 | 50.8% | 100.0% | `████████████` |
+| Engine image/font/model files | `0x4a9b60`–`0x4b2830` | 63 / 73 / 73 | 55.8% | 100.0% | `████████████` |
 | Scene-object base | `0x4b2830`–`0x4b3050` | 14 / 14 / 14 | 100.0% | 100.0% | `████████████` |
 | Collision geometry | `0x4b3050`–`0x4b44e0` | 5 / 6 / 6 | 71.1% | 100.0% | `████████████` |
 | Bounding-sphere geometry | `0x4b47e0`–`0x4b5110` | 11 / 11 / 11 | 100.0% | 100.0% | `████████████` |
@@ -123,7 +123,7 @@ Progress by module (ranges in `analysis/modules.csv`):
 | Keyboard/mouse input hooks | `0x4b6ac0`–`0x4b7390` | 13 / 13 / 13 | 100.0% | 100.0% | `████████████` |
 | Timer / string / registry helpers | `0x4b7390`–`0x4b7790` | 15 / 15 / 15 | 100.0% | 100.0% | `████████████` |
 | View object | `0x4b77b0`–`0x4b7a40` | 7 / 7 / 7 | 100.0% | 100.0% | `████████████` |
-| Draw context, mesh, shadow and sky | `0x4b7a40`–`0x4bbdf0` | 49 / 54 / 54 | 69.2% | 100.0% | `████████████` |
+| Draw context, mesh, shadow and sky | `0x4b7a40`–`0x4bbdf0` | 50 / 54 / 54 | 72.4% | 100.0% | `████████████` |
 | Renderer plugin loader | `0x4bbdf0`–`0x4bc210` | 5 / 5 / 5 | 100.0% | 100.0% | `████████████` |
 | Command line | `0x4bc210`–`0x4bc360` | 3 / 3 / 3 | 100.0% | 100.0% | `████████████` |
 | Draw queue and vector helpers | `0x4bc360`–`0x4bcfc7` | 10 / 10 / 10 | 100.0% | 100.0% | `████████████` |

@@ -80,6 +80,7 @@ struct StPath {
     unsigned int len;
     unsigned int res;
 };
+static inline int Bal(int a) { return a; }
 struct StPathLate {
     StPathLate(const StString& x) : alloc(x.alloc) { ptr = 0; len = 0; res = 0; Assign(x, 0, std::string::npos); }
     ~StPathLate();                                                      // 0x430720
@@ -201,6 +202,10 @@ struct StPathFull {
     unsigned int res;
 };
 
+struct StCell { BYTE d[0xb0]; StCell(); ~StCell(); };   // 0x40c520 / 0x40c5e0
+struct StF3 { StF3() {} ~StF3() {} float v[3]; };   // empty ctor/dtor: gives the original's EH state per vector local
+struct StI3 { StI3() {} ~StI3() {} int v[3]; };
+
 static inline const char* NameOf(void* p)    // object name (std::string at +0x114), "" when empty
 {
     const char* s = (const char*)IV(p, 0x118);
@@ -216,6 +221,7 @@ static inline const char* NameOf(void* p)    // object name (std::string at +0x1
 // Tried 2026-11-01 re-pass: now 8636 vs 8656 bytes, 1115 insns differ; swapping idx/p scratch slot a->c (alloc byte stays at [ebp+0xb], original [ebp+0x13]) and moving/reordering the i/n/num declarations (10 variants) change nothing or worsen; original has i at [ebp-0x3c] below num[8] (-0x28) and the colModel string (-0x38) while ours puts i/n at -0x20/-0x24 above them, and num at -0x3c - slot assignment is not driven by declaration position; Bal sweeps pointless (call sequence already identical).
 // Pass 2026-11-13: 1034 -> 972 insns differ, 8616 -> 8644 bytes (orig 8656): StVirt::Prepare takes 1 (push 1 at all three sites), PushBack args copied to a local, mf1.v38 loop as i++ then progress with repeated VEC(0x38)[i], net->stage read before idx*0x5e8 and idx = a, S414Vec3 struct copies for bounds[0..5] and s->body->pos; open: s/body reloaded from memory in the original (ours caches in esi/edi), label reloaded from this+0x1364 each time (using it helps bytes, not insns), p in edi in the v48/mf3.v28 loops, frame 0x258 vs 0x250.
 // Pass 2026-11-16 (inline-budget check): 972 -> 967 insns differ, 8644 -> 8648 bytes. Not an inlining difference: the original has no inline push_back here (17 insert calls, ours 18; the missing one is the checkpoint tail, which the original cross-jumps into the sign_ tail via `jmp 0x40dc02`). Checkpoint test now `== 0` with the plain-object block as else (original layout: checkpoint falls through, plain is out of line). Shared-s single push (-67 bytes, 1000 insns) and (void*&)s pushes (s in memory like the original, 1033 insns) were worse; open: sign_ s at [ebp+0xc] with new-temp at [ebp-0x3c], cross-jump of the two sign tails.
+// 2026-11-18 (kept: state B): float ext[3]/int c[3] -> StF3/StI3 locals with empty ctor/dtor (the original's EH states 63/64/67) and the cell array as `new StCell[cells]` (EH state 69): 8648 -> 8649 bytes (orig 8656), K 5273 -> 5263. Measured, NOT kept: C = B + colModel appends via real std::string::append through a cast (struct StAppender : std::string, LEVER15; lea order now as original) 8652 bytes, K 5276; D = C + ai-path appends the same way 8655, K 5286; E = D with plain c stores (no volatile) 8655, K 5279, EH sequence `...62,64,65,64,66,67,68,67,59,69,59,70,59,71,72,73,72,78,72,74,75,74,76,77,76,79,72,80,72,71,59` (only two 59 stores differ from the original; saved as scratch/stateE.cpp in the workspace). Failed: StPathLate as a real std::string subclass (extra base EH state + inline dtor, 8689 bytes = +34 gap; Bal(N) no effect), end Bal(1) sweep 0..10 (8655..8694), BYTE lodMask (K +8). Open: frame 0x258 vs 0x250, sign/checkpoint tail cross-jump direction.
 // original: FUN_0040c9b0
 Stage::Stage(int a, int b, int c, int d)
 {
@@ -444,12 +450,12 @@ Stage::Stage(int a, int b, int c, int d)
                 StSign* s = new StSign;
                 *(S414Vec3*)s->pos = *(S414Vec3*)((BYTE*)p + 0x14);
                 memcpy(s->mat, (BYTE*)p + 0x20, 0x40);
-                float ext[3] = { 250.0f, 200.0f, 250.0f };
-                int c[3];
-                ((volatile int*)c)[0] = IV(p, 0xb8);
-                ((volatile int*)c)[2] = IV(p, 0xc0);
-                *(volatile float*)&c[1] = FV(p, 0xa4) * DAT_004e13c4 + FV(p, 0xb0) * DAT_004e1390;
-                s->body = new StBody(p, 150.0f, ext, (float*)((BYTE*)p + 0xb8));
+                StF3 ext; ext.v[0] = 250.0f; ext.v[1] = 200.0f; ext.v[2] = 250.0f;
+                StI3 c;
+                ((volatile int*)c.v)[0] = IV(p, 0xb8);
+                ((volatile int*)c.v)[2] = IV(p, 0xc0);
+                *(volatile float*)&c.v[1] = FV(p, 0xa4) * DAT_004e13c4 + FV(p, 0xb0) * DAT_004e1390;
+                s->body = new StBody(p, 150.0f, ext.v, (float*)((BYTE*)p + 0xb8));
                 s->body->SetCollision2(p);
                 *(S414Vec3*)s->body->pos = *(S414Vec3*)((BYTE*)p + 0x14);
                 s->f4c = 1.45f;
@@ -462,8 +468,8 @@ Stage::Stage(int a, int b, int c, int d)
                 ((int*)s->pos)[1] = IV(p, 0x18);
                 ((int*)s->pos)[2] = IV(p, 0x1c);
                 memcpy(s->mat, (BYTE*)p + 0x20, 0x40);
-                float ext[3] = { 100.0f, 100.0f, 100.0f };
-                s->body = new StBody(p, 25.0f, ext, (float*)((BYTE*)p + 0xb8));
+                StF3 ext; ext.v[0] = 100.0f; ext.v[1] = 100.0f; ext.v[2] = 100.0f;
+                s->body = new StBody(p, 25.0f, ext.v, (float*)((BYTE*)p + 0xb8));
                 s->body->SetCollision3(p);
                 s->body->pos[0] = FV(p, 0x14);
                 s->body->pos[1] = FV(p, 0x18);
@@ -500,14 +506,7 @@ Stage::Stage(int a, int b, int c, int d)
     }
     int cells = AT(int, 0x198) * AT(int, 0x194);
     {
-        int* blk = (int*)operator new(cells * 0xb0 + 4);
-        BYTE* arr = 0;
-        if (blk) {
-            *blk = cells;
-            arr = (BYTE*)(blk + 1);
-            FUN_004c11f4_vec(arr, 0xb0, cells, FUN_0040c520, FUN_0040c5e0);
-        }
-        AT(BYTE*, 0x19c) = arr;
+        AT(StCell*, 0x19c) = new StCell[cells];
     }
     {
         float x0 = AT(float, 0x188) * DAT_004e138c + AT(float, 0x164);
@@ -617,4 +616,5 @@ Stage::Stage(int a, int b, int c, int d)
     }
     RAW->LoadAnimals();
     RAW->Finish();
+
 }

@@ -471,6 +471,7 @@ fail:
 // 2026-11-16 r25: `in += 0x28` before the AI stats copy-out, `s` alias hoisted above the size test in buffer blocks 1/2, player stats loop through `int t = vt[k]` (128 -> 119 insns, 1270 -> 1281 bytes; failure exits still merge, 3 separate epilogues = the 40 byte gap).
 // 2026-11-16 r28: block 0 as `int n = s->size[0]` (test/new/memcpy) with `in += s->size[0] * 4` reloaded, `int u8 = unk8c` before the flags store, level/stage stores hoisted (DAT_00501464 = 1; DAT_0050132c = ...->level before the rally/stage loads): 75 -> 31 insns, 1317 -> 1320 bytes. Left: tail level load uses eax not ecx (mov eax,1 order) and the frame is 4 bytes smaller (0x50 vs 0x54).
 // 2026-11-16 r30 (no gain, 31 insns/1320 bytes): tail eax/ecx unchanged by `one` local, level local, `return DAT_00501472`, chain assignment, r=1 reuse; cipher at function scope/top (72-75 insns), race hoisted before cipher (53-64), cipher scope widened over memcpy/in (89 insns) all worse. Orig EH: cipher shares its slot with later buffer1 temp; orig has 3 temp slots (-60,-56 cipher,-52) where ours has 2.
+// 2026-11-18: ~25 slot/tail variants, no gain (14 norm lines, frame 0x44 vs 0x48 stays): per-block new alias (p=new;member=p) on blocks 0/1/2 and combos (22-146 insns, worse), cipher unscoped/words local, player/loop/AI temp forms, return DAT=1 / one local / level local before delete[].
 int SlotStore::LoadRelay()
 {
     DAT_00501472 = 0;
@@ -603,6 +604,7 @@ int SlotStore::LoadRelay()
 // here (no source form found), so the frame is 0x28 smaller; the rest of the body is the same shape.
 // Tried 2026-10-30 night: 14 variants (local/block-scope/volatile-pointer stats copies, struct assign vs memcpy, size-sum load orders); VC6 still reads the 2nd copy from the player block (not the stack temp) and spills the buffer differently, so 51 insns remain.
 // 2026-11-15 r18: `out = buffer + 0x5a5` hoisted above the header memcpy and `snap` taken right after the stage store (51 -> 41 insns differ, 616 -> 619 bytes); size-sum load order and stats stack temp (non-volatile forms are elided, 52) still open.
+// 2026-11-18: snap before stage store 62->76 norm (worse); n0 local/n1/n2/s01 sum forms all 62 (canonicalised); out after header memcpy 67; block1 `memcpy(.., n0*4); out += n0*4` (no n0<<=2) gives norm 50 but frame 0x40/627 bytes/raw 112 vs 82 (kept n0<<=2: 619 bytes).
 // Tried 2026-10-31 re-pass: 25 more variants (struct assign, by-value forceinline getter/param, SC copy-ctor class, volatile pointer/field barriers, per-player pointer local); only plain temps get elided (57 insns), volatile temp keeps 51, volatile self-store after memcpy 50 but still re-reads the player block for copy 2; remaining diffs are buffer spill [esp+0x5c] and size-sum load order (n2 loaded first here), too many for permute.
 void SlotStore::SaveRelay(char level, char advance)
 {
