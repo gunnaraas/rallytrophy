@@ -934,3 +934,21 @@ address add (c2.dll, the routine that builds `[base+index]`), instead of more so
   struct copy (`double sx = c.x + b[3]; c.y += b[4]; Vec3 d = *src; c.x = (float)sx;`).
 - A copy-constructed struct (`Pos3 a = position;`) and a member-wise copy schedule their loads differently; use the
   one whose load/lea interleave matches, per object (SingleRace::Slot6: a copy-constructed, b member-wise).
+
+## Swapped append sites: solved (2026-11-18, matched Car::LoadDriver 0x455070)
+
+The 14 `std::string::append` sites with `[m+len]` / `[ptr+len]` operand order (see "Base/index order") are the REAL
+template members, the 123 normal-order sites in NONMATCHING code are our hand-expanded twins. Recipe:
+- Declare the string as a class DERIVED from `std::string` (not a cast twin: any twin reached through a cast gives the
+  normal order), with the helpers the original calls out of line (`Grow`, `Eos`, `Tidy`, an out-of-line `Append`)
+  declared in the derived class, fields read through a raw `{char a; char* ptr; size_t len; size_t reserve;}` view.
+- At each swapped site call the real members through thin inline wrappers: `void AssignStd(const char* s)
+  { assign(s); }`, `void AppendStd(const char* s) { append(s); }`. Leave the normal-order sites of the same function
+  as the existing hand forms: the original source really mixes the two.
+- The real members would expand `_Eos`/`_Grow` inline (+83 bytes in LoadDriver). Spend the inline budget with
+  trailing `Bal(1);` calls at the END of the function (budget is consumed from the last statement backwards; padding
+  at the start or before the first string statement has no effect). LoadDriver: exact size for 2-6 `Bal(1)`, more
+  shrinks the function (appends stop expanding).
+- Model: `LDStd` in src/unk_452b20.cpp; `StageStr` in src/unk_420490.cpp flipped one RefreshUnits site the same way.
+- Still to convert: Stage::Stage (4 sites), StageScreen::RefreshUnits (3), StageScreen::LoadCars (1),
+  BmfReader::ReadMaterial (1).
