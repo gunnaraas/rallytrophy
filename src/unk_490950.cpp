@@ -307,6 +307,7 @@ extern int DAT_00501454;
 extern int DAT_00501458;
 
 // NONMATCHING: RALLYTROPHY 0x491130
+// 2026-11-18: ~60 variants (decl order a,mode,b; flag=(int)setup / chained zero stores; mode=flag-derived; extra real uses of setup via ||!setup; mode/setup types; setup += forms; setup-first/mode-first decls) all stay 38 bytes or worse (39-157); mode/setup stay swapped.
 // 2026-11-17 (Claude): all 6 orders of the local-branch assignments x 4 orders of the unk40==2 block: 14-15 insns, mode/setup stay esi<->ebp swapped.
 // 2026-11-17: new Car in a local (Car* c; car = c; c->player = this) 17 -> 14 insns; ~25 more (setup/mode decl order, += setup, ternary mode, self copy, helper) keep setup/mode swapped (ebp/esi).
 // 2026-11-12: all 16 placements of the a/b/mode/flag initialisers (declaration vs both branches) tried; the declaration form (17 insns) stays best.

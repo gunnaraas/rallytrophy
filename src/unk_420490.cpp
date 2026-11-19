@@ -634,6 +634,7 @@ extern char DAT_005014c8;
 extern int DAT_004f6150[];
 
 // NONMATCHING: RALLYTROPHY 0x421e30
+// 2026-11-18: LEVER10 F8/F9/F10 (~30 compiles): inline d reads (head order g,sel,d then matches but 368 bytes), g==0?d=..:{d=..;test} head (363 bytes, head insns match, sel still ecx), m temp at join (spills sel, 374-384 bytes), goto/else-if forms: none beat 364 bytes/39.
 // 365 vs 364 bytes, 230 differing bytes. Target assembly Evidence ev_a3f0f27b75ef6e88dbce2684f5a3cd4d41bc5620d3f3edfe7926bc80f165d91f
 // loads 0x501458 before 0x5014cc and keeps the mask in edx; volatile sequencing, a register sel hint, and their combination
 // did not improve it.
@@ -1400,6 +1401,7 @@ static __forceinline void StageInsert(LLVec* v, int* P, unsigned int M, const in
         m_items.push_back(rect); \
     } while (0)
 // NONMATCHING: RALLYTROPHY 0x422fc0
+// 2026-11-18: F9/lever10 pass (~35 compiles, all 11 B / 1700 or worse): direct sv->end = s + n / &s[n] / n+s / s+=n / (int)n / n cached again / e named twice / (char*) arith / m_items.end path / store through (int**) alias: n still lands in ecx (31 B when no named e). End-first-then-last reorders 26..324 B.
 // original: FUN_00422fc0. Loads the 8 hit-test rectangles from data/menu/carmenu.ini.
 // Tried 2026-10-30 night: three UIRect* locals (sites 5 and 6 use their own, as in the original) cut 158->62 insns; still differs: the 8th push_back is an inlined insert(end(),1,x) whose end() load is scheduled before the rect spill in the original, ours after (std::vector inline expansion; insert/end()/volatile/temp variants did not help).
 // 2026-11-12: 8th site grow arm hand-expanded in the function body, end stored before last (62 -> 3 insns differ, 1700 bytes; only an eax/ecx swap around the end store remains).

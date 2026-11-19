@@ -69,6 +69,7 @@ void ModelCacheState::Add(void* mesh)
 // Tried 2026-11-16 round 25 (~100 compiles, stays 12 insns/18 bytes): PopHead bodies (hoisted prev/next, m_head->prev, *(Node**) reads, tail temp, per-site helpers), phase-2 count forms (int, short temp, `*=3`, named/unnamed nextCount, store order in else), reorder.py/permute.py: none moved the m_head-store/cmp order (phase 1) or the edx/ecx and eax-avoiding picks in phase 2 else/tail.
 // 2026-11-16 round 27: phase-specific PopHead bodies (PopHeadB: per-arm block-scoped prev, used in phase 1) fixes the phase-1 m_head store order; 18 -> 12 differing bytes, phase 2 (hoisted PopHead) unchanged: edx/ecx picks, lea/push eax vs edx, ResizeB arg regs.
 // 2026-11-16 round 28: phase-2 twin PopHeadC (next local, per-arm prev): 11 -> 9 insns differ, 12 -> 10 bytes; left: free reg (ecx vs edx) and the lea/ResizeB register rotation that follows.
+// 2026-11-18: PopHeadC with prev hoisted before the tail test and the else arm reading next into a local (`Node* q = node->next; q->prev = p`): 10 -> 6 differing bytes (edx/ecx and lea/push regs fixed); left: m_head store vs `cmp node,m_tail` order in phase 2.
 void ModelCacheState::Reload(RenderDevice* renderer)
 {
     device = renderer;

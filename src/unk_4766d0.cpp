@@ -158,6 +158,7 @@ void WindowRain::vf6(RenderDevice* device, Camera* camera, int unused)
 // Tried 2026-11-01: cursor float* cz=&s->world.z re-derived in the for-increment (keeps edx=s and ecx separate), dy declared after the right/up constant stores, drops loop as indexed dr=&drops[j]; 72->36 insns, size 955 matches. Left: bounds-copy register rotation (orig starts eax, ours edx; bounds.w/struct copy/vmd/reverse order no help), zero/imm store order in loop, add ecx,0x2c vs lea ecx,[edx+0x10]; volatile barriers on cz stores only reach 34.
 // Pass 2026-11-13: for-increment `cz = &(s + 1)->world.z, s++, src++` (8 -> 7 insns differ, 45 -> 41 bytes). ~120 store-order permutations, loop-init placement, `cz += 11`/char* strides (949 bytes), `cz += 0` tried: no better.
 // Pass 2026-11-16 (helper lever): inline-helper wrapping of 100.0 stores, 1.0/0.0 stores, vertex copy+zeros, dy placement, loop-init order: all stay 41 bytes / 7 insns; swapping angleA/cz[-3] or hoisting dy is worse (9-25 insns). Left: cmp ebp,edi above src load, 100.0 store order, lea vs add.
+// 2026-11-18: `double dyd = cz[-1]-viewPos[0].y;` declared right after cz[1]=1.0f, `float dy = (float)dyd;` after the cz[2]/cz[5]/cz[4] stores (F2/F7): 41 -> 31 bytes, size 955. Failed: `if (n>0)` guard around loop (compiler hoists init anyway), cz += 11 in any order (949, merges s into ecx-0x10), cz = (float*)((int)cz+0x2c), s derived from cz, cz re-derived after s++ (35), 100.0 swap/chain (47), dx as double, ~240 store-order permutations of 100/cz1/cz2/cz5/cz4 + dyd position (none under 31). Left: cmp placement, 100.0 order, cz5/cz2 order, lea vs add.
 void WindowRain::Init(RainScene* scene)
 {
     int i = 0;
@@ -211,21 +212,23 @@ void WindowRain::Init(RainScene* scene)
     float max0 = viewRange[0].x > viewRange[0].y ? viewRange[0].x : viewRange[0].y;
     float min1 = viewRange[1].x < viewRange[1].y ? viewRange[1].x : viewRange[1].y;
     float max1 = viewRange[1].x > viewRange[1].y ? viewRange[1].x : viewRange[1].y;
+    int j = 0;
+    if (n > 0) {
     RainSpot* s = spots;
     float* cz = &s->world.z;
     Vec3* src = md->vertices;
-    int j;
-    for (j = 0; j < n; j++, cz = &(s + 1)->world.z, s++, src++) {
+    for (; j < n; j++, cz = &(s + 1)->world.z, s++, src++) {
         cz[-2] = src->x; cz[-1] = src->y; cz[0] = src->z;
         cz[3] = 0.0f;
         cz[6] = 0.0f;
         float dx = cz[-2] - viewPos[0].x;
         s->angleA = 100.0f; cz[-3] = 100.0f;
         cz[1] = 1.0f;
+        double dyd = cz[-1] - viewPos[0].y;
         cz[2] = 0.0f;
         cz[5] = 1.0f;
         cz[4] = 0.0f;
-        float dy = cz[-1] - viewPos[0].y;
+        float dy = (float)dyd;
         float d = dy * dy + dx * dx;
         if (d >= r1 && d <= r2) {
             float ang = (float)atan2(dy, dx);
@@ -244,6 +247,7 @@ void WindowRain::Init(RainScene* scene)
                 }
             }
         }
+    }
     }
     RainDrop* dr;
     for (j = 0; j < dropCount; ++j) {
