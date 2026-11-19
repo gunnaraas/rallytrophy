@@ -964,6 +964,7 @@ struct StageStr : std::string {
         }
     }
 };
+static inline int Bal(int a) { return a; }
 // NONMATCHING: RALLYTROPHY 0x423b90
 // NONMATCHING: inline std::string append/assign expansions are approximated with string methods
 // Tried 2026-10-31: Load(path,1,0,0) was already right; dir/path as StagePathText, 2nd char buf[32], pointer loop, if/else per unit (tail-merged), Length/Width AppendCall + Height/Weight std append, float factors (228->132); still differs: local layout (orig order num,path,buf,ini,dir; ours num,buf,ini,path,dir, decl order has no effect) and Weight's inline-vs-call _Eos split.
@@ -971,11 +972,32 @@ struct StageStr : std::string {
 // Tried 2026-11-01 re-pass: 16 more variants (all Append* combos per unit, num/buf order, e=entries+i, volatile count/entries, hoisted unit flag, v fp temp); none beat 132 insns; still differs: ebp/entries load placement in the prologue, EH-state stores (0x1/0x2) one call early, and inline _Eos/Append split in Height/Weight.
 // 2026-11-15: Weight unit as std::string::assign(buf) (inline _Eos, was AssignGrow) + AppendInl for its first append (keeps the later appends' _Eos as calls): 49 -> 16 insns differ, 1799 -> 1800 bytes. Open: ebp/entries load before the n>0 test, lea [n+len] operand order at 3 append sites, [ptr+len] order in the Weight assign.
 // 2026-11-18: entry strings through StageStr (class derived from the real std::string, Grow/Eos/Append out of line, raw len/ptr view; mirrors StagePathText): the AppendStd site after the merged FUN append flips to the original's [esi+edi] order (42 -> 41 bytes, size exact). Not flipped: Height DAT-append site (still [edi+esi]), Weight AppendInl (ours [esi+edi], orig [edi+esi]) and Weight assign eos ([eax+edx] vs [edx+eax]); a combined member (Height or Weight unit inside one inline member, also __forceinline) collapses the function (1488-1518 bytes); AppendInl with len/n order swapped or len cached: no change / +383 bytes; `if (n > 0) { e = entries; ...}` 1808 bytes.
+// 2026-11-18 (sweep 480+ compiles): Height + Weight DAT sites both real append(s) (StageStr::AppendStd) with one trailing Bal(1): 41 -> 35 bytes, size exact (1800). hand AppendInl at either site 41; N=0 or N>=2 breaks size; Weight AppendInl hand + real Height also 41. Entries-after-guard forms (if(n>0) e=entries; ternary init; for-init; nested block) never size-exact (1790/1808, +N steps of 70-100 bytes). Open: ebp/entries load before test, Weight assign eos [eax+edx] vs [edx+eax], Weight DAT lea [esi+edi] vs orig [edi+esi].
+//RU_CFG_BEGIN
+#define RU_HASSIGN(x) x.AssignGrow(buf)
+#define RU_HDAT(x) x.AppendStd(DAT_004f2e40)
+#define RU_WASSIGN(x) x.assign(buf)
+#define RU_WDAT(x) x.AppendStd(DAT_004f2e40)
+#define RU_GUARD 0
+#define RU_PAD Bal(1);
+//RU_CFG_END
 void StageScreen::RefreshUnits()
 {
     int n = count;
+#if RU_GUARD == 0
     StageEntry* e = entries;
+#else
+    StageEntry* e;
+#endif
+#if RU_GUARD == 1
+    if (n > 0) e = entries;
     for (int i = 0; i < n; i++, e++) {
+#elif RU_GUARD == 2
+    if (n > 0) { e = entries;
+    for (int i = 0; i < n; i++, e++) {
+#else
+    for (int i = 0; i < n; i++, e++) {
+#endif
         char buf[32];
         char num[32];
         IniFile ini;
@@ -996,16 +1018,25 @@ void StageScreen::RefreshUnits()
         else S(field).AP(FUN_00405380(mm)); }
         UNIT(a, "Length", 0x12, 0x13, AppendCall, 0.0393701f)
         UNIT(b, "Width", 0x12, 0x13, AppendCall, 0.0393701f)
-        UNIT(c, "Height", 0x12, 0x13, AppendStd, 0.0393701f)
+        { int v = ini.Find("Height");
+        if (DAT_00501300[0] != 0) v = (int)((float)v * 0.0393701f);
+        FUN_004c1902(v, buf, 10);
+        RU_HASSIGN(S(c));
+        if (DAT_00501300[0] != 0) { RU_HDAT(S(c)); S(c).AppendStd(FUN_00405380(0x13)); }
+        else S(c).AppendStd(FUN_00405380(0x12)); }
         { int v = ini.Find("Weight");
         if (DAT_00501300[0] != 0) v = (int)((float)v * 2.2046225f);
         FUN_004c1902(v, buf, 10);
-        S(d).assign(buf);
-        if (DAT_00501300[0] != 0) { S(d).AppendInl(DAT_004f2e40); S(d).AppendStd(FUN_00405380(0x11)); }
+        RU_WASSIGN(S(d));
+        if (DAT_00501300[0] != 0) { RU_WDAT(S(d)); S(d).AppendStd(FUN_00405380(0x11)); }
         else S(d).AppendStd(FUN_00405380(0x10)); }
 #undef UNIT
 #undef S
     }
+#if RU_GUARD == 2
+    }
+#endif
+    RU_PAD
 }
 
 extern float DAT_004e1480; // 25.0, added at run time to 575/798 in the original (not folded)

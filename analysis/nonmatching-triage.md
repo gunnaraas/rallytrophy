@@ -20,7 +20,7 @@ Instruction-multiset view: 35 functions are pure register/scheduling permutation
 | 0x4021b0 | src/unk_4018f0.cpp | MeshSet::Interp | other | 824 | 824 | 87 | 0 | `fstp   DWORD PTR [ebp-0x18]` | `fstp   DWORD PTR [ebp-0x14]` |  |
 | 0x403ca0 | src/unk_403270.cpp | ReplayHeader::Load | other | 1117 | 1117 | 27 | 4 | `push   0x1d4` | `mov    esi,eax` |  |
 | 0x40a850 | src/unk_40a850.cpp | U40A850Prop::Fn | size | 2088 | 2098 | 1475 | 54 | `xor    eax,eax` | `mov    DWORD PTR [ebp-0x84],esi` |  |
-| 0x40c9b0 | src/unk_40c9b0.cpp | Stage::Stage | size | 8648 | 8656 | 5273 | 130 | `sub    esp,0x258` | `sub    esp,0x250` | eh 11,12,30,31,32,33,34,35,37,38,44,45,46,47,48,49,51,52,53,54,55,56,57,58,59,60,59,61,59,62,64,65,64,59,66,67,68,67,69,59,70,59,71,72,73,72,78,72,75,77,79,72,80,72,71,59,58,57,56,55,54,53,52,51 vs 11,12,30,31,32,33,34,35,37,38,44,45,46,47,48,49,51,52,53,54,55,56,57,58,59,60,59,61,59,62,59,63,59,64,59,65,59,66,59,67,68,69,68,74,68,70,71,70,72,73,72,75,68,76,68,67,59,58,57,56,55,54,53,52,51 |
+| 0x40c9b0 | src/unk_40c9b0.cpp | Stage::Stage | size | 8649 | 8656 | 5263 | 129 | `sub    esp,0x258` | `sub    esp,0x250` | eh 11,12,30,31,32,33,34,35,37,38,44,45,46,47,48,49,51,52,53,54,55,56,57,58,59,60,59,61,59,62,64,65,64,59,66,67,68,67,69,59,70,59,71,72,73,72,78,72,75,77,79,72,80,72,71,59,58,57,56,55,54,53,52,51 vs 11,12,30,31,32,33,34,35,37,38,44,45,46,47,48,49,51,52,53,54,55,56,57,58,59,60,59,61,59,62,64,65,64,66,67,68,67,59,69,59,70,59,71,72,73,72,78,72,74,75,74,76,77,76,79,72,80,72,71,59,58,57,56,55,54,53,52,51 |
 | 0x40f390 | src/unk_40f390.cpp | StageGrid::FillCells | size | 2370 | 2340 | 2148 | 72 | `sub    esp,0x78` | `sub    esp,0x80` |  |
 | 0x40fcc0 | src/unk_40f390.cpp | StageGrid::Build | size | 1714 | 1716 | 1200 | 5 | `mov    DWORD PTR [ebp-0x1c],edi` | `mov    DWORD PTR [ebp-0x20],edi` |  |
 | 0x410720 | src/unk_410720.cpp | StageScene::LoadEffect | size | 2112 | 2128 | 895 | 11 | `mov    eax,DWORD PTR [esi+0xa8]` | `push   edi` |  |
@@ -47,7 +47,7 @@ Instruction-multiset view: 35 functions are pure register/scheduling permutation
 | 0x421e30 | src/unk_420490.cpp | StageScreen::Start | other | 364 | 364 | 39 | 11 | `mov    eax,ds:0x0` | `mov    edx,DWORD PTR ds:0x0` |  |
 | 0x421fa0 | src/unk_420490.cpp | StageScreen::Layout | other | 4128 | 4128 | 2408 | 45 | `sub    esp,0xcc` | `sub    esp,0xd0` | eh 2,4,13 vs 2,4,12,13,14 |
 | 0x422fc0 | src/unk_420490.cpp | StageScreen::LoadLayout | order+registers | 1700 | 1700 | 11 | 0 | `mov    eax,DWORD PTR [esp+0x28]` | `mov    ecx,DWORD PTR [esp+0x28]` |  |
-| 0x423b90 | src/unk_420490.cpp | StageScreen::RefreshUnits | other | 1800 | 1800 | 41 | 0 | `push   esi` | `push   ebp` |  |
+| 0x423b90 | src/unk_420490.cpp | StageScreen::RefreshUnits | other | 1800 | 1800 | 35 | 0 | `push   esi` | `push   ebp` |  |
 | 0x430f60 | src/unk_4303e0.cpp | G3_Game::FUN_00430f60 | size | 3301 | 3300 | 580 | 2 | `jne    0x431c33` | `jne    0x431c34` |  |
 | 0x433220 | src/unk_4303e0.cpp | GameG7::StartRace | size | 2432 | 2435 | 1823 | 18 | `sub    esp,0x8bc` | `sub    esp,0x8b4` |  |
 | 0x433bc0 | src/unk_4303e0.cpp | GameG8::FUN_00433bc0 | size | 1840 | 1848 | 807 | 14 | `mov    edi,ecx` | `mov    ebp,ecx` | eh 1,0,2,0,0,0,1 vs 1,0,2,0,0,0,1,1 |
