@@ -24,7 +24,7 @@ static __forceinline void S4(int* m, int a, int b, int c, int d, int v) { m[a] =
 static __forceinline void S2(int* m, int a, int b, int v) { m[a] = v; m[b] = v; }
 // original: FUN_00410720
 // NONMATCHING: RALLYTROPHY 0x410720
-#define PV (*(int* volatile*)&p)
+#define PV p
 // Tried 2026-10-30 night: p reads via volatile pointer (PV) + kindv re-read in waterfall block gave 167->126; kind still not in edi (any non-volatile kind folds the cascade), 2-3 block store order/ push 0x30 placement and Vec2 copy order differ.
 // Tried 2026-11-01 re-pass: kind re-read as local in waterfall cmp, shared goto STORE tail for the 3 TexScroller blocks (126->106); address-taken/volatile-ptr kind, volatile-store kind, water-block tail variants no help; still differs: kind not in edi in prologue/cascade, 2/3-river store order (zero stores sit before ds loads in original), water block own store tail merges here, name-string ctor Vec2 copy order.
 // 2026-11-16 r26: water loop `int lo = i % 10;` first + `slot[i] =` (idiom: remainder before quotient, no slot++) 106->89 insns, loop now exact; reorder.py found nothing; river2 local texture loads, kind0/kindv init orders (3+3 variants) worse.
@@ -32,31 +32,33 @@ static __forceinline void S2(int* m, int a, int b, int v) { m[a] = v; m[b] = v; 
 // 2026-11-18: H2/H1 retried: `register int kind`, split decl/assign, `kind = kindv; kindv = kind`, switch(kind) all 192/192/193/499 vs baseline 192 (no gain); H3 not reached.
 // 2026-11-18 round 2: S1/S2/S4 __forceinline store-group helpers (1.0 x4, 0xf x2, zero x4, zero x2; water 3 groups; waterfall left flat, helpers there +2) 192 -> 166 (raw 172); source order of independent stores is ignored by VC6 (all 120 permutations equal); remaining = kind-in-edi, m[0]/m[1] load + 0xf reg (ecx vs eax), water/waterfall tail merge.
 // 2026-11-18 water-tail pass (30 compiles): the two tails are not identical in the original (A: reload,store; B: reload,xor,store) so VC6 cannot merge them; ours merges the water store into the shared STORE tail. Direct PV[5]=new, p[5]=, typed/volatile store casts, StageAnimator* w, MkW forceinline helper, return/goto END in arm, explicit if(w)/else store 0 (+11..+33 bytes, epilogue duplicated), hand-expanded operator new, own PV[5]=new per scroller site (+33): all 172 raw/-17 or worse. Gap unchanged.
+// 2026-11-18 LEVER8: one variable `kind` (init m[0x2f], stored to kindv, re-assigned `kind = kindv` inside each waterfall/water arm and again after the waterfall load block) puts kind in edi like the original; PV = plain p (param is already a stack slot). 2111/911 -> 2112/895 bytes (2110/890 with `kind==2` at the sx select but gap 18).
 void StageScene::LoadEffect(int* p)
 {
     int* m = (int*)p[0];                               // the mesh's material
     const char* volatile* namep = (const char* volatile*)((BYTE*)m + 0xa8);
     const char* name = *namep;
-    int kind0 = m[0x2f];
-    volatile int kindv = kind0;
+    int kind = m[0x2f];
+    volatile int kindv = kind;
     if (name == 0) name = DAT_004e1344;
     if (FUN_004ce290("waterfall_1", name) == 0) {
-        kindv = 2;
+        kindv = 2; kind = kindv;
     } else {
         name = *namep;
         if (name == 0) name = DAT_004e1344;
         if (FUN_004ce290("waterfall_2", name) == 0) {
-            kindv = 3;
+            kindv = 3; kind = kindv;
         } else {
             name = *namep;
             if (name == 0) name = DAT_004e1344;
-            if (FUN_004ce290("water", name) == 0)
-                kindv = 6;
+            if (FUN_004ce290("water", name) == 0) {
+                kindv = 6; kind = kindv;
+            }
         }
     }
 
     TexScroller* s;
-    int kind = kindv;
+
     if (kind == 2 || kind == 3) {
         if (AT(int, 0x85c) == 0) {
             AT(Texture*, 0x860) = LOADER->Load("data/global/effects/waterfall_1.tga", 0x40);
@@ -70,6 +72,7 @@ void StageScene::LoadEffect(int* p)
             DAT_00508428 = *(EffectUV*)&cfg.GetVector2("Fx1UVSpeed");
             DAT_00508420 = *(EffectUV*)&cfg.GetVector2("Fx2UVSpeed");
         }
+        kind = kindv;
         m[0x18] = 0x3f800000; m[0x19] = 0x3f800000; m[0x1a] = 0x3f800000; m[0x1b] = 0x3f800000;
         m[0x26] = 0xf; m[0x1c] = 0; m[0x1d] = 0; m[0xe] = 0xf;
         m[0x1e] = 0; m[0x1f] = 0; m[0x10] = 0; m[0x11] = 0;
@@ -77,7 +80,7 @@ void StageScene::LoadEffect(int* p)
         m[0] = AT(int, 0x860);
         m[1] = AT(int, 0x864);
         float sx, sy, vx, vy;
-        if (kind == 2) {
+        if (kindv == 2) {
             sx = DAT_00508438.x; sy = DAT_00508438.y;
             vx = DAT_00508428.x; vy = DAT_00508428.y;
         } else {

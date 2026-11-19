@@ -139,6 +139,7 @@ Screen1378::~Screen1378()
 
 // NONMATCHING: RALLYTROPHY 0x43a490
 // 2026-11-18 (not kept; merged in iteration 3 by mistake and reverted the same day): G4 four-store helper for the 60/40 groups + second->9c right after first->9c + stores in the original's emission order was reported as 24 -> 22 raw at 432 bytes, but actually builds 426 bytes with 124 differing bytes (was 97). ~40 other helper/chain/two-object forms: 28-35 raw lines. Without the volatile casts on first->18/1c/24 every helper form is worse.
+// 2026-11-18 (iter 8): volatile on first->unk18/unk1c removed (97 -> 92 diff bytes, 432 B); volatile on unk24 kept (removing: 108). All-chained pair stores, 24-helpers, T40/P24 helpers, late second: 107-159 bytes, chained forms shrink to 426 B.
 // Setup resource initialization and the two Sprite layouts are reconstructed; VC6 EH-state, field-store order,
 // and register allocation remain different (432 bytes, same as original; 12 insns differ).
 // Tried 2026-10-30 night: ~300 store-order/volatile-cast variants; size now matches, but original interleaves the 0xe/0xf/5/6 immediate stores with the second sprite early and VC6 sinks them.
@@ -162,8 +163,8 @@ void Screen1378::Setup(MenuGame* game)
     first->unk60[1] = 1.0f;
     first->unk60[2] = 1.0f;
     first->unk60[3] = 1.0f;
-    ((volatile Sprite*)first)->unk18 = 5;
-    ((volatile Sprite*)first)->unk1c = 6;
+    first->unk18 = 5;
+    first->unk1c = 6;
     first->unk40[0] = 1.0f;
     first->unk40[1] = 1.0f;
     first->unk40[2] = 1.0f;

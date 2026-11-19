@@ -908,3 +908,12 @@ address add (c2.dll, the routine that builds `[base+index]`), instead of more so
   separate `shl esi,2` is the byte-offset form `(BYTE*)begin + sel * 4`.
 - A volatile read that only keeps a float on the x87 stack across int copies is a `double` temp
   (`double kd = mass; float k = (float)kd;`), byte-identical (Car::LoadCarIni).
+- (iteration 9) A member load hoisted above an earlier test can come from the OTHER branch reading the same member
+  first: both arms read it, VC6 merges the reads and hoists one. Reading a different member first in the other arm
+  removes the hoist (Car 0x4693a0).
+- Swapped append sites (LoadDriver, 2026-11-18 lab): at all five sites the instructions and the LOAD order already
+  equal the original's; only the operand order inside the two `lea`s differs. Insert/replace/iterator-range/explicit-
+  length forms change the call sequence (1650-1730 differing bytes). In a synthetic `Set(a, b) { s = a; s += b; }`
+  member the swap appears exactly when no destructible object is alive before the call; with one alive the only asm
+  difference is one EH state byte store scheduled into `_Grow`'s call setup. The original swaps with two ModelFiles
+  alive, so the construct is still unknown; register choice does not predict the order.
