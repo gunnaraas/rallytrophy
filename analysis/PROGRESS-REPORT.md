@@ -15,12 +15,12 @@ _Updated 2026-11-18 by `tools/progress.py` (game code `0x401000`–`0x4bcfc6`)._
 
 | | Functions | Code bytes |
 |---|---|---|
-| Byte-exact | 1950 / 2084 (93.57%) | 461,731 / 742,276 (62.20%) |
-| Written, not yet exact | 134 | 280,545 |
+| Byte-exact | 1951 / 2084 (93.62%) | 463,357 / 742,276 (62.42%) |
+| Written, not yet exact | 133 | 278,919 |
 | Written in total | 2084 / 2084 (100.00%) | 742,276 / 742,276 (100.00%) |
 
 ```
-exact   ███████████████████░░░░░░░░░░░ 62.20% of code bytes
+exact   ███████████████████░░░░░░░░░░░ 62.42% of code bytes
 written ██████████████████████████████ 100.00% of code bytes
 ```
 
@@ -115,7 +115,7 @@ Progress by module (ranges in `analysis/modules.csv`):
 | Static-initialiser-only files | `0x4a16a0`–`0x4a1760` | 8 / 8 / 8 | 100.0% | 100.0% | `████████████` |
 | WinMain / setup | `0x4a1760`–`0x4a4b10` | 45 / 45 / 45 | 100.0% | 100.0% | `████████████` |
 | File / archive I/O | `0x4a4b10`–`0x4a6600` | 28 / 28 / 28 | 100.0% | 100.0% | `████████████` |
-| Engine image/font/model files | `0x4a9b60`–`0x4b2830` | 62 / 73 / 73 | 50.8% | 100.0% | `████████████` |
+| Engine image/font/model files | `0x4a9b60`–`0x4b2830` | 63 / 73 / 73 | 55.8% | 100.0% | `████████████` |
 | Scene-object base | `0x4b2830`–`0x4b3050` | 14 / 14 / 14 | 100.0% | 100.0% | `████████████` |
 | Collision geometry | `0x4b3050`–`0x4b44e0` | 5 / 6 / 6 | 71.1% | 100.0% | `████████████` |
 | Bounding-sphere geometry | `0x4b47e0`–`0x4b5110` | 11 / 11 / 11 | 100.0% | 100.0% | `████████████` |

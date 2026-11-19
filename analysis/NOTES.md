@@ -952,3 +952,8 @@ template members, the 123 normal-order sites in NONMATCHING code are our hand-ex
 - Model: `LDStd` in src/unk_452b20.cpp; `StageStr` in src/unk_420490.cpp flipped one RefreshUnits site the same way.
 - Still to convert: Stage::Stage (4 sites), StageScreen::RefreshUnits (3), StageScreen::LoadCars (1),
   BmfReader::ReadMaterial (1).
+- (same day) BmfReader::ReadMaterial matched the same way with the real `insert(0, x)`: a hand-expanded std::string
+  member can distort code AROUND it (a null test's `mov/test` vs `cmp [m],0`, which register reloads `this`), not
+  only its own leas. Where a function still carries a hand-written string twin member, try the real member on a
+  derived class and re-sweep the trailing `Bal(1)` count (ReadMaterial: exact only at N = 2; 0-1 too big, 3+ far
+  too small) before chasing the neighbouring hunks.
