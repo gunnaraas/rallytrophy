@@ -202,6 +202,7 @@ void AIDriver::FUN_0049ffa0()
 // Tried 2026-10-31: ~30 variants; 288->250 insns differ by building vel field-wise as a Vec3 (not Vec3Slot copy); p-before-rel, Vec3Slot/ctor forms of dir/vel/axis, sqrt term order did not help; original has baseline EH state 3 (ours 2) and frame 0xb0 (ours 0xa4), i.e. one more function-scope Vec3 object we cannot identify.
 // Tried 2026-11-01 re-pass: 14 more variants (unused/dead-store/volatile/copy-init extra function-scope Vec3 at 6 positions, branchy `more` forms); best 250->243 insns (extra Vec3 pre with dead stores) but bytes grow and frame/EH states still differ; unreferenced Vec3 gets elided, and the 12-byte slot is still unidentified.
 // 2026-11-18 (lever8): first loop's dir init as x,z,y: 192 -> 187 differing bytes (size exact; raw 260 -> 276). Volatile vel.y: `*(int*)&vel.y = found` removes it at exact size but 313 bytes (zero register: ebx replaces ebp for the EH state store, i=0 sinks); pointer/inline-member/NormalizeXZ/Dot3 forms all fold ny*0. Dead: found/best store order (6 forms), operand swaps of k/k2, double k, extra car/rightSum decl moves.
+// 2026-11-18 (lever12): normalise products vel.z*k, axis.y*k2, axis.z*k2 as `{ float c = comp; comp = c * k; }` (plain-copy of the component) gives original's fld [comp]/fmul [k]: 187 -> 184 bytes, size exact. dotV1 plain-copy subsets (32) x term orders xyz/chain/zyx/yzx/xzy/yxz/zxy (224 compiles) and sqrt-sum term orders: no change at all (hunk 6 and the left-sum slot 0x20/0x1c unmoved).
 void AIDriver::FUN_004a0420()
 {
     float best = 0.0f;
@@ -223,7 +224,7 @@ void AIDriver::FUN_004a0420()
     float len = (float)sqrt(vel.z * vel.z + vel.x * vel.x);
     float k = 1.0f / len;
     vel.x = vel.x * k;
-    vel.z = vel.z * k;
+    { float c = vel.z; vel.z = c * k; }
     Vec3 axis(*(Vec3*)&unkd4);
     float q = axis.x * axis.x;
     q = axis.z * axis.z + q;
@@ -231,8 +232,8 @@ void AIDriver::FUN_004a0420()
     float len2 = (float)sqrt(q);
     float k2 = 1.0f / len2;
     axis.x = axis.x * k2;
-    axis.y = axis.y * k2;
-    axis.z = axis.z * k2;
+    { float c = axis.y; axis.y = c * k2; }
+    { float c = axis.z; axis.z = c * k2; }
     Obstacle* o = obstacles;
     for (i = 0; i < listeners.size(); i++, o++) {
         if (o->valid) {

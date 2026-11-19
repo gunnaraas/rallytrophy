@@ -79,7 +79,7 @@ Instruction-multiset view: 37 functions are pure register/scheduling permutation
 | 0x45c400 | src/unk_45ad10.cpp | Car::ApplySuspensionForces | size | 754 | 756 | 645 | 5 | `lea    edx,[ebp-0x7c]` | `push   ebx` |  |
 | 0x45c700 | src/unk_45ad10.cpp | Car::UpdateWheelContact | size | 1132 | 1144 | 669 | 34 | `lea    ecx,[ebp-0x68]` | `lea    ecx,[edi+0x1e0c]` |  |
 | 0x45cc30 | src/unk_45ad10.cpp | Car::FUN_0045cc30 | size | 3631 | 3623 | 1025 | 40 | `mov    eax,0x3ca3d70a` | `mov    DWORD PTR [ebx+0x1410],esi` |  |
-| 0x45dac0 | src/unk_45dac0.cpp | Car::SunFactor | other | 921 | 921 | 105 | 2 | `mov    edx,DWORD PTR [edx+0x34]` | `mov    eax,DWORD PTR [edx+0x34]` |  |
+| 0x45dac0 | src/unk_45dac0.cpp | Car::SunFactor | other | 921 | 921 | 102 | 2 | `mov    edx,DWORD PTR [edx+0x34]` | `mov    eax,DWORD PTR [edx+0x34]` |  |
 | 0x45e480 | src/unk_45e480.cpp | ??0CarObject@@QAE@PAVCarTextureCache@@HHHHHI@Z | size | 13606 | 13705 | 9747 | 74 | `lea    eax,[ebx+0xce8]` | `push   0x34` |  |
 | 0x461a40 | src/unk_45e480.cpp | ??1CarObject@@QAE@XZ | size | 2274 | 2276 | 1712 | 1 | `lea    eax,[esi+0x1bd94]` | `lea    ebp,[esi+0x1bd94]` |  |
 | 0x462350 | src/unk_45e480.cpp | Car::LoadCarIni | order | 4484 | 4484 | 48 | 0 | `push   0x0` | `fcos` |  |
@@ -131,13 +131,13 @@ Instruction-multiset view: 37 functions are pure register/scheduling permutation
 | 0x49e3d0 | src/unk_49b8e0.cpp | AIDriver::FUN_0049e3d0 | size | 3537 | 3592 | 2797 | 101 | `mov    DWORD PTR [esi+0x28],0x0` | `mov    DWORD PTR [esp+0x74],eax` |  |
 | 0x49f1f0 | src/unk_49b8e0.cpp | AIDriver::FUN_0049f1f0 | size | 534 | 522 | 313 | 11 | `fld    st(0)` | `fmul   DWORD PTR [esp+0x44]` |  |
 | 0x49ffa0 | src/unk_49fee0.cpp | AIDriver::FUN_0049ffa0 | size | 1142 | 1149 | 931 | 26 | `sub    esp,0xc0` | `sub    esp,0xd4` |  |
-| 0x4a0420 | src/unk_49fee0.cpp | AIDriver::FUN_004a0420 | other | 2615 | 2615 | 187 | 0 | `mov    DWORD PTR [esp+0x2c],0x0` | `mov    DWORD PTR [esp+0x30],0x0` |  |
+| 0x4a0420 | src/unk_49fee0.cpp | AIDriver::FUN_004a0420 | other | 2615 | 2615 | 184 | 0 | `mov    DWORD PTR [esp+0x2c],0x0` | `mov    DWORD PTR [esp+0x30],0x0` |  |
 | 0x4a1050 | src/unk_49fee0.cpp | AIDriver::FUN_004a1050 | order+registers | 819 | 819 | 49 | 0 | `mov    ecx,DWORD PTR [ecx+0x28]` | `mov    eax,DWORD PTR [ecx+0x28]` |  |
 | 0x4ab010 | src/unk_4ab010.cpp | ConvertImageFormat | size | 2320 | 2302 | 1476 | 29 | `je     0x4ab8f9` | `je     0x4ab90b` |  |
 | 0x4ab910 | src/unk_4ab910.cpp | FUN_004ab910 | other | 1556 | 1556 | 893 | 4 | `mov    ebx,DWORD PTR [edi]` | `xor    ebp,ebp` |  |
 | 0x4abf30 | src/unk_4ab910.cpp | FUN_004abf30 | size | 2030 | 2034 | 587 | 7 | `mov    edi,DWORD PTR ds:0x0` | `mov    esi,DWORD PTR ds:0x0` |  |
 | 0x4ac920 | src/unk_4ab910.cpp | FUN_004ac920 | size | 1085 | 1080 | 886 | 2 | `je     0x4acd4f` | `je     0x4acd54` |  |
-| 0x4ad1d0 | src/unk_4acd60.cpp | FUN_004ad1d0 | other | 3131 | 3131 | 129 | 0 | `fadd   DWORD PTR [esi+0xc]` | `mov    ecx,DWORD PTR [esi+0x4]` |  |
+| 0x4ad1d0 | src/unk_4acd60.cpp | FUN_004ad1d0 | other | 3131 | 3131 | 37 | 0 | `fadd   DWORD PTR [esi+0xc]` | `mov    ecx,DWORD PTR [esi+0x4]` |  |
 | 0x4ae1f0 | src/unk_4ade80.cpp | ModelCacheState::Reload | order | 699 | 699 | 6 | 0 | `mov    DWORD PTR [esp+0x30],ecx` | `cmp    eax,DWORD PTR [esp+0x34]` |  |
 | 0x4b0180 | src/unk_4af960.cpp | BmfReader::ReadMaterial | size | 1625 | 1626 | 357 | 3 | `mov    eax,DWORD PTR [esi]` | `cmp    DWORD PTR [esi],0x0` |  |
 | 0x4b0e90 | src/unk_4af960.cpp | ModelFile::ReadMesh | order | 1328 | 1328 | 74 | 0 | `mov    DWORD PTR [ebp+0x18],edx` | `lea    eax,[ebp+0x20]` |  |

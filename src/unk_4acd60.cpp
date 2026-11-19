@@ -356,6 +356,8 @@ static __forceinline void BoxWorldPoint(Vec3* o, const float* p, const float* m,
 // Pass 2026-11-16 (agent): 407 -> 150 insns differ (2917 -> 2971 bytes of 3131): original test order is A axes, B axes, then 9 cross tests; named sum (float sm = ...; float s = ra; s += rb;) gives the fcomp st(1)/fstp form and fadd st,st(1); r0/r2/r3/r5/r6/r8 as C + (B + A) without the q temp. Open: original keeps 6 cloned return-0 epilogues (tests 1,2,3 and 13,14,15; tests 4-12 jump back to the first three), we merge to 2 (160 bytes); no source lever found (see REPORT).
 // Pass 2026-11-16 round 28: 97 -> 33 insns differ (3133 -> 3131 bytes, size exact): dropped the inner scope braces and trailing return 0 (arrays, centerA, centerB now function scope after the radius test; centerB declared with its initializer, so the EH states match). Open: centerA/centerB init scheduling (~15 insns); r0/r2/r3/r5/r6/r8 term order x,z,y vs our z,x,y (operand swaps and assoc permutations make no difference).
 // Pass 2026-11-16 round 30: 33 -> 28 insns differ (size exact): centerA built as `Vec3 centerA; centerA.x = boxA[0]; centerA.y = boxA[1]; centerA.z = boxA[2];` (x stays on the x87 stack, y/z int-copied like the original). r-term order already matches; only the centerA/centerB init schedule hunk remains (original does fadd x straight after fld; ours hoists the int loads into the gap). Tried: e/g/d/f variants (x via float temp, x add before/after copies, B before A) all lose the y/z reload or shrink 12 bytes.
+// 2026-11-18: r[0..8] dot terms: plain-copy float locals (A.x,A.y,A.z,B.x for r0/r3/r6; only B.x for r2/r5/r8) flip which factor is fld'd and give the original's z,x,y term order (129 -> 63 differing bytes). Operand/paren/statement-chain/(float)(double) forms alone give IDENTICAL code. Open: B1 dot (axisB[1].z*delta.z + ...) wants axis-first x,y terms; 64 copy subsets x 6 term orders, chains and double casts all >= 63; centerA/B init hunk unchanged.
+// 2026-11-18 round 2: centre init `double sx = centerA.x + boxA[3]; centerA.y += boxA[4]; Vec3 centerB = *(Vec3*)boxB; centerA.x = (float)sx;` (x add held in a double, stored after the B copy) 63 -> 37 bytes; remaining: ecx load of y one slot early, B[1]/B[2] stores one slot late. B1 dot: pointer locals (b1->, dp->), reference helpers Dot(a,b)/(b,a) in 3 term shapes, by-value helper (size grows), pz/px/py locals, double accumulator: all >= 63 (identical or worse).
 int FUN_004ad1d0(float* boxA, float* boxB, float* matrixA, float* matrixB,
                  float* positionA, float* positionB)
 {
@@ -391,9 +393,10 @@ int FUN_004ad1d0(float* boxA, float* boxB, float* matrixA, float* matrixB,
         axisB[2].y = matrixB[9];
         axisB[2].z = matrixB[10];
         Vec3 centerA; centerA.x = boxA[0]; centerA.y = boxA[1]; centerA.z = boxA[2];
-        Vec3 centerB = *(Vec3*)boxB;
-        centerA.x += boxA[3];
+        double sx = centerA.x + boxA[3];
         centerA.y += boxA[4];
+        Vec3 centerB = *(Vec3*)boxB;
+        centerA.x = (float)sx;
         centerA.z += boxA[5];
         centerB.x += boxB[3];
         centerB.y += boxB[4];
@@ -420,25 +423,25 @@ int FUN_004ad1d0(float* boxA, float* boxB, float* matrixA, float* matrixB,
         struct F3 projected;
         float r[9];
         float a[9];
-        r[0] = axisA[0].y * axisB[0].y + (axisA[0].z * axisB[0].z + axisB[0].x * axisA[0].x);
+        { float ax = axisA[0].x, ay = axisA[0].y, az = axisA[0].z, bx = axisB[0].x; r[0] = ay * axisB[0].y + (az * axisB[0].z + ax * bx); }
         r[1] = axisB[1].z * axisA[0].z + axisB[1].y * axisA[0].y + axisB[1].x * axisA[0].x;
-        r[2] = axisB[2].y * axisA[0].y + (axisB[2].z * axisA[0].z + axisB[2].x * axisA[0].x);
+        { float bx = axisB[2].x; r[2] = axisA[0].y * axisB[2].y + (axisA[0].z * axisB[2].z + axisA[0].x * bx); }
         projected.x = axisA[0].z * delta.z + axisA[0].y * delta.y + axisA[0].x * delta.x;
         a[0] = fabs(r[0]);
         a[1] = fabs(r[1]);
         a[2] = fabs(r[2]);
         { float t = fabs(projected.x); float sm = a[2] * extentB.z + a[1] * extentB.y + a[0] * extentB.x + extentA.x; if (t > sm) return 0; }
-        r[3] = axisA[1].y * axisB[0].y + (axisA[1].z * axisB[0].z + axisB[0].x * axisA[1].x);
+        { float ax = axisA[1].x, ay = axisA[1].y, az = axisA[1].z, bx = axisB[0].x; r[3] = ay * axisB[0].y + (az * axisB[0].z + ax * bx); }
         r[4] = axisB[1].z * axisA[1].z + axisB[1].y * axisA[1].y + axisB[1].x * axisA[1].x;
-        r[5] = axisB[2].y * axisA[1].y + (axisB[2].z * axisA[1].z + axisB[2].x * axisA[1].x);
+        { float bx = axisB[2].x; r[5] = axisA[1].y * axisB[2].y + (axisA[1].z * axisB[2].z + axisA[1].x * bx); }
         projected.y = axisA[1].z * delta.z + axisA[1].y * delta.y + axisA[1].x * delta.x;
         a[3] = fabs(r[3]);
         a[4] = fabs(r[4]);
         a[5] = fabs(r[5]);
         { float t = fabs(projected.y); float sm = a[5] * extentB.z + a[4] * extentB.y + a[3] * extentB.x + extentA.y; if (t > sm) return 0; }
-        r[6] = axisA[2].y * axisB[0].y + (axisA[2].z * axisB[0].z + axisB[0].x * axisA[2].x);
+        { float ax = axisA[2].x, ay = axisA[2].y, az = axisA[2].z, bx = axisB[0].x; r[6] = ay * axisB[0].y + (az * axisB[0].z + ax * bx); }
         r[7] = axisB[1].z * axisA[2].z + axisB[1].y * axisA[2].y + axisB[1].x * axisA[2].x;
-        r[8] = axisB[2].y * axisA[2].y + (axisB[2].z * axisA[2].z + axisB[2].x * axisA[2].x);
+        { float bx = axisB[2].x; r[8] = axisA[2].y * axisB[2].y + (axisA[2].z * axisB[2].z + axisA[2].x * bx); }
         projected.z = axisA[2].z * delta.z + axisA[2].y * delta.y + axisA[2].x * delta.x;
         a[6] = fabs(r[6]);
         a[7] = fabs(r[7]);

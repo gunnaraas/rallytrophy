@@ -76,6 +76,7 @@ struct SunMeshV { BYTE unk0[0x30]; std::vector<SunPart*> parts; };
 // (66 insns), cursor recomputed per iteration, q/tri/idx increment order, unsigned short/for(;;)/--n>0 count, eps hoisted,
 // signed i, hit field-wise, cand = p.
 // 2026-11-18: h as h = z*q[-4]; h += y*ny; h += x*nx (op= statements) 74 -> 72 raw, 921 bytes. No gain: ny via q[-5] (124, size changes), cand x/z-first or cand = p (76-114), cy after c, literal eps (174), while(n-- >1) (150).
+// 2026-11-18 (agent): cand built x, z, then y as `cand.y = p.y; cand.y -= t;` 105 -> 102 bytes (921 exact). No gain: cand.y=(float)double (104), int-cast copies (106), y after c (102/106), ny via q[-5] alone or in a 64-subset plain-copy search of the h scalars (123+, outer registers swap), 22 permutations of the n/verts/idx/tri load statements (110+ or size change), q declared before n, for(;;) count.
 float Car::SunFactor(void* models)
 {
     SunModels* list = (SunModels*)models;
@@ -140,10 +141,10 @@ float Car::SunFactor(void* models)
                                 float t = h / q[-5];
                                 if (!(t > best)) {
                                     Vec3 cand;
-                                    float cy = p.y - t;
-                                    cand.z = p.z;
                                     cand.x = p.x;
-                                    cand.y = cy;
+                                    cand.z = p.z;
+                                    cand.y = p.y;
+                                    cand.y -= t;
                                     const SunVertex* c = &verts[idx[2]];
                                     const SunVertex* b = &verts[idx[1]];
                                     const SunVertex* a = &verts[idx[0]];

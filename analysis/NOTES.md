@@ -917,3 +917,20 @@ address add (c2.dll, the routine that builds `[base+index]`), instead of more so
   member the swap appears exactly when no destructible object is alive before the call; with one alive the only asm
   difference is one EH state byte store scheduled into `_Grow`'s call setup. The original swaps with two ModelFiles
   alive, so the construct is still unknown; register choice does not predict the order.
+
+## Plain-copy float locals set fld/fmul roles in dot products (2026-11-18; FUN_004ad1d0 129 -> 37 bytes)
+
+- In a sum of products over STACK-LOCAL vectors, operand swaps, parentheses, term order, statement chains, helpers
+  (value or reference parameters) and double casts all compile identically. Copying a SUBSET of the scalar factors
+  into plain float locals in a braced block flips which factor is `fld`'d per product and with it the term order:
+  `{ float ax = A.x, ay = A.y, az = A.z, bx = B.x; r = ay*B.y + (az*B.z + ax*bx); }`. The subset differs per site;
+  search all 2^6 subsets for one site (script it), keep the best, replicate to same-shaped sites.
+- For a single product `v.z * k`: `{ float c = v.z; v.z = c * k; }` gives `fld [v.z]; fmul [k]`; copying the scale
+  instead does nothing (AIDriver 0x4a0420).
+- It does NOT work when the operands are mixed locals, globals and pointer fields (ParallelShadow::Prepare: 460
+  compiles, roles never flip, many copies change the size), nor when one term is a volatile read (the volatile term
+  is always emitted first).
+- Centre/sum init interleaved with int copies: hold the float add in a double and store it after the neighbouring
+  struct copy (`double sx = c.x + b[3]; c.y += b[4]; Vec3 d = *src; c.x = (float)sx;`).
+- A copy-constructed struct (`Pos3 a = position;`) and a member-wise copy schedule their loads differently; use the
+  one whose load/lea interleave matches, per object (SingleRace::Slot6: a copy-constructed, b member-wise).

@@ -640,6 +640,7 @@ inline float Dot(const Vec3& a, const Vec3& b)
 
 struct Quad4 { float a, b, c, d; };
 // NONMATCHING: RALLYTROPHY 0x470940
+// 2026-11-18: plain-copy float-local subset search (all 64 subsets of the 6 scalars each for plane0 sum, s1 chain, first dot; plane0 also 6 term orders x 10 subsets): no subset beats baseline 388 (best 387 for s1 cx copy, hunk shape unchanged); fld/fmul roles do not flip for these sites. Source unchanged.
 // The sphere-centre and corner transforms are the X87Xform asm helper and the light basis uses inline-asm cross (437 -> 394 differing instructions).
 // 3490 vs 3336 bytes. Same calls, constants, EH states and data flow; the frame differs: the original keeps c at ebp-0x18
 // (ours -0x28), and its inlined point*matrix transforms and cross product keep their pointer arguments in stack temps
