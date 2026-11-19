@@ -1388,6 +1388,8 @@ public:
     UIRect*& Get(int index); // 0x4242f0
 };
 
+struct G6_RectVec { std::vector<UIRect*> rects; };
+
 class G6_Sound {
 public:
     void FUN_0049b730();
@@ -1399,7 +1401,7 @@ public:
     void FUN_00437040(int);
 };
 
-// NONMATCHING: RALLYTROPHY 0x432e10
+// FUNCTION: RALLYTROPHY 0x432e10
 // 2026-11-16 pass (round 19): 11 more variants (UIRect** array + index, plain/all-volatile/partial-volatile receivers, float temps, named receiver pointer); none beat 10 insns (54 bytes), same size 1031.
 // Tried 2026-10-30 night: while-loop + goto-six, Get() returns UIRect*&, volatile rect reloads (mask search of 64), x*width/y*height fix, permute -r 20; 10 insns left: ecx load/push/EH-state store order around the six rect calls (original loads are plain but not CSE'd).
 // Tried 2026-10-31 re-pass: 30+ variants (volatile/plain mask on the six rect loads, volatile/plain local receiver pointers, sequential float temps, HudPoint temps, rv/off decl order, one-expression forms) plus permute -r 40; none beat 10 insns (all-volatile 14); original orders ecx load, lea, push, EH store per rect call while VC6 sinks the ecx load past the EH-state store.
@@ -1485,12 +1487,11 @@ int __fastcall GameG6::FUN_00432e10()
             else if (*(int*)((BYTE*)this + 0x139078) >= 7)
                 *(int*)((BYTE*)this + 0x139078) = 0;
 
-            BYTE* rv = *(BYTE**)((BYTE*)this + 0x139464);
-            int off = *(int*)((BYTE*)this + 0x139078) * 4;
-            x = (int)((*(UIRect* volatile*)(rv + off))->GetTopLeft().x +
-                          ((*(UIRect* volatile*)(rv + off))->GetBottomRight().x - (*(UIRect* volatile*)(rv + off))->GetTopLeft().x) * 0.5f);
-            y = (int)((*(UIRect**)(rv + off))->GetTopLeft().y +
-                          ((*(UIRect* volatile*)(rv + off))->GetBottomRight().y - (*(UIRect* volatile*)(rv + off))->GetTopLeft().y) * 0.5f);
+            std::vector<UIRect*>& rects = ((G6_RectVec*)((BYTE*)this + 0x139460))->rects;
+            x = (int)((*(UIRect**)((BYTE*)&*rects.begin() + *(int*)((BYTE*)this + 0x139078) * 4))->GetTopLeft().x +
+                          ((*(UIRect**)((BYTE*)&*rects.begin() + *(int*)((BYTE*)this + 0x139078) * 4))->GetBottomRight().x - (*(UIRect**)((BYTE*)&*rects.begin() + *(int*)((BYTE*)this + 0x139078) * 4))->GetTopLeft().x) * 0.5f);
+            y = (int)((*(UIRect**)((BYTE*)&*rects.begin() + *(int*)((BYTE*)this + 0x139078) * 4))->GetTopLeft().y +
+                          ((*(UIRect**)((BYTE*)&*rects.begin() + *(int*)((BYTE*)this + 0x139078) * 4))->GetBottomRight().y - (*(UIRect**)((BYTE*)&*rects.begin() + *(int*)((BYTE*)this + 0x139078) * 4))->GetTopLeft().y) * 0.5f);
 #undef RV
             SetCursorPos((int)(x * widthScale), (int)(y * heightScale));
         }
