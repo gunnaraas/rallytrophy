@@ -1385,7 +1385,63 @@ struct LoadDriverStr {
 };
 #define LD_STR(s) ((LoadDriverStr*)&(s))
 
-// NONMATCHING: RALLYTROPHY 0x455070
+static inline int Bal(int a) { return a; }
+struct LDRaw { char a; char* ptr; size_t len; size_t res; };
+struct LDStd : std::string {
+    LDRaw& R() { return *(LDRaw*)this; }
+    void Tidy(bool built);
+    bool Grow(size_t n, bool trim);
+    void Eos(size_t n);
+    void AppendOut(const char* s, size_t n);
+    size_t MaxSize() const;
+    void Copy(size_t n);
+    static unsigned char& Refcnt(const char* u) { return ((unsigned char*)u)[-1]; }
+    void AssignA(const char* s)
+    {
+        size_t n = strlen(s);
+        if (Grow(n, true)) { memcpy(R().ptr, s, n); Eos(n); }
+    }
+    void AssignB(const char* s)
+    {
+        size_t n = strlen(s);
+        if (Grow(n, true)) { memcpy(R().ptr, s, n); R().ptr[R().len = n] = 0; }
+    }
+    void AssignC(const char* s)
+    {
+        size_t n = strlen(s);
+        if (MaxSize() < n) std::_Xlen();
+        bool ok;
+        char*& ptr = R().ptr;
+        if (ptr != 0 && Refcnt(ptr) != 0 && Refcnt(ptr) != 255) {
+            if (n == 0) { --Refcnt(ptr), Tidy(false); ok = false; }
+            else { Copy(n); ok = true; }
+        } else if (n == 0) { Tidy(true); ok = false; }
+        else {
+            if (31 < R().res || R().res < n) { Tidy(true); Copy(n); }
+            ok = true;
+        }
+        if (ok) { memcpy(R().ptr, s, n); Eos(n); }
+    }
+    void AppendStd(const char* s) { append(s); }
+    void AssignStd(const char* s) { assign(s); }
+    void AppendA(const char* s)
+    {
+        size_t m = strlen(s);
+        if (std::string::npos - R().len <= m) std::_Xlen();
+        size_t n;
+        if (0 < m && Grow(n = m + R().len, false)) { memcpy(R().ptr + R().len, s, m); Eos(n); }
+    }
+    void AppendB(const char* s)
+    {
+        size_t m = strlen(s);
+        if (std::string::npos - R().len <= m) std::_Xlen();
+        size_t n;
+        if (0 < m && Grow(n = m + R().len, false)) { memcpy(R().ptr + R().len, s, m); R().ptr[R().len = n] = 0; }
+    }
+};
+
+// FUNCTION: RALLYTROPHY 0x455070
+// 2026-11-18 MATCH: path is an LDStd (class derived from std::string, Grow/Eos/AppendOut out of line, raw R() view); the 5 swapped sites use the REAL std::string::assign/append (AssignStd/AppendStd), the first three sites and the AssignC site keep the hand forms; four trailing Bal(1) (2..6 all work) spend the inline budget so _Eos/_Grow stay calls (3736 -> 3651 bytes, 0 differing).
 // 3651 vs 3651 bytes; 10 bytes differ: the operand order of five `lea ebp,[m+len]` / `lea edi,[ptr+len]` pairs in the
 // hand-expanded std::string::append sites (the original puts the old length in the index register). Everything else
 // (call sequence, EH states 0..0x12, string literals, scheduling) matches.
@@ -1401,7 +1457,7 @@ void Car::LoadDriver(const char* dir)
 {
     LoadDriverView* c = (LoadDriverView*)this;
     int i;
-    std::string path;
+    LDStd path;
     {
         float* v = c->driverBodyPos;
         v[0] = v[1] = v[2] = 0;
@@ -1412,8 +1468,8 @@ void Car::LoadDriver(const char* dir)
         v = c->coHeadPos;
         v[0] = v[1] = v[2] = 0;
     }
-    LD_STR(path)->AssignA(dir);
-    LD_STR(path)->AppendOut("driver.bmf", strlen("driver.bmf"));
+    path.AssignA(dir);
+    path.AppendOut("driver.bmf", strlen("driver.bmf"));
     LoadDriverModelFile driver(path.c_str(), dir, c->cache, c->materials, 0);
     for (i = 0; i < (int)driver.parts.size(); i++) {
         LoadDriverPart* part = driver.parts[i];
@@ -1435,8 +1491,8 @@ void Car::LoadDriver(const char* dir)
     for (i = 0; i < (int)driver.objects.size(); i++) {
         delete driver.objects[i];
     }
-    LD_STR(path)->AssignA(dir);
-    LD_STR(path)->AppendOut("co_driver.bmf", strlen("co_driver.bmf"));
+    path.AssignA(dir);
+    path.AppendOut("co_driver.bmf", strlen("co_driver.bmf"));
     LoadDriverModelFile coDriver(path.c_str(), dir, c->cache, c->materials, 0);
     for (i = 0; i < (int)coDriver.parts.size(); i++) {
         LoadDriverPart* part = coDriver.parts[i];
@@ -1472,22 +1528,23 @@ void Car::LoadDriver(const char* dir)
             delete file.objects[i];                                                                  \
         }                                                                                            \
     }
-#define ASSIGN(s, d) LD_STR(s)->AssignA(d)
-#define APPEND(s, f) LD_STR(s)->AppendOut(f, strlen(f))
+#define ASSIGN(s, d) s.AssignA(d)
+#define APPEND(s, f) s.AppendOut(f, strlen(f))
     LOADDRIVER_OPTIONAL("arm_left_lo.bmf", armLeftLo)
 #undef ASSIGN
 #undef APPEND
-#define ASSIGN(s, d) LD_STR(s)->AssignB(d)
-#define APPEND(s, f) LD_STR(s)->AppendA(f)
+#define ASSIGN(s, d) s.AssignStd(d)
+#define APPEND(s, f) s.AppendStd(f)
     LOADDRIVER_OPTIONAL("arm_left_hi.bmf", armLeftHi)
     LOADDRIVER_OPTIONAL("arm_right_lo.bmf", armRightLo)
 #undef APPEND
-#define APPEND(s, f) LD_STR(s)->AppendB(f)
+#define APPEND(s, f) s.AppendStd(f)
     LOADDRIVER_OPTIONAL("arm_right_hi.bmf", armRightHi)
     LOADDRIVER_OPTIONAL("transmission_lo.bmf", transLo)
 #undef ASSIGN
-#define ASSIGN(s, d) LD_STR(s)->AssignC(d)
+#define ASSIGN(s, d) s.AssignC(d)
     LOADDRIVER_OPTIONAL("transmission_hi.bmf", transHi)
+    Bal(1); Bal(1); Bal(1); Bal(1); 
 }
 
 // ---- J: wiper and rain loaders ----

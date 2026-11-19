@@ -15,12 +15,12 @@ _Updated 2026-11-18 by `tools/progress.py` (game code `0x401000`–`0x4bcfc6`)._
 
 | | Functions | Code bytes |
 |---|---|---|
-| Byte-exact | 1949 / 2084 (93.52%) | 458,080 / 742,276 (61.71%) |
-| Written, not yet exact | 135 | 284,196 |
+| Byte-exact | 1950 / 2084 (93.57%) | 461,731 / 742,276 (62.20%) |
+| Written, not yet exact | 134 | 280,545 |
 | Written in total | 2084 / 2084 (100.00%) | 742,276 / 742,276 (100.00%) |
 
 ```
-exact   ███████████████████░░░░░░░░░░░ 61.71% of code bytes
+exact   ███████████████████░░░░░░░░░░░ 62.20% of code bytes
 written ██████████████████████████████ 100.00% of code bytes
 ```
 
@@ -56,7 +56,7 @@ Progress by module (ranges in `analysis/modules.csv`):
 | Sound menu | `0x450ee0`–`0x452380` | 9 / 9 / 9 | 100.0% | 100.0% | `████████████` |
 | Bonus unlocks | `0x452380`–`0x452530` | 5 / 5 / 5 | 100.0% | 100.0% | `████████████` |
 | Front-end videos | `0x452530`–`0x452b20` | 4 / 4 / 4 | 100.0% | 100.0% | `████████████` |
-| Car animation and driver models | `0x452b20`–`0x4563e0` | 9 / 12 / 12 | 33.8% | 100.0% | `████████████` |
+| Car animation and driver models | `0x452b20`–`0x4563e0` | 10 / 12 / 12 | 59.2% | 100.0% | `████████████` |
 | Car camera | `0x4563e0`–`0x4581f0` | 21 / 22 / 22 | 53.7% | 100.0% | `████████████` |
 | Car collision | `0x4581f0`–`0x458700` | 4 / 5 / 5 | 27.2% | 100.0% | `████████████` |
 | Car input | `0x458700`–`0x459230` | 27 / 28 / 28 | 46.7% | 100.0% | `████████████` |
