@@ -141,6 +141,7 @@ struct ColVec {
 // 2026-11-16 pass 2 (~20 more, all 1 insn or worse): ++tr/tr+=1/i-=1/i=i-1, decl order, n3 copy + if/do-while(--i) (moves mov ebx,esi and still dec first), while+i-- at end, reorder.py on loop body (no gain), idiom.py -e 'mov [..],reg; dec; jne' = 0 hits.
 // 2026-11-16 pass 3 (11 more, no gain): store-placement rule probes (c-first/ptr-arith/tmp-next increments, no-op use of tr/c after increments, address-taken tr/c): original spills sit BEFORE dec like the preheader ones sit between test and je only when not sunk; no source form found.
 // 2026-11-16 pass 4 (~18 variants): inline-helper advances (ref-param Adv/Dec: 702 bytes, 45 insns; value-returning NxT/NxC/Dc before/after dec, in for-update, temps): all still 1 insn, dec before spills.
+// 2026-11-18: ~20 more (params m/t as the walked cursors with typed local copies: 698-715 bytes, 26-87 insns; cursors as for-comma vars, tr/c/i decl order, n as counter, i = i - 1, all-ref Nx3/Nx2 helpers: 702 bytes, 45 insns). Only b4 (n as counter) and the base keep 7 bytes; dec still precedes the two spills.
 void ColModel::Transform(float* m, float* t)
 {
     float M[16] = { m[0], m[1], m[2], 0.0f, m[4], m[5], m[6], 0.0f, m[8], m[9], m[10], 0.0f, t[0], t[1], t[2], 1.0f };

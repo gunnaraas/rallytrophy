@@ -145,6 +145,7 @@ inline float Dot(const Vec3& a, const Vec3& b) { return (a.y * b.y + a.z * b.z) 
 // 2026-11-18: r/u as local `struct SV3 : Vec3` with inline by-value `operator*=(float s)`, `r *= s; u *= size;` (80 -> 66 norm insdiff lines, 1125 -> 1121 B): second vector now holds size on the FPU (fld; fld st(0); fmul). Still differs: x term `fld s; fmul st,st(1)` + pop of held r.x, u.y/u.z `fld y; fmul st,st(1)` + final pop (ours dups st(0) / consumes it), double-param/double-local/const float& /return *this/body operand orders all same or worse.
 // 2026-11-18 (rx lead): r copied as Vec3 with float rx = r.x held, `r.x = s * rx; r.y *= s; r.z *= s;` BEFORE `Vec3 p(Position())`, then `float k = size; float k2 = k;` and `u.x = k2 * u.x; u.y = u.y * k; u.z = u.z * k;` (u matches fully; the k2 alias flips the x term to fld-dup form): norm 66 -> 44, raw 70 -> 62, 1121 -> 1129 B. Left: volatile alpha round trip (non-volatile: raw 72), colour reg alloc, quad c/g order. Failed: SV3 r/u variants, k*u.x/u.x*k/size direct (no dup), p declared before r.y/z or after r.x (p loads and EH store misplaced).
 // 2026-11-18 ws7-46ea20 round 2 (no gain, 10/16 kept): quad[0].y/z operand order: slots are identical (p.y -0x44, r.y -0x38), plain-copy float locals (py/ry) +1 B and raw 200, r*1.0f/p - -r worse; p/r order in source is canonicalised. Int pair (quad[2].x copy) : double temps on quad[1].x/y/z adds, moving quad[2] statements all worse (raw 20-211).
+// 2026-11-18 ws13: 128-compile sweep of plain-copy float locals over {p.y,r.y,p.z,r.z} (16 subsets x 4 operand orders, block around the sums or after Vec3 p): only the empty subset keeps 14 B, others 198-235 B. quad[0].y `ta` block -> plain `s_quad[0].position.y += u.y;` gives 14 -> 11 B (quad[3].y int copy now one x87 gap early instead of two); other += sites 12-18 B. double temps on ta blocks no change. Named sums `float sy = r.y + p.y; float sz = ...` feeding quad[0] and quad[3] (64 variants: declared together/each, both operand orders, sy+u.y / u.y+sy / += / ta): with quad[3] from sy/sz 170-184 B; without 12-14 B. Dead.
 // Same algorithm and constants (1101 vs 1124 bytes; 614 differing bytes). The positive near-plane branch
 // emits the target's unordered-aware status-mask test; alpha storage, stack slots, and quad construction
 // still differ.
@@ -221,7 +222,7 @@ void CarLight::Render(RenderDevice* device, Camera* camera)
             s_quad[0].position.y = r.y + p.y;
             s_quad[0].position.z = r.z + p.z;
             s_quad[0].position.x += u.x;
-            { float ta = s_quad[0].position.y; ta = ta + u.y; s_quad[0].position.y = ta; }
+            s_quad[0].position.y += u.y;
             { float ta = s_quad[0].position.z; ta = ta + u.z; s_quad[0].position.z = ta; }
             s_quad[1].position.x = p.x - r.x;
             s_quad[1].position.y = p.y - r.y;

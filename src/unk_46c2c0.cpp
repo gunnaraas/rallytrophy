@@ -190,6 +190,7 @@ static float Pacejka(float x, float B, float C, float D, float E);
 static inline void SetNormalY(Vec3& v) { v.y = 1.0f; }
 
 // NONMATCHING: RALLYTROPHY 0x46c2c0
+// 2026-11-18: F11 chains (x=z=0 either order, y before/after), x/z helper with plain y (66 bytes: y sinks to the very end, pop edi before x/z), y at every later position, y grouped in helper with x/z/touching/active, Z-only helpers, y via float& / One(): all 8 bytes (helper y) or 66 (plain y); none moved pop edi past one store.
 // 2026-11-16 round 12: SetNormalY moved to every later statement position (2-3 insns worse), helpers for x/z, y+touching/active, flat/volatile y at every position: none beat 1 insn. pop edi always lands right after the y store (original: after z, before y).
 // 2026-11-16: normal.y via inline SetNormalY (no volatile) 27 bytes/2 insns -> 8 bytes/1 insn; only the y store still lands before pop edi (original after). Vec3 ctor (init list 11 insns, body temp 15), flat x/y/z permutations, helper/reference/pointer forms all 2+ insns.
 // 2026-11-12: the early ecx reload is the epilogue's fs:0 restore load; the original schedules it before the x/z stores and the y=1 store after pop edi. Whole-vector forms (inline Set helper, Vec3(0,1,0) temporary or named copy, static const, x/y/z orders) are 2 insns or worse (temporaries add a 16-byte stack copy).

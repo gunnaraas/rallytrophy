@@ -935,12 +935,42 @@ extern DWORD DAT_0050892c;
 extern void __cdecl FUN_00423670(StageScreen* s, short sel, StageEntry* e, float sy); // guess: argument meaning
 extern void __cdecl FUN_004239c0(StageScreen* s, short sel, StageEntry* e, int sy);   // guess
 
+struct StageStrRaw { char a; char* ptr; size_t len; size_t reserve; };
+struct StageStr : std::string {
+    StageStrRaw& R() { return *(StageStrRaw*)this; }
+    bool Grow(size_t n, bool trim);
+    void Eos(size_t n);
+    void Append(const char* s, size_t n);
+    void AppendCall(const char* s) { Append(s, strlen(s)); }
+    void AssignGrow(const char* s)
+    {
+        size_t n = strlen(s);
+        if (Grow(n, true)) {
+            memcpy(R().ptr, s, n);
+            Eos(n);
+        }
+    }
+    void AppendStd(const char* s) { append(s); }
+    void AppendInl(const char* s)
+    {
+        size_t n = strlen(s);
+        if (std::string::npos - R().len <= n) std::_Xlen();
+        if (0 < n) {
+            size_t tot = n + R().len;
+            if (Grow(tot, false)) {
+                memcpy(R().ptr + R().len, s, n);
+                Eos(tot);
+            }
+        }
+    }
+};
 // NONMATCHING: RALLYTROPHY 0x423b90
 // NONMATCHING: inline std::string append/assign expansions are approximated with string methods
 // Tried 2026-10-31: Load(path,1,0,0) was already right; dir/path as StagePathText, 2nd char buf[32], pointer loop, if/else per unit (tail-merged), Length/Width AppendCall + Height/Weight std append, float factors (228->132); still differs: local layout (orig order num,path,buf,ini,dir; ours num,buf,ini,path,dir, decl order has no effect) and Weight's inline-vs-call _Eos split.
 // Tried 2026-11-01: the 8th push_back is the StageInsert template (out-of-line Ucopy/Destroy/SizeCall, StageConstruct for the inlined Ufill with M=1; helper above C_ADD) on a StageIntVec view of m_items: 62->31 insns; still differs: ours spills the first-loop cursor and keeps s in a different slot (ebx taken by end), end/last stores order; volatile-read ra, r=&vec and begin-reload idioms alone did not help.
 // Tried 2026-11-01 re-pass: 16 more variants (all Append* combos per unit, num/buf order, e=entries+i, volatile count/entries, hoisted unit flag, v fp temp); none beat 132 insns; still differs: ebp/entries load placement in the prologue, EH-state stores (0x1/0x2) one call early, and inline _Eos/Append split in Height/Weight.
 // 2026-11-15: Weight unit as std::string::assign(buf) (inline _Eos, was AssignGrow) + AppendInl for its first append (keeps the later appends' _Eos as calls): 49 -> 16 insns differ, 1799 -> 1800 bytes. Open: ebp/entries load before the n>0 test, lea [n+len] operand order at 3 append sites, [ptr+len] order in the Weight assign.
+// 2026-11-18: entry strings through StageStr (class derived from the real std::string, Grow/Eos/Append out of line, raw len/ptr view; mirrors StagePathText): the AppendStd site after the merged FUN append flips to the original's [esi+edi] order (42 -> 41 bytes, size exact). Not flipped: Height DAT-append site (still [edi+esi]), Weight AppendInl (ours [esi+edi], orig [edi+esi]) and Weight assign eos ([eax+edx] vs [edx+eax]); a combined member (Height or Weight unit inside one inline member, also __forceinline) collapses the function (1488-1518 bytes); AppendInl with len/n order swapped or len cached: no change / +383 bytes; `if (n > 0) { e = entries; ...}` 1808 bytes.
 void StageScreen::RefreshUnits()
 {
     int n = count;
@@ -956,7 +986,7 @@ void StageScreen::RefreshUnits()
         StagePathOut path(dir, 0);
         path.AppendCall("/info.ini");
         ini.Load(path.c_str(), true, false, 0);
-#define S(f) (*(StagePathText*)&e->f)
+#define S(f) (*(StageStr*)&e->f)
 #define UNIT(field, key, mm, inch, AP, K)                       \
         { int v = ini.Find(key);                             \
         if (DAT_00501300[0] != 0) v = (int)((float)v * K); \
@@ -970,7 +1000,7 @@ void StageScreen::RefreshUnits()
         { int v = ini.Find("Weight");
         if (DAT_00501300[0] != 0) v = (int)((float)v * 2.2046225f);
         FUN_004c1902(v, buf, 10);
-        ((std::string*)&S(d))->assign(buf);
+        S(d).assign(buf);
         if (DAT_00501300[0] != 0) { S(d).AppendInl(DAT_004f2e40); S(d).AppendStd(FUN_00405380(0x11)); }
         else S(d).AppendStd(FUN_00405380(0x10)); }
 #undef UNIT
