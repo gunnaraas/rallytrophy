@@ -293,6 +293,7 @@ void ModelFile::ReadBlock(File* file, unsigned int* size)
 // Tried 2026-11-16 r20: 4 more first/second position-copy forms (float locals x,z,y; const ScenePoint& field copy; first copy after matrix copy; second copy field-wise) all worse (71-143 insns vs 7); unchanged at 7 insns / 74 bytes.
 // 2026-11-18: forceinline helpers around the position copy (ptr/ref/by-value/int forms, x,z,y or x,y,z store order, one or both sites, only-y or only-xz store split) all raise raw insdiff 14 -> 240-460; unchanged at 14.
 // 2026-11-18 (helper x Bal sweep 0-10): any new PosCopy helper needs Bal>=6 (Bal 0-5 give 240-344 raw); at Bal 6-10 x,y,z/assign helper = 14 (same as baseline, y store still sunk), x,z,y direct helper both sites = 26 (loads z before y), single site 46; y/z-split, zy, local-first forms 44-300. No variant below 14.
+// 2026-11-18: real std::string assign on a derived AsgStr (assign(x,0,npos), assign(x), c_str forms; Bal 0-14) for the object->name Assign: same 1328 B / 74 differing bytes at Bal 5-7,9-14 (1414/1368/1362 elsewhere; c_str forms 1380-1477); no change to the position-copy hunk, reverted. The other "Insert" is meshes.Insert (vector, not a string).
 void ModelFile::ReadMesh(File* file)
 {
     ModelPartRecord* record = FUN_004af730(file);

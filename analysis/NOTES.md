@@ -957,3 +957,11 @@ template members, the 123 normal-order sites in NONMATCHING code are our hand-ex
   only its own leas. Where a function still carries a hand-written string twin member, try the real member on a
   derived class and re-sweep the trailing `Bal(1)` count (ReadMaterial: exact only at N = 2; 0-1 too big, 3+ far
   too small) before chasing the neighbouring hunks.
+- (iteration 16, limits of the recipe) Swept on eight more near misses: where the original's string site is an
+  out-of-line call or a hand-shaped ctor/dtor, the real member at the right `Bal(1)` count compiles to exactly the
+  hand twin's bytes (0x436250, 0x443790, 0x44c580, 0x403ca0, 0x4b0e90, 0x4b1640). The recipe only pays where insdiff
+  shows a swapped `[m+len]` lea pair or a hunk INSIDE/adjacent to an inline-expanded member (ReadMaterial's null test
+  sat directly after the insert). Do not sweep it on residuals that are far from every string statement.
+- A by-value 8-byte struct copy of two adjacent float fields loads high-then-low (`mov ecx,[m+4]; mov eax,[m]`), but
+  the struct takes a different stack slot than two scalar floats (declaration position does not move it), and
+  float arguments of a forceinline helper are loaded left to right, not right to left.

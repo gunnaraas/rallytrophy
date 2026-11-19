@@ -68,6 +68,7 @@ SceneEntry* ModelLoader::ReadMesh(File* file, unsigned int size)
 // 1680 orders of explicit pairs + loops were worse (29 insns).
 // 2026-11-16 (round 21): copies unrolled as plain stores (zero loop kept for xor eax) with a hill-climbed statement order; 25 -> 20 insns differ, 112 -> 80 bytes, 613/613. Left: original schedules loads/stores of 0x54..0x5c position triple differently (stores 0x18,0x1c,0x14 first) and test edi,edi + immediate pushes instead of zero kept in esi.
 // 2026-11-18: F11 chains (w[5]=w[0x2e]=, w[6]=w[0x2f]=, w[7]=w[0x30]=), explicit 18/1c/14 position stores, descending/w[0x16-i] zero loops: all worse (603-616 bytes, 84-259 differing); w[0x2f]=w[6] neutral (80). Kept 80.
+// 2026-11-18: hand Assign -> real std::string::assign(x)/assign(x,0,npos)/operator= on a derived LStr (Grow/Eos alternatename), N=0..14 Bal(1): N<=1 788 bytes, N>=2 613 bytes and the SAME 80 differing bytes (string site is not the cause; assign(c_str,size) worse 674). Kept the old form.
 void ModelLoader::ReadLight(File* file)
 {
     ModelPartRecord* rec = FUN_004af730(file);
