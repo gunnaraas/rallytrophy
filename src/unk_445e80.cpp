@@ -421,6 +421,7 @@ void ServiceMenu::UnloadTextures()
 // 2026-11-12: 15 more variants (separate f/g, double fr via qword asm, no d, text first/last with explicit stores, stage1 local, loop-counter forms): unchanged 40 insns.
 // 2026-11-16 (r20): ~55 more variants (stageNo++ before the loop with shifted uses, 45 operand-order forms of n/b3/==5, hoisted s1/base2 locals, rallyNo*10+0xbe): none below 40 insns; sizegap now shows only the hoisted stageNo+1 temp in esi vs the original's eax (3 hunks, +-6 bytes).
 // 2026-11-16 (helper lever): inline free helpers (Inc1/Setv/Adv/Digits) for stageNo+1, leading member stores, stageNo++ and the text digit stores: 40 insns unchanged or much worse (150-1800 bytes); nothing kept.
+// 2026-11-18: LEVER10 pass (~25 compiles). KEPT: `double fr = d - floor(d); f = (float)(fr * 10.0);` 65 -> 61 bytes (fixes the eax/esi reload order in the loop head; text/d/f slots unchanged). Failed: SM_F2I float/double/int& inline helpers (177-1779 bytes, helper param takes the lowest slot, n locals leave -0x8c/-0x7c), len as double (+12 bytes), two floats f/g (177), text declared first (103), stageNo++ forms (+-12..1777), extra/redundant text stores (folded, no slot change).
 // original: FUN_004470a0 (thiscall, ret 0xc; info.ini loader: per-stage strings)
 void ServiceMenu::Init(int rallyNo, int stageNo, int count)
 {
@@ -479,7 +480,8 @@ void ServiceMenu::Init(int rallyNo, int stageNo, int count)
             fld f
             fistp whole
         }
-        f = (float)((d - floor(d)) * 10.0);
+        double fr = d - floor(d);
+        f = (float)(fr * 10.0);
         __asm {
             fld f
             fistp tenth

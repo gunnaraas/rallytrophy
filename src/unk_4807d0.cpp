@@ -304,6 +304,7 @@ void SingleRace::Update(int dt)
 // Tried 2026-10-30 night: member-wise copies of position/a/b, named la plus a progress temp in branch 2 (149 -> 91 insns), next/prev inline, declaration hoisting, permuter; still differs: stack slot order (next/before/closing), branch 2 evaluates b.Length() before a.Length() and stores them, and lea/test scheduling after FUN_00414dc0.
 // Re-pass 2026-11-01 (91 -> 47 insns): doubles la/lb keep both lengths on the FPU, span reuses the dead next slot (float& alias), duplicate FUN_00414fb0(1) call removed, branch 3 subtracts b before a.Length(); still differs: stack slot order of stage/i/closing/before/d2 and i/eax register swap, declaration order has no effect.
 // Pass 2026-11-16 (r21, 47 insns unchanged): no source gain; i stays in eax (orig ecx), tried int/unsigned i, unused j/k removal, ++i, while loop, != bound, prev/next/a/b statement orders (96-98 bytes but 48-55 insns), swapped 1a1c/1a50 stores, hoisted stageCount.
+// 2026-11-18: `Pos3 a = position;` (copy ctor) plus member-wise b: 100 -> 81 bytes at exact size 1076. Failed: both copy-ctor (1070 bytes), b by ctor/helper/from a (no gain), next/prev reorders (88-100), if-condition spellings, i=0/accumulator/pointer-local forms for `total` (xor stays after fadd; accumulator puts it after fld but frees eax so i stays in eax, 80 bytes but x87 order differs). Remaining: i in eax not ecx (xor must land between fld and fadd while eax live), test/BYTE-state after b copy, slot numbering.
 // Estimates the stage time of every player who is still driving: the distance along
 // the stage is interpolated between the nearest checkpoints.
 void SingleRace::Slot6()
@@ -334,8 +335,7 @@ void SingleRace::Slot6()
         int index = stage->FUN_00414dc0((Vec3*)&position, 0)->index;
         int next = index + 1;
         int prev = index - 1;
-        Pos3 a;
-        a.x = position.x; a.y = position.y; a.z = position.z;
+        Pos3 a = position;
         Pos3 b;
         b.x = position.x; b.y = position.y; b.z = position.z;
         float progress;

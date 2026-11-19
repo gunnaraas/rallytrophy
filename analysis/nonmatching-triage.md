@@ -17,7 +17,7 @@ Instruction-multiset view: 37 functions are pure register/scheduling permutation
 |---|---|---|---|---|---|---|---|---|---|---|
 | 0x4013c0 | src/unk_401000.cpp | RecPool::Push | other | 579 | 579 | 158 | 0 | `mov    eax,DWORD PTR [edi+0x28]` | `mov    DWORD PTR [esp+0x10],edi` | eh 1 vs  |
 | 0x401cf0 | src/unk_401cf0.cpp | MeshSetLoader::Load | eh-state | 1183 | 1213 | 884 | 22 | `push   0xffffffff` | `mov    eax,fs:0x0` |  |
-| 0x4021b0 | src/unk_4018f0.cpp | MeshSet::Interp | other | 824 | 824 | 105 | 0 | `fstp   QWORD PTR [ebp-0x20]` | `fstp   QWORD PTR [ebp-0x1c]` |  |
+| 0x4021b0 | src/unk_4018f0.cpp | MeshSet::Interp | other | 824 | 824 | 87 | 0 | `fstp   DWORD PTR [ebp-0x18]` | `fstp   DWORD PTR [ebp-0x14]` |  |
 | 0x403ca0 | src/unk_403270.cpp | ReplayHeader::Load | other | 1117 | 1117 | 27 | 4 | `push   0x1d4` | `mov    esi,eax` |  |
 | 0x40a850 | src/unk_40a850.cpp | U40A850Prop::Fn | size | 2088 | 2098 | 1475 | 54 | `xor    eax,eax` | `mov    DWORD PTR [ebp-0x84],esi` |  |
 | 0x40c9b0 | src/unk_40c9b0.cpp | Stage::Stage | size | 8648 | 8656 | 5273 | 130 | `sub    esp,0x258` | `sub    esp,0x250` | eh 11,12,30,31,32,33,34,35,37,38,44,45,46,47,48,49,51,52,53,54,55,56,57,58,59,60,59,61,59,62,64,65,64,59,66,67,68,67,69,59,70,59,71,72,73,72,78,72,75,77,79,72,80,72,71,59,58,57,56,55,54,53,52,51 vs 11,12,30,31,32,33,34,35,37,38,44,45,46,47,48,49,51,52,53,54,55,56,57,58,59,60,59,61,59,62,59,63,59,64,59,65,59,66,59,67,68,69,68,74,68,70,71,70,72,73,72,75,68,76,68,67,59,58,57,56,55,54,53,52,51 |
@@ -59,7 +59,7 @@ Instruction-multiset view: 37 functions are pure register/scheduling permutation
 | 0x43df70 | src/unk_43d770.cpp | PlayerNameMenu::Run | other | 3832 | 3832 | 826 | 0 | `je     0x43ed65` | `je     0x43ed67` |  |
 | 0x4418d0 | src/unk_441370.cpp | TrackSelectMenu::Setup | size | 4672 | 4683 | 2932 | 10 | `sub    esp,0x150` | `sub    esp,0x14c` |  |
 | 0x443790 | src/unk_441370.cpp | TrackSelectMenu::Run | order | 5296 | 5296 | 4 | 0 | `mov    ecx,DWORD PTR [esi+0x20]` | `mov    eax,DWORD PTR [esi+0x1c]` |  |
-| 0x4470a0 | src/unk_445e80.cpp | ServiceMenu::Init | other | 2806 | 2806 | 65 | 0 | `lea    eax,[edx+0x1]` | `lea    eax,[esi+esi*4+0x5f]` |  |
+| 0x4470a0 | src/unk_445e80.cpp | ServiceMenu::Init | other | 2806 | 2806 | 61 | 0 | `lea    eax,[edx+0x1]` | `lea    eax,[esi+esi*4+0x5f]` |  |
 | 0x449860 | src/unk_445e80.cpp | ServiceMenu::DrawTune | other | 3004 | 3004 | 182 | 0 | `mov    DWORD PTR [esp+0x1c],eax` | `push   0xa` |  |
 | 0x44a420 | src/unk_445e80.cpp | ServiceMenu::DrawRepair | size | 2255 | 2256 | 1066 | 10 | `jle    0x44ac62` | `jle    0x44ac61` |  |
 | 0x44c580 | src/unk_44b930.cpp | ReplayMenu::DrawField | order+registers | 2554 | 2554 | 13 | 0 | `mov    edx,DWORD PTR [esi+0x24]` | `mov    esi,DWORD PTR [esi+0x24]` |  |
@@ -106,7 +106,7 @@ Instruction-multiset view: 37 functions are pure register/scheduling permutation
 | 0x4766d0 | src/unk_4766d0.cpp | WindowRain::WindowRain | other | 924 | 924 | 187 | 17 | `mov    DWORD PTR [edi],ebp` | `fmul   DWORD PTR ds:0x0` |  |
 | 0x476be0 | src/unk_4766d0.cpp | WindowRain::Init | other | 955 | 955 | 31 | 2 | `cmp    ebp,edi` | `mov    esi,DWORD PTR [esi+0x48]` |  |
 | 0x47b730 | src/unk_47b4c0.cpp | CarEmitterC::Render | size | 2107 | 2113 | 1649 | 33 | `mov    DWORD PTR [ebp-0xf8],ecx` | `mov    DWORD PTR [ebp-0xf0],ecx` |  |
-| 0x480ce0 | src/unk_4807d0.cpp | SingleRace::Slot6 | other | 1076 | 1076 | 100 | 0 | `mov    DWORD PTR [ebp-0x2c],ebx` | `mov    DWORD PTR [ebp-0x24],ebx` |  |
+| 0x480ce0 | src/unk_4807d0.cpp | SingleRace::Slot6 | other | 1076 | 1076 | 81 | 0 | `mov    DWORD PTR [ebp-0x2c],ebx` | `mov    DWORD PTR [ebp-0x24],ebx` |  |
 | 0x482ce0 | src/unk_481390.cpp | NetRace::OnMessage | size | 740 | 739 | 513 | 11 | `push   ebx` | `mov    eax,DWORD PTR [esp+0x8]` |  |
 | 0x4831c0 | src/unk_481390.cpp | NetRace::ServiceNetwork | size | 1929 | 1898 | 1403 | 69 | `sub    esp,0x390` | `sub    esp,0x36c` | eh 6,0,5,0,0,0,0,4 vs 0,6,0,5,0,0,0,4 |
 | 0x489300 | src/unk_4856e0.cpp | RaceMode::FUN_00489300 | other | 1684 | 1684 | 549 | 13 | `mov    eax,ds:0x0` | `mov    ecx,DWORD PTR ds:0x0` |  |

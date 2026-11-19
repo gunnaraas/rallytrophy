@@ -162,6 +162,7 @@ static __forceinline int RoundF(float v)
 // Tried 2026-11-15: volatile tail replaced by e2[] reads of a second e->dst alias (blocks store forwarding); a before d; operand order `x >= frames`; offsets computed in the loop body; float temp fr0 for the first fraction (314 -> 105 bytes, 116 -> 73 insns). Statement-order/decl/temp-local variants of idx/frames did not move the register swap.
 // Tried 2026-10-30 night: plain double/int locals, cached frames, volatile stores, b-load sinking; best is union word only for the first RoundF + separate idx local + volatile reads of d[3..5] (177->151); still differs in register assignment (idx/frames swap esi/ebx), spilled offset slots and an extra 12-byte frame.
 // Tried 2026-11-01 re-pass: normalize tail via volatile loads into locals z,y,x (151->116 insns); 13 more variants (offset placement, decl order, count local, clamp form, self ptr) all stay at 116; remaining diff is this/idx/frames register assignment (esi/edi/ebx) and offset-hoist order after the count test.
+// 2026-11-18: first RoundF as inline asm `fistp indexSpline.words[4]` straight into the union word (r shares the spline high-word slot like the original): 105 -> 87 bytes. Failed (87/88/worse): idx==frames order, cached frames n (global/loop-only: +3..6 bytes), idx2/li split, last/nxt2 reuse, clamp reorders, f decl order, f without fr0 (93), register idx. idx/frames still esi/ebx swapped; f slot -0x14 vs original -0x18 (k loop counter does not share f's slot).
 void MeshSet::Interp(float t)
 {
     if (owner == 0)
@@ -175,7 +176,7 @@ void MeshSet::Interp(float t)
         t = 1.0f;
     union IndexSplineSlot { double spline; int words[2]; } indexSpline;
     float f;
-    int idx, prev, nxt, nxt2;
+    int prev, nxt, nxt2;
     indexSpline.spline = (frames - 1) * t;
     float fr0 = (float)(indexSpline.spline - floor(indexSpline.spline));
     f = fr0;
@@ -183,8 +184,12 @@ void MeshSet::Interp(float t)
         f = 0.0f;
     else if (*(int*)&f > 0x3f800000)
         f = 1.0f;
-    indexSpline.words[1] = RoundF((float)floor(indexSpline.spline));
-    idx = indexSpline.words[1];
+    {
+        float fl = (float)floor(indexSpline.spline);
+        __asm { fld fl }
+        __asm { fistp indexSpline.words[4] }
+    }
+    int idx = indexSpline.words[1];
 
     if (loop != 0) {
         indexSpline.spline = frames * t;

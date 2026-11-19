@@ -219,6 +219,7 @@ int Screen1378::Open(MenuGame* game, NetRace* net)
 }
 
 // NONMATCHING: RALLYTROPHY 0x43a6e0
+// 2026-11-18: ~40 more (decl swaps, chained zero stores =/F11, dir -= 1, this-> uses, self/const copies, dummy this tests, hit-test fold, zero-store removals as probes); all stay 118 bytes, pure esi/edi swap. No title block exists here, siblings forms do not apply.
 // Same size (1685) and identical except register allocation: the original keeps `this` in esi and the shared zero
 // constant in edi, mine the reverse (118 bytes differ, all esi/edi swaps). Tried: declaration order, dummy `this` uses.
 // original: FUN_0043a6e0 (Screen1378::Frame: modal loop; returns -1 (back), 1 or 2)
