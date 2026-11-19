@@ -393,6 +393,7 @@ extern float DAT_004e1338;
 // Tried 2026-10-30 night: volatile self copy of this (spill slot), else-arm cur=0, volatile c->time compare, >=0x28 (169->59 insns); still differs: car/clock registers swapped (ebx/ebp), 'mov dl' byte load vs dword, so the Lerp8 arg reloads differ.
 // Tried 2026-11-01 re-pass: ~30 variants (m0 read before self store, volatile mode/clock/car/player reads, local copies of car/clock, named Lerp8 temps per call, volatile 0x1350 byte store, early/late player load, extra clock uses); none moved the ebx/ebp swap (use-count driven) or the Lerp8 byte-arg register order; best 57 vs 59 insns differ, not an improvement in kind.
 // Pass 2026-11-16 (r21): 59 -> 41 insns differ (158 bytes) by storing 0x134c (r) after the last Lerp8 store; ~140 variants (named Lerp8 temps x32, store permutations, typed Car members, extra clock uses) did not move car/clock to ebp/ebx (only a redundant `&& clock >= *nx` loop test flips it, +2 bytes) nor delay the Lerp8 fstp as the original does.
+// 2026-11-18: volatile c-compare replaced by `*(int*)cur == clock` (reads the member, no CSE with c): same 579/158, one volatile fewer. Removing `self` volatile (this spill) puts this in ebp/clock spilled (577 bytes, 446); with it removed AND a redundant `&& clock >= *(int*)nx` loop test, ALL registers match the original (this=edi car=ebp clock=ebx, insns 116->83) but the compare is `mov eax,[esi]; cmp ebx,eax` = 581 bytes/344 diff; ~25 free-use forms (copies, clock-=tm, dup compares, locals for mode/tail) fold away or add code.
 void RecPool::Push(Car* car, int clock)
 {
     RecPool* volatile self = this;
@@ -425,7 +426,7 @@ void RecPool::Push(Car* car, int clock)
     for (; nx && *(int*)nx <= clock; nx = nx->next)
         cur = nx;
     RecSlot* c = cur;
-    if (*(volatile int*)c == clock) {
+    if (*(int*)cur == clock) {
         car->FUN_004658a0((PlayerSample*)c);
         int tm = *(int*)(c->data + 0x58);
         if ((float)(clock - tm) < DAT_004e133c)

@@ -892,3 +892,19 @@ address add (c2.dll, the routine that builds `[base+index]`), instead of more so
   hunk count drops), and agents' reported sizes were wrong twice today. Before merging a partial, read the
   `built N bytes, original M; K differing bytes` line from match.py yourself and compare all three with the previous
   state; keep a change only if the size gap does not grow and the differing bytes do not rise, or say explicitly why.
+
+## Reload hacks are real containers; base/index via inline member reads (2026-11-18, matched GameG6 0x432e10)
+
+- `*(T* volatile*)(base + off)` reads repeated to stop CSE across calls: the original reads a `std::vector` element.
+  View the three-pointer block as `struct V { std::vector<T*> v; }` at its real offset (allocator byte at +0, begin at
+  +4) and index through `&*v.begin()`: every site reloads begin after the preceding call, exactly like the original,
+  and the receiver load lands before the temporary's EH state store.
+- Base/index order (NOTES "Base/index order of [a+b]"): with begin reloaded at the use it is the latest definition
+  and becomes the base (`[edi+esi]`). Reading the INDEX member inline at each site as well
+  (`... + *(int*)((BYTE*)this + N) * 4`, no `int sel` local) makes the index the later definition, giving the
+  original's `[esi+edi]`; VC6 still CSEs the index load into one register with one `shl`. A cached `sel` local, a
+  second local, comma-expression assignments and helpers all keep begin as the base.
+- `rects[sel]` with a plain index gives a scaled address (`[edi+esi*4]`); the original's unscaled `[esi+edi*1]` with a
+  separate `shl esi,2` is the byte-offset form `(BYTE*)begin + sel * 4`.
+- A volatile read that only keeps a float on the x87 stack across int copies is a `double` temp
+  (`double kd = mass; float k = (float)kd;`), byte-identical (Car::LoadCarIni).

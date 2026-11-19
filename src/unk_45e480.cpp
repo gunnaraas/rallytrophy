@@ -1668,6 +1668,7 @@ static inline int Bal(int a) { return a + 1; }
 // 2026-11-16 round 30: 47 variants, none below 13 insns differ (baseline 13, 4486 vs 4484): hood/trunk axis statement orders, cos/sin temps, hoodMax temp forms, c_str() spellings via a local helper (fewer bytes differ but 16 insns, extra call). No source change.
 // 2026-11-16 round 31: (2) solved in the header: TmpString::c_str as `const char* r = ptr; if (r == 0) r = ""; return r;` (as IniString) loads the pointer straight into esi; size 4486 -> 4484 (= target), 2777 -> 48 differing bytes. Left: push before fcos, hood sin store order, trunkAxes tail order.
 // 2026-11-16 round 32: 64 more variants, none below 6 insns differ (48 bytes): hood/trunk stores in all 24 orders, chained assignments (`t[1] = axisA.y = cos`), cos/sin single-expression vs named temps vs swapped order, axisB declared earlier, hood/trunk temp placement, HoodMaxAngle named/split forms. Push before fcos and the sin/trunkAxes[5] store order did not move; no source change.
+// 2026-11-18: mass volatile replaced by `double kd = mass; float k = (float)kd;` (same 48 bytes; `double k` also 48, plain float 1864). Push-before-fcos unmoved: hood as double (2473), cos arg inline (2443), trunk first (2346), double temps for cos/sin/HoodMax (48, no change).
 void Car::LoadCarIni(const char* path, unsigned int checksum)
 {
     CarIniView* v = (CarIniView*)this;
@@ -1713,9 +1714,10 @@ void Car::LoadCarIni(const char* path, unsigned int checksum)
     float mass = config.GetFloat("Mass");
     v->mass = mass;
     {
-        // volatile read after the call and before the copy keeps mass on the x87 stack (fld st(0) per axis)
+        // mass held as a double across the copy keeps it on the x87 stack (fld st(0) per axis); was a volatile read
         const ConfigVector3& r_ = config.GetVector3("MomentOfInertia");
-        float k = *(volatile float*)&mass;
+        double kd = mass;
+        float k = (float)kd;
         Copy3(v->momentOfInertia, r_);
         Scale3(&v->momentOfInertia, k);
     }

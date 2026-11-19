@@ -201,11 +201,12 @@ void AIDriver::FUN_0049ffa0()
 // Reading normalized vector fields directly reduced instruction-multiset delta 69->65 before the lifetime probes.
 // Tried 2026-10-31: ~30 variants; 288->250 insns differ by building vel field-wise as a Vec3 (not Vec3Slot copy); p-before-rel, Vec3Slot/ctor forms of dir/vel/axis, sqrt term order did not help; original has baseline EH state 3 (ours 2) and frame 0xb0 (ours 0xa4), i.e. one more function-scope Vec3 object we cannot identify.
 // Tried 2026-11-01 re-pass: 14 more variants (unused/dead-store/volatile/copy-init extra function-scope Vec3 at 6 positions, branchy `more` forms); best 250->243 insns (extra Vec3 pre with dead stores) but bytes grow and frame/EH states still differ; unreferenced Vec3 gets elided, and the 12-byte slot is still unidentified.
+// 2026-11-18 (lever8): first loop's dir init as x,z,y: 192 -> 187 differing bytes (size exact; raw 260 -> 276). Volatile vel.y: `*(int*)&vel.y = found` removes it at exact size but 313 bytes (zero register: ebx replaces ebp for the EH state store, i=0 sinks); pointer/inline-member/NormalizeXZ/Dot3 forms all fold ny*0. Dead: found/best store order (6 forms), operand swaps of k/k2, double k, extra car/rightSum decl moves.
 void AIDriver::FUN_004a0420()
 {
-    float rightSum = 0.0f;
     float best = 0.0f;
     float leftSum = 0.0f;
+    float rightSum = 0.0f;
     RotMatrix rot;
     SubPod rs;
     MulPod tmp;
@@ -270,9 +271,9 @@ void AIDriver::FUN_004a0420()
         }
     }
 
-    dir.y = 0.0f;
-    dir.z = unkd4.z;
     dir.x = unkd4.x;
+    dir.z = unkd4.z;
+    dir.y = 0.0f;
     do {
         again = 0;
         leftSum += FUN_004a1050(&obstacles[unk104], (Vec3*)&dir, 1);

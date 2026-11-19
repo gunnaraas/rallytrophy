@@ -525,6 +525,7 @@ ParallelShadow::~ParallelShadow()
 // original: FUN_00470610
 // NONMATCHING: RALLYTROPHY 0x470610
 // 2026-11-17: dropped volatile on unk60 (insdiff 16 -> 14 lines, 136 bytes, 7 insns); only unk70 stays volatile. Tried: Z4/SpInit/per-arg-return __forceinline store helpers, group reorders (all worse, 8-20 insns).
+// 2026-11-18: volatile unk70 removed = 168 bytes (worse than 136, kept); flat stores in any group order, per-group/whole-block __forceinline helpers, St() per-store helpers, Sprite inline members, stores as call-arg helper returns (232), tex/size arg forms, late factory decl (600) all give the same 168 or worse: the scheduler sinks every plain store below the call setup regardless of source position.
 // Same size (715); older best candidate had 131 differing bytes. Volatile unk60 and unk70 stores move the call-setup
 // schedule closer to the target's interleaving. Adding volatile unk40 stores regresses to 155 differences; volatile
 // unk40 alone gives 165, and volatile unk18/unk24 gives 182.
