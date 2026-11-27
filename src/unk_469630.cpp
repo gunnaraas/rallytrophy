@@ -335,6 +335,7 @@ void Car::FUN_00469ea0(float k)
 // Tried 2026-10-31 re-pass: 22 more variants (mark before contact test, nested ifs, continue-form, tm pointer, volatile contact/surf/mark/trackMark reads, unsigned char mark, operand-order flips, mark in final call, i outside); all stay at 35 insns (best 34, bytes worse); still differs: original ebx=mark, ecx=wheel cursor, ours promotes the wheel cursor to ebx.
 // 2026-11-16 pass: 17 more variants (mark/surf decl order and nesting, mark in final call, register mark, slip via char offset/reference, in via byte offset, (int)contact, !=0 forms, i outside, brace forms); all 55 bytes / 35 insns or worse (reference slip 22 insns but 513 bytes; dropping surf 45). Remaining: only the ebx allocation (original keeps no loop variable in ebx; ours promotes the wheel cursor).
 // 2026-11-16 pass 2: slip as const float&/float* (ref, *sp, in[0xa0], loop-top decl, !(>=), (void)slip) frees ebx (insn diff 35 -> 22) but reloads slip twice (fld+fcomp, fld) and hoists &slip: 513 bytes, 372 differ; none reach 511.
+// 2026-11-25: `register int surf = v->surface[i]` left the focused score unchanged at 511 bytes / 55 differences; reverted.
 // Stamps a tyre mark for each wheel on a marked surface whose slip exceeds 2.5, or ends its mark.
 void Car::UpdateTyreTracks()
 {

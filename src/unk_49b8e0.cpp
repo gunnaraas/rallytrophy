@@ -1500,6 +1500,8 @@ __forceinline static void Copy(Vec3& d, const Vec3& s) { d.x = s.x; d.y = s.y; d
 // Tried 2026-11-01 re-pass: lazy dist2 sqrt inside the && compares and 0.0f read as DAT_004e134c for v0/v1/v2/gap/unk14c .y (787->698 insns, 3502->3543 bytes vs 3592); ~30 variants (other .y sites, p.y, unk28, dist order, local pointer/declaration order) no better; still differs: original keeps player in edi/path in ebp (ours ebp/ebx) so the whole register allocation and several fst/fstp reloads of the n/v components differ.
 // Pass 2026-11-13: 720 -> 594 insns differ (3545 -> 3532 bytes vs 3592): u0/u1 as #define expressions not locals (-55), body cached via CarBody* + int-copied velocity, p.y=0 in the cap branch, v0.y/v1.y literal 0.0f at two sites, t2<=1 branch order in cases 1-2. Not fixed: player/index register split (index reloaded from player->unk1a7c; orig keeps it in ebx), x87 preloads in dist0/dist1 Length.
 // Pass 2026-11-16 (L1): 594 -> 564 insns differ (3532 -> 3537 bytes vs 3592): case-3 t2<=1 as the if arm with unk14c.y=0 only in the t2>1 arm (orig jumps over the store), .y zeros as immediates at v1 init/gap/unk14c, v1 init y via DAT, separate lenN/kN for the final normalisation. Ctor forms of v0/v1/v2/gap, pair flips of the other .y sites: worse.
+// Tried 2026-11-25: a forceinline ProductMemberFirst(const float*, float) around cur->b->unk24 * AI_FLOAT(0x2c) was codegen-identical (3537/3592 bytes, 2797 differing, 10151 bit differences). The matched parameter-order helper pattern does not change this multiply term; reverted.
+// Tried 2026-11-25: wrapping the complete weighted member sum in BlendMemberSum(float*, const float*, const float*, const float*) worsened the target to 2798 differing bytes / 10160 bits; changing the helper order to put weight before the field pointers produced the same object. Reverted.
 float AIDriver::FUN_0049e3d0()
 {
     Vec3 n;
@@ -1761,6 +1763,7 @@ static __forceinline float Len(AiVelocity v) { return (float)sqrt(v.z * v.z + v.
 // 2026-11-17: 58 -> 53 insns (496 bytes vs 522; insdiff 114 -> 104 lines): a from float locals ax/ay + by-value Len(a) (a.x stays on the FPU
 // as in the original); b side now matches. Residual: original loads a.y via fld and stores it twice ([34], temp [14]) and a.z via int to
 // [38] then [10]; ours moves y with ints. Older tries: x*x temps, double y/z locals, sqrt(expr), ref copies, Len for b too (514 bytes).
+// 2026-11-25: routing only va[1] through an __forceinline float read helper was folded by VC6; unchanged at 496/522 bytes, 331 byte diffs / 1239 bits. Reverted.
 int AIDriver::FUN_0049f1f0(Player* other)
 {
     int result = 0;

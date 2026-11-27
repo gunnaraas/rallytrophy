@@ -363,7 +363,7 @@ struct PlaceRec {
 
 __forceinline const char* CS(PlaceStr* s) { return s->ptr ? s->ptr : ""; }
 
-// NONMATCHING: RALLYTROPHY 0x4150b0
+// FUNCTION: RALLYTROPHY 0x4150b0
 // 2026-11-17 (Claude): dst before ext.x (all 120 orders of the five setup statements tried) and pd declared before the scale: 1 insn left - the pd slot store is hoisted into the dir -= start block (orig: after fmul [eax+4]). pd via a ScaleRet helper, SetP helper, decl/assign splits, inv local: no better.
 // Tried 2026-10-31: CS() forceinline helper (reloads the name pointer), no pos local, ext.z before ext.y, n+1 temp: 72 -> 31 insns.
 // Tried 2026-10-31 re-pass: ~30 variants (ext init order, brace init, pos/dir copy forms, Length as named double/temps, n+1 forms, inline-order); only pos copy via PlaceVec* p/q helped, 31 -> 29. Remaining: inlined-asm arg slot order, dir copy via mov ecx,eax, ext.y/z kept on FPU across Length.
@@ -373,6 +373,7 @@ __forceinline const char* CS(PlaceStr* s) { return s->ptr ? s->ptr : ""; }
 // Left: first call stores [ebp-0x24]=ecx before [ebp-0x8]=edi (orig after); scale fstp/arg-slot scheduling. Scale forms/ext.x moves no gain.
 void StageSounds::FUN_004150b0(PlaceObj* o)
 {
+    PlaceVec* q;
     if (strlen(CS(&o->name)) < 8)
         return;
     const char* t = CS(&o->name);
@@ -395,18 +396,19 @@ void StageSounds::FUN_004150b0(PlaceObj* o)
     float* pd2 = &rec->end.x;
     PlaceTransform(pe, pm, pd2, pt);
     rec->end.y = o->f[6];
-    { PlaceVec* p=(PlaceVec*)&o->f[5]; PlaceVec* q=&rec->pos; q->x=p->x; q->y=p->y; q->z=p->z; }
+    { PlaceVec* p=(PlaceVec*)&o->f[5]; q=&rec->pos; q->x=p->x; q->y=p->y; q->z=p->z; }
     { PlaceVec* d=&rec->dir; PlaceVec* s=&rec->end; d->x=s->x; d->y=s->y; d->z=s->z; }
     rec->dir -= rec->start;
     float len = rec->dir.Length();
     rec->length = len;
-    float* pd = &rec->dir.x;
-    rec->dir *= 1.0f / len;
+    float tmp = len;
+    rec->dir *= 1.0f / tmp;
     PlaceVec up;
     float* pu = &up.x;
     up.x = 0.0f;
     up.y = 1.0f;
     up.z = 0.0f;
+    float* pd = &rec->dir.x;
     PlaceCross(pd, pu, &rec->side.x);
     double bb = ext.y, c = ext.z;
     float rad = (float)sqrt(ext.x * ext.x + (bb * bb + c * c)) * 1.1f;

@@ -23,11 +23,12 @@ static const float kPointTwo = 0.2f;
 extern "C" long __cdecl _ftol(void);
 
 // original: FUN_00474c50
-// FUNCTION: RALLYTROPHY 0x474c50
+// NONMATCHING: RALLYTROPHY 0x474c50 — full pass 2026-11-25: 4 differing bytes (824-byte function).
 // Strided field cursors model the six per-field vertex pointers (+0x2c steps). What made it exact: the counts and
 // both array pointers are read back through this->mesh (no volatile reloads), and the vertex loop is
 // `if (n > 0) { ...; int j = n; while (j--) {...} }`, which puts the cursor setup after the guard and reloads n
 // before this at the loop exit.
+// 2026-11-26: splitting n * 32 into allocBytes preserved the same four-byte load-order mismatch; reverted.
 SnowFall::SnowFall(TextureLoader* loader, int count_)
 {
     if (DAT_00501428 == 2) {

@@ -2341,6 +2341,7 @@ extern float DAT_0057ba00, DAT_0057ba04;   // mouse position
 extern int DAT_0057ba20, DAT_0057ba24;     // left / right button pressed
 
 // NONMATCHING: RALLYTROPHY 0x48cf80
+// Tried 2026-11-25: normalized BYTE snapshot of noRestart (preserving its truth value) cut 1260 to 443 differing bytes; a reviewed local-order/branch-form candidate reached 433. Two random permuter batches (100 each; second started at 433) found no further improvement. A non-volatile reset pointer alias stayed at 433; reordering TextRenderer loads worsened to 1472, and an explicit enter branch to 1520; both reverted. objcmp still shows entry stack/register layout, the folded reset=0/enter reload, and delta-chain register sharing among the residuals; focused matcher confirms NONMATCHING.
 // Tried 2026-11-01 re-pass: result declared first (fixes prologue + EH state stores), delta chain as goto-shared tail, y step through two temps (fixes fld order) cut the diff from about 216 to 21 diff lines (about 10 insns). Still differs: dead reset=0 store plus enter read from that slot (any volatile access of reset blows regalloc, folded otherwise), mov ecx,1 constant register in the delta chain, the byte copy of noRestart / EH temp in the noRestart slot (ours uses reset slot). permute -r 40: no match.
 // Tried 2026-10-30 night: reading the second stage array via [unk28] instead of [stage] defeats CSE (121 -> 91 insns); volatile reset store/read made it worse (400+ lines diff); still differs in the dead reset=0 store, the setne enter ternary and cross-jumped sel=1 tails.
 // 2121 vs 2145 bytes, 96% of the instruction stream aligns. Open: the original keeps a never-folded zero in
@@ -2351,12 +2352,13 @@ extern int DAT_0057ba20, DAT_0057ba24;     // left / right button pressed
 // mouse. Returns 1 for the first entry, -1 for the second, -2 when the quit dialog was confirmed.
 int RaceMode::PauseMenu(int reset, int noRestart)
 {
-    int result = 0;
     TextRenderer* smallFont = DAT_0056b0c8->smallText;
-    TextRenderer* big = DAT_0056b0c8->bigText;
-    LapString text;
-    int atBest = 0;
     Vec2 pos;
+    int atBest = 0;
+    BYTE noRestartCopy = noRestart != 0;
+    TextRenderer* big = DAT_0056b0c8->bigText;
+    int result = 0;
+    LapString text;
     if (reset) {
         unk24c = 0;
         pos.x = DAT_0056aea8 * 512.0f;
@@ -2376,10 +2378,10 @@ int RaceMode::PauseMenu(int reset, int noRestart)
         }
     }
     smallFont->SetScale(DAT_0056aea8, DAT_0056aeac);
-    int showFirst = 1;
     int showSecond = 1;
+    int showFirst = 1;
     if (DAT_00501464 == 3 || (DAT_00501464 == 2 && DAT_00501334 == 1) || unk54 != 0
-        || (DAT_00501464 == 1 && atBest && noRestart)) {
+        || (DAT_00501464 == 1 && atBest && noRestartCopy)) {
         showFirst = 0;
     }
     if (DAT_00501454 || DAT_00501472) {
@@ -2415,7 +2417,11 @@ int RaceMode::PauseMenu(int reset, int noRestart)
             if (delta == 1) {
                 unk24c = 2;
             } else if (delta == -1) {
-                unk24c = showFirst ? 0 : 2;
+                if (showFirst) {
+                    unk24c = 0;
+                } else {
+                    unk24c = 2;
+                }
             }
         } else if (delta == 0) {
             move = false;
@@ -2518,8 +2524,10 @@ int RaceMode::PauseMenu(int reset, int noRestart)
                             text.assign(FUN_00405380(0x156));
                         }
                     }
-                    if (DAT_00501334 > 1 && !noRestart) {
-                        text.assign(FUN_00405380(0x155));
+                    if (DAT_00501334 > 1) {
+                        if (!noRestartCopy) {
+                            text.assign(FUN_00405380(0x155));
+                        }
                     }
                 }
                 break;
@@ -2597,6 +2605,7 @@ public:
 // Pass 3 2026-11-13: six dead size() calls (not five; with the first Print/GetWidth y as a named float, the name ternary inline in Print's arguments and `step = 0` assigned at `keys:` the budget needs 6) make the backspace _Eos a call: 125 -> 20 insns differ, 960 -> 74 differing bytes, 2766 = original size. Left: x/y temp frame slots in the label Print branches (orig shares (DAT_0056aea8 * 500.0f)'s slot), prologue mouse-load order, textInput store order after profiles load, Print name-ternary arg order.
 // Pass 4 2026-11-13: `edge` removed (the repeated DAT_0056aea8 * 500.0f is now a compiler CSE temp, which puts the label-branch x spill in its slot like the original), name ternary written `!empty ? name : FUN_00405380(0x27)`: 20 -> 19 insns differ, 74 -> 77 bytes. Left: the ternary's push/branch order in the slot-name Print, inline _Eos operand order in resize(0x15), prologue mouse-load order, textInput store order, `cmp eax,esi` for if (unk240).
 // Pass 5 2026-11-14: ~20 variants (mouse = *(Vec2*)&DAT_0057ba00, clicked/clickSel/mouse order, name ternary forms incl. if/else and named temp, textInput/m_editing store order, `unk240 != zz` zero in esi): none beats 77 bytes / 19 insns; no source change kept.
+// Tried 2026-11-25: `register RaceMode* self=this` on m_editing only and on all explicit fields stayed at 77; a local `self->m_text` reference worsened to 1688; redefining M_TEXT to use `self->m_text` stayed at 77. Reverted.
 // keyboard into m_text. Returns 1 when the menu is left.
 int RaceMode::NameMenu(int reset)
 {
@@ -3479,6 +3488,7 @@ draw:
 // Tried 2026-11-01 re-pass: 15 variants (result/pressed declared first or before LapText, volatile zero, text pointer after first draw, Color late, one-use floats x234/x894/y76 inline, scale local hoisted, volatile sx); all 124-134 insns differ, none better than 124; far from permuter range. Original frame is 0x14 larger (extra int copies of x184/x510 via esp+0x1c/0x20 before the loop) with zero held in ebx and n in edi.
 // Tried 2026-11-01 re-pass 2: 19 variants of the FUN_0048c7e0 idiom (split scaleX/color/scaleY, volatile int colour copy at both colour stores, Color declared first, volatile/plain int and float copies of x184/x510 before or inside the row loop, volatile zero, x184/x510 declared late, inline x184/x510 in the header Prints, padding array); none better than 124 insns (best other: 131-138 or worse); the original Color object lives at esp+0x14 (lowest slot) and the x184/x510 copies at esp+0x1c/0x30 are not reproduced; too far for permute.
 // Tried 2026-11-16 (round 24): 40 variants, none below 85 insns differ (1827 vs 1839): float/int/union/Vec2 copies of x184/x510 (optimised away or 114-200 insns), local decl order of y/x234/x894/best/pressed, n hoisted/while/do forms of the sort loop, scaleX/static guard/Color/scaleY interleavings.
+// Tried 2026-11-25: `register int i` on the row loop counter compiled byte-identically at 605 differing bytes; reverted.
 int RaceMode::FUN_0048a920(int sort)
 {
     TextRenderer* text = DAT_0056b0c8->text;
@@ -3957,6 +3967,7 @@ extern DWORD DAT_0056543c;             // pause-menu entry colour
 // Tried 2026-11-12 (size 1640 vs 1684): the three cursor-position sites as RM_Pt temporaries / block-local objects in
 // Tried 2026-11-13 round 2: x as block-scope `const float x` initialised per case before its Print (was function-scope assigned) gives size 1684 = original, insns 97 -> 75. Left: register allocation (original ebx = zero/unk244 cache and edi = loop counter i; ours swapped, eax re-xored) and first-Print device load hoist. Round 1 (no gain): shared Print tail, int w local, decl orders, result-compare tricks, first-Print arg orders.
 // all 12 combinations give 1628..1708 bytes, never 1684, and more differing bytes; setter title is worse too.
+// Tried 2026-11-25: `register int i` on the four-entry draw loop stayed at 549 differing bytes; reverted.
 int RaceMode::FUN_00489300(int reset)
 {
     TextRenderer* big = DAT_0056b0c8->bigText;

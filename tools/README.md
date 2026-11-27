@@ -91,6 +91,7 @@ They expect locally supplied game files and toolchain components; see
   frame, EH-state and call-count differences from the original (`--rows` for
   per-function detail).
 - [`vc6.sh`](vc6.sh): run a VC6 tool through the local Wine/Distrobox setup.
+- [`cpp_permuter.md`](cpp_permuter.md): optional cpp_permuter setup and its VC6/EXE-scoring adapters.
 
 ## Inventory and reports
 

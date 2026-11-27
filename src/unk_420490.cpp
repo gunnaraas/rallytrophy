@@ -940,6 +940,7 @@ extern void __cdecl FUN_004239c0(StageScreen* s, short sel, StageEntry* e, int s
 // Tried 2026-11-01: the 8th push_back is the StageInsert template (out-of-line Ucopy/Destroy/SizeCall, StageConstruct for the inlined Ufill with M=1; helper above C_ADD) on a StageIntVec view of m_items: 62->31 insns; still differs: ours spills the first-loop cursor and keeps s in a different slot (ebx taken by end), end/last stores order; volatile-read ra, r=&vec and begin-reload idioms alone did not help.
 // Tried 2026-11-01 re-pass: 16 more variants (all Append* combos per unit, num/buf order, e=entries+i, volatile count/entries, hoisted unit flag, v fp temp); none beat 132 insns; still differs: ebp/entries load placement in the prologue, EH-state stores (0x1/0x2) one call early, and inline _Eos/Append split in Height/Weight.
 // 2026-11-15: Weight unit as std::string::assign(buf) (inline _Eos, was AssignGrow) + AppendInl for its first append (keeps the later appends' _Eos as calls): 49 -> 16 insns differ, 1799 -> 1800 bytes. Open: ebp/entries load before the n>0 test, lea [n+len] operand order at 3 append sites, [ptr+len] order in the Weight assign.
+// 2026-11-24 plain matcher observation: tested grouping Height/Weight assignment and appends inside StageEntry owner methods, first as a local helper (also __forceinline), then as a file-scope __forceinline helper. The local methods remained out of line and made the body 1023 bytes / 1379 differing; the file-scope form made it 1614 bytes / 779 differing. Both were reverted. The original 1800-byte / 42-difference baseline was restored and rechecked; no owner-method form from the measured [a+b] rule is retained here.
 void StageScreen::RefreshUnits()
 {
     int n = count;
@@ -1388,6 +1389,12 @@ static __forceinline void StageInsert(LLVec* v, int* P, unsigned int M, const in
     }
 }
 
+static __forceinline void StageFreeThenSetEnd(LLVec* v, int* oldFirst, int* newFirst, unsigned int n)
+{
+    StageFree(oldFirst);
+    v->end = newFirst + n;
+}
+
 #define C_ADD(ul, lr) \
     do { \
         rect = (UIRect*)new C_Rect(*(const C_Point*)&config.GetVector2(ul), *(const HudPoint*)&config.GetVector2(lr)); \
@@ -1399,7 +1406,8 @@ static __forceinline void StageInsert(LLVec* v, int* P, unsigned int M, const in
         rect = (UIRect*)new C_Rect(*(const C_Point*)&config.GetVector2(ul), *(const HudPoint*)&config.GetVector2(lr)); \
         m_items.push_back(rect); \
     } while (0)
-// NONMATCHING: RALLYTROPHY 0x422fc0
+// FUNCTION: RALLYTROPHY 0x422fc0
+// 2026-11-25: inline StageFreeThenSetEnd keeps the end-pointer store in the same inline operation as freeing the old buffer; objcmp confirmed the full 1700-byte match.
 // original: FUN_00422fc0. Loads the 8 hit-test rectangles from data/menu/carmenu.ini.
 // Tried 2026-10-30 night: three UIRect* locals (sites 5 and 6 use their own, as in the original) cut 158->62 insns; still differs: the 8th push_back is an inlined insert(end(),1,x) whose end() load is scheduled before the rect spill in the original, ours after (std::vector inline expansion; insert/end()/volatile/temp variants did not help).
 // 2026-11-12: 8th site grow arm hand-expanded in the function body, end stored before last (62 -> 3 insns differ, 1700 bytes; only an eax/ecx swap around the end store remains).
@@ -1436,9 +1444,7 @@ void StageScreen::LoadLayout()
         ++q;
         sv->Ucopy(P, sv->last, q);
         sv->Destroy(sv->first, sv->last);
-        StageFree(sv->first);
-        int* e = s + n;
-        sv->end = e;
+        StageFreeThenSetEnd(sv, sv->first, s, n);
         sv->last = s + sv->SizeCall() + 1;
         sv->first = s;
     } else {

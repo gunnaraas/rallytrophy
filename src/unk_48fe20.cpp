@@ -102,6 +102,7 @@ RecordEntry* RecordTable::FUN_00490010(int a, int b, int c, int d)
 // Tried 2026-10-30 night: declaring i after result (i gets ebx) and `!a ? 0 : a*11+2` (jne layout) took 70->61; indexed loops, key/first order, self pointer, tp++ walkers did not help; original keeps this in ebp, key in esi, first in edi, ours allocates them differently (330 vs 341 bytes).
 // Tried 2026-10-31 re-pass: char* p computed from the base (records + list*230*0x60 + 0x54) beside first took 61->43 insns; ~45 variants (decl-order permutations, list/key forms, volatile record/this, rederived first, first[i] stores) stayed at 43; original keeps this in ebp/record in eax short-lived and spills list into the key slot, ours puts this in eax and record in ebp (332 vs 341 bytes).
 // Pass 2026-11-15 (r18): second loop with fresh locals (l2, f2, p2, k) keeps this in ebp like the original: 43 -> 35 insns, 332 -> 328 bytes; first-block decl permutations, scoped i in loop 1, key forms did not move it.
+// 2026-11-25: `register int key` left the 328-byte candidate at 149 differing bytes; restored.
 int RecordTable::FUN_00490050(ScoreRecord* record, int a, int b)
 {
     int result = 0;

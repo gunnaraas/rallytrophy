@@ -34,6 +34,7 @@ struct PStr {
 // NONMATCHING: RALLYTROPHY 0x4b1af0 (inlined std::string/throw construction differs from original)
 // Tried 2026-10-31 re-pass: if(i<n) for(q=...;;) guard loops bloat (+100 bytes) here, only the plain for(i=n,q=v+5;i>0;i--,q+=11) form works; ntris read through an address-taken pointer (ntris spilled like the original) 91->67; still differs: file/ntris-counter ebx/ebp swapped (file gets ebp), mov ecx,esi/lea d placement vs jle, r[7]/r[8] reload rotation, tri-loop store interleave; per-store block temps, p[0..2], p+=3 and PStr/BStr variants no effect.
 // Tried 2026-11-01 twin-idiom re-pass: ReadBatchSmall's named temp for vertex word 6 + volatile first two tri stores, plain ntris (no address-taken pn) 67->34 (969 vs 970 bytes); still differs: file/ntris registers swapped (original file=ebx, ntris=ebp; ours reversed; cnt copies, f aliases, countdown loop, volatile file no effect), lea esi/mov ecx,esi before jle, third add esi,2 one slot early; permute -r 40 found nothing better.
+// 2026-11-26: declaring ntris/nverts/mat in reverse order before the same three reads produced byte-identical code; reverted.
 void ModelFile::ReadBatch(File* file, ModelOut* out)
 {
     int mat = FUN_004af230(file);

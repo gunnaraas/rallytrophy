@@ -218,7 +218,7 @@ int FUN_004a1fe0(HINSTANCE instance)
     return result;
 }
 
-// FUNCTION: RALLYTROPHY 0x4a2440
+// NONMATCHING: RALLYTROPHY 0x4a2440 — full pass 2026-11-25: 1973 differing bytes (3099-byte function).
 // Keep declaration order, but initialize found after binding devices: VC6
 // assigns stack slots by declaration and schedules stores by assignment.
 // Setup dialog: adapter, display mode, sound device and quality options.

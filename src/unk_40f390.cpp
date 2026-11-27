@@ -21,11 +21,29 @@ static __forceinline int RoundF(float v)
 #define FV(p, o) (*(float*)((BYTE*)(p) + (o)))
 #define IV(p, o) (*(int*)((BYTE*)(p) + (o)))
 
+static __forceinline void SumGridRadius(float& out, StageGrid* grid, SceneNode* object)
+{
+    out = grid->radius + object->boundsA.d;
+}
+
 // NONMATCHING: RALLYTROPHY 0x40f390
 // reason: built 2370 vs 2340 bytes, frame 0x80 vs 0x78, 411 insns differ (844 insdiff lines); regalloc: orig keeps gx/gy in eax/edx and cell in ebx, ours gx in edi.
 // Tried 2026-10/11: decl order, this-> direct, pointer-walk/count-down loops, volatile g, cols/rows locals, rd at function scope, cell at function scope, diag sqrt operand orders (no effect).
 // Residual: gx/cell slots swapped (orig gx -0x1c, cell -0x2c), diag prologue fld order, loop-2 obj spilled to its own slot (frame +8).
 // 2026-11-17: `Vec3Slot p` declared at the top of the type-list loop body (before obj), not inside the != 2 arm: 521 -> 411 insns, invW/invH slots match.
+// 2026-11-24: `SumGridRadius(float&, StageGrid*, SceneNode*)` makes both x87 loads
+// match the original operand order. The `int` + FV(object, 0xc4) helper left the
+// 2370-byte build unchanged (2148 differing bytes); the typed-pointer form is
+// 2370 bytes / 2146 differing bytes vs original 2340. Remaining focused hunk is
+// pointer register allocation (original object in ecx, built in eax/ebx).
+// 2026-11-25: a forceinline diagonal helper with separate typed height/width
+// grid parameters, both passed g, left the diagonal x87 sequence unchanged;
+// 2370 bytes / 2146 differing as before. Reverted.
+// 2026-11-25: moving the output reference to the last helper parameter retained
+// 2146 differing bytes and left the object field access in eax; reverted.
+// 2026-11-25: SceneNode& access, a SceneNode* local, a return-by-value helper,
+// and a pointer-to-boundsA.d parameter each retained 2146 differing bytes;
+// reverted. The original float& helper remains the best measured form.
 void StageGrid::FillCells()
 {
     StageGrid* g = this;
@@ -42,7 +60,8 @@ void StageGrid::FillCells()
             unsigned int i;
             for (i = 0; i < (unsigned int)(IV(cell, 0x64) == 0 ? 0 : (IV(cell, 0x68) - IV(cell, 0x64)) >> 2); i++) {
                 int obj = IV(IV(IV(cell, 0x64) + i * 4, 0), 4);
-                float r = g->radius + FV(obj, 0xc4);
+                float r;
+                SumGridRadius(r, g, (SceneNode*)obj);
                 int nx = RoundF((r + diag) * invW) + 1;
                 int ny = RoundF((r + diag) * invH) + 1;
                 int x0 = gx - nx, x1 = nx + gx;
@@ -69,7 +88,8 @@ void StageGrid::FillCells()
                 Vec3Slot p;
                 int obj = IV(IV(IV(cell, 0x74) + i * 4, 0), 4);
                 if (IV(obj, 4) != 2) {
-                    float r = g->radius + FV(obj, 0xc4);
+                    float r;
+                    SumGridRadius(r, g, (SceneNode*)obj);
                     float rd = r + diag;
                     int nx = RoundF(rd * invW) + 1;
                     int ny = RoundF(rd * invH) + 1;
@@ -272,6 +292,7 @@ static __forceinline void GridInsert(GridPtrVec* v, int* P, const int& X)
 // Tried 2026-11-01 re-pass: ~25 variants (while/for-header/goto loop heads, volatile zero local for the ebx=0 compare, i/made/attached/ScenePoint/r,a declaration order, self pointer, ++i in progress expr, volatile flags, len-after-r2); none below 187 insns differ; still differs: loop-head layout (original unrotated, i in ecx, ebx=0 live) and GridInsert block layout.
 // 2026-11-13 pass: 187 -> 87 insns differ (1722 -> 1709 bytes): loops as `while (1)` + break (unrotated), `++k` in progress expr, GridInsert std::max(1,s) order, e/P!=f/last=e+1 forms, per-loop v=&c->records..; left: ecx/eax regs for nodeFirst[k]->node, branch-3 `mov ecx,eax; add eax,-4` vs lea.
 // 2026-11-17: 92 -> 84 insns (1709 -> 1710 bytes): k shares i (one loop var), allRefs.Ins direct, GridInsert f=last;--f. Left: i/made slot swap (made outranks i), orig `mov ebx,eax` nodeFirst copy, `add eax,-4` vs lea/sub (VC6 normalizes += -1 forms), j*0x48 operand order.
+// 2026-11-24: moving `GridRef* made` into the `!attached` block (lifetime/slot-rank hypothesis) left all six normalized instruction hunks unchanged; reverted.
 // original: FUN_0040fcc0
 void StageGrid::Build()
 {

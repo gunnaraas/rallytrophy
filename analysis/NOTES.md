@@ -406,8 +406,10 @@ Do not add such a constructor to the shared HudPoint class: it changes SnowFall:
   j2 write like j1). Recurring blocker in 4 functions (0x443790, 0x44d6a0, 0x403ca0, 0x48bd10): where VC6 stops inlining
   std::string helpers in a function (inline vs call to _Tidy / copy ctor / resize). `#pragma inline_depth` 1-4 and
   `auto_inline(off)` change nothing; `inline_depth(0)` disables all inlining. Needs its own investigation.
-- 0x46c2c0 Wheel::Wheel: the original reloads `this` into ecx and discards it between Reset() and the normal stores,
-  hinting at an inline call with a discarded result there.
+- 0x46c2c0 Wheel::Wheel: correction from REA Evidence `ev_b5a27c938f9d4e57571e7729afa813fbfafd7a40d3656f2983d8bb45a0ef405d`:
+  `mov ecx,[esp+0x14]` at 0x46c398 reloads the prior SEH chain from the prologue, not `this` or an inline-call result; it
+  feeds the final `mov fs:[0],ecx` at 0x46c3f2. The remaining POP EDI / normal.y ordering therefore is not explained by
+  a discarded return value at this point. REA Evidence `ev_9bd588c632a4cb3da9bfc7adaab8c4cbb1f847db42cc0dec76a683f31aaf49f0` also shows Reset ending in RET with EAX still zero, not returning `this`.
 - slotmap.py gives 0 aligned hits on 0x480ce0 (bug to fix); sizegap's "original size" is wrong for some variants of 0x489300.
 
 ## VC6 inline budget, measured (2026-11-12)

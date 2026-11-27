@@ -471,6 +471,7 @@ fail:
 // 2026-11-16 r25: `in += 0x28` before the AI stats copy-out, `s` alias hoisted above the size test in buffer blocks 1/2, player stats loop through `int t = vt[k]` (128 -> 119 insns, 1270 -> 1281 bytes; failure exits still merge, 3 separate epilogues = the 40 byte gap).
 // 2026-11-16 r28: block 0 as `int n = s->size[0]` (test/new/memcpy) with `in += s->size[0] * 4` reloaded, `int u8 = unk8c` before the flags store, level/stage stores hoisted (DAT_00501464 = 1; DAT_0050132c = ...->level before the rally/stage loads): 75 -> 31 insns, 1317 -> 1320 bytes. Left: tail level load uses eax not ecx (mov eax,1 order) and the frame is 4 bytes smaller (0x50 vs 0x54).
 // 2026-11-16 r30 (no gain, 31 insns/1320 bytes): tail eax/ecx unchanged by `one` local, level local, `return DAT_00501472`, chain assignment, r=1 reuse; cipher at function scope/top (72-75 insns), race hoisted before cipher (53-64), cipher scope widened over memcpy/in (89 insns) all worse. Orig EH: cipher shares its slot with later buffer1 temp; orig has 3 temp slots (-60,-56 cipher,-52) where ours has 2.
+// 2026-11-25: using an 11-dword scratch but copying the ten values at `tmp+1`, plus a one-dword prefix in the later FB3_Stats scratch, matches the 0x48 frame and the first buffer's [esp+0x30] home; 1320/1321 bytes, 29 differing bytes (down from 50). A padded CipherHome widened the frame to 0x5c and was reverted. Remaining byte hunks: Decrypt's empty-this home ([esp+0x24] vs target [esp+0x34]), two stack temporaries, and final byte/global register order. Behavior preserved; still NONMATCHING.
 int SlotStore::LoadRelay()
 {
     DAT_00501472 = 0;
@@ -566,16 +567,17 @@ int SlotStore::LoadRelay()
             }
         }
         ((Car*)car)->FUN_0046be50(2);
-        int tmp[10];
-        memcpy(tmp, in, 0x28);
+        int tmp[11];
+        memcpy(tmp + 1, in, 0x28);
         in += 0x28;
-        volatile int* vt = tmp;
+        volatile int* vt = tmp + 1;
         for (int k = 0; k < 10; k++) { int t = vt[k]; player->unk1a28[k] = t; }
         int used = FB3_BODY(this)->stage - 1;
         player->unk1a50 = used;
         for (int i = 0; i < 0x13; i++) {
             Player* ai = new Player(PLAYER_AI, i + 1);
-            FB3_Stats stats;
+            struct StatsScratch { int pad; FB3_Stats value; } statsScratch;
+            FB3_Stats& stats = statsScratch.value;
             memcpy(&stats, in, 0x28);
             in += 0x28;
             memcpy(ai->unk1a28, &stats, 0x28);

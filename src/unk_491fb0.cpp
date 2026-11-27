@@ -1186,6 +1186,7 @@ public:
 // Tried 2026-10-30 night: volatile zero stores of rect.v[1..3] (62->46 insns; original keeps 4 immediate stores + reload of v0); itoa arg locals, unk2c cache, 8 more rect variants worse; still differs in register picks (eax/ecx/edx), rect copy and EH-state store placement.
 // Tried 2026-10-31 re-pass: `Car* car = player->car; m_car = car;` fixes the Slot10 vtable-load placement (46->43); volatile zero stores of all four rect.v (->38); 14 more variants (volatile m_car/localPlayer/active/unk2c/unk28, rect store orders, pointer-based volatile stores) no better; still differs: original rect stores are 4 immediates (ours use ebx zero), EH-state byte store placement after rect copy, `text = title` inline copy register order (eax/edx), _itoa arg eax/ecx pick.
 // Loop 4 (38 insns, 2036 vs 2050 unchanged): no-volatile rect forms (ctor 1s + zero stores, int z, pointer stores) all 59 insns and xor-reg zeros; text.assign forms, delete-m_unk0c local copies, u=unk2c local, reorder.py: no gain.
+// 2026-11-26: a runMode alias for the later uses of `mode` left the generated object byte-identical; reverted.
 // Variant of Run for the alternative Game entry (0x434300): loads the stage, plays the first local player.
 int RaceSession::RunAttract(RaceMode* mode)
 {

@@ -2140,6 +2140,7 @@ int NetRace::GetUnk844()
 // m_players[i]->field directly (original reloads the element after each message byte store) and the clock loop
 // counts down from a hoisted size (no per-iteration size()/bounds check). Still missing: the original caches a
 // zero register (xor ebp,ebp) from the chat block through the host loop; we only cache it in sub-ranges.
+// Tried 2026-11-25: one shared `register int zero` used by the chat and host scalar fields/arguments compiled byte-identically (1403 differing bytes); reverted.
 void NetRace::ServiceNetwork()
 {
     unsigned int i;
@@ -2291,7 +2292,7 @@ void NetRace::ServiceNetwork()
             unk85c = 0;
             int count = m_players.size();
             for (i = 0; (int)i < count; i++) {
-                                out->type = 0;
+                out->type = 0;
                 out->sub = 0;
                 out->id = m_players[i]->id;
                 out->state = m_players[i]->state;

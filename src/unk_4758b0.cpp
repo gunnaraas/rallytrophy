@@ -222,6 +222,7 @@ void Sky::Render(SkyDevice* device, Camera* camera)
 // the loop; copies of camera are propagated away, one extra camera ref un-enregisters this), slots of y/v/ty (+0x10/+0x14),
 // arg-push scheduling around the quad block (helpers for A/B and P stores: no gain), tx/ty order, s CSE (orig `fst s`).
 // Tried before: Sub x2 via POD twin PV; Length sum order z,x,y; vw/vh/vx/vy permutations; iw/ih reorders; kEight global.
+// 2026-11-25: copying q from camera->eyePosition field-by-field to keep the camera pointer live widened the body to 1447 bytes / 944 diffs / 3505 bits (baseline 1437 / 559 / 2079); reverted because it shifted stack slots and the camera/this allocation farther away.
 void Sky::Update(SkyDevice* device, Camera* camera, SkyWorld* world, float dt)
 {
     int hasLens = camera->hasLens;

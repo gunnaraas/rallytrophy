@@ -312,6 +312,8 @@ extern int DAT_00501458;
 // 2026-11-12: all 16 placements of the a/b/mode/flag initialisers (declaration vs both branches) tried; the declaration form (17 insns) stays best.
 // Same size and flow; VC6 gives the four live values (a, b, setup, mode) other registers
 // (original: ebx=0x501428 value, edi=0x50142c value, ebp=setup pointer, esi=mode).
+// 2026-11-25: `register BYTE* setup` left the 354-byte candidate at 38 differing bytes; restored.
+// 2026-11-25: a separate `register int mode` declaration preserved declaration order but also left 38 differences; restored.
 // Tried 2026-10-30 night: local declaration reorders, a/b clamp order and forms, mode/branch/zeroing restructures, Car* temp, permute -r 20 (no MATCH, best 18); register allocation of a/b/setup/mode still differs (22 insns), hand edits only reach 20-21.
 // Tried 2026-10-31 re-pass: ~20 variants (decl order, clamp forms, zeroing-store order, volatile flag, early mode=1); zeroing order setup,flag,b,mode,a gave 22->17; permute -r 40 no MATCH; a/b/setup/mode still get other registers.
 void Player::FUN_00491130()
@@ -483,6 +485,7 @@ int Player::FUN_00491f70()
 // Tried 2026-10-30 night: bool/int copy of copyFrom, inline slopes (worse), ternary offset temps (worse), volatile copy (worse); the mov ecx,[esp+30h]/test still sits after the fsub/fmul pair instead of before them.
 // Tried 2026-10-31 re-pass: volatile copyFrom read at 8 positions (best case moves mov+test one slot too early, 2 insns), split slope decls, plain int copy; permute.py -r 40 found nothing better than the (2,8) baseline.
 // 2026-11-16 (round 32): ~45 more variants (copyFrom copy local at every statement boundary incl. const/!!/unsigned/const param, slopes inline/declared per store, product order, two-if split, goto): all stay at 2 insns; the test position never moves.
+// 2026-11-25 continuation: selecting all five offset values in an early `if (copyFrom)` before s1 widened the frame from 0x20 to 0x28 and moved the conditional/store flow too far ahead; the probe was reverted.
 // 473 vs 473 bytes, 8 bytes differ: the original loads and tests copyFrom (mov ecx,[esp+30h]; test)
 // one FPU op earlier than any source ordering tried (temps, copy local, reordered stores).
 // Turns the u8 fields of two samples into per-field slopes (per ms) and offsets. cdecl.

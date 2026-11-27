@@ -6,6 +6,7 @@
 #include "unk_47c460.h"
 #include "unk_4741a0.h"
 #include "unk_479170.h"
+#include "scene_object.h"
 
 extern int DAT_00501428; // render quality, 2 = high
 extern float DAT_004e1b9c;
@@ -265,6 +266,13 @@ __forceinline void SkCopy(Vec3& d, const Vec3& r)
     d.z = r.z;
 }
 
+__forceinline void SkCopy(Vec3& d, const ScenePoint& r)
+{
+    d.x = r.x;
+    d.y = r.y;
+    d.z = r.z;
+}
+
 // NONMATCHING: RALLYTROPHY 0x4746b0
 // 955 vs 972 bytes, 607 differing bytes. Keep componentwise scaling: REA target evidence
 // ev_67f3ea7db45baa110e290e5d865f5e9d6c3f59005a093d7d924247edaa3d24f2 has no 0x40b0c0 scale-helper call.
@@ -357,7 +365,7 @@ void SkidMarks::AddSegment(Vec3* pos, Vec3* axis, Vec3* fallback, float alpha, i
     side.x *= wx;
     side.y *= w;
     side.z *= w;
-    SkCopy(s->v[0].position, s->a + side);
+    SkCopy(s->v[0].position, (*(ScenePoint*)&s->a) + *(ScenePoint*)&side);
     SkCopy(s->v[1].position, s->a - side);
     SkCopy(s->v[2].position, s->b - side);
     SkCopy(s->v[3].position, s->b + side);

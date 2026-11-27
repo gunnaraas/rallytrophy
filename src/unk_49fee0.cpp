@@ -188,6 +188,7 @@ void AIDriver::FUN_0049ffa0()
 }
 
 // NONMATCHING: RALLYTROPHY 0x4a0420
+// 2026-11-25: reversing the dotV summands in both loops tested the residual x87 term-order hunk but emitted identical code (2615 bytes, 192 differences / 541 bits); reverted. Do not repeat without new evidence.
 // 2026-11-04 (ws-I): EH states and frame (0xb0) now exact. The missing 4th persistent object is a function-scope RotMatrix (empty dtor, state 0) re-initialised by the out-of-line 0x4b5760 (rot.Set(&up,..)); `up` is a block-local Vec3 destroyed before the multiply; Vec3*Rot (0x4b5850) and Sub return plain structs read through eax; p is a Vec3 declared before the Sub call. Left: scheduling/register differences.
 // 2026-11-16 (r29): 208 -> 123 insns differ, 2583 -> 2615 bytes (size exact), 2156 -> 188 differing bytes: best/leftSum/rightSum declared before `rot` (immediate zero stores), separate len2/k2 for axis, `Vec3 up(0,1,0)`, `Vec3 t(*(Vec3*)&unkd4); t.y = 0` and p/dir stores x,z then y, `if (!calls) again = 0` (no `more` temp), first limit branch split into `if (!f) .. else if (!local)`. Left: p lea ecx hoist / register picks in the p loop, `found` mov ebx,1 ordering, dotV term fld order.
 // 2026-11-16 (r30): reorder.py statement order (rightSum decl first, unk104/best, p.x, dir.x/z/y stores): 129 -> 124 insns differ (188 -> 192 bytes, size exact); found/best store order, early lea hoist (Vec3* alias, const ref, found placement) not movable by source.
@@ -518,6 +519,8 @@ float AIDriver::FUN_004a0e60(Obstacle* ob, Vec3* unused)
 
 // NONMATCHING: RALLYTROPHY 0x4a1050
 // 2026-11-15 reg sweep (~25 compiles): side branch matrix before point 18 -> 17 insns (49 bytes unchanged); else-branch swap, hoists, own/car chains, c.* load order all worse; matrix/point temps still edx/eax vs original ecx/ecx.
+// 2026-11-26: defining `own` directly from player->car->body before the `car` alias left the function byte-identical; reverted.
+// 2026-11-26: permute.py -r 30 -n 16 -j 2 -s 20261126 found no exact body; best stayed at baseline (13,49). No candidate was adopted.
 // 2026-11-13 pass: (float) cast on the return expression 14 -> 13 insns (return fld still one slot early elsewhere). No effect: matrix/point decl order, per-branch slot order (side: point first), const/DWORD/void* types, pos/matrix per-use or via car/own (worse), idx placement before/after/in perp or loop head (ebx hoist moves perp stores), named result.
 // Logic complete (819 bytes, 70 -> 18 insns differ). Tried 2026-10-31 re-pass: f scale via `double ls = sqrt(..); float inv2 = (float)(DAT_004e1348 / ls);` (fld dword K; fdiv st,st(1)), ez/ey temps with e.x read directly, idx read after perp. Fixed: `best` assigned after the z add in the side branch
 // (keeps the two y/z add tails from merging), volatile read of `side` for idx (no ebx hoist), e/f sums in original

@@ -331,6 +331,9 @@ static __forceinline void Put2x(float* d, const TyreF2& r, const float* k)
 // cp/record destinations for the first vector copy leave the offset at +0x14 or +0x10.
 // 2026-11-16: per-element multiply form (scale-held-in-local `{ float c_ = scale; cp[k] = c_ * cp[k]; }` on x[1],x[2],c[1],xF[1]) flips fld operand order like the original: 89 -> 77 bytes, 46 -> 44 insns. Still open: z-vector int-store/fmul interleave and scale-first order on z[0], x[0], c[0], xF[0].
 // 2026-11-17: cp = &zStiffness.v[1] (indices shifted -1) gives the original +0x18 bias (44 -> 10 insns); __forceinline Put3 (z) / Put3x (x) / Put2y (xFriction) helpers (copy0, scale0 scale-first, copy rest, scale rest) fix z[0], x[0] and xF[0] operand order: -> 4 insns. Left: x[0] fstp sits after the lea of the next temp (orig before), c[0] fld/fmul order (c0 scale-first or Put2x/Put2y both worse).
+// 2026-11-25: making only Put3x's d[0] output volatile to block the next GetVector2 result-temp lea from overtaking its x87 store worsened the target from 10 bytes / 34 bits to 36 bytes / 100 bits; reverted. Do not repeat this barrier form.
+// 2026-11-25: changing Put3x from __forceinline to inline, then wrapping only its x[0] scale/store in a separate inline helper, both kept 1644/1644 bytes and 10 differing / 34 bits; the next GetVector2 lea still precedes fstp. Reverted both forms.
+// 2026-11-25 continuation: `permute.py -r 20 -n 24 -j 2` (seed 20261125) kept the best at 2 differing instructions / 10 bytes; no candidate matched, source unchanged.
 void Car::FUN_00465e90(int value)
 {
     CarSetupView* v = (CarSetupView*)this;

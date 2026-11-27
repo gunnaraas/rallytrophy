@@ -631,6 +631,7 @@ int SkySampleBit(SkyTexOwner*, const unsigned short*, int, float*)
 // Tried 2026-10-31: literals (65536.0f, 1/65536, 0.5f) not globals, m=0 then obj?map, early return, int masks, 60 shuffled decl orders; 34 insns differ, remaining is int reg allocation (u1/row0/r0 in wrong regs, r0/r1 spill).
 // Tried 2026-10-31 re-pass: fx/fy as refs to dead tri/t param slots (worse, 52-64), 40 random statement-order shuffles (best 36), volatile r0/r1/acc, operand swaps (best 33); original computes fx and fy back to back with one hoisted zero and r0 in eax, r1 in the verts slot, but ours hoists the r0/r1 imuls early and spills both.
 // Tried 2026-11-16 (round 22): p1 as a running copy of m->bits (p1 += u1 >> 3) 34 -> 31 insns (659 bytes); 110 more decl-order shuffles, inline row0/r0/r1, early fx/fy, row1 local, branch neighbour all worse; r0/r1 imuls still hoisted before the fx/fy filds.
+// 2026-11-26: permute.py -r 40 -n 20 -j 2 -s 20261126 found no exact body; best interim score (30,187) was worse in bytes than baseline (31,183), so no variant was adopted.
 float SkySampleBilinear(SkyTexOwner* t, const unsigned short* tri, int verts, float* point)
 {
     SkyShadeMap* m;

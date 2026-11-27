@@ -3764,6 +3764,10 @@ struct G13_WarpPoint {
 // Tried 2026-11-14: wait=0 moved to loop end (+first=1/choice=choice), trailing continue, for(;cond;) head, BeginScene if-wrap, string in inner block, first/choice/wait reorder: none beat 1 insn (back-edge swap).
 // Pass 2026-11-16 (agent, ~45 variants): the true diff is the two top stores [esp+1c]/[esp+10] (wait/choice) swapped; decl order wait,choice,first fixes it but flips the back-edge mov edi,1/xor ebx,ebx. Also no change: pointer/unsigned/bool types for wait/first/choice, init-from-another-local (!wait, first=choice, one=1), x/y/color decl moves, for(;;), extra locals, return !choice. Slots (slotmap) already equal.
 // Pass 2026-11-16 (inline-helper lever, ~200 compiles): Set0/Set1/Init helpers for wait/choice/first in all declaration x helper-order combos (147) plus in-loop helper stores: only three outcomes, prologue swap (4B), first store hoisted (5B), back-edge swap (6B); never combined, no gain over 1 insn.
+// 2026-11-25 continuation: `register int first` leaves the sole 4-byte choice/wait prologue-store swap unchanged; reverted.
+// 2026-11-25 continuation: inline-asm stores to uninitialized `choice`, `wait`, and `first` forced an EBP frame, changed the remaining function schedule, and triggered C4405 for `wait`; reverted.
+// 2026-11-25 continuation: `permute.py -r 30 -n 16 -j 2` (seed 20261126) kept the best at 1 differing instruction / 4 bytes; no candidate matched or was adopted.
+// 2026-11-26: uninitialized choice/wait/first with `wait=0; __asm {}; choice=1; first=1;` forced an EBP frame and rewrote the function-wide register/stack schedule; focused diff expanded far beyond the four-byte baseline. Reverted.
 // Modal "question / Yes / No" dialog: Left/Right or the mouse pick the answer, Enter or a click confirms, Esc cancels.
 // Returns 1 for Yes (class Game in the merged header). original: FUN_00436250
 int GameObj::FUN_00436250(MenuScreen* screen)
